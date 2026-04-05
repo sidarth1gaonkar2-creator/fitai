@@ -1,0 +1,10 @@
+- [User Profile](user_flutter_dev.md) — Flutter developer building FitAI with Riverpod/Isar/go_router/Material 3
+- [Project Stack](project_stack.md) — Tech stack, package versions, and key architecture decisions
+- [UI Patterns - Shimmer](ui_shimmer_pattern.md) — Custom shimmer system already built; no external package used
+- [UI Patterns - Theme](ui_theme_pattern.md) — Seed color, token usage conventions, light/dark approach
+- [Dashboard Widget Map](project_dashboard_widgets.md) — What each dashboard widget does and how it loads data
+- [Onboarding Step Map](project_onboarding_steps.md) — All 6 onboarding steps, what they collect, current visual state
+- [Nutrition Redesign Plan](project_nutrition_redesign_plan.md) — Cronometer-style redesign: micros, CompletedDay model, colour-coded macros
+- [Phase 5 Widget Map](project_phase5_widgets.md) — All Phase 5 UI files: paths, patterns, macro colour coding, muscle diagram, templates
+- [Known Bugs and Fixes](project_known_bugs.md) — Confirmed bugs with exact file/line, root cause, and fix plan for all 6 items
+- [UI Overhaul Plan](project_ui_overhaul_plan.md) — Fix 6 design system: emerald theme, Outfit+DM Sans, AnimatedScreenEntry, icon audit
