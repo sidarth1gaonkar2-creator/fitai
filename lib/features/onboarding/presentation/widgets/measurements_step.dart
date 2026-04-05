@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/validators.dart';
 import '../onboarding_controller.dart';
 import 'onboarding_illustration.dart';
@@ -68,22 +69,35 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 16),
-          const Center(child: OnboardingIllustration(icon: Icons.monitor_weight_outlined)),
+          const Center(
+            child: OnboardingIllustration(icon: Icons.monitor_weight_outlined),
+          ),
           const SizedBox(height: 24),
           Text(
             'Your measurements',
-            style: Theme.of(context).textTheme.headlineMedium,
+            style: textTheme.headlineMedium?.copyWith(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 28,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Used for accurate calorie and macro calculations.',
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: textTheme.bodyLarge?.copyWith(
+              fontFamily: 'LeagueSpartan',
+              fontWeight: FontWeight.w400,
+              color: AppColors.purpleLight,
+            ),
           ),
           const SizedBox(height: 32),
           TextField(
@@ -112,17 +126,13 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
             onChanged: _onHeightChanged,
           ),
           const Spacer(),
-          FilledButton(
-            onPressed: _isValid ? _submit : null,
-            child: const Text('Next'),
-          ),
+          _NextButton(isValid: _isValid, onPressed: _submit),
         ],
       ),
     );
   }
 
   void _submit() {
-    // Validate synchronously before advancing
     final wError = validateWeight(_weightController.text);
     final hError = validateHeight(_heightController.text);
     if (wError != null || hError != null) {
@@ -139,5 +149,56 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
     controller.setWeight(double.parse(_weightController.text));
     controller.setHeight(double.parse(_heightController.text));
     controller.nextStep();
+  }
+}
+
+class _NextButton extends StatelessWidget {
+  const _NextButton({required this.isValid, required this.onPressed});
+
+  final bool isValid;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isValid) {
+      return FilledButton(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.lime,
+          foregroundColor: Colors.black,
+          minimumSize: const Size.fromHeight(52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: const Text(
+          'Next',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+
+    return OutlinedButton(
+      onPressed: null,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(52),
+        foregroundColor: Colors.white,
+        side: const BorderSide(color: Colors.white, width: 1.5),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        disabledForegroundColor: Colors.white.withValues(alpha: 0.4),
+      ),
+      child: const Text(
+        'Next',
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class WorkoutCalendar extends StatefulWidget {
   const WorkoutCalendar({
@@ -41,7 +42,6 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final today = DateTime.now();
     final todayNorm = DateTime(today.year, today.month, today.day);
@@ -68,7 +68,7 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
               children: [
                 IconButton(
                   onPressed: _previousMonth,
-                  icon: const Icon(Icons.chevron_left),
+                  icon: const Icon(Icons.chevron_left, color: AppColors.purple),
                 ),
                 Text(
                   '$monthName $year',
@@ -77,7 +77,7 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
                 ),
                 IconButton(
                   onPressed: _nextMonth,
-                  icon: const Icon(Icons.chevron_right),
+                  icon: const Icon(Icons.chevron_right, color: AppColors.purple),
                 ),
               ],
             ),
@@ -90,7 +90,7 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
                           child: Text(
                             d,
                             style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
+                              color: AppColors.purple,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -128,9 +128,9 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
                   child: Container(
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? colorScheme.primaryContainer
+                          ? AppColors.lime
                           : isToday
-                              ? colorScheme.surfaceContainerHighest
+                              ? AppColors.purple.withValues(alpha: 0.2)
                               : null,
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -142,9 +142,7 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
                           style: textTheme.bodySmall?.copyWith(
                             fontWeight:
                                 isToday ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected
-                                ? colorScheme.onPrimaryContainer
-                                : null,
+                            color: isSelected ? Colors.black : null,
                           ),
                         ),
                         if (hasWorkout)
@@ -155,8 +153,8 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: isSelected
-                                  ? colorScheme.onPrimaryContainer
-                                  : colorScheme.primary,
+                                  ? Colors.black
+                                  : AppColors.lime,
                             ),
                           ),
                       ],

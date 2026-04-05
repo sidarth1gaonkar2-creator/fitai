@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class OnboardingIllustration extends StatelessWidget {
   const OnboardingIllustration({
@@ -10,8 +11,6 @@ class OnboardingIllustration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.6, end: 1.0),
       duration: const Duration(milliseconds: 400),
@@ -34,14 +33,14 @@ class OnboardingIllustration extends StatelessWidget {
       child: Container(
         width: 120,
         height: 120,
-        decoration: BoxDecoration(
-          color: colorScheme.primaryContainer,
+        decoration: const BoxDecoration(
+          color: AppColors.purpleDark,
           shape: BoxShape.circle,
         ),
         child: Icon(
           icon,
           size: 56,
-          color: colorScheme.onPrimaryContainer,
+          color: AppColors.lime,
         ),
       ),
     );

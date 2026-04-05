@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../models/enums.dart';
 
 class ChatBubble extends StatelessWidget {
@@ -17,15 +18,10 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final bgColor = _isUser
-        ? colorScheme.primaryContainer
-        : colorScheme.surfaceContainerHigh;
-    final fgColor = _isUser
-        ? colorScheme.onPrimaryContainer
-        : colorScheme.onSurface;
+    final bgColor = _isUser ? AppColors.lime : AppColors.darkSurface;
+    final fgColor = _isUser ? Colors.black : Colors.white;
 
     final borderRadius = BorderRadius.only(
       topLeft: const Radius.circular(16),
@@ -46,13 +42,20 @@ class ChatBubble extends StatelessWidget {
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: borderRadius,
+            border: _isUser
+                ? null
+                : Border.all(color: AppColors.darkSurfaceBorder),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 content,
-                style: textTheme.bodyMedium?.copyWith(color: fgColor),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: fgColor,
+                  fontWeight:
+                      _isUser ? FontWeight.w500 : FontWeight.normal,
+                ),
               ),
               if (timestamp != null) ...[
                 const SizedBox(height: 4),
@@ -60,7 +63,6 @@ class ChatBubble extends StatelessWidget {
                   _formatTime(timestamp!),
                   style: textTheme.bodySmall?.copyWith(
                     color: fgColor.withValues(alpha: 0.5),
-                    fontSize: 11,
                   ),
                 ),
               ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class SelectableCard extends StatelessWidget {
   const SelectableCard({
@@ -19,36 +20,58 @@ class SelectableCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Card(
-      color: isSelected ? colorScheme.primaryContainer : null,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: isSelected ? AppColors.lime : AppColors.darkSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected
+              ? AppColors.lime
+              : AppColors.darkSurfaceBorder,
+          width: 1,
+        ),
+      ),
       child: InkWell(
         onTap: () {
           HapticFeedback.lightImpact();
           onTap();
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        splashColor: Colors.white.withValues(alpha: 0.08),
+        highlightColor: Colors.white.withValues(alpha: 0.04),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           child: Row(
             children: [
-              Icon(
-                icon,
-                color: isSelected ? colorScheme.onPrimaryContainer : null,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: AppColors.purpleDark,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: isSelected ? AppColors.lime : AppColors.purpleLight,
+                ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       title,
                       style: textTheme.titleMedium?.copyWith(
-                        color: isSelected
-                            ? colorScheme.onPrimaryContainer
-                            : null,
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? Colors.black : Colors.white,
                       ),
                     ),
                     if (subtitle != null) ...[
@@ -56,9 +79,11 @@ class SelectableCard extends StatelessWidget {
                       Text(
                         subtitle!,
                         style: textTheme.bodySmall?.copyWith(
+                          fontFamily: 'LeagueSpartan',
+                          fontWeight: FontWeight.w400,
                           color: isSelected
-                              ? colorScheme.onPrimaryContainer
-                              : colorScheme.onSurfaceVariant,
+                              ? Colors.black.withValues(alpha: 0.7)
+                              : AppColors.purpleLight,
                         ),
                       ),
                     ],
@@ -66,7 +91,11 @@ class SelectableCard extends StatelessWidget {
                 ),
               ),
               if (isSelected)
-                Icon(Icons.check_circle, color: colorScheme.primary),
+                const Icon(
+                  Icons.check_circle,
+                  color: Colors.black,
+                  size: 22,
+                ),
             ],
           ),
         ),

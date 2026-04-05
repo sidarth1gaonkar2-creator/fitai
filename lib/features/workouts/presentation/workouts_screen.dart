@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../providers/workout_providers.dart';
@@ -36,15 +38,22 @@ class _WorkoutsScreenState extends ConsumerState<WorkoutsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Workouts'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'History'),
-            Tab(text: 'Templates'),
-          ],
+        title: Text(
+          'Workouts',
+          style: textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: _PillTabBar(controller: _tabController),
+          ),
         ),
       ),
       body: TabBarView(
@@ -60,10 +69,100 @@ class _WorkoutsScreenState extends ConsumerState<WorkoutsScreen>
           if (_tabController.index != 0) return const SizedBox.shrink();
           return FloatingActionButton.extended(
             onPressed: () => context.go('/workouts/new'),
+            backgroundColor: AppColors.lime,
+            foregroundColor: Colors.black,
             icon: const Icon(Icons.add),
-            label: const Text('Start Workout'),
+            label: Text(
+              'Start Workout',
+              style: textTheme.labelLarge?.copyWith(
+                color: Colors.black,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           );
         },
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pill tab bar
+// ---------------------------------------------------------------------------
+
+class _PillTabBar extends StatefulWidget {
+  const _PillTabBar({required this.controller});
+
+  final TabController controller;
+
+  @override
+  State<_PillTabBar> createState() => _PillTabBarState();
+}
+
+class _PillTabBarState extends State<_PillTabBar> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onTabChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onTabChanged);
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    const tabs = ['History', 'Templates'];
+
+    return Container(
+      height: 52,
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: AppColors.darkSurfaceBorder),
+      ),
+      child: Row(
+        children: List.generate(tabs.length, (index) {
+          final isActive = widget.controller.index == index;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                widget.controller.animateTo(index);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                margin: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: isActive ? AppColors.lime : Colors.transparent,
+                  borderRadius: BorderRadius.circular(23),
+                  border: isActive
+                      ? null
+                      : Border.all(
+                          color: AppColors.purple.withValues(alpha: 0.5),
+                        ),
+                ),
+                child: Center(
+                  child: Text(
+                    tabs[index],
+                    style: textTheme.labelMedium?.copyWith(
+                      color: isActive ? Colors.black : AppColors.purple,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }

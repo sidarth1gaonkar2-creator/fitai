@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_colors.dart';
 import 'onboarding_controller.dart';
 import 'widgets/activity_step.dart';
 import 'widgets/body_info_step.dart';
@@ -69,37 +70,53 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Welcome to FitAI')),
-        body: const Center(child: CircularProgressIndicator()),
+        backgroundColor: AppColors.darkBackground,
+        appBar: AppBar(
+          backgroundColor: AppColors.purple,
+          title: const Text(
+            'Welcome to FitAI',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.lime),
+        ),
       );
     }
 
-    // Determine animation direction for child steps
     final goingForward = previousStep == null || step > previousStep;
 
     return Scaffold(
+      backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
-        title: const Text('Welcome to FitAI'),
+        backgroundColor: AppColors.purple,
+        title: const Text(
+          'Welcome to FitAI',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
         leading: step > 0
             ? IconButton(
-                icon: const Icon(Icons.arrow_back),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
                 onPressed: () => ref
                     .read(onboardingControllerProvider.notifier)
                     .previousStep(),
               )
             : null,
+        elevation: 0,
       ),
       body: Column(
         children: [
-          TweenAnimationBuilder<double>(
-            tween: Tween(
-              begin: step / AppConstants.onboardingStepCount,
-              end: (step + 1) / AppConstants.onboardingStepCount,
-            ),
-            duration: const Duration(milliseconds: 320),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, _) =>
-                LinearProgressIndicator(value: value),
+          _DotProgressIndicator(
+            totalSteps: AppConstants.onboardingStepCount,
+            currentStep: step,
           ),
           Expanded(
             child: PageView(
@@ -116,6 +133,45 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DotProgressIndicator extends StatelessWidget {
+  const _DotProgressIndicator({
+    required this.totalSteps,
+    required this.currentStep,
+  });
+
+  final int totalSteps;
+  final int currentStep;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.purple,
+      padding: const EdgeInsets.only(bottom: 16, top: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(totalSteps, (index) {
+          final isActive = index == currentStep;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              width: isActive ? 20 : 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: isActive
+                    ? AppColors.lime
+                    : Colors.white.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }
@@ -138,7 +194,7 @@ class _AnimatedStepState extends State<_AnimatedStep>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _fadeAnimation;
-  late final Animation<Offset> _slideAnimation;
+  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {

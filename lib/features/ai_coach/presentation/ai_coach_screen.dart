@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../models/enums.dart';
 import '../../../providers/ai_coach_providers.dart';
 import 'widgets/chat_bubble.dart';
@@ -34,11 +35,13 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
     });
   }
 
+  void _sendMessage(String text) {
+    ref.read(aiChatControllerProvider.notifier).sendMessage(text);
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(aiChatControllerProvider);
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
     // Show error as SnackBar
     ref.listen<String?>(
@@ -92,10 +95,9 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
       ),
       body: Column(
         children: [
-          // Chat messages
           Expanded(
             child: chatState.messages.isEmpty && !isBusy
-                ? _EmptyState(textTheme: textTheme, colorScheme: colorScheme)
+                ? _EmptyState(onPromptTapped: _sendMessage)
                 : ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.symmetric(
@@ -104,7 +106,6 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
                         (chatState.isWaitingForStream ? 1 : 0) +
                         (chatState.isStreaming ? 1 : 0),
                     itemBuilder: (context, index) {
-                      // Persisted messages
                       if (index < chatState.messages.length) {
                         final msg = chatState.messages[index];
                         return ChatBubble(
@@ -114,12 +115,10 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
                         );
                       }
 
-                      // Typing indicator (waiting for first token)
                       if (chatState.isWaitingForStream) {
                         return const TypingIndicator();
                       }
 
-                      // Streaming bubble (partial response)
                       if (chatState.isStreaming) {
                         return ChatBubble(
                           role: MessageRole.assistant,
@@ -131,11 +130,9 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
                     },
                   ),
           ),
-          // Input bar
           ChatInputBar(
             enabled: !isBusy,
-            onSend: (text) =>
-                ref.read(aiChatControllerProvider.notifier).sendMessage(text),
+            onSend: _sendMessage,
           ),
         ],
       ),
@@ -168,40 +165,97 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.textTheme, required this.colorScheme});
+  const _EmptyState({required this.onPromptTapped});
 
-  final TextTheme textTheme;
-  final ColorScheme colorScheme;
+  final void Function(String prompt) onPromptTapped;
+
+  static const _suggestedPrompts = [
+    'How can I improve my diet?',
+    'Suggest a workout plan',
+    'Help me hit my protein target',
+  ];
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.smart_toy_outlined,
-              size: 56,
-              color: colorScheme.onSurfaceVariant,
+            Container(
+              width: 80,
+              height: 80,
+              decoration: const BoxDecoration(
+                color: AppColors.purpleDark,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.smart_toy_rounded,
+                size: 40,
+                color: Colors.white,
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Text(
-              'Your AI Coach',
-              style: textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Ask me about your training, nutrition, or any fitness question. '
-              "I have access to your workout and nutrition data so I can give "
-              'personalised advice.',
+              'Ask me anything about your fitness journey',
               textAlign: TextAlign.center,
-              style: textTheme.bodyMedium
-                  ?.copyWith(color: colorScheme.onSurfaceVariant),
+              style: textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: _suggestedPrompts
+                  .map((prompt) => _SuggestedPromptChip(
+                        label: prompt,
+                        onTap: () => onPromptTapped(prompt),
+                      ))
+                  .toList(),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SuggestedPromptChip extends StatelessWidget {
+  const _SuggestedPromptChip({
+    required this.label,
+    required this.onTap,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        constraints: const BoxConstraints(minHeight: 48),
+        decoration: BoxDecoration(
+          border: Border.all(color: colorScheme.onSurface.withValues(alpha: 0.5), width: 1),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Text(
+          label,
+          style: textTheme.bodyMedium?.copyWith(
+            color: colorScheme.primary,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );

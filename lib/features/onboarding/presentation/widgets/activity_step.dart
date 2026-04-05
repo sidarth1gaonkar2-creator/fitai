@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../models/enums.dart';
 import '../onboarding_controller.dart';
 import 'onboarding_illustration.dart';
@@ -31,22 +32,35 @@ class _ActivityStepState extends ConsumerState<ActivityStep> {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 16),
-          const Center(child: OnboardingIllustration(icon: Icons.directions_run)),
+          const Center(
+            child: OnboardingIllustration(icon: Icons.directions_run),
+          ),
           const SizedBox(height: 24),
           Text(
             'How active are you?',
-            style: Theme.of(context).textTheme.headlineMedium,
+            style: textTheme.headlineMedium?.copyWith(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 28,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Be honest — this affects your daily calorie target.',
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: textTheme.bodyLarge?.copyWith(
+              fontFamily: 'LeagueSpartan',
+              fontWeight: FontWeight.w400,
+              color: AppColors.purpleLight,
+            ),
           ),
           const SizedBox(height: 24),
           Expanded(
@@ -65,9 +79,9 @@ class _ActivityStepState extends ConsumerState<ActivityStep> {
               }).toList(),
             ),
           ),
-          FilledButton(
-            onPressed: _selectedLevel != null ? _submit : null,
-            child: const Text('Next'),
+          _NextButton(
+            isValid: _selectedLevel != null,
+            onPressed: _submit,
           ),
         ],
       ),
@@ -78,5 +92,56 @@ class _ActivityStepState extends ConsumerState<ActivityStep> {
     final controller = ref.read(onboardingControllerProvider.notifier);
     controller.setActivityLevel(_selectedLevel!);
     controller.nextStep();
+  }
+}
+
+class _NextButton extends StatelessWidget {
+  const _NextButton({required this.isValid, required this.onPressed});
+
+  final bool isValid;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isValid) {
+      return FilledButton(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.lime,
+          foregroundColor: Colors.black,
+          minimumSize: const Size.fromHeight(52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: const Text(
+          'Next',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+
+    return OutlinedButton(
+      onPressed: null,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(52),
+        foregroundColor: Colors.white,
+        side: const BorderSide(color: Colors.white, width: 1.5),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        disabledForegroundColor: Colors.white.withValues(alpha: 0.4),
+      ),
+      child: const Text(
+        'Next',
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 }

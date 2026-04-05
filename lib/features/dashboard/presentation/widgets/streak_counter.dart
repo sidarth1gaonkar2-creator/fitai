@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class StreakCounter extends StatelessWidget {
   const StreakCounter({super.key, required this.streak});
@@ -7,32 +8,35 @@ class StreakCounter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Card.filled(
-      color: colorScheme.primaryContainer,
-      child: Padding(
+    return Semantics(
+      label: '$streak day streak',
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.purpleDark,
+          borderRadius: BorderRadius.circular(12),
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Column(
           children: [
-            Icon(
+            const Icon(
               Icons.local_fire_department,
               size: 32,
-              color: colorScheme.onPrimaryContainer,
+              color: AppColors.lime,
             ),
             const SizedBox(height: 4),
             Text(
               streak.toString(),
               style: textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
             ),
             Text(
               'day streak',
               style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onPrimaryContainer,
+                color: Colors.white,
               ),
             ),
           ],

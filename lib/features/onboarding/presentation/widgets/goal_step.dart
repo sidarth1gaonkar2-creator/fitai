@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../models/enums.dart';
 import '../onboarding_controller.dart';
 import 'onboarding_illustration.dart';
@@ -29,6 +30,8 @@ class _GoalStepState extends ConsumerState<GoalStep> {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -39,12 +42,21 @@ class _GoalStepState extends ConsumerState<GoalStep> {
           const SizedBox(height: 24),
           Text(
             "What's your goal?",
-            style: Theme.of(context).textTheme.headlineMedium,
+            style: textTheme.headlineMedium?.copyWith(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 28,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             "We'll tailor your nutrition targets accordingly.",
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: textTheme.bodyLarge?.copyWith(
+              fontFamily: 'LeagueSpartan',
+              fontWeight: FontWeight.w400,
+              color: AppColors.purpleLight,
+            ),
           ),
           const SizedBox(height: 32),
           ...Goal.values.map(
@@ -59,9 +71,9 @@ class _GoalStepState extends ConsumerState<GoalStep> {
             ),
           ),
           const Spacer(),
-          FilledButton(
-            onPressed: _selectedGoal != null ? _submit : null,
-            child: const Text('Next'),
+          _NextButton(
+            isValid: _selectedGoal != null,
+            onPressed: _submit,
           ),
         ],
       ),
@@ -72,5 +84,56 @@ class _GoalStepState extends ConsumerState<GoalStep> {
     final controller = ref.read(onboardingControllerProvider.notifier);
     controller.setGoal(_selectedGoal!);
     controller.nextStep();
+  }
+}
+
+class _NextButton extends StatelessWidget {
+  const _NextButton({required this.isValid, required this.onPressed});
+
+  final bool isValid;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isValid) {
+      return FilledButton(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.lime,
+          foregroundColor: Colors.black,
+          minimumSize: const Size.fromHeight(52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: const Text(
+          'Next',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+
+    return OutlinedButton(
+      onPressed: null,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(52),
+        foregroundColor: Colors.white,
+        side: const BorderSide(color: Colors.white, width: 1.5),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        disabledForegroundColor: Colors.white.withValues(alpha: 0.4),
+      ),
+      child: const Text(
+        'Next',
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 }

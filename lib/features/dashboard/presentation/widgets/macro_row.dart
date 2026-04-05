@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/macro_targets.dart';
 import '../../../../models/enums.dart';
 
@@ -23,7 +24,6 @@ class MacroRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final targets = _targets;
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Row(
       children: [
@@ -32,7 +32,7 @@ class MacroRow extends StatelessWidget {
             label: 'Protein',
             current: proteinGrams,
             target: targets.protein,
-            color: colorScheme.primary,
+            color: AppColors.purple,
           ),
         ),
         const SizedBox(width: 12),
@@ -41,7 +41,7 @@ class MacroRow extends StatelessWidget {
             label: 'Carbs',
             current: carbsGrams,
             target: targets.carbs,
-            color: colorScheme.tertiary,
+            color: AppColors.purpleLight,
           ),
         ),
         const SizedBox(width: 12),
@@ -50,7 +50,7 @@ class MacroRow extends StatelessWidget {
             label: 'Fat',
             current: fatGrams,
             target: targets.fat,
-            color: colorScheme.secondary,
+            color: AppColors.lime,
           ),
         ),
       ],
@@ -74,7 +74,6 @@ class _MacroBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
     final progress = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
 
     return Column(
@@ -83,7 +82,7 @@ class _MacroBar extends StatelessWidget {
         Text(
           label,
           style: textTheme.labelMedium?.copyWith(
-            color: colorScheme.onSurfaceVariant,
+            color: AppColors.darkTextSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -92,15 +91,15 @@ class _MacroBar extends StatelessWidget {
           child: LinearProgressIndicator(
             value: progress,
             minHeight: 8,
-            backgroundColor: colorScheme.surfaceContainerHighest,
+            backgroundColor: AppColors.darkSurface,
             color: color,
           ),
         ),
         const SizedBox(height: 4),
         Text(
-          '${current.toInt()}g / ${target.toInt()}g',
+          '${current.toInt()}g / ${target.toInt()}g (${target > 0 ? ((current / target) * 100).toInt() : 0}%)',
           style: textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],

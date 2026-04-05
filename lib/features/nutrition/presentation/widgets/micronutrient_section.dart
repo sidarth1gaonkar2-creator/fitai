@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/micro_rdas.dart';
+import '../../../../core/theme/app_colors.dart';
 
 /// Collapsible card showing 10 tracked micronutrients vs their RDA targets.
 /// Sodium colour logic is inverted (red when over the upper limit).
@@ -17,26 +18,17 @@ class MicronutrientSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
-    final tracked = consumed.entries
-        .where((e) => e.value > 0)
-        .map((e) => e.key)
-        .toList();
-    final untracked = consumed.entries
-        .where((e) => e.value == 0)
-        .map((e) => e.key)
-        .toList();
-
-    return Card.filled(
+    return Card(
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
         childrenPadding: const EdgeInsets.symmetric(horizontal: 12),
         initiallyExpanded: false,
-        leading: Icon(
+        leading: const Icon(
           Icons.science_outlined,
-          color: colorScheme.primary,
+          color: AppColors.purple,
           size: 22,
         ),
         title: Text(
@@ -44,50 +36,34 @@ class MicronutrientSection extends StatelessWidget {
           style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
-          '$_trackedCount of ${microRdaTargets.length} nutrients tracked today',
+          _trackedCount > 0
+              ? '$_trackedCount of ${microRdaTargets.length} nutrients tracked today'
+              : 'Track food to see your nutrient targets',
           style: textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
         ),
         children: [
-          if (tracked.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 4),
-              child: Column(
-                children: tracked
-                    .map((key) => _MicronutrientRow(
-                          name: key,
-                          consumed: consumed[key] ?? 0,
-                          target: microRdaTargets[key] ?? 0,
-                          isSodium: key == sodiumKey,
-                        ))
-                    .toList(),
-              ),
-            ),
-          ],
-          if (untracked.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 14,
-                    color: colorScheme.onSurfaceVariant,
+          // Always show all nutrient rows — tracked ones at full opacity,
+          // untracked ones at 40% opacity.
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 4),
+            child: Column(
+              children: microRdaTargets.keys.map((key) {
+                final value = consumed[key] ?? 0;
+                final isTracked = value > 0;
+                return Opacity(
+                  opacity: isTracked ? 1.0 : 0.4,
+                  child: _MicronutrientRow(
+                    name: key,
+                    consumed: value,
+                    target: microRdaTargets[key] ?? 0,
+                    isSodium: key == sodiumKey,
                   ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'Not tracked today: ${untracked.join(', ')}',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                );
+              }).toList(),
             ),
-          ],
+          ),
           const SizedBox(height: 12),
         ],
       ),
@@ -122,20 +98,19 @@ class _MicronutrientRow extends StatelessWidget {
   }
 
   Color _barColor(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    if (target <= 0) return colorScheme.primary;
+    if (target <= 0) return AppColors.purple;
     final ratio = consumed / target;
 
     if (isSodium) {
-      // Sodium: green when under 90%, yellow 90-100%, red when over
-      if (ratio > 1.0) return colorScheme.error;
-      if (ratio > 0.9) return colorScheme.secondary;
-      return colorScheme.primary;
+      // Sodium: normal when under 90%, over = red
+      if (ratio > 1.0) return AppColors.error;
+      if (ratio > 0.9) return AppColors.lime;
+      return AppColors.purple;
     }
 
-    if (ratio > 1.1) return colorScheme.error;
-    if (ratio >= 0.9) return colorScheme.secondary;
-    return colorScheme.primary;
+    if (ratio > 1.1) return AppColors.error;
+    if (ratio >= 0.9) return AppColors.lime;
+    return AppColors.purple;
   }
 
   @override

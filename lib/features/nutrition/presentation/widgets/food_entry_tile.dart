@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../models/food_entry.dart';
 
 class FoodEntryTile extends StatelessWidget {
@@ -31,8 +32,10 @@ class FoodEntryTile extends StatelessWidget {
               children: [
                 Text(
                   entry.name,
-                  style: textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w500),
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w500,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -44,17 +47,20 @@ class FoodEntryTile extends StatelessWidget {
                     _MacroTag(
                       label: 'P',
                       grams: entry.protein,
-                      color: colorScheme.primary,
+                      bgColor: AppColors.purple.withValues(alpha: 0.12),
+                      textColor: AppColors.purple,
                     ),
                     _MacroTag(
                       label: 'C',
                       grams: entry.carbs,
-                      color: colorScheme.tertiary,
+                      bgColor: AppColors.purpleLight.withValues(alpha: 0.12),
+                      textColor: AppColors.purpleLight,
                     ),
                     _MacroTag(
                       label: 'F',
                       grams: entry.fat,
-                      color: colorScheme.secondary,
+                      bgColor: AppColors.lime.withValues(alpha: 0.12),
+                      textColor: const Color(0xFF7A9000),
                     ),
                     if (entry.servingSize != null)
                       _ServingTag(
@@ -69,8 +75,10 @@ class FoodEntryTile extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             '${entry.calories.toInt()}',
-            style:
-                textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.lime,
+            ),
           ),
           Text(
             ' kcal',
@@ -115,12 +123,14 @@ class _MacroTag extends StatelessWidget {
   const _MacroTag({
     required this.label,
     required this.grams,
-    required this.color,
+    required this.bgColor,
+    required this.textColor,
   });
 
   final String label;
   final double grams;
-  final Color color;
+  final Color bgColor;
+  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
@@ -129,13 +139,13 @@ class _MacroTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: bgColor,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         '$label ${grams.toInt()}g',
         style: textTheme.labelSmall?.copyWith(
-          color: color,
+          color: textColor,
           fontWeight: FontWeight.w600,
         ),
       ),

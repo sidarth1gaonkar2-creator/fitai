@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/nutrition_providers.dart';
 
 /// Shows a "Complete Day" button when the day is not yet completed,
@@ -39,7 +40,10 @@ class CompleteDayButton extends ConsumerWidget {
             onComplete: () async {
               HapticFeedback.mediumImpact();
               final success = await completeDay(ref);
-              if (!success && context.mounted) {
+              if (!context.mounted) return;
+              if (success) {
+                _showTrophySheet(context, ref);
+              } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(
@@ -57,6 +61,63 @@ class CompleteDayButton extends ConsumerWidget {
           onUnlock: () => _showUnlockDialog(context, ref),
         );
       },
+    );
+  }
+
+  void _showTrophySheet(BuildContext context, WidgetRef ref) {
+    final completedDay = ref.read(todayCompletedDayProvider).valueOrNull;
+    final macrosHit = completedDay?.macrosHit ?? false;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: const BoxDecoration(
+                color: AppColors.purpleDark,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.emoji_events,
+                size: 44,
+                color: AppColors.lime,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              macrosHit ? 'All Macros Hit!' : 'Day Complete!',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.lime,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              macrosHit
+                  ? 'Amazing work! You nailed your nutrition targets today.'
+                  : 'Great job logging your nutrition today. Keep it up!',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Continue'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -90,6 +151,8 @@ class CompleteDayButton extends ConsumerWidget {
   }
 }
 
+// ─── Complete Button ─────────────────────────────────────────────────────────
+
 class _CompleteButton extends StatelessWidget {
   const _CompleteButton({required this.onComplete});
 
@@ -104,12 +167,21 @@ class _CompleteButton extends StatelessWidget {
         icon: const Icon(Icons.check_circle_outline),
         label: const Text('Complete Day'),
         style: FilledButton.styleFrom(
+          backgroundColor: AppColors.lime,
+          foregroundColor: Colors.black,
           padding: const EdgeInsets.symmetric(vertical: 14),
+          textStyle: const TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
         ),
       ),
     );
   }
 }
+
+// ─── Locked Banner ───────────────────────────────────────────────────────────
 
 class _LockedBanner extends StatelessWidget {
   const _LockedBanner({
@@ -122,66 +194,75 @@ class _LockedBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Card.filled(
-      color: colorScheme.secondaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Icon(
-              Icons.lock_outlined,
-              color: colorScheme.onSecondaryContainer,
-              size: 22,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.purpleDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.darkSurfaceBorder),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.25),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Day Complete!',
-                        style: textTheme.titleSmall?.copyWith(
-                          color: colorScheme.onSecondaryContainer,
-                          fontWeight: FontWeight.w600,
-                        ),
+            child: const Icon(
+              Icons.emoji_events,
+              color: AppColors.lime,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Day Complete!',
+                      style: textTheme.titleSmall?.copyWith(
+                        color: Colors.white,
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
                       ),
-                      if (macrosHit) ...[
-                        const SizedBox(width: 6),
-                        Icon(
-                          Icons.emoji_events_outlined,
-                          size: 18,
-                          color: colorScheme.onSecondaryContainer,
-                        ),
-                      ],
-                    ],
-                  ),
-                  Text(
-                    macrosHit
-                        ? 'All macros hit. Great work!'
-                        : 'Nutrition logged for today.',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSecondaryContainer
-                          .withValues(alpha: 0.8),
                     ),
+                    if (macrosHit) ...[
+                      const SizedBox(width: 6),
+                      const Icon(
+                        Icons.star_rounded,
+                        size: 16,
+                        color: AppColors.lime,
+                      ),
+                    ],
+                  ],
+                ),
+                Text(
+                  macrosHit
+                      ? 'All macros hit. Great work!'
+                      : 'Nutrition logged for today.',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.75),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: onUnlock,
-              style: TextButton.styleFrom(
-                foregroundColor: colorScheme.onSecondaryContainer,
-              ),
-              child: const Text('Unlock'),
+          ),
+          TextButton(
+            onPressed: onUnlock,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.lime,
             ),
-          ],
-        ),
+            child: const Text('Unlock'),
+          ),
+        ],
       ),
     );
   }

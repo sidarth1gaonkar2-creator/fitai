@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class CalorieRing extends StatefulWidget {
   const CalorieRing({
@@ -66,9 +67,10 @@ class _CalorieRingState extends State<CalorieRing>
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
     final isOverBudget = _rawProgress >= 1.0;
+    final isGoodProgress = _rawProgress >= 0.8;
     final remaining = widget.target - widget.consumed;
 
     return AnimatedBuilder(
@@ -84,12 +86,9 @@ class _CalorieRingState extends State<CalorieRing>
             child: CustomPaint(
               painter: _RingPainter(
                 progress: _progressAnimation.value.clamp(0.0, 1.0),
-                trackColor: colorScheme.surfaceContainerHighest,
-                primaryColor: colorScheme.primary,
-                accentColor: colorScheme.tertiary,
-                errorColor: colorScheme.error,
-                errorContainerColor: colorScheme.errorContainer,
+                trackColor: AppColors.darkSurface,
                 isOverBudget: isOverBudget,
+                isGoodProgress: isGoodProgress,
                 brightness: Theme.of(context).brightness,
               ),
               child: child,
@@ -121,7 +120,7 @@ class _CalorieRingState extends State<CalorieRing>
                   : '${remaining.toInt()} kcal left',
               style: textTheme.labelSmall?.copyWith(
                 color: isOverBudget
-                    ? colorScheme.error
+                    ? AppColors.error
                     : colorScheme.onSurfaceVariant,
               ),
             ),
@@ -136,21 +135,15 @@ class _RingPainter extends CustomPainter {
   _RingPainter({
     required this.progress,
     required this.trackColor,
-    required this.primaryColor,
-    required this.accentColor,
-    required this.errorColor,
-    required this.errorContainerColor,
     required this.isOverBudget,
+    required this.isGoodProgress,
     required this.brightness,
   });
 
   final double progress;
   final Color trackColor;
-  final Color primaryColor;
-  final Color accentColor;
-  final Color errorColor;
-  final Color errorContainerColor;
   final bool isOverBudget;
+  final bool isGoodProgress;
   final Brightness brightness;
 
   @override
@@ -171,12 +164,23 @@ class _RingPainter extends CustomPainter {
     if (progress > 0) {
       final sweepAngle = 2 * pi * progress.clamp(0.0, 0.999);
 
-      // Gradient colors
+      // Gradient colors based on state
       final List<Color> gradientColors;
       if (isOverBudget) {
-        gradientColors = [errorColor, errorContainerColor];
+        gradientColors = [
+          AppColors.error,
+          AppColors.error.withValues(alpha: 0.6),
+        ];
+      } else if (isGoodProgress) {
+        gradientColors = [
+          AppColors.lime,
+          AppColors.lime.withValues(alpha: 0.7),
+        ];
       } else {
-        gradientColors = [primaryColor, accentColor];
+        gradientColors = [
+          AppColors.purple,
+          AppColors.purpleLight,
+        ];
       }
 
       final gradient = SweepGradient(
@@ -211,8 +215,7 @@ class _RingPainter extends CustomPainter {
   bool shouldRepaint(_RingPainter oldDelegate) =>
       progress != oldDelegate.progress ||
       trackColor != oldDelegate.trackColor ||
-      primaryColor != oldDelegate.primaryColor ||
-      accentColor != oldDelegate.accentColor ||
       isOverBudget != oldDelegate.isOverBudget ||
+      isGoodProgress != oldDelegate.isGoodProgress ||
       brightness != oldDelegate.brightness;
 }

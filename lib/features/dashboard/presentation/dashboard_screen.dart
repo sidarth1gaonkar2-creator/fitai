@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../providers/dashboard_providers.dart';
@@ -14,6 +15,13 @@ import 'widgets/water_tracker.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
+
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,7 +44,14 @@ class DashboardScreen extends ConsumerWidget {
         ),
       ),
       data: (profile) {
-        if (profile == null) return const SizedBox.shrink();
+        if (profile == null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) context.go('/onboarding');
+          });
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
         final tdee = profile.tdee;
         final nutrition = nutritionAsync.valueOrNull;
@@ -57,11 +72,35 @@ class DashboardScreen extends ConsumerWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text('Hi, ${profile.name}!'),
+            title: Text('${_greeting()}, ${profile.name}'),
             actions: [
               IconButton(
-                icon: const Icon(Icons.settings_outlined),
-                onPressed: () => context.go('/settings'),
+                icon: const Icon(Icons.search_outlined),
+                onPressed: () {},
+              ),
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: () {},
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: GestureDetector(
+                  onTap: () => context.go('/settings'),
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: AppColors.purpleDark,
+                    child: Text(
+                      profile.name.isNotEmpty
+                          ? profile.name[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -88,7 +127,14 @@ class DashboardScreen extends ConsumerWidget {
                           ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+
+                // --- Stats Row ---
+                _StatsRow(
+                  caloriesBurned: calories,
+                  workoutMinutes: workout?.durationMinutes,
+                ),
+                const SizedBox(height: 20),
 
                 // --- Macro Row ---
                 AnimatedSwitcher(
@@ -173,18 +219,16 @@ class DashboardScreen extends ConsumerWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: FilledButton.icon(
+                      child: _QuickActionButton(
+                        label: '+ Log Meal',
                         onPressed: () => context.go('/nutrition'),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Log Meal'),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: FilledButton.tonalIcon(
+                      child: _QuickActionButton(
+                        label: '+ Log Workout',
                         onPressed: () => context.go('/workouts'),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Log Workout'),
                       ),
                     ),
                   ],
@@ -195,6 +239,138 @@ class DashboardScreen extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Stats Row
+// ---------------------------------------------------------------------------
+
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({
+    required this.caloriesBurned,
+    required this.workoutMinutes,
+  });
+
+  final num caloriesBurned;
+  final int? workoutMinutes;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _StatCard(
+            icon: Icons.directions_walk,
+            value: '—',
+            label: 'Steps',
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _StatCard(
+            icon: Icons.local_fire_department,
+            value: caloriesBurned.toInt().toString(),
+            label: 'kcal',
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _StatCard(
+            icon: Icons.timer,
+            value: workoutMinutes != null ? '${workoutMinutes}m' : '—',
+            label: 'Minutes',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: const BoxDecoration(
+            color: AppColors.purpleDark,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: Colors.white, size: 22),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface,
+          ),
+        ),
+        Text(
+          label,
+          style: textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Quick Action Button
+// ---------------------------------------------------------------------------
+
+class _QuickActionButton extends StatelessWidget {
+  const _QuickActionButton({
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return SizedBox(
+      height: 48,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.lime,
+          foregroundColor: Colors.black,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Text(
+          label,
+          style: textTheme.labelLarge?.copyWith(
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 }

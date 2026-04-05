@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:isar/isar.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/tdee_calculator.dart';
 import '../../../core/utils/validators.dart';
 import '../../../models/enums.dart';
@@ -95,15 +96,26 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       ..activityLevel = _activityLevel!
       ..tdee = tdee;
 
-    await isar.writeTxn(() async {
-      await isar.userProfiles.put(profile);
-    });
+    try {
+      await isar.writeTxn(() async {
+        await isar.userProfiles.put(profile);
+      });
 
-    ref.invalidate(userProfileProvider);
-    HapticFeedback.mediumImpact();
+      ref.invalidate(userProfileProvider);
+      HapticFeedback.mediumImpact();
 
-    if (mounted) {
-      context.go('/settings');
+      if (mounted) {
+        context.go('/settings');
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Could not save profile. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -143,6 +155,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 selected: _sex != null ? {_sex!} : {},
                 onSelectionChanged: (s) =>
                     setState(() => _sex = s.first),
+                style: SegmentedButton.styleFrom(
+                  selectedBackgroundColor: AppColors.purple,
+                  selectedForegroundColor: Colors.white,
+                  foregroundColor: Colors.white.withValues(alpha: 0.7),
+                  backgroundColor: AppColors.darkSurface,
+                  side: const BorderSide(color: AppColors.darkSurfaceBorder),
+                ),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -173,36 +192,49 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 selected: _goal != null ? {_goal!} : {},
                 onSelectionChanged: (s) =>
                     setState(() => _goal = s.first),
+                style: SegmentedButton.styleFrom(
+                  selectedBackgroundColor: AppColors.purple,
+                  selectedForegroundColor: Colors.white,
+                  foregroundColor: Colors.white.withValues(alpha: 0.7),
+                  backgroundColor: AppColors.darkSurface,
+                  side: const BorderSide(color: AppColors.darkSurfaceBorder),
+                ),
               ),
               const SizedBox(height: 16),
               Text('Activity Level', style: textTheme.labelLarge),
-              const SizedBox(height: 8),
-              RadioGroup<ActivityLevel>(
-                groupValue: _activityLevel ?? ActivityLevel.moderate,
-                onChanged: (v) => setState(() => _activityLevel = v),
-                child: Column(
-                  children: ActivityLevel.values.map((level) {
-                    return ListTile(
-                      title: Text(level.label),
-                      leading: Radio<ActivityLevel>(
-                        value: level,
-                      ),
-                      onTap: () => setState(() => _activityLevel = level),
-                    );
-                  }).toList(),
-                ),
-              ),
+              const SizedBox(height: 4),
+              ...ActivityLevel.values.map((level) {
+                return RadioListTile<ActivityLevel>(
+                  value: level,
+                  groupValue: _activityLevel,
+                  onChanged: (v) => setState(() => _activityLevel = v),
+                  title: Text(level.label),
+                  activeColor: AppColors.purple,
+                  contentPadding: EdgeInsets.zero,
+                );
+              }),
               const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _isSaving ? null : _save,
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child:
-                            CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Save Changes'),
+              SizedBox(
+                height: 52,
+                child: FilledButton(
+                  onPressed: _isSaving ? null : _save,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.lime,
+                    foregroundColor: Colors.black,
+                    disabledBackgroundColor:
+                        AppColors.lime.withValues(alpha: 0.4),
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.black,
+                          ),
+                        )
+                      : const Text('Save Changes'),
+                ),
               ),
               const SizedBox(height: 24),
             ],

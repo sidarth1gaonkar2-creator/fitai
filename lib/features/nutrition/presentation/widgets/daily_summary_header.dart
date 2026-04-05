@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../features/dashboard/presentation/widgets/calorie_ring.dart';
 
 /// Renamed from DailySummaryHeader — now shows CalorieRing + macro progress bars.
@@ -26,7 +27,7 @@ class NutritionSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card.filled(
+    return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         child: IntrinsicHeight(
@@ -52,36 +53,24 @@ class NutritionSummaryCard extends StatelessWidget {
                       label: 'Protein',
                       consumed: protein,
                       target: proteinTarget,
-                      color: _macroColor(
-                        context,
-                        protein,
-                        proteinTarget,
-                        isSodium: false,
-                      ),
+                      baseColor: AppColors.purple,
+                      isSodium: false,
                     ),
                     const SizedBox(height: 10),
                     _MacroProgressBar(
                       label: 'Carbs',
                       consumed: carbs,
                       target: carbsTarget,
-                      color: _macroColor(
-                        context,
-                        carbs,
-                        carbsTarget,
-                        isSodium: false,
-                      ),
+                      baseColor: AppColors.purpleLight,
+                      isSodium: false,
                     ),
                     const SizedBox(height: 10),
                     _MacroProgressBar(
                       label: 'Fat',
                       consumed: fat,
                       target: fatTarget,
-                      color: _macroColor(
-                        context,
-                        fat,
-                        fatTarget,
-                        isSodium: false,
-                      ),
+                      baseColor: AppColors.lime,
+                      isSodium: false,
                     ),
                   ],
                 ),
@@ -92,27 +81,6 @@ class NutritionSummaryCard extends StatelessWidget {
       ),
     );
   }
-
-  /// Colour-codes a macro bar based on consumption ratio.
-  /// <90%  → primary, 90–110% → secondary, >110% → error
-  static Color _macroColor(
-    BuildContext context,
-    double consumed,
-    double target, {
-    required bool isSodium,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    if (target <= 0) return colorScheme.primary;
-    final ratio = consumed / target;
-    if (isSodium) {
-      if (ratio > 1.0) return colorScheme.error;
-      if (ratio > 0.9) return colorScheme.secondary;
-      return colorScheme.primary;
-    }
-    if (ratio > 1.1) return colorScheme.error;
-    if (ratio >= 0.9) return colorScheme.secondary;
-    return colorScheme.primary;
-  }
 }
 
 class _MacroProgressBar extends StatelessWidget {
@@ -120,19 +88,37 @@ class _MacroProgressBar extends StatelessWidget {
     required this.label,
     required this.consumed,
     required this.target,
-    required this.color,
+    required this.baseColor,
+    required this.isSodium,
   });
 
   final String label;
   final double consumed;
   final double target;
-  final Color color;
+  final Color baseColor;
+  final bool isSodium;
+
+  Color _barColor(BuildContext context) {
+    if (target <= 0) return baseColor;
+    final ratio = consumed / target;
+
+    if (isSodium) {
+      if (ratio > 1.0) return AppColors.error;
+      if (ratio > 0.9) return AppColors.lime;
+      return baseColor;
+    }
+
+    if (ratio > 1.1) return AppColors.error;
+    if (ratio >= 0.9) return AppColors.lime;
+    return baseColor;
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
     final progress = target > 0 ? (consumed / target).clamp(0.0, 1.0) : 0.0;
+    final barColor = _barColor(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,7 +134,7 @@ class _MacroProgressBar extends StatelessWidget {
             ),
             const Spacer(),
             Text(
-              '${consumed.toInt()}g / ${target.toInt()}g',
+              '${consumed.toInt()}g / ${target.toInt()}g (${target > 0 ? ((consumed / target) * 100).toInt() : 0}%)',
               style: textTheme.labelSmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -167,7 +153,7 @@ class _MacroProgressBar extends StatelessWidget {
                 value: value,
                 minHeight: 6,
                 backgroundColor: colorScheme.surfaceContainerHighest,
-                valueColor: AlwaysStoppedAnimation<Color>(color),
+                valueColor: AlwaysStoppedAnimation<Color>(barColor),
               ),
             );
           },

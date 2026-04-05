@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../models/enums.dart';
 import '../../../../models/food_entry.dart';
 import 'food_entry_tile.dart';
@@ -36,10 +37,10 @@ class MealSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return Card.filled(
+    return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -48,39 +49,60 @@ class MealSection extends StatelessWidget {
             // Header row
             Row(
               children: [
-                Icon(_icon, color: colorScheme.primary, size: 22),
-                const SizedBox(width: 8),
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: const BoxDecoration(
+                    color: AppColors.purpleDark,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _icon,
+                    color: AppColors.lime,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     mealType.label,
-                    style: textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: textTheme.titleSmall?.copyWith(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.lime,
+                    ),
                   ),
                 ),
                 if (entries.isNotEmpty) ...[
                   // Protein subtotal
                   Text(
                     '${_totalProtein.toInt()}g P',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.primary,
+                    style: TextStyle(
+                      fontFamily: 'LeagueSpartan',
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
+                      color: AppColors.purple,
                     ),
                   ),
                   const SizedBox(width: 8),
                   // Calorie subtotal
                   Text(
                     '${_totalCalories.toInt()} kcal',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                    style: TextStyle(
+                      fontFamily: 'LeagueSpartan',
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ] else ...[
                   Text(
                     '0 kcal',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                    style: TextStyle(
+                      fontFamily: 'LeagueSpartan',
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -108,8 +130,11 @@ class MealSection extends StatelessWidget {
               Center(
                 child: TextButton.icon(
                   onPressed: onAddFood,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Food'),
+                  icon: const Icon(Icons.add, size: 18, color: AppColors.lime),
+                  label: const Text(
+                    'Add Food',
+                    style: TextStyle(color: AppColors.lime),
+                  ),
                 ),
               ),
             ],
