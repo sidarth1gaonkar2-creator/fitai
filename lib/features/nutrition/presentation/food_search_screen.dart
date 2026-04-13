@@ -1,18 +1,26 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/nutrient_icons.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../models/enums.dart';
 import '../../../providers/nutrition_providers.dart';
 import '../domain/food_search_result.dart';
 
 class FoodSearchScreen extends ConsumerStatefulWidget {
-  const FoodSearchScreen({super.key, required this.mealType});
+  const FoodSearchScreen({
+    super.key,
+    required this.mealType,
+    this.returnMode = false,
+  });
 
   final MealType mealType;
+  final bool returnMode;
 
   @override
   ConsumerState<FoodSearchScreen> createState() => _FoodSearchScreenState();
@@ -57,24 +65,32 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
         : null;
 
     return Scaffold(
-      appBar: AppBar(
-        title: TextField(
+      appBar: CupertinoNavigationBar(
+        backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
+        border: null,
+        middle: CupertinoTextField(
           controller: _searchController,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Search foods...',
-            border: InputBorder.none,
+          placeholder: 'Search foods...',
+          decoration: BoxDecoration(
+            color: AppColors.of(context).surfaceElevated,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          style: TextStyle(color: AppColors.of(context).text, fontSize: 14),
+          placeholderStyle: TextStyle(
+            color: AppColors.of(context).textSecondary,
+            fontSize: 14,
           ),
           onChanged: _onSearchChanged,
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.qr_code_scanner),
-            tooltip: 'Scan barcode',
-            onPressed: () =>
-                context.go('/nutrition/scan/${widget.mealType.name}'),
-          ),
-        ],
+        trailing: CupertinoButton(
+          padding: const EdgeInsets.all(8),
+          onPressed: () =>
+              context.go('/nutrition/scan/${widget.mealType.name}'),
+          child: const Icon(CupertinoIcons.qrcode_viewfinder, size: 22),
+        ),
       ),
       body: _buildBody(
         context,
@@ -135,28 +151,28 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
 
     return CustomScrollView(
       slivers: [
-        // Local results section
+        // Local results section — always at top, renders first frame
         if (localResults.isNotEmpty) ...[
           _SectionHeader(
-            label: 'FitAI Database',
+            label: 'US Foods',
             icon: Icons.bolt_outlined,
-            color: colorScheme.primary,
+            isPrimary: true,
           ),
           SliverList.builder(
             itemCount: localResults.length,
             itemBuilder: (context, index) => _FoodResultTile(
               food: localResults[index],
               mealType: widget.mealType,
+              returnMode: widget.returnMode,
             ),
           ),
         ],
 
-        // Remote / network results section
+        // USDA remote results section
         if (remoteIsLoading) ...[
           _SectionHeader(
-            label: 'More results',
+            label: 'From USDA',
             icon: Icons.cloud_outlined,
-            color: colorScheme.onSurfaceVariant,
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -174,7 +190,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
         ] else if (remoteHasError) ...[
           SliverToBoxAdapter(
             child: _RemoteErrorBanner(
-              error: remoteAsync!.error,
+              error: remoteAsync.error,
               onRetry: () => setState(() {
                 final q = _currentQuery;
                 _currentQuery = '';
@@ -184,21 +200,17 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
           ),
         ] else if (remoteData != null && remoteData.isNotEmpty) ...[
           _SectionHeader(
-            label: 'From Open Food Facts',
+            label: 'From USDA',
             icon: Icons.public_outlined,
-            color: colorScheme.onSurfaceVariant,
           ),
           SliverList.builder(
             itemCount: remoteData.length,
             itemBuilder: (context, index) => _FoodResultTile(
               food: remoteData[index],
               mealType: widget.mealType,
+              returnMode: widget.returnMode,
             ),
           ),
-        ] else if (remoteData != null &&
-            remoteData.isEmpty &&
-            localResults.isEmpty) ...[
-          // Both empty — handled by bothEmpty above, but handle local-only case
         ],
 
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -215,16 +227,17 @@ class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
     required this.label,
     required this.icon,
-    required this.color,
+    this.isPrimary = false,
   });
 
   final String label;
   final IconData icon;
-  final Color color;
+  final bool isPrimary;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final palette = AppColors.of(context);
+    final color = isPrimary ? palette.accent : palette.textSecondary;
 
     return SliverToBoxAdapter(
       child: Padding(
@@ -236,9 +249,11 @@ class _SectionHeader extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               label,
-              style: textTheme.labelMedium?.copyWith(
+              style: TextStyle(
+                fontFamily: isPrimary ? 'Poppins' : null,
+                fontWeight: isPrimary ? FontWeight.w700 : FontWeight.w600,
+                fontSize: 13,
                 color: color,
-                fontWeight: FontWeight.w600,
                 letterSpacing: 0.3,
               ),
             ),
@@ -257,10 +272,12 @@ class _FoodResultTile extends StatelessWidget {
   const _FoodResultTile({
     required this.food,
     required this.mealType,
+    this.returnMode = false,
   });
 
   final FoodSearchResult food;
   final MealType mealType;
+  final bool returnMode;
 
   @override
   Widget build(BuildContext context) {
@@ -277,10 +294,10 @@ class _FoodResultTile extends StatelessWidget {
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => _DefaultFoodIcon(),
+                errorBuilder: (_, _, _) => _CategoryFoodIcon(name: food.name),
               ),
             )
-          : _DefaultFoodIcon(),
+          : _CategoryFoodIcon(name: food.name),
       title: Text(
         food.name,
         maxLines: 1,
@@ -324,27 +341,40 @@ class _FoodResultTile extends StatelessWidget {
           ),
         ],
       ),
-      onTap: () => context.go(
-        '/nutrition/food/${mealType.name}',
-        extra: food,
-      ),
+      onTap: () {
+        if (returnMode) {
+          Navigator.of(context).pop(food);
+        } else {
+          context.go(
+            '/nutrition/food/${mealType.name}',
+            extra: food,
+          );
+        }
+      },
     );
   }
 }
 
-class _DefaultFoodIcon extends StatelessWidget {
+class _CategoryFoodIcon extends StatelessWidget {
+  const _CategoryFoodIcon({required this.name});
+  final String name;
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final category = NutrientIcons.categoryFromName(name);
+    final color = NutrientIcons.forFoodCategoryColor(category);
     return Container(
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Icon(Icons.fastfood_outlined,
-          color: colorScheme.onSurfaceVariant, size: 22),
+      child: Icon(
+        NutrientIcons.forFoodCategory(category),
+        color: color,
+        size: 22,
+      ),
     );
   }
 }

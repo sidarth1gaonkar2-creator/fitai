@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../models/food_entry.dart';
 
 class FoodEntryTile extends StatelessWidget {
@@ -47,20 +48,20 @@ class FoodEntryTile extends StatelessWidget {
                     _MacroTag(
                       label: 'P',
                       grams: entry.protein,
-                      bgColor: AppColors.purple.withValues(alpha: 0.12),
-                      textColor: AppColors.purple,
+                      bgColor: AppColors.of(context).accent.withValues(alpha: 0.12),
+                      textColor: AppColors.of(context).accent,
                     ),
                     _MacroTag(
                       label: 'C',
                       grams: entry.carbs,
-                      bgColor: AppColors.purpleLight.withValues(alpha: 0.12),
-                      textColor: AppColors.purpleLight,
+                      bgColor: AppColors.of(context).accent.withValues(alpha: 0.08),
+                      textColor: AppColors.of(context).accent,
                     ),
                     _MacroTag(
                       label: 'F',
                       grams: entry.fat,
-                      bgColor: AppColors.lime.withValues(alpha: 0.12),
-                      textColor: const Color(0xFF7A9000),
+                      bgColor: AppColors.of(context).success.withValues(alpha: 0.12),
+                      textColor: AppColors.of(context).success,
                     ),
                     if (entry.servingSize != null)
                       _ServingTag(
@@ -77,7 +78,7 @@ class FoodEntryTile extends StatelessWidget {
             '${entry.calories.toInt()}',
             style: textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
-              color: AppColors.lime,
+              color: AppColors.of(context).accent,
             ),
           ),
           Text(
@@ -92,28 +93,10 @@ class FoodEntryTile extends StatelessWidget {
 
     if (isLocked) return tile;
 
-    return Dismissible(
-      key: ValueKey(entry.id),
-      direction: DismissDirection.endToStart,
-      confirmDismiss: (_) async {
-        HapticFeedback.mediumImpact();
-        onDelete();
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Removed ${entry.name}'),
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        }
-        return false; // We already deleted; don't animate removal
-      },
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 16),
-        color: colorScheme.errorContainer,
-        child: Icon(Icons.delete, color: colorScheme.onErrorContainer),
-      ),
+    return _SwipeTile(
+      entryId: entry.id,
+      entryName: entry.name,
+      onDelete: onDelete,
       child: tile,
     );
   }
@@ -176,6 +159,70 @@ class _ServingTag extends StatelessWidget {
           color: colorScheme.onSurfaceVariant,
         ),
       ),
+    );
+  }
+}
+
+// ─── Swipe-to-delete wrapper ────────────────────────────────────────────────
+
+class _SwipeTile extends StatefulWidget {
+  const _SwipeTile({
+    required this.entryId,
+    required this.entryName,
+    required this.onDelete,
+    required this.child,
+  });
+
+  final int entryId;
+  final String entryName;
+  final VoidCallback onDelete;
+  final Widget child;
+
+  @override
+  State<_SwipeTile> createState() => _SwipeTileState();
+}
+
+class _SwipeTileState extends State<_SwipeTile> {
+  double _dragExtent = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tileWidth = constraints.maxWidth;
+        final fraction = tileWidth > 0 ? (_dragExtent / tileWidth).abs() : 0.0;
+        final showRed = fraction >= 0.2;
+
+        return Dismissible(
+          key: ValueKey(widget.entryId),
+          direction: DismissDirection.endToStart,
+          dismissThresholds: const {DismissDirection.endToStart: 0.3},
+          onUpdate: (details) {
+            setState(() => _dragExtent = details.progress * tileWidth);
+          },
+          confirmDismiss: (_) async {
+            if (_dragExtent.abs() < 40) return false;
+            HapticFeedback.mediumImpact();
+            widget.onDelete();
+            if (context.mounted) {
+              showCupertinoToast(context, 'Removed ${widget.entryName}');
+            }
+            return false;
+          },
+          background: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 16),
+            color: showRed
+                ? AppColors.of(context).destructive.withValues(alpha: 0.9)
+                : Colors.grey.withValues(alpha: 0.15),
+            child: Icon(
+              Icons.delete,
+              color: showRed ? Colors.white : Colors.grey,
+            ),
+          ),
+          child: widget.child,
+        );
+      },
     );
   }
 }

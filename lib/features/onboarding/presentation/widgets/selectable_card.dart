@@ -22,16 +22,15 @@ class SelectableCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
+    final palette = AppColors.of(context);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
       decoration: BoxDecoration(
-        color: isSelected ? AppColors.lime : AppColors.darkSurface,
+        color: isSelected ? palette.accent : palette.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isSelected
-              ? AppColors.lime
-              : AppColors.darkSurfaceBorder,
+          color: isSelected ? palette.accent : palette.border,
           width: 1,
         ),
       ),
@@ -41,8 +40,8 @@ class SelectableCard extends StatelessWidget {
           onTap();
         },
         borderRadius: BorderRadius.circular(16),
-        splashColor: Colors.white.withValues(alpha: 0.08),
-        highlightColor: Colors.white.withValues(alpha: 0.04),
+        splashColor: palette.text.withValues(alpha: 0.08),
+        highlightColor: palette.text.withValues(alpha: 0.04),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           child: Row(
@@ -50,14 +49,14 @@ class SelectableCard extends StatelessWidget {
               Container(
                 width: 40,
                 height: 40,
-                decoration: const BoxDecoration(
-                  color: AppColors.purpleDark,
+                decoration: BoxDecoration(
+                  color: palette.surfaceElevated,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   icon,
                   size: 20,
-                  color: isSelected ? AppColors.lime : AppColors.purpleLight,
+                  color: isSelected ? Colors.white : palette.accent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -71,7 +70,7 @@ class SelectableCard extends StatelessWidget {
                       style: textTheme.titleMedium?.copyWith(
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w600,
-                        color: isSelected ? Colors.black : Colors.white,
+                        color: isSelected ? Colors.white : palette.text,
                       ),
                     ),
                     if (subtitle != null) ...[
@@ -82,8 +81,8 @@ class SelectableCard extends StatelessWidget {
                           fontFamily: 'LeagueSpartan',
                           fontWeight: FontWeight.w400,
                           color: isSelected
-                              ? Colors.black.withValues(alpha: 0.7)
-                              : AppColors.purpleLight,
+                              ? Colors.white.withValues(alpha: 0.7)
+                              : palette.textSecondary,
                         ),
                       ),
                     ],
@@ -93,7 +92,7 @@ class SelectableCard extends StatelessWidget {
               if (isSelected)
                 const Icon(
                   Icons.check_circle,
-                  color: Colors.black,
+                  color: Colors.white,
                   size: 22,
                 ),
             ],

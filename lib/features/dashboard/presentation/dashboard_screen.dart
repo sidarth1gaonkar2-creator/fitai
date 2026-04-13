@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/nutrient_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
@@ -12,6 +14,7 @@ import 'widgets/macro_row.dart';
 import 'widgets/streak_counter.dart';
 import 'widgets/today_workout_card.dart';
 import 'widgets/water_tracker.dart';
+import '../../supplements/presentation/widgets/supplement_checklist_card.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -32,17 +35,33 @@ class DashboardScreen extends ConsumerWidget {
     final glasses = ref.watch(waterIntakeProvider);
 
     return profileAsync.when(
-      loading: () => Scaffold(
-        appBar: AppBar(title: const Text('Dashboard')),
-        body: const DashboardSkeleton(),
-      ),
-      error: (e, _) => Scaffold(
-        appBar: AppBar(title: const Text('Dashboard')),
-        body: ErrorCard(
-          message: 'Could not load your dashboard.',
-          onRetry: () => ref.invalidate(userProfileProvider),
-        ),
-      ),
+      loading: () => Builder(builder: (context) {
+        final palette = AppColors.of(context);
+        return Scaffold(
+          backgroundColor: palette.background,
+          appBar: CupertinoNavigationBar(
+            middle: const Text('Dashboard'),
+            backgroundColor: palette.background.withValues(alpha: 0.8),
+            border: null,
+          ),
+          body: const DashboardSkeleton(),
+        );
+      }),
+      error: (e, _) => Builder(builder: (context) {
+        final palette = AppColors.of(context);
+        return Scaffold(
+          backgroundColor: palette.background,
+          appBar: CupertinoNavigationBar(
+            middle: const Text('Dashboard'),
+            backgroundColor: palette.background.withValues(alpha: 0.8),
+            border: null,
+          ),
+          body: ErrorCard(
+            message: 'Could not load your dashboard.',
+            onRetry: () => ref.invalidate(userProfileProvider),
+          ),
+        );
+      }),
       data: (profile) {
         if (profile == null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -70,39 +89,18 @@ class DashboardScreen extends ConsumerWidget {
         final isStreakLoading =
             streakAsync.isLoading && !streakAsync.hasValue;
 
+        final palette = AppColors.of(context);
         return Scaffold(
-          appBar: AppBar(
-            title: Text('${_greeting()}, ${profile.name}'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.search_outlined),
-                onPressed: () {},
-              ),
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined),
-                onPressed: () {},
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: GestureDetector(
-                  onTap: () => context.go('/settings'),
-                  child: CircleAvatar(
-                    radius: 18,
-                    backgroundColor: AppColors.purpleDark,
-                    child: Text(
-                      profile.name.isNotEmpty
-                          ? profile.name[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          backgroundColor: palette.background,
+          appBar: CupertinoNavigationBar(
+            middle: Text('${_greeting()}, ${profile.name}'),
+            backgroundColor: palette.background.withValues(alpha: 0.8),
+            border: null,
+            trailing: CupertinoButton(
+              padding: const EdgeInsets.all(8),
+              onPressed: () => context.push('/settings'),
+              child: const Icon(CupertinoIcons.gear, size: 22),
+            ),
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -200,6 +198,10 @@ class DashboardScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
 
+                // --- Supplements Checklist ---
+                const SupplementChecklistCard(),
+                const SizedBox(height: 16),
+
                 // --- Today's Workout Card ---
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
@@ -270,7 +272,7 @@ class _StatsRow extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: _StatCard(
-            icon: Icons.local_fire_department,
+            icon: NutrientIcons.caloriesIcon,
             value: caloriesBurned.toInt().toString(),
             label: 'kcal',
           ),
@@ -309,8 +311,8 @@ class _StatCard extends StatelessWidget {
         Container(
           width: 48,
           height: 48,
-          decoration: const BoxDecoration(
-            color: AppColors.purpleDark,
+          decoration: BoxDecoration(
+            color: AppColors.of(context).accent,
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: Colors.white, size: 22),
@@ -349,26 +351,18 @@ class _QuickActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return SizedBox(
-      height: 48,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.lime,
-          foregroundColor: Colors.black,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Text(
-          label,
-          style: textTheme.labelLarge?.copyWith(
-            color: Colors.black,
-            fontWeight: FontWeight.w600,
-          ),
+    return CupertinoButton(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      color: AppColors.of(context).accent,
+      borderRadius: BorderRadius.circular(12),
+      onPressed: onPressed,
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontFamily: 'Poppins',
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 15,
         ),
       ),
     );

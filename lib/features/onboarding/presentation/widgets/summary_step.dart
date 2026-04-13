@@ -47,7 +47,7 @@ class SummaryStep extends ConsumerWidget {
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 28,
-              color: Colors.white,
+              color: AppColors.of(context).text,
             ),
           ),
           const SizedBox(height: 8),
@@ -56,7 +56,7 @@ class SummaryStep extends ConsumerWidget {
             style: textTheme.bodyLarge?.copyWith(
               fontFamily: 'LeagueSpartan',
               fontWeight: FontWeight.w400,
-              color: AppColors.purpleLight,
+              color: AppColors.of(context).textSecondary,
             ),
           ),
           const SizedBox(height: 32),
@@ -64,7 +64,7 @@ class SummaryStep extends ConsumerWidget {
           // Profile card
           Container(
             decoration: BoxDecoration(
-              color: AppColors.purpleDark,
+              color: AppColors.of(context).surfaceElevated,
               borderRadius: BorderRadius.circular(16),
             ),
             padding: const EdgeInsets.all(20),
@@ -76,7 +76,7 @@ class SummaryStep extends ConsumerWidget {
                   style: textTheme.titleSmall?.copyWith(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w600,
-                    color: AppColors.lime,
+                    color: AppColors.of(context).accent,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -99,10 +99,10 @@ class SummaryStep extends ConsumerWidget {
           if (breakdown != null)
             Container(
               decoration: BoxDecoration(
-                color: AppColors.darkSurface,
+                color: AppColors.of(context).surface,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppColors.darkSurfaceBorder,
+                  color: AppColors.of(context).border,
                   width: 1,
                 ),
               ),
@@ -122,8 +122,8 @@ class SummaryStep extends ConsumerWidget {
                     .read(onboardingControllerProvider.notifier)
                     .calculateAndSave(),
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.lime,
-              foregroundColor: Colors.black,
+              backgroundColor: AppColors.of(context).accent,
+              foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -165,9 +165,10 @@ class _CalculationBreakdownCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = AppColors.of(context);
     final monoStyle = textTheme.bodyMedium?.copyWith(
       fontFeatures: [const FontFeature.tabularFigures()],
-      color: Colors.white,
+      color: palette.text,
     );
 
     return Column(
@@ -178,7 +179,7 @@ class _CalculationBreakdownCard extends StatelessWidget {
           style: textTheme.titleSmall?.copyWith(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w600,
-            color: AppColors.lime,
+            color: palette.accent,
           ),
         ),
         const SizedBox(height: 12),
@@ -195,7 +196,7 @@ class _CalculationBreakdownCard extends StatelessWidget {
               '${breakdown.sexConstant >= 0 ? '+' : ''}${breakdown.sexConstant.round()}',
           style: monoStyle,
         ),
-        const Divider(height: 16, color: AppColors.darkSurfaceBorder),
+        Divider(height: 16, color: palette.border),
         _CalcRow(
           label: 'BMR',
           value: '${breakdown.bmr.round()} kcal',
@@ -209,7 +210,7 @@ class _CalculationBreakdownCard extends StatelessWidget {
           value: '× ${breakdown.activityMultiplier.toStringAsFixed(2)}',
           style: monoStyle,
         ),
-        const Divider(height: 16, color: AppColors.darkSurfaceBorder),
+        Divider(height: 16, color: palette.border),
         _CalcRow(
           label: 'TDEE',
           value: '${breakdown.tdee.round()} kcal',
@@ -225,7 +226,7 @@ class _CalculationBreakdownCard extends StatelessWidget {
                 '${breakdown.calorieAdjustment > 0 ? '+' : ''}${breakdown.calorieAdjustment}',
             style: monoStyle,
           ),
-        const Divider(height: 16, color: AppColors.darkSurfaceBorder),
+        Divider(height: 16, color: palette.border),
 
         // Final target
         Row(
@@ -237,7 +238,7 @@ class _CalculationBreakdownCard extends StatelessWidget {
                 style: textTheme.titleMedium?.copyWith(
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: palette.text,
                 ),
               ),
             ),
@@ -246,7 +247,7 @@ class _CalculationBreakdownCard extends StatelessWidget {
               style: textTheme.titleLarge?.copyWith(
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.w700,
-                color: AppColors.lime,
+                color: palette.accent,
               ),
             ),
           ],
@@ -294,6 +295,7 @@ class _SummaryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -302,13 +304,13 @@ class _SummaryRow extends StatelessWidget {
           Text(
             label,
             style: textTheme.bodyLarge?.copyWith(
-              color: Colors.white.withValues(alpha: 0.7),
+              color: palette.textSecondary,
             ),
           ),
           Text(
             value,
             style: textTheme.bodyLarge?.copyWith(
-              color: Colors.white,
+              color: palette.text,
               fontWeight: FontWeight.w600,
             ),
           ),

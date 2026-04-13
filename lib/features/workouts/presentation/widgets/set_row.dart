@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show IconButton, Icons, Theme, VisualDensity;
 import '../../domain/active_workout_state.dart';
 
 class SetRow extends StatefulWidget {
@@ -9,6 +10,8 @@ class SetRow extends StatefulWidget {
     required this.onUpdate,
     required this.onComplete,
     required this.onRemove,
+    this.previousReps,
+    this.previousWeight,
   });
 
   final ActiveSet set;
@@ -16,12 +19,16 @@ class SetRow extends StatefulWidget {
   final void Function({int? reps, double? weight}) onUpdate;
   final VoidCallback onComplete;
   final VoidCallback onRemove;
+  final int? previousReps;
+  final double? previousWeight;
 
   @override
   State<SetRow> createState() => _SetRowState();
 }
 
 class _SetRowState extends State<SetRow> {
+  static String _formatWeight(double w) =>
+      w == w.roundToDouble() ? w.toInt().toString() : w.toString();
   late final TextEditingController _repsController;
   late final TextEditingController _weightController;
 
@@ -80,18 +87,21 @@ class _SetRowState extends State<SetRow> {
           Expanded(
             child: SizedBox(
               height: 40,
-              child: TextField(
+              child: CupertinoTextField(
                 controller: _repsController,
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
                 style: textTheme.bodyMedium,
-                decoration: InputDecoration(
-                  hintText: '0',
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  isDense: true,
+                placeholder: widget.previousReps?.toString() ?? '0',
+                placeholderStyle: textTheme.bodyMedium?.copyWith(
+                  color: widget.previousReps != null
+                      ? colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
+                      : CupertinoColors.placeholderText,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: colorScheme.outline),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 onChanged: (value) {
                   final reps = int.tryParse(value);
@@ -104,19 +114,24 @@ class _SetRowState extends State<SetRow> {
           Expanded(
             child: SizedBox(
               height: 40,
-              child: TextField(
+              child: CupertinoTextField(
                 controller: _weightController,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 textAlign: TextAlign.center,
                 style: textTheme.bodyMedium,
-                decoration: InputDecoration(
-                  hintText: '0',
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  isDense: true,
+                placeholder: widget.previousWeight != null
+                    ? _formatWeight(widget.previousWeight!)
+                    : '0',
+                placeholderStyle: textTheme.bodyMedium?.copyWith(
+                  color: widget.previousWeight != null
+                      ? colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
+                      : CupertinoColors.placeholderText,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: colorScheme.outline),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 onChanged: (value) {
                   final weight = double.tryParse(value);

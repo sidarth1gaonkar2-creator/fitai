@@ -1,22 +1,151 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:isar/isar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/database/isar_service.dart';
+import 'providers/auth_provider.dart';
 import 'providers/isar_provider.dart';
+import 'providers/unit_system_provider.dart';
+import 'services/notification_service.dart';
+import 'services/pr_migration_service.dart';
 
 void main() async {
+  debugPrint('[startup] main() entered');
   WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('[startup] WidgetsFlutterBinding initialized');
 
-  await dotenv.load(fileName: 'assets/.env');
-  final isar = await IsarService.initialize();
+  try {
+    await dotenv.load(fileName: 'assets/.env');
+    debugPrint('[startup] dotenv loaded');
+  } catch (e, st) {
+    debugPrint('[startup] dotenv load failed: $e\n$st');
+  }
 
-  runApp(
-    ProviderScope(
-      overrides: [
-        isarProvider.overrideWithValue(isar),
-      ],
-      child: const FitAIApp(),
-    ),
-  );
+  // Firebase init
+  try {
+    await Firebase.initializeApp();
+    debugPrint('[startup] Firebase initialized');
+  } catch (e, st) {
+    debugPrint('[startup] Firebase init FAILED: $e\n$st');
+    runApp(_StartupErrorApp(error: e, stack: st));
+    return;
+  }
+
+  Isar? isar;
+  Object? initError;
+  StackTrace? initStack;
+  debugPrint('[startup] before Isar init');
+  try {
+    isar = await IsarService.initialize();
+    debugPrint('[startup] after Isar init (success)');
+  } catch (e, st) {
+    initError = e;
+    initStack = st;
+    debugPrint('[startup] Isar init FAILED: $e\n$st');
+  }
+
+  final prefs = await SharedPreferences.getInstance();
+
+  // One-time PR migration
+  if (isar != null) {
+    final migrated = prefs.getBool('pr_migration_done') ?? false;
+    if (!migrated) {
+      try {
+        await PRMigrationService.migrate(isar);
+        await prefs.setBool('pr_migration_done', true);
+        debugPrint('[startup] PR migration complete');
+      } catch (e) {
+        debugPrint('[startup] PR migration failed: $e');
+      }
+    }
+  }
+
+  // Initialize notification service
+  try {
+    await NotificationService.instance.init();
+    debugPrint('[startup] NotificationService initialized');
+  } catch (e) {
+    debugPrint('[startup] NotificationService init failed: $e');
+  }
+
+  debugPrint('[startup] before runApp');
+  if (isar == null) {
+    runApp(_StartupErrorApp(error: initError, stack: initStack));
+  } else {
+    runApp(
+      ProviderScope(
+        overrides: [
+          isarProvider.overrideWithValue(isar),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          firebaseAuthProvider.overrideWithValue(FirebaseAuth.instance),
+        ],
+        child: const FitAIApp(),
+      ),
+    );
+  }
+  debugPrint('[startup] after runApp');
+}
+
+class _StartupErrorApp extends StatelessWidget {
+  const _StartupErrorApp({this.error, this.stack});
+  final Object? error;
+  final StackTrace? stack;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: const Color(0xFF0E0E12),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'FitAI failed to start',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Local database (Isar) could not be opened.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '$error',
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  if (stack != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      '$stack',
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontFamily: 'monospace',
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

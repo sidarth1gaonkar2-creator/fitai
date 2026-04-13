@@ -1,7 +1,11 @@
+import 'dart:developer' as dev;
+
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import '../core/constants/micro_rdas.dart';
 import '../core/utils/macro_targets.dart';
+import '../data/curated_meal_plans.dart';
 import '../data/us_food_database.dart';
 import '../features/nutrition/domain/food_search_result.dart';
 import '../models/completed_day.dart';
@@ -10,14 +14,24 @@ import '../models/food_entry.dart';
 import '../models/meal.dart';
 import '../models/nutrition_log.dart';
 import '../services/open_food_facts_service.dart';
+import '../services/usda_service.dart';
 import 'dashboard_providers.dart';
 import 'isar_provider.dart';
 import 'user_profile_provider.dart';
 
-/// Singleton service provider.
+/// Singleton service provider (kept for barcode lookups).
 final openFoodFactsServiceProvider = Provider<OpenFoodFactsService>((ref) {
   return OpenFoodFactsService();
 });
+
+/// USDA FoodData Central service provider.
+final usdaServiceProvider = Provider<UsdaService>((ref) {
+  final apiKey = dotenv.env['USDA_API_KEY'] ?? '';
+  return UsdaService(apiKey);
+});
+
+/// Which tab is selected on the Nutrition screen (0 = Meal Plans, 1 = Food Log).
+final nutritionTabProvider = StateProvider<int>((ref) => 1);
 
 /// Today's meals grouped by MealType, with their food entries loaded.
 final todayMealsProvider =
@@ -74,15 +88,24 @@ final foodLocalSearchProvider =
             sodiumMgPer100g: item.sodiumMgPer100g,
             servingDescription: item.servingDescription,
             source: FoodSource.localDb,
+            ironMgPer100g: item.ironMgPer100g > 0 ? item.ironMgPer100g : null,
+            calciumMgPer100g: item.calciumMgPer100g > 0 ? item.calciumMgPer100g : null,
+            vitaminCMgPer100g: item.vitaminCMgPer100g > 0 ? item.vitaminCMgPer100g : null,
+            vitaminDMcgPer100g: item.vitaminDMcgPer100g > 0 ? item.vitaminDMcgPer100g : null,
+            magnesiumMgPer100g: item.magnesiumMgPer100g > 0 ? item.magnesiumMgPer100g : null,
+            potassiumMgPer100g: item.potassiumMgPer100g > 0 ? item.potassiumMgPer100g : null,
+            zincMgPer100g: item.zincMgPer100g > 0 ? item.zincMgPer100g : null,
+            vitaminB12McgPer100g: item.vitaminB12McgPer100g > 0 ? item.vitaminB12McgPer100g : null,
+            folateMcgPer100g: item.folateMcgPer100g > 0 ? item.folateMcgPer100g : null,
           ))
       .toList();
 });
 
-/// Remote Open Food Facts search — async, network-dependent.
+/// Remote USDA FoodData Central search — async, network-dependent.
 final foodRemoteSearchProvider =
     FutureProvider.family<List<FoodSearchResult>, String>((ref, query) async {
   if (query.trim().isEmpty) return [];
-  final service = ref.read(openFoodFactsServiceProvider);
+  final service = ref.read(usdaServiceProvider);
   final results = await service.search(query);
   // Deduplicate against local results
   final localNames = ref
@@ -340,6 +363,19 @@ Future<bool> addFoodEntry(
         ..vitaminB12Mcg = vitaminB12Mcg
         ..folateMcg = folateMcg;
       await isar.foodEntrys.put(entry);
+
+      // Debug: verify micronutrients were saved
+      final saved = await isar.foodEntrys.get(entry.id);
+      dev.log(
+        '[addFoodEntry] "$name" id=${entry.id} '
+        'iron=${saved?.ironMg} calcium=${saved?.calciumMg} '
+        'vitC=${saved?.vitaminCMg} vitD=${saved?.vitaminDMcg} '
+        'mag=${saved?.magnesiumMg} potassium=${saved?.potassiumMg} '
+        'zinc=${saved?.zincMg} b12=${saved?.vitaminB12Mcg} '
+        'folate=${saved?.folateMcg} sodium=${saved?.sodiumMg}',
+        name: 'FitAI.Nutrition',
+      );
+
       meal.foodEntries.add(entry);
       await meal.foodEntries.save();
 
@@ -406,6 +442,103 @@ Future<bool> deleteFoodEntry(WidgetRef ref, int entryId) async {
         log.totalFat = totalFat;
         await isar.nutritionLogs.put(log);
       }
+    });
+
+    ref.invalidate(todayNutritionProvider);
+    ref.invalidate(todayMealsProvider);
+    ref.invalidate(streakProvider);
+    ref.invalidate(todayMicronutrientsProvider);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Import a curated meal plan into today's nutrition log
+// ---------------------------------------------------------------------------
+
+Future<bool> importMealPlan(
+  WidgetRef ref, {
+  required CuratedMealPlan plan,
+}) async {
+  final isar = ref.read(isarProvider);
+
+  try {
+    await isar.writeTxn(() async {
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+
+      var log = await isar.nutritionLogs
+          .where()
+          .dateBetween(startOfDay, endOfDay, includeUpper: false)
+          .findFirst();
+
+      if (log == null) {
+        log = NutritionLog()..date = startOfDay;
+        await isar.nutritionLogs.put(log);
+      }
+
+      await log.meals.load();
+
+      for (final planMeal in plan.meals) {
+        var meal = log.meals
+            .toList()
+            .where((m) => m.type == planMeal.type)
+            .firstOrNull;
+
+        if (meal == null) {
+          meal = Meal()
+            ..type = planMeal.type
+            ..time = now;
+          await isar.meals.put(meal);
+          log.meals.add(meal);
+          await log.meals.save();
+        }
+
+        for (final food in planMeal.foods) {
+          final entry = FoodEntry()
+            ..name = food.name
+            ..calories = food.calories
+            ..protein = food.protein
+            ..carbs = food.carbs
+            ..fat = food.fat
+            ..servingSize = food.servingSize
+            ..servingUnit = food.servingUnit
+            ..ironMg = food.ironMg > 0 ? food.ironMg : null
+            ..calciumMg = food.calciumMg > 0 ? food.calciumMg : null
+            ..vitaminCMg = food.vitaminCMg > 0 ? food.vitaminCMg : null
+            ..vitaminDMcg = food.vitaminDMcg > 0 ? food.vitaminDMcg : null
+            ..magnesiumMg = food.magnesiumMg > 0 ? food.magnesiumMg : null
+            ..potassiumMg = food.potassiumMg > 0 ? food.potassiumMg : null
+            ..zincMg = food.zincMg > 0 ? food.zincMg : null
+            ..vitaminB12Mcg = food.vitaminB12Mcg > 0 ? food.vitaminB12Mcg : null
+            ..folateMcg = food.folateMcg > 0 ? food.folateMcg : null
+            ..sodiumMg = food.sodiumMg > 0 ? food.sodiumMg : null;
+          await isar.foodEntrys.put(entry);
+          meal.foodEntries.add(entry);
+          await meal.foodEntries.save();
+        }
+      }
+
+      // Recalculate totals
+      await log.meals.load();
+      double totalCal = 0, totalPro = 0, totalCarb = 0, totalFat = 0;
+      for (final m in log.meals) {
+        await m.foodEntries.load();
+        for (final e in m.foodEntries) {
+          totalCal += e.calories;
+          totalPro += e.protein;
+          totalCarb += e.carbs;
+          totalFat += e.fat;
+        }
+      }
+      log.totalCalories = totalCal;
+      log.totalProtein = totalPro;
+      log.totalCarbs = totalCarb;
+      log.totalFat = totalFat;
+      await isar.nutritionLogs.put(log);
     });
 
     ref.invalidate(todayNutritionProvider);

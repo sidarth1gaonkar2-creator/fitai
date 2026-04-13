@@ -1,7 +1,10 @@
+import 'dart:developer' as dev;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import '../data/exercise_library.dart';
 import '../models/enums.dart';
+import '../models/personal_record.dart';
 import '../models/workout.dart';
 import '../models/workout_exercise.dart';
 import '../models/workout_set.dart';
@@ -40,25 +43,86 @@ final workoutByIdProvider =
   return isar.workouts.get(id);
 });
 
+/// Loaded exercises (with sets) for a workout id, sorted by `order`.
+/// Returns a list of (exerciseName, sets) records so the UI never has to
+/// touch IsarLinks during rebuilds.
+final workoutExercisesProvider = FutureProvider.family<
+    List<({String name, List<({int reps, double weight})> sets})>,
+    int>((ref, id) async {
+  final isar = ref.watch(isarProvider);
+  final workout = await isar.workouts.get(id);
+  if (workout == null) return const [];
+  await workout.exercises.load();
+  final exercises = workout.exercises.toList()
+    ..sort((a, b) => a.order.compareTo(b.order));
+  final result =
+      <({String name, List<({int reps, double weight})> sets})>[];
+  for (final exercise in exercises) {
+    await exercise.sets.load();
+    final sets = exercise.sets.toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
+    result.add((
+      name: exercise.name,
+      sets: sets
+          .map((s) => (reps: s.reps, weight: s.weight))
+          .toList(),
+    ));
+  }
+  return result;
+});
+
+/// Most recent WorkoutSet for an exercise name.
+/// Used to pre-fill weight/reps hints when logging.
+final lastSetForExerciseProvider =
+    FutureProvider.family<WorkoutSet?, String>((ref, exerciseName) async {
+  final isar = ref.watch(isarProvider);
+  dev.log('[lastSet] Looking up "$exerciseName"');
+
+  // Fast path: query denormalised exerciseName on WorkoutSet (new data).
+  final indexed = await isar.workoutSets
+      .where()
+      .exerciseNameEqualTo(exerciseName)
+      .findAll();
+  dev.log('[lastSet] Fast path found ${indexed.length} sets for "$exerciseName"');
+  if (indexed.isNotEmpty) {
+    indexed.sort((a, b) => b.id.compareTo(a.id));
+    final s = indexed.first;
+    dev.log('[lastSet] Fast path result: reps=${s.reps}, weight=${s.weight}');
+    return s;
+  }
+
+  // Fallback: traverse WorkoutExercise links (pre-existing data)
+  final exercises = await isar.workoutExercises
+      .filter()
+      .nameEqualTo(exerciseName)
+      .findAll();
+  dev.log('[lastSet] Fallback found ${exercises.length} exercises for "$exerciseName"');
+  WorkoutSet? best;
+  for (final ex in exercises) {
+    await ex.sets.load();
+    dev.log('[lastSet] Exercise "${ex.name}" has ${ex.sets.length} sets');
+    for (final s in ex.sets) {
+      if (best == null || s.id > best.id) best = s;
+    }
+  }
+  if (best != null) {
+    dev.log('[lastSet] Fallback result: reps=${best.reps}, weight=${best.weight}');
+  } else {
+    dev.log('[lastSet] No previous data found for "$exerciseName"');
+  }
+  return best;
+});
+
 /// Map of exercise name (lowercased) → best weight ever lifted.
-/// Used for personal-record detection.
+/// Reads from the PersonalRecord Isar collection.
 final personalRecordsProvider =
     FutureProvider<Map<String, double>>((ref) async {
   final isar = ref.watch(isarProvider);
-  final exercises = await isar.workoutExercises.where().findAll();
+  final prs = await isar.personalRecords.where().findAll();
   final records = <String, double>{};
-
-  for (final exercise in exercises) {
-    await exercise.sets.load();
-    for (final set in exercise.sets) {
-      final key = exercise.name.toLowerCase();
-      final current = records[key];
-      if (current == null || set.weight > current) {
-        records[key] = set.weight;
-      }
-    }
+  for (final pr in prs) {
+    records[pr.exerciseName.toLowerCase()] = pr.weightKg;
   }
-
   return records;
 });
 

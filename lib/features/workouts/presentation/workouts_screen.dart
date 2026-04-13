@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +29,9 @@ class _WorkoutsScreenState extends ConsumerState<WorkoutsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -38,50 +42,60 @@ class _WorkoutsScreenState extends ConsumerState<WorkoutsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
+    final palette = AppColors.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Workouts',
-          style: textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+      backgroundColor: palette.background,
+      appBar: CupertinoNavigationBar(
+        middle: const Text('Workouts'),
+        backgroundColor: palette.background.withValues(alpha: 0.8),
+        border: null,
+        trailing: CupertinoButton(
+          padding: const EdgeInsets.all(8),
+          onPressed: () => context.push('/settings'),
+          child: const Icon(CupertinoIcons.gear, size: 22),
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: _PillTabBar(controller: _tabController),
           ),
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _HistoryTab(),
-          const _TemplatesTab(),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _HistoryTab(),
+                const _TemplatesTab(),
+              ],
+            ),
+          ),
         ],
       ),
-      floatingActionButton: ListenableBuilder(
-        listenable: _tabController,
-        builder: (context, _) {
-          if (_tabController.index != 0) return const SizedBox.shrink();
-          return FloatingActionButton.extended(
-            onPressed: () => context.go('/workouts/new'),
-            backgroundColor: AppColors.lime,
-            foregroundColor: Colors.black,
-            icon: const Icon(Icons.add),
-            label: Text(
-              'Start Workout',
-              style: textTheme.labelLarge?.copyWith(
-                color: Colors.black,
-                fontWeight: FontWeight.w600,
+      floatingActionButton: _tabController.index == 0
+          ? CupertinoButton(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              color: palette.accent,
+              borderRadius: BorderRadius.circular(28),
+              onPressed: () => context.go('/workouts/new'),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(CupertinoIcons.add, color: Colors.black, size: 18),
+                  SizedBox(width: 6),
+                  Text(
+                    'Start Workout',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          );
-        },
-      ),
+            )
+          : null,
     );
   }
 }
@@ -118,15 +132,15 @@ class _PillTabBarState extends State<_PillTabBar> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     const tabs = ['History', 'Templates'];
 
+    final palette = AppColors.of(context);
     return Container(
-      height: 52,
+      height: 44,
       decoration: BoxDecoration(
-        color: AppColors.darkSurface,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: AppColors.darkSurfaceBorder),
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: palette.border),
       ),
       child: Row(
         children: List.generate(tabs.length, (index) {
@@ -142,20 +156,23 @@ class _PillTabBarState extends State<_PillTabBar> {
                 curve: Curves.easeInOut,
                 margin: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                  color: isActive ? AppColors.lime : Colors.transparent,
-                  borderRadius: BorderRadius.circular(23),
+                  color: isActive ? palette.accent : Colors.transparent,
+                  borderRadius: BorderRadius.circular(19),
                   border: isActive
                       ? null
                       : Border.all(
-                          color: AppColors.purple.withValues(alpha: 0.5),
+                          color: palette.border,
+                          width: 1,
                         ),
                 ),
                 child: Center(
                   child: Text(
                     tabs[index],
-                    style: textTheme.labelMedium?.copyWith(
-                      color: isActive ? Colors.black : AppColors.purple,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: isActive ? Colors.white : palette.text,
                     ),
                   ),
                 ),
@@ -182,41 +199,57 @@ class _HistoryTab extends ConsumerWidget {
         ? ref.watch(workoutsByDateProvider(selectedDate))
         : allWorkoutsAsync;
 
-    return Column(
-      children: [
+    return CustomScrollView(
+      slivers: [
         // Calendar
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: workoutDatesAsync.when(
-            data: (dates) => WorkoutCalendar(
-              workoutDates: dates,
-              selectedDate: selectedDate,
-              onDateSelected: (date) =>
-                  ref.read(_selectedDateProvider.notifier).state = date,
-            ),
-            loading: () => const Padding(
-              padding: EdgeInsets.all(8),
-              child: ShimmerCard(height: 280),
-            ),
-            error: (_, _) => ErrorCard(
-              message: 'Could not load calendar.',
-              onRetry: () => ref.invalidate(workoutDatesProvider),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: workoutDatesAsync.when(
+              data: (dates) => WorkoutCalendar(
+                workoutDates: dates,
+                selectedDate: selectedDate,
+                onDateSelected: (date) =>
+                    ref.read(_selectedDateProvider.notifier).state = date,
+              ),
+              loading: () => const ShimmerCard(height: 280),
+              error: (_, _) => ErrorCard(
+                message: 'Could not load calendar.',
+                onRetry: () => ref.invalidate(workoutDatesProvider),
+              ),
             ),
           ),
         ),
+        // Section label
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              selectedDate != null ? 'Workouts on this day' : 'All Workouts',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                color: AppColors.of(context).text,
+              ),
+            ),
+          ),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 8)),
         // Workout list
-        Expanded(
-          child: filteredAsync.when(
-            data: (workouts) {
-              if (workouts.isEmpty) {
-                return Center(
+        filteredAsync.when(
+          data: (workouts) {
+            if (workouts.isEmpty) {
+              return SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 48),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         Icons.fitness_center_outlined,
                         size: 48,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: AppColors.of(context).textSecondary,
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -224,21 +257,20 @@ class _HistoryTab extends ConsumerWidget {
                             ? 'No workouts on this day.'
                             : 'No workouts yet.\nTap + to start your first workout!',
                         textAlign: TextAlign.center,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
+                        style: TextStyle(
+                          fontFamily: 'LeagueSpartan',
+                          fontSize: 14,
+                          color: AppColors.of(context).textSecondary,
+                        ),
                       ),
                     ],
                   ),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+              );
+            }
+            return SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+              sliver: SliverList.builder(
                 itemCount: workouts.length,
                 itemBuilder: (context, index) {
                   final workout = workouts[index];
@@ -247,13 +279,15 @@ class _HistoryTab extends ConsumerWidget {
                     onTap: () => context.go('/workouts/${workout.id}'),
                   );
                 },
-              );
-            },
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: ShimmerList(itemCount: 3),
-            ),
-            error: (_, _) => ErrorCard(
+              ),
+            );
+          },
+          loading: () => const SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverToBoxAdapter(child: ShimmerList(itemCount: 3)),
+          ),
+          error: (_, _) => SliverToBoxAdapter(
+            child: ErrorCard(
               message: 'Could not load workouts.',
               onRetry: () {
                 if (selectedDate != null) {

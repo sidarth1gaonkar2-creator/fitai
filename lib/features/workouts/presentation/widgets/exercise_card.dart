@@ -1,8 +1,15 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Card, Icons, Theme, IconButton, TextButton, VisualDensity;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/utils/unit_converter.dart';
+import '../../../../providers/unit_system_provider.dart';
 import '../../domain/active_workout_state.dart';
 import 'set_row.dart';
 
-class ExerciseCard extends StatelessWidget {
+String _formatWeight(double w) =>
+    w == w.roundToDouble() ? w.toInt().toString() : w.toString();
+
+class ExerciseCard extends ConsumerWidget {
   const ExerciseCard({
     super.key,
     required this.exercise,
@@ -23,9 +30,11 @@ class ExerciseCard extends StatelessWidget {
   final void Function(int setIndex) onCompleteSet;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final units = ref.watch(unitSystemProvider);
+    final weightLabel = 'Weight (${UnitConverter.weightUnit(units)})';
 
     return Card.filled(
       child: Padding(
@@ -68,7 +77,7 @@ class ExerciseCard extends StatelessWidget {
                             ?.copyWith(color: colorScheme.onSurfaceVariant)),
                   ),
                   Expanded(
-                    child: Text('Weight (kg)',
+                    child: Text(weightLabel,
                         style: textTheme.labelSmall
                             ?.copyWith(color: colorScheme.onSurfaceVariant)),
                   ),
@@ -77,11 +86,30 @@ class ExerciseCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
+            // "Last time" hint above first set
+            if (exercise.sets.isNotEmpty &&
+                exercise.sets.first.previousWeight != null &&
+                exercise.sets.first.previousReps != null &&
+                exercise.sets.first.previousReps! > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  'Last time: ${_formatWeight(units == UnitSystem.imperial ? UnitConverter.kgToLbs(exercise.sets.first.previousWeight!) : exercise.sets.first.previousWeight!)} ${UnitConverter.weightUnit(units)} '
+                  '\u00d7 ${exercise.sets.first.previousReps}',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
             // Sets
             ...List.generate(exercise.sets.length, (setIndex) {
+              final activeSet = exercise.sets[setIndex];
               return SetRow(
-                set: exercise.sets[setIndex],
+                set: activeSet,
                 setNumber: setIndex + 1,
+                previousReps: activeSet.previousReps,
+                previousWeight: activeSet.previousWeight,
                 onUpdate: ({int? reps, double? weight}) =>
                     onUpdateSet(setIndex, reps: reps, weight: weight),
                 onComplete: () => onCompleteSet(setIndex),

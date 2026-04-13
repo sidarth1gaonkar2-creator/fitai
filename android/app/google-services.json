@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "374495799814",
+    "project_id": "fitai-8ad4f",
+    "storage_bucket": "fitai-8ad4f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:374495799814:android:97b289270c6f4524107187",
+        "android_client_info": {
+          "package_name": "com.sidarth.fitai.fitai"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "374495799814-dtc3jr2q9d8u2bi4vdqk0j1mm0iknvvg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sidarth.fitai.fitai",
+            "certificate_hash": "4235efdc72388a75a970eae1faa05e175827cb62"
+          }
+        },
+        {
+          "client_id": "374495799814-j5mvcb73vskbdultrfhcnduelu6lf7au.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBadNOUW_PNNqWH6QfAxRC3hqHbhp6LmsA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "374495799814-j5mvcb73vskbdultrfhcnduelu6lf7au.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

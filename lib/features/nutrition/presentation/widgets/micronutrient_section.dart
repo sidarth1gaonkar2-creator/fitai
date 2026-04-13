@@ -1,6 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide CupertinoExpansionTile;
+import 'package:flutter/material.dart' show LinearProgressIndicator, Theme;
 import '../../../../core/constants/micro_rdas.dart';
+import '../../../../core/constants/nutrient_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/cupertino_helpers.dart';
 
 /// Collapsible card showing 10 tracked micronutrients vs their RDA targets.
 /// Sodium colour logic is inverted (red when over the upper limit).
@@ -21,52 +24,37 @@ class MicronutrientSection extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Card(
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-        childrenPadding: const EdgeInsets.symmetric(horizontal: 12),
-        initiallyExpanded: false,
-        leading: const Icon(
-          Icons.science_outlined,
-          color: AppColors.purple,
-          size: 22,
-        ),
-        title: Text(
-          'Micronutrients',
-          style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(
-          _trackedCount > 0
-              ? '$_trackedCount of ${microRdaTargets.length} nutrients tracked today'
-              : 'Track food to see your nutrient targets',
-          style: textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        children: [
-          // Always show all nutrient rows — tracked ones at full opacity,
-          // untracked ones at 40% opacity.
-          Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 4),
-            child: Column(
-              children: microRdaTargets.keys.map((key) {
-                final value = consumed[key] ?? 0;
-                final isTracked = value > 0;
-                return Opacity(
-                  opacity: isTracked ? 1.0 : 0.4,
-                  child: _MicronutrientRow(
-                    name: key,
-                    consumed: value,
-                    target: microRdaTargets[key] ?? 0,
-                    isSodium: key == sodiumKey,
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
+    return CupertinoExpansionTile(
+      leading: Icon(
+        CupertinoIcons.lab_flask,
+        color: AppColors.of(context).accent,
+        size: 22,
       ),
+      title: Text(
+        'Micronutrients',
+        style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        _trackedCount > 0
+            ? '$_trackedCount of ${microRdaTargets.length} nutrients tracked today'
+            : 'Track food to see your nutrient targets',
+        style: textTheme.bodySmall?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
+      children: microRdaTargets.keys.map((key) {
+        final value = consumed[key] ?? 0;
+        final isTracked = value > 0;
+        return Opacity(
+          opacity: isTracked ? 1.0 : 0.4,
+          child: _MicronutrientRow(
+            name: key,
+            consumed: value,
+            target: microRdaTargets[key] ?? 0,
+            isSodium: key == sodiumKey,
+          ),
+        );
+      }).toList(),
     );
   }
 }
@@ -98,25 +86,27 @@ class _MicronutrientRow extends StatelessWidget {
   }
 
   Color _barColor(BuildContext context) {
-    if (target <= 0) return AppColors.purple;
+    final palette = AppColors.of(context);
+    if (target <= 0) return palette.accent;
     final ratio = consumed / target;
 
     if (isSodium) {
       // Sodium: normal when under 90%, over = red
-      if (ratio > 1.0) return AppColors.error;
-      if (ratio > 0.9) return AppColors.lime;
-      return AppColors.purple;
+      if (ratio > 1.0) return palette.destructive;
+      if (ratio > 0.9) return palette.success;
+      return palette.accent;
     }
 
-    if (ratio > 1.1) return AppColors.error;
-    if (ratio >= 0.9) return AppColors.lime;
-    return AppColors.purple;
+    if (ratio > 1.1) return palette.destructive;
+    if (ratio >= 0.9) return palette.success;
+    return palette.accent;
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
+    final (iconData, iconColor) = NutrientIcons.forMicro(name);
     final unit = _unit(name);
     final progress =
         target > 0 ? (consumed / target).clamp(0.0, 1.0) : 0.0;
@@ -131,6 +121,8 @@ class _MicronutrientRow extends StatelessWidget {
         children: [
           Row(
             children: [
+              Icon(iconData, size: 14, color: iconColor),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   name,

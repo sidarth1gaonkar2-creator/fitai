@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show AnimatedContainer, Colors, Icons, Theme;
 import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/cupertino_helpers.dart';
 
 class WaterTracker extends StatelessWidget {
   const WaterTracker({
@@ -21,15 +23,15 @@ class WaterTracker extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Card.filled(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        child: Column(
+    final palette = AppColors.of(context);
+    return CupertinoCard(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      child: Column(
           children: [
-            const Icon(
+            Icon(
               Icons.water_drop,
               size: 28,
-              color: AppColors.lime,
+              color: palette.accent,
             ),
             const SizedBox(height: 4),
             Text(
@@ -71,7 +73,6 @@ class WaterTracker extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -96,10 +97,10 @@ class _GlassDotsRow extends StatelessWidget {
           height: 20,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isFilled ? AppColors.lime : Colors.transparent,
+            color: isFilled ? AppColors.of(context).accent : Colors.transparent,
             border: isFilled
                 ? null
-                : Border.all(color: Colors.white, width: 1.5),
+                : Border.all(color: AppColors.of(context).text, width: 1.5),
           ),
         );
       }),
@@ -120,15 +121,20 @@ class _WaterIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: enabled ? onPressed : null,
-      icon: Icon(icon, size: 18),
-      style: IconButton.styleFrom(
-        backgroundColor: AppColors.purple.withValues(alpha: 0.25),
-        foregroundColor: AppColors.purple,
-        disabledBackgroundColor: AppColors.purple.withValues(alpha: 0.1),
-        disabledForegroundColor: AppColors.purple.withValues(alpha: 0.4),
-        minimumSize: const Size(48, 48),
+    return GestureDetector(
+      onTap: enabled ? onPressed : null,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.of(context).accent.withValues(alpha: enabled ? 0.25 : 0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: AppColors.of(context).accent.withValues(alpha: enabled ? 1.0 : 0.4),
+        ),
       ),
     );
   }

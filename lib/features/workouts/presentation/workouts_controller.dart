@@ -1,12 +1,19 @@
 import 'dart:async';
+import 'dart:developer' as dev;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:isar/isar.dart';
+import '../../../data/exercise_library.dart';
+import '../../../services/notification_service.dart';
+import '../../../models/enums.dart';
+import '../../../models/personal_record.dart';
 import '../../../models/workout.dart';
 import '../../../models/workout_exercise.dart';
 import '../../../models/workout_set.dart';
 import '../../../providers/dashboard_providers.dart';
 import '../../../providers/isar_provider.dart';
+import '../../../providers/personal_records_hall_providers.dart';
 import '../../../providers/workout_providers.dart';
 import '../domain/active_workout_state.dart';
 
@@ -60,12 +67,24 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
     state = state.copyWith(title: title);
   }
 
-  void addExercise(String name) {
+  Future<void> addExercise(String name) async {
+    dev.log('[addExercise] Looking up previous data for "$name"');
+    final lastSet = await _ref.read(lastSetForExerciseProvider(name).future);
+    dev.log('[addExercise] lastSet: ${lastSet != null ? 'reps=${lastSet.reps}, weight=${lastSet.weight}, exerciseName=${lastSet.exerciseName}' : 'null'}');
     final exercise = ActiveExercise(
       name: name,
       order: state.exercises.length,
-      sets: const [ActiveSet(order: 0)],
+      sets: [
+        ActiveSet(
+          order: 0,
+          previousReps: lastSet?.reps,
+          previousWeight: lastSet != null && lastSet.weight > 0
+              ? lastSet.weight
+              : null,
+        ),
+      ],
     );
+    dev.log('[addExercise] previousReps=${exercise.sets.first.previousReps}, previousWeight=${exercise.sets.first.previousWeight}');
     state = state.copyWith(exercises: [...state.exercises, exercise]);
   }
 
@@ -77,7 +96,12 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
   void addSet(int exerciseIndex) {
     final exercises = List<ActiveExercise>.from(state.exercises);
     final exercise = exercises[exerciseIndex];
-    final newSet = ActiveSet(order: exercise.sets.length);
+    final firstSet = exercise.sets.isNotEmpty ? exercise.sets.first : null;
+    final newSet = ActiveSet(
+      order: exercise.sets.length,
+      previousReps: firstSet?.previousReps,
+      previousWeight: firstSet?.previousWeight,
+    );
     exercises[exerciseIndex] =
         exercise.copyWith(sets: [...exercise.sets, newSet]);
     state = state.copyWith(exercises: exercises);
@@ -124,10 +148,13 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
 
   Future<void> _checkPersonalRecord(String exerciseName, double weight) async {
     if (weight <= 0) return;
-    final records = await _ref.read(personalRecordsProvider.future);
-    final key = exerciseName.toLowerCase();
-    final currentBest = records[key];
-    if (currentBest == null || weight > currentBest) {
+    final isar = _ref.read(isarProvider);
+    final existing = await isar.personalRecords
+        .where()
+        .exerciseNameEqualTo(exerciseName)
+        .findAll();
+    final currentBest = existing.isNotEmpty ? existing.first.weightKg : 0.0;
+    if (weight > currentBest) {
       state = state.copyWith(prExerciseName: () => exerciseName);
       Future.delayed(const Duration(seconds: 3), dismissPR);
     }
@@ -168,13 +195,32 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
     state = state.copyWith(restTimerSeconds: () => null);
   }
 
-  void loadFromTemplate({
+  Future<void> loadFromTemplate({
     required String title,
     required List<ActiveExercise> exercises,
-  }) {
+  }) async {
+    // Enrich each exercise with previous set data
+    final enriched = <ActiveExercise>[];
+    for (final ex in exercises) {
+      final lastSet =
+          await _ref.read(lastSetForExerciseProvider(ex.name).future);
+      dev.log('[loadFromTemplate] "${ex.name}" lastSet: ${lastSet != null ? 'reps=${lastSet.reps}, weight=${lastSet.weight}' : 'null'}');
+      if (lastSet != null && (lastSet.reps > 0 || lastSet.weight > 0)) {
+        final enrichedSets = ex.sets
+            .map((s) => s.copyWith(
+                  previousReps: () => lastSet.reps,
+                  previousWeight: () =>
+                      lastSet.weight > 0 ? lastSet.weight : null,
+                ))
+            .toList();
+        enriched.add(ex.copyWith(sets: enrichedSets));
+      } else {
+        enriched.add(ex);
+      }
+    }
     state = ActiveWorkoutState(
       title: title,
-      exercises: exercises,
+      exercises: enriched,
       startTime: DateTime.now(),
     );
   }
@@ -258,7 +304,9 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
               ..reps = activeSet.reps
               ..weight = activeSet.weight
               ..isCompleted = activeSet.isCompleted
-              ..order = activeSet.order;
+              ..order = activeSet.order
+              ..exerciseName = activeExercise.name;
+            dev.log('[saveWorkout] Saving set: exerciseName="${set.exerciseName}", reps=${set.reps}, weight=${set.weight}');
             await isar.workoutSets.put(set);
             exercise.sets.add(set);
           }
@@ -269,13 +317,68 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
         await workout.exercises.save();
       });
 
+      // Detect and persist new PRs
+      final newPRNames = <String>[];
+      for (final activeExercise in state.exercises) {
+        double bestWeight = 0;
+        int bestReps = 0;
+        for (final s in activeExercise.sets) {
+          if (s.isCompleted && s.weight > bestWeight) {
+            bestWeight = s.weight;
+            bestReps = s.reps;
+          }
+        }
+        if (bestWeight <= 0) continue;
+
+        final existingList = await isar.personalRecords
+            .where()
+            .exerciseNameEqualTo(activeExercise.name)
+            .findAll();
+        final existing = existingList.isNotEmpty ? existingList.first : null;
+
+        if (existing == null || bestWeight > existing.weightKg) {
+          final muscle = exerciseLibrary
+                  .where((e) =>
+                      e.name.toLowerCase() ==
+                      activeExercise.name.toLowerCase())
+                  .firstOrNull
+                  ?.primaryMuscles
+                  .firstOrNull ??
+              MuscleGroup.chest;
+
+          await isar.writeTxn(() async {
+            if (existing != null) {
+              existing.weightKg = bestWeight;
+              existing.bestReps = bestReps;
+              existing.dateAchieved = DateTime.now();
+              existing.muscleGroup = muscle;
+              await isar.personalRecords.put(existing);
+            } else {
+              final pr = PersonalRecord()
+                ..exerciseName = activeExercise.name
+                ..weightKg = bestWeight
+                ..bestReps = bestReps
+                ..dateAchieved = DateTime.now()
+                ..muscleGroup = muscle;
+              await isar.personalRecords.put(pr);
+            }
+          });
+          newPRNames.add(activeExercise.name);
+
+          // Fire PR notification
+          NotificationService.instance
+              .showPRNotification(activeExercise.name, bestWeight);
+        }
+      }
+
       _ref.invalidate(allWorkoutsProvider);
       _ref.invalidate(workoutDatesProvider);
       _ref.invalidate(todayWorkoutProvider);
       _ref.invalidate(streakProvider);
       _ref.invalidate(personalRecordsProvider);
+      _ref.invalidate(allPersonalRecordsProvider);
 
-      state = state.copyWith(isSaving: false);
+      state = state.copyWith(isSaving: false, newPRs: newPRNames);
       return true;
     } catch (_) {
       state = state.copyWith(isSaving: false);

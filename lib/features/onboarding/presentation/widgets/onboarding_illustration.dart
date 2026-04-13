@@ -30,18 +30,23 @@ class OnboardingIllustration extends StatelessWidget {
           },
         );
       },
-      child: Container(
-        width: 120,
-        height: 120,
-        decoration: const BoxDecoration(
-          color: AppColors.purpleDark,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          size: 56,
-          color: AppColors.lime,
-        ),
+      child: Builder(
+        builder: (context) {
+          final palette = AppColors.of(context);
+          return Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: palette.surfaceElevated,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              size: 56,
+              color: palette.accent,
+            ),
+          );
+        },
       ),
     );
   }

@@ -1,6 +1,11 @@
+import 'dart:developer' as dev;
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../models/enums.dart';
 import '../../../providers/nutrition_providers.dart';
 import '../domain/food_search_result.dart';
@@ -23,13 +28,44 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
   late final TextEditingController _servingController;
   double _servingSize = 100;
   bool _isSaving = false;
+  late FoodSearchResult _food;
+  bool _loadingDetail = false;
 
   @override
   void initState() {
     super.initState();
+    _food = widget.food;
     _servingSize = widget.food.defaultServingSize;
     _servingController =
         TextEditingController(text: _servingSize.toInt().toString());
+    _fetchDetailIfNeeded();
+  }
+
+  Future<void> _fetchDetailIfNeeded() async {
+    // If this is a USDA food without micronutrients, fetch the full detail
+    if (_food.source == FoodSource.usda &&
+        _food.fdcId != null &&
+        !_food.hasMicronutrients) {
+      setState(() => _loadingDetail = true);
+      try {
+        final service = ref.read(usdaServiceProvider);
+        final detail = await service.getFoodDetail(_food.fdcId!);
+        if (detail != null && mounted) {
+          dev.log(
+            '[FoodDetail] Enriched "${_food.name}" with micros: '
+            'iron=${detail.ironMgPer100g} calcium=${detail.calciumMgPer100g} '
+            'vitC=${detail.vitaminCMgPer100g} vitD=${detail.vitaminDMcgPer100g}',
+            name: 'FitAI.Nutrition',
+          );
+          setState(() => _food = detail);
+        }
+      } catch (e) {
+        dev.log('[FoodDetail] Failed to fetch detail: $e',
+            name: 'FitAI.Nutrition');
+      } finally {
+        if (mounted) setState(() => _loadingDetail = false);
+      }
+    }
   }
 
   @override
@@ -41,7 +77,7 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
   Future<void> _addFood() async {
     setState(() => _isSaving = true);
 
-    final food = widget.food;
+    final food = _food;
     final g = _servingSize;
     final success = await addFoodEntry(
       ref,
@@ -73,15 +109,13 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
       context.go('/nutrition');
     } else {
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save. Try again.')),
-      );
+      showCupertinoToast(context, 'Failed to save. Try again.');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final food = widget.food;
+    final food = _food;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -91,7 +125,11 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
     final fat = food.fatFor(_servingSize);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Food')),
+      appBar: CupertinoNavigationBar(
+        middle: const Text('Add Food'),
+        backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
+        border: null,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -201,6 +239,95 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
                 ),
               ),
             ),
+
+
+            // Micronutrient preview
+            if (_loadingDetail) ...[
+              const SizedBox(height: 16),
+              const Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 8),
+                    Text('Loading micronutrients…',
+                        style: TextStyle(fontSize: 13)),
+                  ],
+                ),
+              ),
+            ] else if (food.hasMicronutrients) ...[
+              const SizedBox(height: 12),
+              Card.filled(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Micronutrients',
+                        style: textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const Divider(height: 16),
+                      if (food.ironMgFor(_servingSize) != null)
+                        _NutritionRow(
+                            label: 'Iron',
+                            value:
+                                '${food.ironMgFor(_servingSize)!.toStringAsFixed(1)} mg'),
+                      if (food.calciumMgFor(_servingSize) != null)
+                        _NutritionRow(
+                            label: 'Calcium',
+                            value:
+                                '${food.calciumMgFor(_servingSize)!.toStringAsFixed(0)} mg'),
+                      if (food.vitaminCMgFor(_servingSize) != null)
+                        _NutritionRow(
+                            label: 'Vitamin C',
+                            value:
+                                '${food.vitaminCMgFor(_servingSize)!.toStringAsFixed(1)} mg'),
+                      if (food.vitaminDMcgFor(_servingSize) != null)
+                        _NutritionRow(
+                            label: 'Vitamin D',
+                            value:
+                                '${food.vitaminDMcgFor(_servingSize)!.toStringAsFixed(1)} mcg'),
+                      if (food.magnesiumMgFor(_servingSize) != null)
+                        _NutritionRow(
+                            label: 'Magnesium',
+                            value:
+                                '${food.magnesiumMgFor(_servingSize)!.toStringAsFixed(0)} mg'),
+                      if (food.potassiumMgFor(_servingSize) != null)
+                        _NutritionRow(
+                            label: 'Potassium',
+                            value:
+                                '${food.potassiumMgFor(_servingSize)!.toStringAsFixed(0)} mg'),
+                      if (food.zincMgFor(_servingSize) != null)
+                        _NutritionRow(
+                            label: 'Zinc',
+                            value:
+                                '${food.zincMgFor(_servingSize)!.toStringAsFixed(1)} mg'),
+                      if (food.vitaminB12McgFor(_servingSize) != null)
+                        _NutritionRow(
+                            label: 'Vitamin B12',
+                            value:
+                                '${food.vitaminB12McgFor(_servingSize)!.toStringAsFixed(1)} mcg'),
+                      if (food.folateMcgFor(_servingSize) != null)
+                        _NutritionRow(
+                            label: 'Folate',
+                            value:
+                                '${food.folateMcgFor(_servingSize)!.toStringAsFixed(0)} mcg'),
+                      if (food.sodiumMgFor(_servingSize) != null)
+                        _NutritionRow(
+                            label: 'Sodium',
+                            value:
+                                '${food.sodiumMgFor(_servingSize)!.toStringAsFixed(0)} mg'),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
 
             // Add button

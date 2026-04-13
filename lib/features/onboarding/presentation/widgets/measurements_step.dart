@@ -1,9 +1,9 @@
-import 'dart:async';
-
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/validators.dart';
+import '../../../../core/utils/unit_converter.dart';
+import '../../../../providers/unit_system_provider.dart';
 import '../onboarding_controller.dart';
 import 'onboarding_illustration.dart';
 
@@ -15,61 +15,55 @@ class MeasurementsStep extends ConsumerStatefulWidget {
 }
 
 class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
-  final _weightController = TextEditingController();
-  final _heightController = TextEditingController();
-  String? _weightError;
-  String? _heightError;
-  Timer? _weightDebounce;
-  Timer? _heightDebounce;
-  bool _weightTouched = false;
-  bool _heightTouched = false;
+  static const _minWeight = 30;
+  static const _maxWeight = 200;
+  static const _minHeight = 120;
+  static const _maxHeight = 220;
+
+  int _weightKg = 75;
+  int _heightCm = 175;
+
+  late final FixedExtentScrollController _weightCtrl;
+  late final FixedExtentScrollController _heightCtrl;
 
   @override
   void initState() {
     super.initState();
     final state = ref.read(onboardingControllerProvider);
-    if (state.weight != null) _weightController.text = state.weight.toString();
-    if (state.height != null) _heightController.text = state.height.toString();
+    if (state.weight != null) _weightKg = state.weight!.round().clamp(_minWeight, _maxWeight);
+    if (state.height != null) _heightCm = state.height!.round().clamp(_minHeight, _maxHeight);
+    _weightCtrl = FixedExtentScrollController(initialItem: _weightKg - _minWeight);
+    _heightCtrl = FixedExtentScrollController(initialItem: _heightCm - _minHeight);
   }
 
   @override
   void dispose() {
-    _weightDebounce?.cancel();
-    _heightDebounce?.cancel();
-    _weightController.dispose();
-    _heightController.dispose();
+    _weightCtrl.dispose();
+    _heightCtrl.dispose();
     super.dispose();
   }
 
-  void _onWeightChanged(String value) {
-    _weightTouched = true;
-    _weightDebounce?.cancel();
-    _weightDebounce = Timer(const Duration(milliseconds: 500), () {
-      setState(() {
-        _weightError = value.isEmpty ? null : validateWeight(value);
-      });
-    });
+  void _submit() {
+    final controller = ref.read(onboardingControllerProvider.notifier);
+    controller.setWeight(_weightKg.toDouble());
+    controller.setHeight(_heightCm.toDouble());
+    controller.nextStep();
   }
-
-  void _onHeightChanged(String value) {
-    _heightTouched = true;
-    _heightDebounce?.cancel();
-    _heightDebounce = Timer(const Duration(milliseconds: 500), () {
-      setState(() {
-        _heightError = value.isEmpty ? null : validateHeight(value);
-      });
-    });
-  }
-
-  bool get _isValid =>
-      _weightError == null &&
-      _heightError == null &&
-      _weightController.text.isNotEmpty &&
-      _heightController.text.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final units = ref.watch(unitSystemProvider);
+    final isImperial = units == UnitSystem.imperial;
+
+    final weightDisplay = isImperial
+        ? UnitConverter.kgToLbs(_weightKg.toDouble()).round()
+        : _weightKg;
+    final weightUnit = isImperial ? 'lbs' : 'kg';
+
+    final heightDisplay = isImperial
+        ? UnitConverter.cmToFtIn(_heightCm.toDouble())
+        : '$_heightCm cm';
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -87,7 +81,7 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 28,
-              color: Colors.white,
+              color: AppColors.of(context).text,
             ),
           ),
           const SizedBox(height: 8),
@@ -96,108 +90,157 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
             style: textTheme.bodyLarge?.copyWith(
               fontFamily: 'LeagueSpartan',
               fontWeight: FontWeight.w400,
-              color: AppColors.purpleLight,
+              color: AppColors.of(context).textSecondary,
             ),
           ),
-          const SizedBox(height: 32),
-          TextField(
-            controller: _weightController,
-            decoration: InputDecoration(
-              labelText: 'Weight (kg)',
-              hintText: 'e.g. 75',
-              suffixText: 'kg',
-              errorText: _weightTouched ? _weightError : null,
+          const SizedBox(height: 24),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _WheelPicker(
+                    label: 'Weight',
+                    unit: weightUnit,
+                    displayValue: '$weightDisplay $weightUnit',
+                    controller: _weightCtrl,
+                    value: _weightKg,
+                    min: _minWeight,
+                    max: _maxWeight,
+                    onChanged: (v) => setState(() => _weightKg = v),
+                    formatItem: isImperial
+                        ? (rawKg) =>
+                            '${UnitConverter.kgToLbs(rawKg.toDouble()).round()}'
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _WheelPicker(
+                    label: 'Height',
+                    unit: isImperial ? 'ft' : 'cm',
+                    displayValue: heightDisplay,
+                    controller: _heightCtrl,
+                    value: _heightCm,
+                    min: _minHeight,
+                    max: _maxHeight,
+                    onChanged: (v) => setState(() => _heightCm = v),
+                    formatItem: isImperial
+                        ? (rawCm) =>
+                            UnitConverter.cmToFtIn(rawCm.toDouble())
+                        : null,
+                  ),
+                ),
+              ],
             ),
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            onChanged: _onWeightChanged,
           ),
           const SizedBox(height: 16),
-          TextField(
-            controller: _heightController,
-            decoration: InputDecoration(
-              labelText: 'Height (cm)',
-              hintText: 'e.g. 175',
-              suffixText: 'cm',
-              errorText: _heightTouched ? _heightError : null,
+          CupertinoButton(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            color: AppColors.of(context).accent,
+            borderRadius: BorderRadius.circular(12),
+            onPressed: _submit,
+            child: const Text(
+              'Next',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Poppins',
+              ),
             ),
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            onChanged: _onHeightChanged,
           ),
-          const Spacer(),
-          _NextButton(isValid: _isValid, onPressed: _submit),
         ],
       ),
     );
   }
-
-  void _submit() {
-    final wError = validateWeight(_weightController.text);
-    final hError = validateHeight(_heightController.text);
-    if (wError != null || hError != null) {
-      setState(() {
-        _weightTouched = true;
-        _heightTouched = true;
-        _weightError = wError;
-        _heightError = hError;
-      });
-      return;
-    }
-
-    final controller = ref.read(onboardingControllerProvider.notifier);
-    controller.setWeight(double.parse(_weightController.text));
-    controller.setHeight(double.parse(_heightController.text));
-    controller.nextStep();
-  }
 }
 
-class _NextButton extends StatelessWidget {
-  const _NextButton({required this.isValid, required this.onPressed});
+class _WheelPicker extends StatelessWidget {
+  const _WheelPicker({
+    required this.label,
+    required this.unit,
+    this.displayValue,
+    required this.controller,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+    this.formatItem,
+  });
 
-  final bool isValid;
-  final VoidCallback onPressed;
+  final String label;
+  final String unit;
+  final String? displayValue;
+  final FixedExtentScrollController controller;
+  final int value;
+  final int min;
+  final int max;
+  final ValueChanged<int> onChanged;
+  final String Function(int)? formatItem;
 
   @override
   Widget build(BuildContext context) {
-    if (isValid) {
-      return FilledButton(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.lime,
-          foregroundColor: Colors.black,
-          minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: const Text(
-          'Next',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      );
-    }
-
-    return OutlinedButton(
-      onPressed: null,
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(52),
-        foregroundColor: Colors.white,
-        side: const BorderSide(color: Colors.white, width: 1.5),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        disabledForegroundColor: Colors.white.withValues(alpha: 0.4),
+    final palette = AppColors.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.border),
       ),
-      child: const Text(
-        'Next',
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.w600,
-        ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                color: palette.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Text(
+            displayValue ?? '$value $unit',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              color: palette.accent,
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          Expanded(
+            child: CupertinoPicker(
+              scrollController: controller,
+              itemExtent: 34,
+              magnification: 1.1,
+              squeeze: 1.2,
+              selectionOverlay: Container(
+                decoration: BoxDecoration(
+                  color: palette.accent.withValues(alpha: 0.12),
+                  border: Border(
+                    top: BorderSide(color: palette.accent),
+                    bottom: BorderSide(color: palette.accent),
+                  ),
+                ),
+              ),
+              onSelectedItemChanged: (index) => onChanged(min + index),
+              children: List.generate(
+                max - min + 1,
+                (i) => Center(
+                  child: Text(
+                    formatItem?.call(min + i) ?? '${min + i}',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      color: palette.text,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

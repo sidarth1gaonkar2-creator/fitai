@@ -9,12 +9,13 @@ class StreakCounter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = AppColors.of(context);
 
     return Semantics(
       label: '$streak day streak',
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.purpleDark,
+          color: palette.accent,
           borderRadius: BorderRadius.circular(12),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -23,7 +24,7 @@ class StreakCounter extends StatelessWidget {
             const Icon(
               Icons.local_fire_department,
               size: 32,
-              color: AppColors.lime,
+              color: Colors.white,
             ),
             const SizedBox(height: 4),
             Text(
@@ -36,7 +37,7 @@ class StreakCounter extends StatelessWidget {
             Text(
               'day streak',
               style: textTheme.bodySmall?.copyWith(
-                color: Colors.white,
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
           ],

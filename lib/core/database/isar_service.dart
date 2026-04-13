@@ -10,26 +10,47 @@ import '../../models/food_entry.dart';
 import '../../models/ai_message.dart';
 import '../../models/completed_day.dart';
 import '../../models/onboarding_progress.dart';
+import '../../models/custom_meal_plan.dart';
+import '../../models/custom_meal_plan_food.dart';
+import '../../models/custom_meal_plan_meal.dart';
+import '../../models/personal_record.dart';
+import '../../models/supplement.dart';
+import '../../models/supplement_log.dart';
 import '../../models/weight_entry.dart';
 
 class IsarService {
   static Future<Isar> initialize() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return Isar.open(
-      [
-        UserProfileSchema,
-        WorkoutSchema,
-        WorkoutExerciseSchema,
-        WorkoutSetSchema,
-        NutritionLogSchema,
-        MealSchema,
-        FoodEntrySchema,
-        AIMessageSchema,
-        WeightEntrySchema,
-        OnboardingProgressSchema,
-        CompletedDaySchema,
-      ],
-      directory: dir.path,
-    );
+    String stage = 'getApplicationDocumentsDirectory';
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      stage = 'Isar.open(directory=${dir.path})';
+      return await Isar.open(
+        [
+          UserProfileSchema,
+          WorkoutSchema,
+          WorkoutExerciseSchema,
+          WorkoutSetSchema,
+          NutritionLogSchema,
+          MealSchema,
+          FoodEntrySchema,
+          AIMessageSchema,
+          WeightEntrySchema,
+          OnboardingProgressSchema,
+          CompletedDaySchema,
+          CustomMealPlanSchema,
+          CustomMealPlanMealSchema,
+          CustomMealPlanFoodSchema,
+          PersonalRecordSchema,
+          SupplementSchema,
+          SupplementLogSchema,
+        ],
+        directory: dir.path,
+      );
+    } catch (e, st) {
+      Error.throwWithStackTrace(
+        StateError('IsarService.initialize failed at stage "$stage": $e'),
+        st,
+      );
+    }
   }
 }

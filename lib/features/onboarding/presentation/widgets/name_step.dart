@@ -1,6 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Colors, Icons, Theme;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/validators.dart';
@@ -53,7 +54,8 @@ class _NameStepState extends ConsumerState<NameStep> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Padding(
+    return SafeArea(
+      child: SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -67,7 +69,7 @@ class _NameStepState extends ConsumerState<NameStep> {
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 28,
-              color: Colors.white,
+              color: AppColors.of(context).text,
             ),
           ),
           const SizedBox(height: 8),
@@ -76,26 +78,46 @@ class _NameStepState extends ConsumerState<NameStep> {
             style: textTheme.bodyLarge?.copyWith(
               fontFamily: 'LeagueSpartan',
               fontWeight: FontWeight.w400,
-              color: AppColors.purpleLight,
+              color: AppColors.of(context).textSecondary,
             ),
           ),
           const SizedBox(height: 32),
-          TextField(
+          CupertinoTextField(
             controller: _nameController,
-            decoration: InputDecoration(
-              labelText: 'Name',
-              hintText: 'Enter your name',
-              errorText: _isTouched ? _nameError : null,
+            placeholder: 'Enter your name',
+            prefix: const Padding(
+              padding: EdgeInsets.only(left: 12),
+              child: Text('Name', style: TextStyle(color: CupertinoColors.systemGrey)),
             ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.of(context).surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: (_isTouched && _nameError != null)
+                    ? AppColors.of(context).destructive
+                    : AppColors.of(context).border,
+              ),
+            ),
+            style: TextStyle(color: AppColors.of(context).text),
             textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.done,
             onChanged: _onNameChanged,
             onSubmitted: (_) => _isValid ? _submit() : null,
           ),
-          const Spacer(),
+          if (_isTouched && _nameError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 4),
+              child: Text(
+                _nameError!,
+                style: TextStyle(color: AppColors.of(context).destructive, fontSize: 12),
+              ),
+            ),
+          const SizedBox(height: 32),
           _NextButton(isValid: _isValid, onPressed: _submit),
         ],
       ),
+    ),
     );
   }
 
@@ -123,43 +145,40 @@ class _NextButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
     if (isValid) {
-      return FilledButton(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.lime,
-          foregroundColor: Colors.black,
-          minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: const Text(
-          'Next',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
+      return SizedBox(
+        width: double.infinity,
+        child: CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          color: palette.accent,
+          borderRadius: BorderRadius.circular(12),
+          onPressed: onPressed,
+          child: const Text(
+            'Next',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
         ),
       );
     }
 
-    return OutlinedButton(
-      onPressed: null,
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(52),
-        foregroundColor: Colors.white,
-        side: const BorderSide(color: Colors.white, width: 1.5),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        disabledForegroundColor: Colors.white.withValues(alpha: 0.4),
-      ),
-      child: const Text(
-        'Next',
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.w600,
+    return SizedBox(
+      width: double.infinity,
+      child: CupertinoButton(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        borderRadius: BorderRadius.circular(12),
+        onPressed: null,
+        child: Text(
+          'Next',
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w600,
+            color: palette.text.withValues(alpha: 0.4),
+          ),
         ),
       ),
     );

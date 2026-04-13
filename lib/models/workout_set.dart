@@ -12,6 +12,9 @@ class WorkoutSet {
   bool isCompleted = false;
   late int order;
 
+  @Index()
+  String? exerciseName;
+
   @Backlink(to: 'sets')
   final exercise = IsarLinks<WorkoutExercise>();
 }

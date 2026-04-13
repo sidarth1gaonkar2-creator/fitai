@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
@@ -23,72 +25,29 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
     return Scaffold(
-      appBar: _buildAppBar(context),
-      body: _selectedTab == 0
-          ? _WorkoutLogTab(key: const ValueKey('workout_log'))
-          : _ChartsTab(key: const ValueKey('charts')),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(kToolbarHeight + 56),
-      child: Container(
-        color: AppColors.purple,
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top row: title + profile avatar
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Progress',
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 20,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    // Profile avatar placeholder
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: AppColors.purpleDark,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: AppColors.lime.withValues(alpha: 0.6),
-                            width: 1.5),
-                      ),
-                      child: const Icon(
-                        Icons.person_outline,
-                        color: AppColors.lime,
-                        size: 20,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Tab toggle inside the AppBar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _ProgressTabToggle(
-                  selectedIndex: _selectedTab,
-                  onTabChanged: (i) => setState(() => _selectedTab = i),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
+      backgroundColor: palette.background,
+      appBar: CupertinoNavigationBar(
+        middle: const Text('Progress'),
+        backgroundColor: palette.background.withValues(alpha: 0.8),
+        border: null,
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: _ProgressTabToggle(
+              selectedIndex: _selectedTab,
+              onTabChanged: (i) => setState(() => _selectedTab = i),
+            ),
           ),
-        ),
+          Expanded(
+            child: _selectedTab == 0
+                ? _WorkoutLogTab(key: const ValueKey('workout_log'))
+                : _ChartsTab(key: const ValueKey('charts')),
+          ),
+        ],
       ),
     );
   }
@@ -107,11 +66,13 @@ class _ProgressTabToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
     return Container(
+      height: 44,
       decoration: BoxDecoration(
-        border: Border.all(
-            color: Colors.white.withValues(alpha: 0.25)),
-        borderRadius: BorderRadius.circular(50),
+        color: palette.surface,
+        border: Border.all(color: palette.border),
+        borderRadius: BorderRadius.circular(22),
       ),
       padding: const EdgeInsets.all(3),
       child: Row(
@@ -154,10 +115,15 @@ class _TabPill extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: isActive ? AppColors.lime : Colors.transparent,
-            borderRadius: BorderRadius.circular(50),
+            color: isActive ? AppColors.of(context).accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(19),
+            border: isActive
+                ? null
+                : Border.all(
+                    color: AppColors.of(context).border,
+                    width: 1,
+                  ),
           ),
           alignment: Alignment.center,
           child: Text(
@@ -166,7 +132,7 @@ class _TabPill extends StatelessWidget {
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w600,
               fontSize: 13,
-              color: isActive ? Colors.black : Colors.white,
+              color: isActive ? Colors.black : AppColors.of(context).text,
             ),
           ),
         ),
@@ -199,7 +165,7 @@ class _WorkoutLogTab extends ConsumerWidget {
             style: textTheme.titleMedium?.copyWith(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w600,
-              color: AppColors.lime,
+              color: AppColors.of(context).accent,
             ),
           ),
           const SizedBox(height: 12),
@@ -221,27 +187,34 @@ class _WorkoutLogTab extends ConsumerWidget {
                   style: textTheme.titleMedium?.copyWith(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w600,
-                    color: AppColors.lime,
+                    color: AppColors.of(context).accent,
                   ),
                 ),
               ),
-              FilledButton.icon(
-                onPressed: () => showDialog(
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 10),
+                color: AppColors.of(context).accent,
+                borderRadius: BorderRadius.circular(10),
+                onPressed: () => showCupertinoDialog(
                   context: context,
                   builder: (_) => const WeightEntryDialog(),
                 ),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Log Weight'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.lime,
-                  foregroundColor: Colors.black,
-                  textStyle: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.add, color: Colors.black, size: 16),
+                    SizedBox(width: 4),
+                    Text(
+                      'Log Weight',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -277,13 +250,17 @@ class _ChartsTab extends StatelessWidget {
         children: [
           const SizedBox(height: 20),
 
+          // --- Personal Records ---
+          _PRHallCard(),
+          const SizedBox(height: 28),
+
           // --- Strength Progress ---
           Text(
             'Strength Progress',
             style: textTheme.titleMedium?.copyWith(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w600,
-              color: AppColors.lime,
+              color: AppColors.of(context).accent,
             ),
           ),
           const SizedBox(height: 12),
@@ -296,13 +273,83 @@ class _ChartsTab extends StatelessWidget {
             style: textTheme.titleMedium?.copyWith(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w600,
-              color: AppColors.lime,
+              color: AppColors.of(context).accent,
             ),
           ),
           const SizedBox(height: 12),
           const NutritionTrends(),
           const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+}
+
+// ─── PR Hall Navigation Card ────────────────────────────────────────────────
+
+class _PRHallCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        context.push('/progress/pr-hall');
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: palette.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: palette.warning.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.emoji_events,
+                color: palette.warning,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Personal Records',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: palette.text,
+                    ),
+                  ),
+                  Text(
+                    'View your all-time bests',
+                    style: TextStyle(
+                      fontFamily: 'LeagueSpartan',
+                      fontSize: 13,
+                      color: palette.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              CupertinoIcons.chevron_right,
+              size: 18,
+              color: palette.textSecondary,
+            ),
+          ],
+        ),
       ),
     );
   }

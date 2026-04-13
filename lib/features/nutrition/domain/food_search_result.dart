@@ -12,6 +12,7 @@ class FoodSearchResult {
     this.defaultServingSize = 100,
     this.servingUnit = 'g',
     this.barcode,
+    this.fdcId,
     this.fibrePer100g,
     this.sugarPer100g,
     this.sodiumMgPer100g,
@@ -38,6 +39,7 @@ class FoodSearchResult {
   final double defaultServingSize;
   final String servingUnit;
   final String? barcode;
+  final int? fdcId;
   final double? fibrePer100g;
   final double? sugarPer100g;
   final double? sodiumMgPer100g;
@@ -54,6 +56,17 @@ class FoodSearchResult {
   final double? zincMgPer100g;
   final double? vitaminB12McgPer100g;
   final double? folateMcgPer100g;
+
+  bool get hasMicronutrients =>
+      (ironMgPer100g ?? 0) > 0 ||
+      (calciumMgPer100g ?? 0) > 0 ||
+      (vitaminCMgPer100g ?? 0) > 0 ||
+      (vitaminDMcgPer100g ?? 0) > 0 ||
+      (magnesiumMgPer100g ?? 0) > 0 ||
+      (potassiumMgPer100g ?? 0) > 0 ||
+      (zincMgPer100g ?? 0) > 0 ||
+      (vitaminB12McgPer100g ?? 0) > 0 ||
+      (folateMcgPer100g ?? 0) > 0;
 
   double caloriesFor(double grams) => caloriesPer100g * grams / 100;
   double proteinFor(double grams) => proteinPer100g * grams / 100;
@@ -76,6 +89,76 @@ class FoodSearchResult {
   double? vitaminB12McgFor(double grams) =>
       _scaled(vitaminB12McgPer100g, grams);
   double? folateMcgFor(double grams) => _scaled(folateMcgPer100g, grams);
+
+  factory FoodSearchResult.fromUsda(Map<String, dynamic> food) {
+    final nutrients = food['foodNutrients'] as List<dynamic>? ?? [];
+
+    // USDA uses different formats depending on endpoint/food type:
+    //   Search: { nutrientId: 1003, value: 25.0 }
+    //   Detail: { nutrient: { id: 1003, number: "203" }, amount: 25.0 }
+    //   Branded: { nutrientNumber: "203", value: 25.0 }
+    final byId = <int, double>{};
+    final byNumber = <String, double>{};
+    for (final raw in nutrients) {
+      final n = raw as Map<String, dynamic>;
+      // Try "value" (search) then "amount" (detail)
+      final value = (n['value'] as num?)?.toDouble() ??
+          (n['amount'] as num?)?.toDouble() ??
+          0;
+      // Try flat nutrientId (search)
+      if (n.containsKey('nutrientId')) {
+        byId[(n['nutrientId'] as num).toInt()] = value;
+      }
+      // Try nested nutrient.id (detail endpoint)
+      if (n.containsKey('nutrient') && n['nutrient'] is Map) {
+        final nested = n['nutrient'] as Map<String, dynamic>;
+        if (nested.containsKey('id')) {
+          byId[(nested['id'] as num).toInt()] = value;
+        }
+        if (nested.containsKey('number')) {
+          byNumber[nested['number'].toString()] = value;
+        }
+      }
+      // Try flat nutrientNumber (branded)
+      if (n.containsKey('nutrientNumber')) {
+        byNumber[n['nutrientNumber'].toString()] = value;
+      }
+    }
+
+    // Nutrient ID → nutrient number string mapping
+    double nutrient(int id, String number) =>
+        byId[id] ?? byNumber[number] ?? 0;
+
+    double? optNutrient(int id, String number) {
+      final v = nutrient(id, number);
+      return v > 0 ? v : null;
+    }
+
+    final desc = food['description'] as String? ?? 'Unknown Food';
+
+    return FoodSearchResult(
+      name: desc.length > 80 ? '${desc.substring(0, 80)}…' : desc,
+      brand: food['brandOwner'] as String?,
+      fdcId: (food['fdcId'] as num?)?.toInt(),
+      caloriesPer100g: nutrient(1008, '208'),
+      proteinPer100g: nutrient(1003, '203'),
+      carbsPer100g: nutrient(1005, '205'),
+      fatPer100g: nutrient(1004, '204'),
+      fibrePer100g: optNutrient(1079, '291'),
+      sugarPer100g: optNutrient(2000, '269'),
+      sodiumMgPer100g: optNutrient(1093, '307'),
+      vitaminDMcgPer100g: optNutrient(1114, '328'),
+      ironMgPer100g: optNutrient(1089, '303'),
+      calciumMgPer100g: optNutrient(1087, '301'),
+      vitaminCMgPer100g: optNutrient(1162, '401'),
+      magnesiumMgPer100g: optNutrient(1090, '304'),
+      potassiumMgPer100g: optNutrient(1092, '306'),
+      zincMgPer100g: optNutrient(1095, '309'),
+      vitaminB12McgPer100g: optNutrient(1178, '418'),
+      folateMcgPer100g: optNutrient(1177, '417'),
+      source: FoodSource.usda,
+    );
+  }
 
   factory FoodSearchResult.fromOpenFoodFacts(Map<String, dynamic> product) {
     final nutriments = product['nutriments'] as Map<String, dynamic>? ?? {};

@@ -7,3 +7,4 @@
 - [Post-Implementation Audit — Phase 5/6 Features (2026-04-05)](audit_post_impl_2026-04-05.md) — Findings from targeted review of all new/modified files in nutrition, food search, exercise, templates, settings
 - [Pre-Implementation Review — Round 2 (2026-04-05)](audit_pre_impl2_2026-04-05.md) — Micronutrient always-visible, day completion sheet, settings back nav, instant local search, macro colour, full design system overhaul + current-state audit of dashboard/ai_coach/progress/shell
 - [Post-Implementation Audit — UI Overhaul Pass (2026-04-05)](audit_post_impl2_2026-04-05.md) — Critical/major findings from the full UI overhaul: sub-48dp tap targets (water buttons, calendar cells, tab pills), missing semantics, haptic gaps, profile null blank screen
+- [Cupertino Migration Audit (2026-04-08)](audit_cupertino_migration_2026-04-08.md) — HIG violations, Theme.of fallback risk, unconverted Material widgets, ScaffoldMessenger remnants after Material→Cupertino migration

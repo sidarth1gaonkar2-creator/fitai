@@ -1,7 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../models/enums.dart';
 import '../../../providers/nutrition_providers.dart';
 
@@ -47,16 +50,12 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
           extra: result,
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product not found. Try another.')),
-        );
+        showCupertinoToast(context, 'Product not found. Try another.');
         setState(() => _isProcessing = false);
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Lookup failed. Check your connection.')),
-        );
+        showCupertinoToast(context, 'Lookup failed. Check your connection.');
         setState(() => _isProcessing = false);
       }
     }
@@ -67,23 +66,25 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scan Barcode'),
-        actions: [
-          IconButton(
-            icon: ValueListenableBuilder(
-              valueListenable: _controller,
-              builder: (context, state, _) {
-                return Icon(
-                  state.torchState == TorchState.on
-                      ? Icons.flash_on
-                      : Icons.flash_off,
-                );
-              },
-            ),
-            onPressed: () => _controller.toggleTorch(),
+      appBar: CupertinoNavigationBar(
+        middle: const Text('Scan Barcode'),
+        backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
+        border: null,
+        trailing: CupertinoButton(
+          padding: const EdgeInsets.all(8),
+          onPressed: () => _controller.toggleTorch(),
+          child: ValueListenableBuilder(
+            valueListenable: _controller,
+            builder: (context, state, _) {
+              return Icon(
+                state.torchState == TorchState.on
+                    ? CupertinoIcons.bolt_fill
+                    : CupertinoIcons.bolt_slash,
+                size: 22,
+              );
+            },
           ),
-        ],
+        ),
       ),
       body: Stack(
         children: [

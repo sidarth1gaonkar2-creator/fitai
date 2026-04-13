@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/muscle_group_diagram.dart';
 import '../../../core/widgets/shimmer_loading.dart';
@@ -19,11 +21,13 @@ class WorkoutDetailScreen extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    final palette = AppColors.of(context);
     return workoutAsync.when(
       loading: () => Scaffold(
-        appBar: AppBar(
-          leading: const BackButton(),
-          title: const Text('Workout'),
+        appBar: CupertinoNavigationBar(
+          middle: const Text('Workout'),
+          backgroundColor: palette.background.withValues(alpha: 0.8),
+          border: null,
         ),
         body: const Padding(
           padding: EdgeInsets.all(16),
@@ -39,9 +43,10 @@ class WorkoutDetailScreen extends ConsumerWidget {
         ),
       ),
       error: (_, _) => Scaffold(
-        appBar: AppBar(
-          leading: const BackButton(),
-          title: const Text('Workout'),
+        appBar: CupertinoNavigationBar(
+          middle: const Text('Workout'),
+          backgroundColor: palette.background.withValues(alpha: 0.8),
+          border: null,
         ),
         body: ErrorCard(
           message: 'Could not load workout.',
@@ -79,39 +84,42 @@ class WorkoutDetailScreen extends ConsumerWidget {
         final dateStr = '${date.day}/${date.month}/${date.year}';
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(workout.title),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: () => context.go('/workouts/$workoutId/edit'),
-              ),
-              IconButton(
-                icon: Icon(Icons.delete_outline, color: colorScheme.error),
-                onPressed: () => _confirmDelete(context, ref),
-              ),
-            ],
+          appBar: CupertinoNavigationBar(
+            middle: Text(workout.title),
+            backgroundColor: palette.background.withValues(alpha: 0.8),
+            border: null,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CupertinoButton(
+                  padding: const EdgeInsets.all(8),
+                  onPressed: () => context.go('/workouts/$workoutId/edit'),
+                  child: const Icon(CupertinoIcons.pencil, size: 22),
+                ),
+                const SizedBox(width: 14),
+                CupertinoButton(
+                  padding: const EdgeInsets.all(8),
+                  onPressed: () => _confirmDelete(context, ref),
+                  child: Icon(CupertinoIcons.trash,
+                      size: 22, color: colorScheme.error),
+                ),
+              ],
+            ),
           ),
-          body: FutureBuilder(
-            future: _loadExercises(workout, ref),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return ErrorCard(
-                  message: 'Could not load exercises.',
-                  onRetry: () => (context as Element).markNeedsBuild(),
-                );
-              }
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              final exercises = snapshot.data!;
-
+          body: ref.watch(workoutExercisesProvider(workoutId)).when(
+            loading: () =>
+                const Center(child: CupertinoActivityIndicator()),
+            error: (_, _) => ErrorCard(
+              message: 'Could not load exercises.',
+              onRetry: () =>
+                  ref.invalidate(workoutExercisesProvider(workoutId)),
+            ),
+            data: (exercises) {
               // Aggregate muscles across all exercises
               final primaryMuscles = <MuscleGroup>{};
               final secondaryMuscles = <MuscleGroup>{};
               for (final entry in exercises) {
-                final exName = entry.$1.toLowerCase();
+                final exName = entry.name.toLowerCase();
                 final def = exerciseLibrary.where(
                   (d) => d.name.toLowerCase() == exName,
                 ).firstOrNull;
@@ -170,8 +178,8 @@ class WorkoutDetailScreen extends ConsumerWidget {
                     const SizedBox(height: 20),
                     // Exercises
                     ...exercises.map((entry) {
-                      final exerciseName = entry.$1;
-                      final sets = entry.$2;
+                      final exerciseName = entry.name;
+                      final sets = entry.sets;
                       return Card.filled(
                         child: Padding(
                           padding: const EdgeInsets.all(12),
@@ -242,43 +250,20 @@ class WorkoutDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<List<(String, List<_SetData>)>> _loadExercises(
-      dynamic workout, WidgetRef ref) async {
-    await workout.exercises.load();
-    final result = <(String, List<_SetData>)>[];
-    final exercises = workout.exercises.toList()
-      ..sort((a, b) => a.order.compareTo(b.order));
-
-    for (final exercise in exercises) {
-      await exercise.sets.load();
-      final sets = exercise.sets.toList()
-        ..sort((a, b) => a.order.compareTo(b.order));
-      result.add((
-        exercise.name,
-        sets
-            .map((s) => _SetData(reps: s.reps, weight: s.weight))
-            .toList(),
-      ));
-    }
-    return result;
-  }
-
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showCupertinoDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => CupertinoAlertDialog(
         title: const Text('Delete workout?'),
         content: const Text('This action cannot be undone.'),
         actions: [
-          TextButton(
+          CupertinoDialogAction(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          FilledButton(
+          CupertinoDialogAction(
+            isDestructiveAction: true,
             onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
             child: const Text('Delete'),
           ),
         ],
@@ -292,8 +277,3 @@ class WorkoutDetailScreen extends ConsumerWidget {
   }
 }
 
-class _SetData {
-  const _SetData({required this.reps, required this.weight});
-  final int reps;
-  final double weight;
-}

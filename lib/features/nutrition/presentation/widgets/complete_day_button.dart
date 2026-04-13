@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Icons, Colors;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../providers/nutrition_providers.dart';
 
 /// Shows a "Complete Day" button when the day is not yet completed,
@@ -16,21 +18,21 @@ class CompleteDayButton extends ConsumerWidget {
     return completedAsync.when(
       loading: () => const SizedBox(
         height: 52,
-        child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
+        child: Center(child: CupertinoActivityIndicator()),
       ),
       error: (_, _) => SizedBox(
         height: 52,
         child: Center(
-          child: TextButton.icon(
+          child: CupertinoButton(
             onPressed: () => ref.invalidate(todayCompletedDayProvider),
-            icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('Could not load — tap to retry'),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(CupertinoIcons.refresh, size: 18),
+                SizedBox(width: 6),
+                Text('Could not load — tap to retry'),
+              ],
+            ),
           ),
         ),
       ),
@@ -44,12 +46,9 @@ class CompleteDayButton extends ConsumerWidget {
               if (success) {
                 _showTrophySheet(context, ref);
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Could not complete day. Make sure nutrition data is loaded.',
-                    ),
-                  ),
+                showCupertinoToast(
+                  context,
+                  'Could not complete day. Make sure nutrition data is loaded.',
                 );
               }
             },
@@ -68,75 +67,97 @@ class CompleteDayButton extends ConsumerWidget {
     final completedDay = ref.read(todayCompletedDayProvider).valueOrNull;
     final macrosHit = completedDay?.macrosHit ?? false;
 
-    showModalBottomSheet(
+    showCupertinoModalPopup<void>(
       context: context,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: const BoxDecoration(
-                color: AppColors.purpleDark,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.emoji_events,
-                size: 44,
-                color: AppColors.lime,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              macrosHit ? 'All Macros Hit!' : 'Day Complete!',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+      builder: (context) {
+        final palette = AppColors.of(context);
+        return Container(
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: palette.accent,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.emoji_events,
+                    size: 44,
+                    color: palette.text,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  macrosHit ? 'All Macros Hit!' : 'Day Complete!',
+                  style: TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.bold,
-                    color: AppColors.lime,
+                    color: palette.text,
+                    fontSize: 22,
                   ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              macrosHit
-                  ? 'Amazing work! You nailed your nutrition targets today.'
-                  : 'Great job logging your nutrition today. Keep it up!',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  macrosHit
+                      ? 'Amazing work! You nailed your nutrition targets today.'
+                      : 'Great job logging your nutrition today. Keep it up!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: palette.text.withValues(alpha: 0.8),
+                    fontSize: 14,
                   ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: CupertinoButton(
+                    color: palette.accent,
+                    borderRadius: BorderRadius.circular(12),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Continue',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Continue'),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   Future<void> _showUnlockDialog(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showCupertinoDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        icon: const Icon(Icons.lock_open_outlined),
+      builder: (context) => CupertinoAlertDialog(
         title: const Text('Unlock day?'),
         content: const Text(
           'This will allow you to edit your nutrition log for today. '
           'Your completion record will be removed.',
         ),
         actions: [
-          TextButton(
+          CupertinoDialogAction(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          FilledButton(
+          CupertinoDialogAction(
+            isDefaultAction: true,
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Unlock'),
           ),
@@ -160,21 +181,30 @@ class _CompleteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
     return SizedBox(
       width: double.infinity,
-      child: FilledButton.icon(
+      child: CupertinoButton(
+        color: palette.accent,
+        borderRadius: BorderRadius.circular(12),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         onPressed: onComplete,
-        icon: const Icon(Icons.check_circle_outline),
-        label: const Text('Complete Day'),
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.lime,
-          foregroundColor: Colors.black,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          textStyle: const TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w700,
-            fontSize: 16,
-          ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(CupertinoIcons.check_mark_circled,
+                color: Colors.black, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Complete Day',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+                color: Colors.black,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -194,13 +224,12 @@ class _LockedBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
+    final palette = AppColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.purpleDark,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.darkSurfaceBorder),
+        border: Border.all(color: palette.border),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -209,12 +238,12 @@ class _LockedBanner extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.25),
+              color: palette.accent.withValues(alpha: 0.25),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.emoji_events,
-              color: AppColors.lime,
+              color: palette.accent,
               size: 20,
             ),
           ),
@@ -228,18 +257,19 @@ class _LockedBanner extends StatelessWidget {
                   children: [
                     Text(
                       'Day Complete!',
-                      style: textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: palette.text,
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w600,
+                        fontSize: 14,
                       ),
                     ),
                     if (macrosHit) ...[
                       const SizedBox(width: 6),
-                      const Icon(
+                      Icon(
                         Icons.star_rounded,
                         size: 16,
-                        color: AppColors.lime,
+                        color: palette.accent,
                       ),
                     ],
                   ],
@@ -248,19 +278,21 @@ class _LockedBanner extends StatelessWidget {
                   macrosHit
                       ? 'All macros hit. Great work!'
                       : 'Nutrition logged for today.',
-                  style: textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.75),
+                  style: TextStyle(
+                    color: palette.textSecondary,
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
-          TextButton(
+          CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             onPressed: onUnlock,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.lime,
+            child: Text(
+              'Unlock',
+              style: TextStyle(color: palette.accent),
             ),
-            child: const Text('Unlock'),
           ),
         ],
       ),

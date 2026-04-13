@@ -17,23 +17,28 @@ const WorkoutSetSchema = CollectionSchema(
   name: r'WorkoutSet',
   id: -5974587475565306185,
   properties: {
-    r'isCompleted': PropertySchema(
+    r'exerciseName': PropertySchema(
       id: 0,
+      name: r'exerciseName',
+      type: IsarType.string,
+    ),
+    r'isCompleted': PropertySchema(
+      id: 1,
       name: r'isCompleted',
       type: IsarType.bool,
     ),
     r'order': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'order',
       type: IsarType.long,
     ),
     r'reps': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'reps',
       type: IsarType.long,
     ),
     r'weight': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'weight',
       type: IsarType.double,
     )
@@ -43,7 +48,21 @@ const WorkoutSetSchema = CollectionSchema(
   deserialize: _workoutSetDeserialize,
   deserializeProp: _workoutSetDeserializeProp,
   idName: r'id',
-  indexes: {},
+  indexes: {
+    r'exerciseName': IndexSchema(
+      id: 4205715828964724693,
+      name: r'exerciseName',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'exerciseName',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    )
+  },
   links: {
     r'exercise': LinkSchema(
       id: 7767351467442831408,
@@ -66,6 +85,12 @@ int _workoutSetEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.exerciseName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -75,10 +100,11 @@ void _workoutSetSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeBool(offsets[0], object.isCompleted);
-  writer.writeLong(offsets[1], object.order);
-  writer.writeLong(offsets[2], object.reps);
-  writer.writeDouble(offsets[3], object.weight);
+  writer.writeString(offsets[0], object.exerciseName);
+  writer.writeBool(offsets[1], object.isCompleted);
+  writer.writeLong(offsets[2], object.order);
+  writer.writeLong(offsets[3], object.reps);
+  writer.writeDouble(offsets[4], object.weight);
 }
 
 WorkoutSet _workoutSetDeserialize(
@@ -88,11 +114,12 @@ WorkoutSet _workoutSetDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = WorkoutSet();
+  object.exerciseName = reader.readStringOrNull(offsets[0]);
   object.id = id;
-  object.isCompleted = reader.readBool(offsets[0]);
-  object.order = reader.readLong(offsets[1]);
-  object.reps = reader.readLong(offsets[2]);
-  object.weight = reader.readDouble(offsets[3]);
+  object.isCompleted = reader.readBool(offsets[1]);
+  object.order = reader.readLong(offsets[2]);
+  object.reps = reader.readLong(offsets[3]);
+  object.weight = reader.readDouble(offsets[4]);
   return object;
 }
 
@@ -104,12 +131,14 @@ P _workoutSetDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readLong(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 2:
       return (reader.readLong(offset)) as P;
     case 3:
+      return (reader.readLong(offset)) as P;
+    case 4:
       return (reader.readDouble(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -205,10 +234,230 @@ extension WorkoutSetQueryWhere
       ));
     });
   }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterWhereClause> exerciseNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'exerciseName',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterWhereClause>
+      exerciseNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'exerciseName',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterWhereClause> exerciseNameEqualTo(
+      String? exerciseName) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'exerciseName',
+        value: [exerciseName],
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterWhereClause>
+      exerciseNameNotEqualTo(String? exerciseName) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'exerciseName',
+              lower: [],
+              upper: [exerciseName],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'exerciseName',
+              lower: [exerciseName],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'exerciseName',
+              lower: [exerciseName],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'exerciseName',
+              lower: [],
+              upper: [exerciseName],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
 }
 
 extension WorkoutSetQueryFilter
     on QueryBuilder<WorkoutSet, WorkoutSet, QFilterCondition> {
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterFilterCondition>
+      exerciseNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'exerciseName',
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterFilterCondition>
+      exerciseNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'exerciseName',
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterFilterCondition>
+      exerciseNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'exerciseName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterFilterCondition>
+      exerciseNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'exerciseName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterFilterCondition>
+      exerciseNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'exerciseName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterFilterCondition>
+      exerciseNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'exerciseName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterFilterCondition>
+      exerciseNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'exerciseName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterFilterCondition>
+      exerciseNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'exerciseName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterFilterCondition>
+      exerciseNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'exerciseName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterFilterCondition>
+      exerciseNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'exerciseName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterFilterCondition>
+      exerciseNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'exerciseName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterFilterCondition>
+      exerciseNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'exerciseName',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<WorkoutSet, WorkoutSet, QAfterFilterCondition> idEqualTo(
       Id value) {
     return QueryBuilder.apply(this, (query) {
@@ -510,6 +759,18 @@ extension WorkoutSetQueryLinks
 
 extension WorkoutSetQuerySortBy
     on QueryBuilder<WorkoutSet, WorkoutSet, QSortBy> {
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterSortBy> sortByExerciseName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'exerciseName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterSortBy> sortByExerciseNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'exerciseName', Sort.desc);
+    });
+  }
+
   QueryBuilder<WorkoutSet, WorkoutSet, QAfterSortBy> sortByIsCompleted() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isCompleted', Sort.asc);
@@ -561,6 +822,18 @@ extension WorkoutSetQuerySortBy
 
 extension WorkoutSetQuerySortThenBy
     on QueryBuilder<WorkoutSet, WorkoutSet, QSortThenBy> {
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterSortBy> thenByExerciseName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'exerciseName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WorkoutSet, WorkoutSet, QAfterSortBy> thenByExerciseNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'exerciseName', Sort.desc);
+    });
+  }
+
   QueryBuilder<WorkoutSet, WorkoutSet, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -624,6 +897,13 @@ extension WorkoutSetQuerySortThenBy
 
 extension WorkoutSetQueryWhereDistinct
     on QueryBuilder<WorkoutSet, WorkoutSet, QDistinct> {
+  QueryBuilder<WorkoutSet, WorkoutSet, QDistinct> distinctByExerciseName(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'exerciseName', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<WorkoutSet, WorkoutSet, QDistinct> distinctByIsCompleted() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isCompleted');
@@ -654,6 +934,12 @@ extension WorkoutSetQueryProperty
   QueryBuilder<WorkoutSet, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<WorkoutSet, String?, QQueryOperations> exerciseNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'exerciseName');
     });
   }
 

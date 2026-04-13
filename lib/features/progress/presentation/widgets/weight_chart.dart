@@ -1,16 +1,21 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/utils/unit_converter.dart';
 import '../../../../models/weight_entry.dart';
+import '../../../../providers/unit_system_provider.dart';
 
-class WeightChart extends StatelessWidget {
+class WeightChart extends ConsumerWidget {
   const WeightChart({super.key, required this.entries});
 
   final List<WeightEntry> entries;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final units = ref.watch(unitSystemProvider);
+    final isImperial = units == UnitSystem.imperial;
 
     if (entries.length < 2) {
       return SizedBox(
@@ -25,32 +30,31 @@ class WeightChart extends StatelessWidget {
       );
     }
 
+    double toDisplay(double kg) =>
+        isImperial ? UnitConverter.kgToLbs(kg) : kg;
+    final unitLabel = UnitConverter.weightUnit(units);
+
     final rawSpots = <FlSpot>[];
     final maSpots = <FlSpot>[];
     final firstDate = entries.first.date;
 
     for (var i = 0; i < entries.length; i++) {
       final x = entries[i].date.difference(firstDate).inDays.toDouble();
-      rawSpots.add(FlSpot(x, entries[i].weightKg));
+      rawSpots.add(FlSpot(x, toDisplay(entries[i].weightKg)));
 
       // 7-day moving average
       double sum = 0;
       int count = 0;
       for (var j = i; j >= 0 && (i - j) < 7; j--) {
-        sum += entries[j].weightKg;
+        sum += toDisplay(entries[j].weightKg);
         count++;
       }
       maSpots.add(FlSpot(x, sum / count));
     }
 
-    final minY = entries
-            .map((e) => e.weightKg)
-            .reduce((a, b) => a < b ? a : b) -
-        2;
-    final maxY = entries
-            .map((e) => e.weightKg)
-            .reduce((a, b) => a > b ? a : b) +
-        2;
+    final allValues = entries.map((e) => toDisplay(e.weightKg));
+    final minY = allValues.reduce((a, b) => a < b ? a : b) - 2;
+    final maxY = allValues.reduce((a, b) => a > b ? a : b) + 2;
 
     return SizedBox(
       height: 220,
@@ -95,7 +99,7 @@ class WeightChart extends StatelessWidget {
               getTooltipItems: (touchedSpots) {
                 return touchedSpots.map((spot) {
                   return LineTooltipItem(
-                    '${spot.y.toStringAsFixed(1)} kg',
+                    '${spot.y.toStringAsFixed(1)} $unitLabel',
                     TextStyle(
                       color: colorScheme.onSurface,
                       fontWeight: FontWeight.w600,

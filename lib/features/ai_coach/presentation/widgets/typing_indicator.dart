@@ -30,6 +30,7 @@ class _TypingIndicatorState extends State<TypingIndicator>
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
     return Semantics(
       label: 'AI coach is typing',
       liveRegion: true,
@@ -39,17 +40,18 @@ class _TypingIndicatorState extends State<TypingIndicator>
           margin: const EdgeInsets.symmetric(vertical: 4),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.darkSurface,
+            color: palette.surface,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(16),
               topRight: Radius.circular(16),
               bottomRight: Radius.circular(16),
             ),
-            border: Border.all(color: AppColors.darkSurfaceBorder),
+            border: Border.all(color: palette.border),
           ),
           child: AnimatedBuilder(
             animation: _controller,
             builder: (context, _) {
+              final dotColor = AppColors.of(context).accent;
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: List.generate(3, (i) {
@@ -64,8 +66,8 @@ class _TypingIndicatorState extends State<TypingIndicator>
                       child: Container(
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppColors.lime,
+                        decoration: BoxDecoration(
+                          color: dotColor,
                           shape: BoxShape.circle,
                         ),
                       ),

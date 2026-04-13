@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Theme;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../workouts_controller.dart';
 
 class RestTimerSheet extends ConsumerWidget {
@@ -25,10 +27,11 @@ class RestTimerSheet extends ConsumerWidget {
     final display =
         '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
 
+    final palette = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh,
+        color: palette.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: SafeArea(
@@ -46,28 +49,36 @@ class RestTimerSheet extends ConsumerWidget {
               display,
               style: textTheme.displayMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: seconds <= 5 ? colorScheme.error : colorScheme.onSurface,
+                color: seconds <= 5 ? palette.destructive : colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                FilledButton.tonal(
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color: palette.accent.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
                   onPressed: () => ref
                       .read(activeWorkoutProvider.notifier)
                       .adjustRestTimer(-15),
-                  child: const Text('-15s'),
+                  child: Text('-15s', style: TextStyle(color: palette.accent)),
                 ),
                 const SizedBox(width: 12),
-                FilledButton.tonal(
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color: palette.accent.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
                   onPressed: () => ref
                       .read(activeWorkoutProvider.notifier)
                       .adjustRestTimer(15),
-                  child: const Text('+15s'),
+                  child: Text('+15s', style: TextStyle(color: palette.accent)),
                 ),
                 const SizedBox(width: 12),
-                FilledButton(
+                CupertinoButton.filled(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  borderRadius: BorderRadius.circular(8),
                   onPressed: () => ref
                       .read(activeWorkoutProvider.notifier)
                       .skipRestTimer(),

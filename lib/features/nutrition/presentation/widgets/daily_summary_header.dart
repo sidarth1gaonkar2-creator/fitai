@@ -1,5 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show LinearProgressIndicator, Theme;
+import '../../../../core/constants/nutrient_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../features/dashboard/presentation/widgets/calorie_ring.dart';
 
 /// Renamed from DailySummaryHeader — now shows CalorieRing + macro progress bars.
@@ -27,56 +30,55 @@ class NutritionSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Calorie ring — 120x120
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: CalorieRing(
-                  consumed: calories,
-                  target: calorieTarget,
-                ),
+    return CupertinoCard(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 120,
+              height: 120,
+              child: CalorieRing(
+                consumed: calories,
+                target: calorieTarget,
               ),
-              const SizedBox(width: 16),
-              // Macro progress bars
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _MacroProgressBar(
-                      label: 'Protein',
-                      consumed: protein,
-                      target: proteinTarget,
-                      baseColor: AppColors.purple,
-                      isSodium: false,
-                    ),
-                    const SizedBox(height: 10),
-                    _MacroProgressBar(
-                      label: 'Carbs',
-                      consumed: carbs,
-                      target: carbsTarget,
-                      baseColor: AppColors.purpleLight,
-                      isSodium: false,
-                    ),
-                    const SizedBox(height: 10),
-                    _MacroProgressBar(
-                      label: 'Fat',
-                      consumed: fat,
-                      target: fatTarget,
-                      baseColor: AppColors.lime,
-                      isSodium: false,
-                    ),
-                  ],
-                ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _MacroProgressBar(
+                    label: 'Protein',
+                    icon: NutrientIcons.proteinIcon,
+                    consumed: protein,
+                    target: proteinTarget,
+                    baseColor: NutrientIcons.proteinColor,
+                    isSodium: false,
+                  ),
+                  const SizedBox(height: 10),
+                  _MacroProgressBar(
+                    label: 'Carbs',
+                    icon: NutrientIcons.carbsIcon,
+                    consumed: carbs,
+                    target: carbsTarget,
+                    baseColor: NutrientIcons.carbsColor,
+                    isSodium: false,
+                  ),
+                  const SizedBox(height: 10),
+                  _MacroProgressBar(
+                    label: 'Fat',
+                    icon: NutrientIcons.fatIcon,
+                    consumed: fat,
+                    target: fatTarget,
+                    baseColor: NutrientIcons.fatColor,
+                    isSodium: false,
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -86,6 +88,7 @@ class NutritionSummaryCard extends StatelessWidget {
 class _MacroProgressBar extends StatelessWidget {
   const _MacroProgressBar({
     required this.label,
+    required this.icon,
     required this.consumed,
     required this.target,
     required this.baseColor,
@@ -93,23 +96,25 @@ class _MacroProgressBar extends StatelessWidget {
   });
 
   final String label;
+  final IconData icon;
   final double consumed;
   final double target;
   final Color baseColor;
   final bool isSodium;
 
   Color _barColor(BuildContext context) {
+    final palette = AppColors.of(context);
     if (target <= 0) return baseColor;
     final ratio = consumed / target;
 
     if (isSodium) {
-      if (ratio > 1.0) return AppColors.error;
-      if (ratio > 0.9) return AppColors.lime;
+      if (ratio > 1.0) return palette.destructive;
+      if (ratio > 0.9) return palette.success;
       return baseColor;
     }
 
-    if (ratio > 1.1) return AppColors.error;
-    if (ratio >= 0.9) return AppColors.lime;
+    if (ratio > 1.1) return palette.destructive;
+    if (ratio >= 0.9) return palette.success;
     return baseColor;
   }
 
@@ -125,11 +130,13 @@ class _MacroProgressBar extends StatelessWidget {
       children: [
         Row(
           children: [
+            Icon(icon, size: 13, color: baseColor),
+            const SizedBox(width: 4),
             Text(
               label,
               style: textTheme.labelSmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w500,
+                color: baseColor,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const Spacer(),

@@ -10,7 +10,27 @@
       "Bash(flutter --version)",
       "Bash(flutter build:*)",
       "Bash(git status:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(grep -v \"//.*Card\\\\|//.*ListTile\\\\|//.*showDialog\")",
+      "Bash(grep -v \"_test.dart\\\\|app_theme\\\\|//\")",
+      "Bash(sed -n '30,65p' /c/Users/sidar/fitai/lib/features/progress/presentation/progress_screen.dart)",
+      "Bash(sed -n '30,65p' /c/Users/sidar/fitai/lib/features/workouts/presentation/workouts_screen.dart)",
+      "Bash(perl -i -0pe 's/padding: EdgeInsets\\\\.zero,\\\\s*\\\\n\\\\s*minimumSize: Size\\\\.zero,/padding: const EdgeInsets.all\\(8\\),/g' lib/features/dashboard/presentation/dashboard_screen.dart lib/features/workouts/presentation/workout_logging_screen.dart lib/features/workouts/presentation/workout_detail_screen.dart lib/features/onboarding/presentation/onboarding_screen.dart lib/features/nutrition/presentation/food_search_screen.dart lib/features/nutrition/presentation/barcode_scanner_screen.dart lib/features/ai_coach/presentation/ai_coach_screen.dart lib/features/nutrition/presentation/food_detail_screen.dart)",
+      "Bash(xargs grep:*)",
+      "Bash(find:*)",
+      "Bash(flutter run:*)",
+      "Bash(timeout 60 bash:*)",
+      "WebFetch(domain:vitamins-and-supplements-api.vercel.app)",
+      "WebFetch(domain:github.com)",
+      "Bash(curl -s -w \"\\\\nHTTP_CODE: %{http_code}\" \"https://vitamins-and-supplements-api.vercel.app/api/supplement\")",
+      "Bash(curl -s -w \"\\\\nHTTP_CODE: %{http_code}\" \"https://vitamins-and-supplements.vercel.app/api/supplement\")",
+      "Bash(curl -s -X POST \"https://vitamins-and-supplements.vercel.app/api/auth/register\" -H \"Content-Type: application/json\" -d '{\"email\":\"fitai-test@example.com\",\"password\":\"FitAI2026!\"}')",
+      "Bash(curl -s -X POST \"https://vitamins-and-supplements.vercel.app/api/auth/register\" -H \"Content-Type: application/json\" -d '{\"username\":\"fitai\",\"email\":\"fitai-dev@example.com\",\"password\":\"FitAI2026!\"}')",
+      "Bash(curl -s -H 'X-Auth-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZGJlNGQxNDJjN2Q4Y2IxODdkOTNkNiIsImVtYWlsIjoiZml0YWktZGV2QGV4YW1wbGUuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NzYwMTg2NDIsImV4cCI6MTgwNzU1NDY0Mn0.w4ff6jXqsHZNjy6hzTLi4Mci5A47BJmCz2FlnHdCgUw' https://vitamins-and-supplements.vercel.app/api/supplement/)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s -H 'X-Auth-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZGJlNGQxNDJjN2Q4Y2IxODdkOTNkNiIsImVtYWlsIjoiZml0YWktZGV2QGV4YW1wbGUuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NzYwMTg2NDIsImV4cCI6MTgwNzU1NDY0Mn0.w4ff6jXqsHZNjy6hzTLi4Mci5A47BJmCz2FlnHdCgUw' https://vitamins-and-supplements.vercel.app/api/vitamin/)",
+      "Bash(curl -s -H 'X-Auth-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZGJlNGQxNDJjN2Q4Y2IxODdkOTNkNiIsImVtYWlsIjoiZml0YWktZGV2QGV4YW1wbGUuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NzYwMTg2NDIsImV4cCI6MTgwNzU1NDY0Mn0.w4ff6jXqsHZNjy6hzTLi4Mci5A47BJmCz2FlnHdCgUw' 'https://vitamins-and-supplements.vercel.app/api/supplement/?lang=en')"
     ]
   }
 }

@@ -37,12 +37,13 @@ class _ChatInputBarState extends State<ChatInputBar> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-      decoration: const BoxDecoration(
-        color: AppColors.darkSurface,
+      decoration: BoxDecoration(
+        color: palette.surface,
         border: Border(
-          top: BorderSide(color: AppColors.darkSurfaceBorder, width: 1),
+          top: BorderSide(color: palette.border, width: 1),
         ),
       ),
       child: SafeArea(
@@ -57,14 +58,14 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 maxLines: 4,
                 minLines: 1,
                 textCapitalization: TextCapitalization.sentences,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: palette.text),
                 decoration: InputDecoration(
                   hintText: 'Ask your coach...',
                   hintStyle: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.4),
+                    color: palette.textSecondary,
                   ),
                   filled: true,
-                  fillColor: AppColors.darkSearchField,
+                  fillColor: palette.surfaceElevated,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
                     borderSide: BorderSide.none,
@@ -75,8 +76,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
-                    borderSide: const BorderSide(
-                        color: AppColors.purple, width: 1.5),
+                    borderSide: BorderSide(
+                        color: palette.accent, width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -93,10 +94,10 @@ class _ChatInputBarState extends State<ChatInputBar> {
             IconButton.filled(
               onPressed: widget.enabled && _hasText ? _send : null,
               style: IconButton.styleFrom(
-                backgroundColor: AppColors.purple,
+                backgroundColor: palette.accent,
                 foregroundColor: Colors.white,
                 disabledBackgroundColor:
-                    AppColors.purple.withValues(alpha: 0.4),
+                    palette.accent.withValues(alpha: 0.4),
                 disabledForegroundColor:
                     Colors.white.withValues(alpha: 0.5),
               ),

@@ -53,62 +53,84 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
         DateTime(_displayedMonth.year, _displayedMonth.month + 1, 0).day;
     // Monday = 1, shift so Monday is column 0
     final startWeekday = (firstOfMonth.weekday - 1) % 7;
+    final totalCells = startWeekday + daysInMonth;
+    // Calculate rows needed so we can give the grid a fixed height
+    final rowCount = (totalCells / 7).ceil();
 
     final monthName = _monthName(_displayedMonth.month);
     final year = _displayedMonth.year;
 
-    return Card.filled(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            // Month header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  onPressed: _previousMonth,
-                  icon: const Icon(Icons.chevron_left, color: AppColors.purple),
+    // Each cell: 36dp height + 2dp spacing
+    const cellHeight = 36.0;
+    const cellSpacing = 2.0;
+    final gridHeight = rowCount * cellHeight + (rowCount - 1) * cellSpacing;
+
+    final palette = AppColors.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.border),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Month header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: _previousMonth,
+                icon: Icon(Icons.chevron_left, color: palette.accent),
+                visualDensity: VisualDensity.compact,
+              ),
+              Text(
+                '$monthName $year',
+                style: textTheme.titleSmall?.copyWith(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  color: palette.text,
                 ),
-                Text(
-                  '$monthName $year',
-                  style: textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                IconButton(
-                  onPressed: _nextMonth,
-                  icon: const Icon(Icons.chevron_right, color: AppColors.purple),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            // Day-of-week headers
-            Row(
-              children: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-                  .map((d) => Expanded(
-                        child: Center(
-                          child: Text(
-                            d,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: AppColors.purple,
-                              fontWeight: FontWeight.w600,
-                            ),
+              ),
+              IconButton(
+                onPressed: _nextMonth,
+                icon: Icon(Icons.chevron_right, color: palette.accent),
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Day-of-week headers
+          Row(
+            children: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+                .map((d) => Expanded(
+                      child: Center(
+                        child: Text(
+                          d,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: palette.accent,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ))
-                  .toList(),
-            ),
-            const SizedBox(height: 4),
-            // Day cells
-            GridView.builder(
-              shrinkWrap: true,
+                      ),
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: 6),
+          // Day cells — fixed height to prevent overflow
+          SizedBox(
+            height: gridHeight,
+            child: GridView.builder(
+              shrinkWrap: false,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 7,
-                mainAxisSpacing: 2,
-                crossAxisSpacing: 2,
+                mainAxisExtent: cellHeight,
+                mainAxisSpacing: cellSpacing,
+                crossAxisSpacing: cellSpacing,
               ),
-              itemCount: startWeekday + daysInMonth,
+              itemCount: totalCells,
               itemBuilder: (context, index) {
                 if (index < startWeekday) return const SizedBox.shrink();
 
@@ -120,19 +142,28 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
                     date == widget.selectedDate;
                 final hasWorkout = widget.workoutDates.contains(date);
 
-                return InkWell(
-                  borderRadius: BorderRadius.circular(8),
+                Color? bgColor;
+                if (isSelected) {
+                  bgColor = palette.accent;
+                } else if (isToday) {
+                  bgColor = palette.accent;
+                }
+
+                Color textColor;
+                if (isSelected || isToday) {
+                  textColor = palette.text;
+                } else {
+                  textColor = palette.text;
+                }
+
+                return GestureDetector(
                   onTap: () {
                     widget.onDateSelected(isSelected ? null : date);
                   },
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.lime
-                          : isToday
-                              ? AppColors.purple.withValues(alpha: 0.2)
-                              : null,
-                      borderRadius: BorderRadius.circular(8),
+                      color: bgColor,
+                      shape: BoxShape.circle,
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -141,20 +172,18 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
                           '$day',
                           style: textTheme.bodySmall?.copyWith(
                             fontWeight:
-                                isToday ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected ? Colors.black : null,
+                                (isToday || isSelected) ? FontWeight.bold : FontWeight.normal,
+                            color: textColor,
+                            fontSize: 11,
                           ),
                         ),
-                        if (hasWorkout)
+                        if (hasWorkout && !isSelected && !isToday)
                           Container(
-                            width: 5,
-                            height: 5,
-                            margin: const EdgeInsets.only(top: 1),
+                            width: 4,
+                            height: 4,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: isSelected
-                                  ? Colors.black
-                                  : AppColors.lime,
+                              color: palette.accent,
                             ),
                           ),
                       ],
@@ -163,8 +192,8 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
                 );
               },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

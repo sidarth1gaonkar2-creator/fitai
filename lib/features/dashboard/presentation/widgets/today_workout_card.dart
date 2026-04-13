@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Colors, Icons, Theme;
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../models/workout.dart';
 
 class TodayWorkoutCard extends StatelessWidget {
@@ -11,26 +13,23 @@ class TodayWorkoutCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final palette = AppColors.of(context);
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.purple,
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return CupertinoCard(
+      color: palette.accent,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.fitness_center, color: Colors.white),
+              Icon(Icons.fitness_center, color: palette.text),
               const SizedBox(width: 8),
               Text(
                 "Today's Workout",
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: palette.text,
                 ),
               ),
             ],
@@ -41,23 +40,23 @@ class TodayWorkoutCard extends StatelessWidget {
               workout!.title,
               style: textTheme.bodyLarge?.copyWith(
                 fontWeight: FontWeight.w500,
-                color: Colors.white,
+                color: palette.text,
               ),
             ),
             const SizedBox(height: 8),
             Row(
               children: [
                 if (workout!.durationMinutes != null) ...[
-                  const Icon(
+                  Icon(
                     Icons.timer_outlined,
                     size: 16,
-                    color: Colors.white70,
+                    color: palette.text.withValues(alpha: 0.7),
                   ),
                   const SizedBox(width: 4),
                   Text(
                     '${workout!.durationMinutes} min',
                     style: textTheme.bodyMedium?.copyWith(
-                      color: Colors.white70,
+                      color: palette.text.withValues(alpha: 0.7),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -68,7 +67,7 @@ class TodayWorkoutCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.lime,
+                    color: palette.text,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -96,22 +95,17 @@ class TodayWorkoutCard extends StatelessWidget {
             Text(
               'No workout logged yet today.',
               style: textTheme.bodyMedium?.copyWith(
-                color: Colors.white70,
+                color: palette.text.withValues(alpha: 0.7),
               ),
             ),
             const SizedBox(height: 12),
             SizedBox(
               height: 40,
-              child: ElevatedButton(
+              child: CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                color: palette.text,
+                borderRadius: BorderRadius.circular(10),
                 onPressed: () => context.go('/workouts'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.lime,
-                  foregroundColor: Colors.black,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
                 child: Text(
                   'Log Workout',
                   style: textTheme.labelMedium?.copyWith(

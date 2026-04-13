@@ -1,13 +1,14 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../core/widgets/muscle_group_diagram.dart';
 import '../../../data/exercise_library.dart';
 import '../../../data/workout_templates.dart';
 import '../../../models/enums.dart';
-import '../domain/active_workout_state.dart';
-import 'workouts_controller.dart';
 
 /// Previews a [WorkoutTemplate] with:
 /// - Description + difficulty badge
@@ -73,26 +74,21 @@ class _TemplatePreviewScreenState
     if (_exercises.isEmpty) return;
     HapticFeedback.mediumImpact();
 
-    final activeExercises = _exercises.asMap().entries.map((entry) {
-      final te = entry.value;
-      return ActiveExercise(
-        name: _exerciseName(te.exerciseId),
-        order: entry.key,
-        sets: List.generate(
-          te.sets,
-          (i) => ActiveSet(order: i),
-        ),
-      );
-    }).toList();
+    // Build a template copy reflecting the user's (possibly edited) list
+    // and pass it as the route extra. WorkoutLoggingScreen will populate
+    // the active workout from it on init.
+    final editedTemplate = WorkoutTemplate(
+      id: widget.template.id,
+      name: widget.template.name,
+      description: widget.template.description,
+      category: widget.template.category,
+      muscleGroups: widget.template.muscleGroups,
+      difficulty: widget.template.difficulty,
+      estimatedMinutes: widget.template.estimatedMinutes,
+      exercises: List<TemplateExercise>.from(_exercises),
+    );
 
-    ref.read(activeWorkoutProvider.notifier).loadFromTemplate(
-          title: widget.template.name,
-          exercises: activeExercises,
-        );
-
-    if (mounted) {
-      context.go('/workouts/new');
-    }
+    context.go('/workouts/new', extra: editedTemplate);
   }
 
   @override
@@ -107,8 +103,10 @@ class _TemplatePreviewScreenState
     };
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.template.name),
+      appBar: CupertinoNavigationBar(
+        middle: Text(widget.template.name),
+        backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
+        border: null,
       ),
       body: _exercises.isEmpty
           ? Center(
@@ -239,19 +237,9 @@ class _TemplatePreviewScreenState
                           HapticFeedback.mediumImpact();
                           final removed = _exercises[index];
                           _removeExercise(index);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Removed ${_exerciseName(removed.exerciseId)}',
-                              ),
-                              action: SnackBarAction(
-                                label: 'Undo',
-                                onPressed: () => setState(
-                                  () => _exercises.insert(index, removed),
-                                ),
-                              ),
-                              duration: const Duration(seconds: 3),
-                            ),
+                          showCupertinoToast(
+                            context,
+                            'Removed ${_exerciseName(removed.exerciseId)}',
                           );
                         },
                         background: Container(

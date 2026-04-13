@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
@@ -43,23 +44,30 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
   Widget build(BuildContext context) {
     final chatState = ref.watch(aiChatControllerProvider);
 
-    // Show error as SnackBar
+    // Show errors as a Cupertino alert so the typing indicator is never
+    // left spinning silently.
     ref.listen<String?>(
       aiChatControllerProvider.select((s) => s.errorMessage),
       (prev, next) {
-        if (next != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(next),
-              action: SnackBarAction(
-                label: 'Dismiss',
-                onPressed: () => ref
-                    .read(aiChatControllerProvider.notifier)
-                    .clearError(),
-              ),
+        if (next == null) return;
+        showCupertinoDialog<void>(
+          context: context,
+          builder: (ctx) => CupertinoAlertDialog(
+            title: const Text('AI Coach unavailable'),
+            content: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(next),
             ),
-          );
-        }
+            actions: [
+              CupertinoDialogAction(
+                isDefaultAction: true,
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        ref.read(aiChatControllerProvider.notifier).clearError();
       },
     );
 
@@ -74,24 +82,18 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
 
     final isBusy = chatState.isStreaming || chatState.isWaitingForStream;
 
+    final palette = AppColors.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Coach'),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'clear') {
-                _confirmClear();
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: 'clear',
-                child: Text('Clear History'),
-              ),
-            ],
-          ),
-        ],
+      backgroundColor: palette.background,
+      appBar: CupertinoNavigationBar(
+        middle: const Text('AI Coach'),
+        backgroundColor: palette.background.withValues(alpha: 0.8),
+        border: null,
+        trailing: CupertinoButton(
+          padding: const EdgeInsets.all(8),
+          onPressed: _showActions,
+          child: const Icon(CupertinoIcons.ellipsis, size: 22),
+        ),
       ),
       body: Column(
         children: [
@@ -139,18 +141,41 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
     );
   }
 
-  Future<void> _confirmClear() async {
-    final confirmed = await showDialog<bool>(
+  Future<void> _showActions() async {
+    await showCupertinoModalPopup<void>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => CupertinoActionSheet(
+        actions: [
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              Navigator.pop(ctx);
+              _confirmClear();
+            },
+            child: const Text('Clear History'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmClear() async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
         title: const Text('Clear chat history?'),
         content: const Text('This will delete all messages permanently.'),
         actions: [
-          TextButton(
+          CupertinoDialogAction(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          FilledButton(
+          CupertinoDialogAction(
+            isDestructiveAction: true,
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Clear'),
           ),
@@ -188,14 +213,14 @@ class _EmptyState extends StatelessWidget {
             Container(
               width: 80,
               height: 80,
-              decoration: const BoxDecoration(
-                color: AppColors.purpleDark,
+              decoration: BoxDecoration(
+                color: AppColors.of(context).accent,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.smart_toy_rounded,
                 size: 40,
-                color: Colors.white,
+                color: AppColors.of(context).text,
               ),
             ),
             const SizedBox(height: 20),
@@ -203,7 +228,7 @@ class _EmptyState extends StatelessWidget {
               'Ask me anything about your fitness journey',
               textAlign: TextAlign.center,
               style: textTheme.titleMedium?.copyWith(
-                color: Colors.white,
+                color: AppColors.of(context).text,
                 height: 1.4,
               ),
             ),

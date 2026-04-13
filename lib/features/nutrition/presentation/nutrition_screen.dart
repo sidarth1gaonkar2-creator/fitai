@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,7 @@ import 'widgets/complete_day_button.dart';
 import 'widgets/daily_summary_header.dart';
 import 'widgets/meal_section.dart';
 import 'widgets/micronutrient_section.dart';
+import 'meal_plans_screen.dart';
 
 class NutritionScreen extends ConsumerStatefulWidget {
   const NutritionScreen({super.key});
@@ -21,10 +23,9 @@ class NutritionScreen extends ConsumerStatefulWidget {
 }
 
 class _NutritionScreenState extends ConsumerState<NutritionScreen> {
-  int _selectedTab = 1; // 0 = Meal Plans, 1 = Food Log
-
   @override
   Widget build(BuildContext context) {
+    final selectedTab = ref.watch(nutritionTabProvider);
     final nutritionAsync = ref.watch(todayNutritionProvider);
     final mealsAsync = ref.watch(todayMealsProvider);
     final targetsAsync = ref.watch(dailyTargetsProvider);
@@ -33,28 +34,40 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
     if (mealsAsync.isLoading && !mealsAsync.hasValue) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Nutrition')),
+        appBar: CupertinoNavigationBar(
+        middle: const Text('Nutrition'),
+        backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
+        border: null,
+      ),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             children: [
               const SizedBox(height: 8),
               _TabToggle(
-                selectedIndex: _selectedTab,
-                onTabChanged: (i) => setState(() => _selectedTab = i),
+                selectedIndex: selectedTab,
+                onTabChanged: (i) => ref.read(nutritionTabProvider.notifier).state = i,
               ),
               const SizedBox(height: 16),
-              const ShimmerCard(height: 152),
-              const SizedBox(height: 8),
-              const ShimmerCard(height: 60),
-              const SizedBox(height: 8),
-              const ShimmerCard(height: 110),
-              const SizedBox(height: 8),
-              const ShimmerCard(height: 110),
-              const SizedBox(height: 8),
-              const ShimmerCard(height: 110),
-              const SizedBox(height: 8),
-              const ShimmerCard(height: 110),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const ShimmerCard(height: 152),
+                      const SizedBox(height: 8),
+                      const ShimmerCard(height: 60),
+                      const SizedBox(height: 8),
+                      const ShimmerCard(height: 110),
+                      const SizedBox(height: 8),
+                      const ShimmerCard(height: 110),
+                      const SizedBox(height: 8),
+                      const ShimmerCard(height: 110),
+                      const SizedBox(height: 8),
+                      const ShimmerCard(height: 110),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -63,7 +76,11 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
     if (mealsAsync.hasError && !mealsAsync.hasValue) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Nutrition')),
+        appBar: CupertinoNavigationBar(
+        middle: const Text('Nutrition'),
+        backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
+        border: null,
+      ),
         body: ErrorCard(
           message: 'Could not load nutrition data.',
           onRetry: () => ref.invalidate(todayMealsProvider),
@@ -81,7 +98,11 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
     final isLocked = completedDayAsync.valueOrNull != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nutrition')),
+      appBar: CupertinoNavigationBar(
+        middle: const Text('Nutrition'),
+        backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
+        border: null,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
@@ -89,12 +110,12 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
           children: [
             const SizedBox(height: 12),
             _TabToggle(
-              selectedIndex: _selectedTab,
-              onTabChanged: (i) => setState(() => _selectedTab = i),
+              selectedIndex: selectedTab,
+              onTabChanged: (i) => ref.read(nutritionTabProvider.notifier).state = i,
             ),
             const SizedBox(height: 16),
-            if (_selectedTab == 0) ...[
-              const _MealPlansPlaceholder(),
+            if (selectedTab == 0) ...[
+              const MealPlansContent(),
               const SizedBox(height: 80),
             ] else ...[
               // Summary card with calorie ring + macro bars
@@ -133,7 +154,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _selectedTab == 1
+      bottomNavigationBar: selectedTab == 1
           ? SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -159,10 +180,13 @@ class _TabToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
     return Container(
+      height: 44,
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.darkSurfaceBorder),
-        borderRadius: BorderRadius.circular(50),
+        color: palette.surface,
+        border: Border.all(color: palette.border),
+        borderRadius: BorderRadius.circular(22),
       ),
       padding: const EdgeInsets.all(3),
       child: Row(
@@ -205,10 +229,15 @@ class _TabPill extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: isActive ? AppColors.lime : Colors.transparent,
-            borderRadius: BorderRadius.circular(50),
+            color: isActive ? AppColors.of(context).accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(19),
+            border: isActive
+                ? null
+                : Border.all(
+                    color: AppColors.of(context).border,
+                    width: 1,
+                  ),
           ),
           alignment: Alignment.center,
           child: Text(
@@ -216,8 +245,8 @@ class _TabPill extends StatelessWidget {
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w600,
-              fontSize: 14,
-              color: isActive ? Colors.black : AppColors.purple,
+              fontSize: 13,
+              color: isActive ? Colors.white : AppColors.of(context).text,
             ),
           ),
         ),
@@ -226,52 +255,3 @@ class _TabPill extends StatelessWidget {
   }
 }
 
-// ─── Meal Plans Placeholder ──────────────────────────────────────────────────
-
-class _MealPlansPlaceholder extends StatelessWidget {
-  const _MealPlansPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return SizedBox(
-      height: 320,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: AppColors.purpleDark,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.restaurant_menu_outlined,
-              color: AppColors.lime,
-              size: 36,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Meal Plans',
-            style: textTheme.titleMedium?.copyWith(
-              color: AppColors.lime,
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Coming Soon',
-            style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

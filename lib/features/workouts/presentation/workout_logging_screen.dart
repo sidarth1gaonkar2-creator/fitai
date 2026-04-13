@@ -1,18 +1,31 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/cupertino_helpers.dart';
+import '../../../data/exercise_library.dart';
+import '../../../data/workout_templates.dart';
+import '../domain/active_workout_state.dart';
 import 'exercise_picker_sheet.dart';
 import 'widgets/exercise_card.dart';
+import '../../progress/presentation/widgets/pr_confetti_overlay.dart';
+import 'widgets/interval_timer_sheet.dart';
 import 'widgets/pr_banner.dart';
 import 'widgets/rest_timer_sheet.dart';
 import 'workouts_controller.dart';
 
 class WorkoutLoggingScreen extends ConsumerStatefulWidget {
-  const WorkoutLoggingScreen({super.key, this.editWorkoutId});
+  const WorkoutLoggingScreen({
+    super.key,
+    this.editWorkoutId,
+    this.initialTemplate,
+  });
 
   final int? editWorkoutId;
+  final WorkoutTemplate? initialTemplate;
 
   @override
   ConsumerState<WorkoutLoggingScreen> createState() =>
@@ -38,6 +51,34 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
         final state = ref.read(activeWorkoutProvider);
         _titleController.text = state.title;
       });
+    } else if (widget.initialTemplate != null) {
+      // Pre-populate from a template
+      final template = widget.initialTemplate!;
+      _titleController.text = template.name;
+      final activeExercises = template.exercises
+          .asMap()
+          .entries
+          .map((entry) {
+            final te = entry.value;
+            final name = exerciseLibrary
+                    .where((d) => d.id == te.exerciseId)
+                    .firstOrNull
+                    ?.name ??
+                te.exerciseId;
+            return ActiveExercise(
+              name: name,
+              order: entry.key,
+              sets: List.generate(te.sets, (i) => ActiveSet(order: i)),
+            );
+          })
+          .toList();
+      Future.microtask(() async {
+        if (!mounted) return;
+        await ref.read(activeWorkoutProvider.notifier).loadFromTemplate(
+              title: template.name,
+              exercises: activeExercises,
+            );
+      });
     }
 
     // Start elapsed timer
@@ -61,7 +102,7 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
   Future<void> _showAddExerciseSheet() async {
     final name = await showExercisePickerSheet(context);
     if (name != null && name.isNotEmpty && mounted) {
-      ref.read(activeWorkoutProvider.notifier).addExercise(name);
+      await ref.read(activeWorkoutProvider.notifier).addExercise(name);
     }
   }
 
@@ -70,9 +111,7 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
     final title = _titleController.text.trim();
 
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a workout name.')),
-      );
+      showCupertinoToast(context, 'Please enter a workout name.');
       return;
     }
 
@@ -80,20 +119,28 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
 
     final state = ref.read(activeWorkoutProvider);
     if (state.exercises.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add at least one exercise.')),
-      );
+      showCupertinoToast(context, 'Add at least one exercise.');
       return;
     }
 
     final success = await controller.saveWorkout();
     if (mounted) {
       if (success) {
-        context.go('/workouts');
+        final prNames = ref.read(activeWorkoutProvider).newPRs;
+        if (prNames.isNotEmpty) {
+          // Show confetti then navigate
+          await showCupertinoDialog(
+            context: context,
+            barrierDismissible: true,
+            builder: (_) => PRConfettiOverlay(
+              exerciseNames: prNames,
+              onDismiss: () => Navigator.of(context, rootNavigator: true).pop(),
+            ),
+          );
+        }
+        if (mounted) context.go('/workouts');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save workout.')),
-        );
+        showCupertinoToast(context, 'Failed to save workout.');
       }
     }
   }
@@ -107,22 +154,25 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
         '${_elapsed.inMinutes.toString().padLeft(2, '0')}:${(_elapsed.inSeconds % 60).toString().padLeft(2, '0')}';
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close),
+      appBar: CupertinoNavigationBar(
+        backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
+        border: null,
+        leading: CupertinoButton(
+          padding: const EdgeInsets.all(8),
           onPressed: () async {
-            final shouldPop = await showDialog<bool>(
+            final shouldPop = await showCupertinoDialog<bool>(
               context: context,
-              builder: (context) => AlertDialog(
+              builder: (context) => CupertinoAlertDialog(
                 title: const Text('Discard workout?'),
                 content: const Text(
                     'Your progress will be lost if you go back.'),
                 actions: [
-                  TextButton(
+                  CupertinoDialogAction(
                     onPressed: () => Navigator.pop(context, false),
                     child: const Text('Keep Going'),
                   ),
-                  FilledButton(
+                  CupertinoDialogAction(
+                    isDestructiveAction: true,
                     onPressed: () => Navigator.pop(context, true),
                     child: const Text('Discard'),
                   ),
@@ -133,21 +183,22 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
               context.go('/workouts');
             }
           },
+          child: const Icon(CupertinoIcons.xmark, size: 22),
         ),
-        title: Text(elapsedStr),
-        actions: [
-          FilledButton(
-            onPressed: state.isSaving ? null : _finishWorkout,
-            child: state.isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Finish'),
-          ),
-          const SizedBox(width: 8),
-        ],
+        middle: Text(elapsedStr),
+        trailing: CupertinoButton(
+          padding: const EdgeInsets.all(8),
+          onPressed: state.isSaving ? null : _finishWorkout,
+          child: state.isSaving
+              ? const CupertinoActivityIndicator()
+              : Text(
+                  'Finish',
+                  style: TextStyle(
+                    color: AppColors.of(context).accent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+        ),
       ),
       body: Column(
         children: [
@@ -163,13 +214,12 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
                     const SizedBox(height: 12),
                   ],
                   // Workout title
-                  TextField(
+                  CupertinoTextField(
                     controller: _titleController,
                     style: textTheme.titleLarge,
-                    decoration: const InputDecoration(
-                      hintText: 'Workout Name',
-                      border: InputBorder.none,
-                    ),
+                    placeholder: 'Workout Name',
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: const BoxDecoration(),
                   ),
                   const SizedBox(height: 8),
                   // Exercise cards
@@ -200,11 +250,30 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
                     );
                   }),
                   const SizedBox(height: 8),
-                  // Add exercise button
-                  OutlinedButton.icon(
-                    onPressed: _showAddExerciseSheet,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Exercise'),
+                  // Action buttons row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _showAddExerciseSheet,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add Exercise'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            builder: (_) => const IntervalTimerSheet(),
+                          );
+                        },
+                        icon: const Icon(CupertinoIcons.timer),
+                        label: const Text('Intervals'),
+                      ),
+                    ],
                   ),
                 ],
               ),

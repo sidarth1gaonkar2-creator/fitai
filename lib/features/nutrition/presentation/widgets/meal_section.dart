@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Divider, Icons, Theme;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../models/enums.dart';
 import '../../../../models/food_entry.dart';
 import 'food_entry_tile.dart';
@@ -39,11 +41,11 @@ class MealSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
+    final palette = AppColors.of(context);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
+    return CupertinoCard(
+      padding: const EdgeInsets.all(12),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header row
@@ -52,13 +54,13 @@ class MealSection extends StatelessWidget {
                 Container(
                   width: 36,
                   height: 36,
-                  decoration: const BoxDecoration(
-                    color: AppColors.purpleDark,
+                  decoration: BoxDecoration(
+                    color: palette.accent,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     _icon,
-                    color: AppColors.lime,
+                    color: palette.text,
                     size: 18,
                   ),
                 ),
@@ -69,7 +71,7 @@ class MealSection extends StatelessWidget {
                     style: textTheme.titleSmall?.copyWith(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w600,
-                      color: AppColors.lime,
+                      color: palette.text,
                     ),
                   ),
                 ),
@@ -81,7 +83,7 @@ class MealSection extends StatelessWidget {
                       fontFamily: 'LeagueSpartan',
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.purple,
+                      color: palette.accent,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -128,19 +130,25 @@ class MealSection extends StatelessWidget {
             if (!isLocked) ...[
               const SizedBox(height: 8),
               Center(
-                child: TextButton.icon(
+                child: CupertinoButton(
+                  padding: EdgeInsets.zero,
                   onPressed: onAddFood,
-                  icon: const Icon(Icons.add, size: 18, color: AppColors.lime),
-                  label: const Text(
-                    'Add Food',
-                    style: TextStyle(color: AppColors.lime),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.add, size: 18, color: AppColors.of(context).accent),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Add Food',
+                        style: TextStyle(color: AppColors.of(context).accent),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
           ],
         ),
-      ),
     );
   }
 }

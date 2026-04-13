@@ -115,26 +115,45 @@ class AIChatController extends StateNotifier<ChatState> {
               ))
           .toList();
 
-      // Stream response
+      // Stream response — fall back to non-streaming if the stream fails
+      // before any chunk arrives.
       final buffer = StringBuffer();
       bool firstChunk = true;
+      bool streamFailedBeforeFirstChunk = false;
 
-      await for (final chunk in _anthropic.streamMessage(
-        systemPrompt: systemWithContext,
-        messages: apiMessages,
-      )) {
-        if (!mounted) return;
+      try {
+        await for (final chunk in _anthropic.streamMessage(
+          systemPrompt: systemWithContext,
+          messages: apiMessages,
+        )) {
+          if (!mounted) return;
 
-        if (firstChunk) {
-          firstChunk = false;
-          state = state.copyWith(
-            isWaitingForStream: false,
-            isStreaming: true,
-          );
+          if (firstChunk) {
+            firstChunk = false;
+            state = state.copyWith(
+              isWaitingForStream: false,
+              isStreaming: true,
+            );
+          }
+
+          buffer.write(chunk);
+          state = state.copyWith(streamingContent: buffer.toString());
         }
+      } catch (streamErr) {
+        if (firstChunk) {
+          // Nothing streamed yet — try non-streaming fallback.
+          streamFailedBeforeFirstChunk = true;
+        } else {
+          rethrow;
+        }
+      }
 
-        buffer.write(chunk);
-        state = state.copyWith(streamingContent: buffer.toString());
+      if (streamFailedBeforeFirstChunk) {
+        final fullText = await _anthropic.sendMessage(
+          systemPrompt: systemWithContext,
+          messages: apiMessages,
+        );
+        buffer.write(fullText);
       }
 
       if (!mounted) return;

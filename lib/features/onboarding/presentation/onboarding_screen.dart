@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,22 +69,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       },
     );
 
+    final palette = AppColors.of(context);
+
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: AppColors.darkBackground,
-        appBar: AppBar(
-          backgroundColor: AppColors.purple,
-          title: const Text(
+        backgroundColor: palette.background,
+        appBar: CupertinoNavigationBar(
+          backgroundColor: palette.background.withValues(alpha: 0.8),
+          border: null,
+          middle: Text(
             'Welcome to FitAI',
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w600,
-              color: Colors.white,
+              color: palette.text,
             ),
           ),
         ),
-        body: const Center(
-          child: CircularProgressIndicator(color: AppColors.lime),
+        body: Center(
+          child: CupertinoActivityIndicator(color: palette.accent),
         ),
       );
     }
@@ -91,26 +95,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final goingForward = previousStep == null || step > previousStep;
 
     return Scaffold(
-      backgroundColor: AppColors.darkBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.purple,
-        title: const Text(
+      backgroundColor: palette.background,
+      appBar: CupertinoNavigationBar(
+        backgroundColor: palette.background.withValues(alpha: 0.8),
+        border: null,
+        middle: Text(
           'Welcome to FitAI',
           style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w600,
-            color: Colors.white,
+            color: palette.text,
           ),
         ),
         leading: step > 0
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+            ? CupertinoButton(
+                padding: const EdgeInsets.all(8),
                 onPressed: () => ref
                     .read(onboardingControllerProvider.notifier)
                     .previousStep(),
+                child: Icon(
+                  CupertinoIcons.back,
+                  color: palette.text,
+                ),
               )
             : null,
-        elevation: 0,
       ),
       body: Column(
         children: [
@@ -149,8 +157,9 @@ class _DotProgressIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
     return Container(
-      color: AppColors.purple,
+      color: palette.surface,
       padding: const EdgeInsets.only(bottom: 16, top: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -165,8 +174,8 @@ class _DotProgressIndicator extends StatelessWidget {
               height: 8,
               decoration: BoxDecoration(
                 color: isActive
-                    ? AppColors.lime
-                    : Colors.white.withValues(alpha: 0.3),
+                    ? palette.accent
+                    : palette.text.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),

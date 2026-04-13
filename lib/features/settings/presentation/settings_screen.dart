@@ -1,13 +1,17 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/unit_converter.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../models/enums.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/settings_providers.dart';
+import '../../../providers/unit_system_provider.dart';
 import '../../../providers/user_profile_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -17,12 +21,16 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(userProfileProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final units = ref.watch(unitSystemProvider);
     final textTheme = Theme.of(context).textTheme;
+    final palette = AppColors.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: const CloseButton(),
-        title: const Text('Settings'),
+      backgroundColor: palette.background,
+      appBar: CupertinoNavigationBar(
+        middle: const Text('Settings'),
+        backgroundColor: palette.background.withValues(alpha: 0.8),
+        border: null,
       ),
       body: ListView(
         children: [
@@ -54,34 +62,208 @@ class SettingsScreen extends ConsumerWidget {
                 _SectionLabel(label: 'Appearance', textTheme: textTheme),
                 const SizedBox(height: 8),
                 _SettingsCard(
-                  child: SwitchListTile(
-                    secondary: _SettingsIconBadge(
-                      icon: Icons.dark_mode_outlined,
-                      color: AppColors.purple,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    child: Row(
+                      children: [
+                        _SettingsIconBadge(
+                          icon: Icons.dark_mode_outlined,
+                          color: palette.accent,
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Dark Mode',
+                                style: textTheme.bodyLarge?.copyWith(
+                                  color: palette.text,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                themeMode == ThemeMode.system
+                                    ? 'System default'
+                                    : themeMode == ThemeMode.dark
+                                        ? 'On'
+                                        : 'Off',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: palette.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        CupertinoSwitch(
+                          value: themeMode == ThemeMode.dark,
+                          activeTrackColor: palette.accent,
+                          onChanged: (value) {
+                            HapticFeedback.selectionClick();
+                            ref
+                                .read(themeModeProvider.notifier)
+                                .toggle(value);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Units section
+                _SectionLabel(label: 'Units', textTheme: textTheme),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    child: Row(
+                      children: [
+                        _SettingsIconBadge(
+                          icon: CupertinoIcons.arrow_right_arrow_left,
+                          color: palette.accent,
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Units',
+                                style: textTheme.bodyLarge?.copyWith(
+                                  color: palette.text,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                units == UnitSystem.metric
+                                    ? 'kg / cm'
+                                    : 'lbs / ft',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: palette.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          width: 160,
+                          child: CupertinoSegmentedControl<UnitSystem>(
+                            groupValue: units,
+                            onValueChanged: (value) {
+                              HapticFeedback.selectionClick();
+                              ref
+                                  .read(unitSystemProvider.notifier)
+                                  .setUnit(value);
+                            },
+                            children: const {
+                              UnitSystem.metric: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: Text('Metric',
+                                    style: TextStyle(fontSize: 13)),
+                              ),
+                              UnitSystem.imperial: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: Text('Imperial',
+                                    style: TextStyle(fontSize: 13)),
+                              ),
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Notifications section
+                _SectionLabel(label: 'Notifications', textTheme: textTheme),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  child: CupertinoListTile(
+                    leading: _SettingsIconBadge(
+                      icon: CupertinoIcons.bell,
+                      color: palette.warning,
                     ),
                     title: Text(
-                      'Dark Mode',
+                      'Notifications',
                       style: textTheme.bodyLarge?.copyWith(
-                        color: Colors.white,
+                        color: palette.text,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     subtitle: Text(
-                      themeMode == ThemeMode.system
-                          ? 'System default'
-                          : themeMode == ThemeMode.dark
-                              ? 'On'
-                              : 'Off',
+                      'Workout, meal, water, and streak reminders',
                       style: textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: palette.textSecondary,
                       ),
                     ),
-                    value: themeMode == ThemeMode.dark,
-                    onChanged: (value) {
-                      HapticFeedback.selectionClick();
-                      ref.read(themeModeProvider.notifier).state =
-                          value ? ThemeMode.dark : ThemeMode.light;
-                    },
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      color: palette.text,
+                      size: 18,
+                    ),
+                    onTap: () => context.push('/settings/notifications'),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Supplements section
+                _SectionLabel(label: 'Supplements', textTheme: textTheme),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  child: CupertinoListTile(
+                    leading: _SettingsIconBadge(
+                      icon: CupertinoIcons.capsule,
+                      color: palette.accent,
+                    ),
+                    title: Text(
+                      'Manage Supplements',
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: palette.text,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Add, remove, or configure supplements',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      color: palette.text,
+                      size: 18,
+                    ),
+                    onTap: () => context.push('/supplements'),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Account section
+                _SectionLabel(label: 'Account', textTheme: textTheme),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  child: CupertinoListTile(
+                    leading: _SettingsIconBadge(
+                      icon: Icons.logout,
+                      color: palette.destructive,
+                    ),
+                    title: Text(
+                      'Sign Out',
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: palette.destructive,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      color: palette.text,
+                      size: 18,
+                    ),
+                    onTap: () => _confirmSignOut(context, ref),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -90,27 +272,28 @@ class SettingsScreen extends ConsumerWidget {
                 _SectionLabel(label: 'Data', textTheme: textTheme),
                 const SizedBox(height: 8),
                 _SettingsCard(
-                  child: ListTile(
+                  child: CupertinoListTile(
                     leading: _SettingsIconBadge(
                       icon: Icons.delete_forever_outlined,
-                      color: AppColors.error,
+                      color: palette.destructive,
                     ),
                     title: Text(
                       'Reset All Data',
                       style: textTheme.bodyLarge?.copyWith(
-                        color: AppColors.error,
+                        color: palette.destructive,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     subtitle: Text(
                       'Delete all workouts, nutrition, and chat history',
                       style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.error.withValues(alpha: 0.7),
+                        color: palette.destructive.withValues(alpha: 0.7),
                       ),
                     ),
-                    trailing: const Icon(
-                      Icons.chevron_right,
-                      color: AppColors.lime,
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      color: palette.text,
+                      size: 18,
                     ),
                     onTap: () => _confirmReset(context, ref),
                   ),
@@ -121,22 +304,22 @@ class SettingsScreen extends ConsumerWidget {
                 _SectionLabel(label: 'About', textTheme: textTheme),
                 const SizedBox(height: 8),
                 _SettingsCard(
-                  child: ListTile(
-                    leading: const _SettingsIconBadge(
-                      icon: Icons.info_outline,
-                      color: AppColors.purple,
+                  child: CupertinoListTile(
+                    leading: _SettingsIconBadge(
+                      icon: CupertinoIcons.info,
+                      color: palette.accent,
                     ),
                     title: Text(
                       'FitAI',
                       style: textTheme.bodyLarge?.copyWith(
-                        color: Colors.white,
+                        color: palette.text,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     subtitle: Text(
                       'Version 1.0.0',
                       style: textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: palette.textSecondary,
                       ),
                     ),
                   ),
@@ -149,25 +332,52 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
+  Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showCupertinoDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Sign Out?'),
+        content: const Text(
+          'You will need to sign in again to access your data.',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      HapticFeedback.mediumImpact();
+      await ref.read(authServiceProvider).signOut();
+      if (context.mounted) context.go('/welcome');
+    }
+  }
+
+  Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
         title: const Text('Reset all data?'),
         content: const Text(
           'This will permanently delete all your workouts, nutrition logs, '
           'weight entries, chat history, and profile. This cannot be undone.',
         ),
         actions: [
-          TextButton(
+          CupertinoDialogAction(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          FilledButton(
+          CupertinoDialogAction(
+            isDestructiveAction: true,
             onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
             child: const Text('Reset Everything'),
           ),
         ],
@@ -210,12 +420,12 @@ class _ProfileHeader extends StatelessWidget {
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-        color: AppColors.purple,
+        color: AppColors.of(context).accent,
         child: Row(
           children: [
             CircleAvatar(
               radius: 30,
-              backgroundColor: AppColors.purpleDark,
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
               child: Text(
                 name.isNotEmpty ? name[0].toUpperCase() : '?',
                 style: textTheme.titleLarge?.copyWith(
@@ -240,7 +450,7 @@ class _ProfileHeader extends StatelessWidget {
                   Text(
                     '${goal.label} · ${tdee.toInt()} kcal TDEE',
                     style: textTheme.bodyMedium?.copyWith(
-                      color: AppColors.purpleLight,
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
@@ -248,7 +458,7 @@ class _ProfileHeader extends StatelessWidget {
             ),
             const Icon(
               Icons.chevron_right,
-              color: AppColors.lime,
+              color: Colors.white,
               size: 24,
             ),
           ],
@@ -280,7 +490,7 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       label,
       style: textTheme.labelLarge?.copyWith(
-        color: AppColors.purpleLight,
+        color: AppColors.of(context).accent,
         letterSpacing: 0.5,
       ),
     );
@@ -296,11 +506,12 @@ class _SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.darkSurface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.darkSurfaceBorder),
+        border: Border.all(color: palette.border),
       ),
       child: child,
     );

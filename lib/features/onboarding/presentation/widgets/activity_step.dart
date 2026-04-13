@@ -50,7 +50,7 @@ class _ActivityStepState extends ConsumerState<ActivityStep> {
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,
               fontSize: 28,
-              color: Colors.white,
+              color: AppColors.of(context).text,
             ),
           ),
           const SizedBox(height: 8),
@@ -59,7 +59,7 @@ class _ActivityStepState extends ConsumerState<ActivityStep> {
             style: textTheme.bodyLarge?.copyWith(
               fontFamily: 'LeagueSpartan',
               fontWeight: FontWeight.w400,
-              color: AppColors.purpleLight,
+              color: AppColors.of(context).textSecondary,
             ),
           ),
           const SizedBox(height: 24),
@@ -103,12 +103,13 @@ class _NextButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
     if (isValid) {
       return FilledButton(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.lime,
-          foregroundColor: Colors.black,
+          backgroundColor: palette.accent,
+          foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -128,12 +129,12 @@ class _NextButton extends StatelessWidget {
       onPressed: null,
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(52),
-        foregroundColor: Colors.white,
-        side: const BorderSide(color: Colors.white, width: 1.5),
+        foregroundColor: palette.text,
+        side: BorderSide(color: palette.border, width: 1.5),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        disabledForegroundColor: Colors.white.withValues(alpha: 0.4),
+        disabledForegroundColor: palette.text.withValues(alpha: 0.4),
       ),
       child: const Text(
         'Next',

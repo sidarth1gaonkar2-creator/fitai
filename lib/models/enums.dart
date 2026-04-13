@@ -55,6 +55,7 @@ enum ExerciseDifficulty {
 enum FoodSource {
   localDb,
   openFoodFacts,
+  usda,
 }
 
 enum FoodCategory {
@@ -86,6 +87,14 @@ enum MealType {
 enum MessageRole {
   user,
   assistant,
+}
+
+enum SupplementTiming {
+  morning,
+  afternoon,
+  evening,
+  withMeal,
+  beforeBed,
 }
 
 extension SexLabel on Sex {
@@ -205,5 +214,15 @@ extension FoodCategoryLabel on FoodCategory {
         FoodCategory.snacks => 'Snacks',
         FoodCategory.frozen => 'Frozen',
         FoodCategory.fastFood => 'Fast Food',
+      };
+}
+
+extension SupplementTimingLabel on SupplementTiming {
+  String get label => switch (this) {
+        SupplementTiming.morning => 'Morning',
+        SupplementTiming.afternoon => 'Afternoon',
+        SupplementTiming.evening => 'Evening',
+        SupplementTiming.withMeal => 'With Meal',
+        SupplementTiming.beforeBed => 'Before Bed',
       };
 }

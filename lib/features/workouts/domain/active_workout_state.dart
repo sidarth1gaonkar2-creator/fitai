@@ -7,6 +7,7 @@ class ActiveWorkoutState {
     this.restTimerSeconds,
     this.prExerciseName,
     this.editingWorkoutId,
+    this.newPRs = const [],
   });
 
   final String title;
@@ -16,6 +17,7 @@ class ActiveWorkoutState {
   final int? restTimerSeconds;
   final String? prExerciseName;
   final int? editingWorkoutId;
+  final List<String> newPRs;
 
   ActiveWorkoutState copyWith({
     String? title,
@@ -25,6 +27,7 @@ class ActiveWorkoutState {
     int? Function()? restTimerSeconds,
     String? Function()? prExerciseName,
     int? Function()? editingWorkoutId,
+    List<String>? newPRs,
   }) {
     return ActiveWorkoutState(
       title: title ?? this.title,
@@ -37,6 +40,7 @@ class ActiveWorkoutState {
           prExerciseName != null ? prExerciseName() : this.prExerciseName,
       editingWorkoutId:
           editingWorkoutId != null ? editingWorkoutId() : this.editingWorkoutId,
+      newPRs: newPRs ?? this.newPRs,
     );
   }
 }
@@ -71,24 +75,34 @@ class ActiveSet {
     this.weight = 0,
     this.isCompleted = false,
     required this.order,
+    this.previousReps,
+    this.previousWeight,
   });
 
   final int reps;
   final double weight;
   final bool isCompleted;
   final int order;
+  final int? previousReps;
+  final double? previousWeight;
 
   ActiveSet copyWith({
     int? reps,
     double? weight,
     bool? isCompleted,
     int? order,
+    int? Function()? previousReps,
+    double? Function()? previousWeight,
   }) {
     return ActiveSet(
       reps: reps ?? this.reps,
       order: order ?? this.order,
       weight: weight ?? this.weight,
       isCompleted: isCompleted ?? this.isCompleted,
+      previousReps:
+          previousReps != null ? previousReps() : this.previousReps,
+      previousWeight:
+          previousWeight != null ? previousWeight() : this.previousWeight,
     );
   }
 }
