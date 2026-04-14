@@ -5,6 +5,14 @@ import '../features/ai_coach/presentation/ai_coach_screen.dart';
 import '../features/auth/presentation/sign_in_screen.dart';
 import '../features/auth/presentation/sign_up_screen.dart';
 import '../features/auth/presentation/welcome_screen.dart';
+import '../features/community/presentation/challenges/challenge_detail_screen.dart';
+import '../features/community/presentation/challenges/create_challenge_screen.dart';
+import '../features/community/presentation/community_screen.dart';
+import '../features/community/presentation/feed/post_detail_screen.dart';
+import '../features/community/presentation/followers/followers_list_screen.dart';
+import '../features/community/presentation/profile/edit_social_profile_screen.dart';
+import '../features/community/presentation/profile/profile_screen.dart';
+import '../features/community/presentation/profile_setup/profile_setup_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/nutrition/domain/food_search_result.dart';
 import '../features/nutrition/presentation/barcode_scanner_screen.dart';
@@ -26,6 +34,7 @@ import '../features/workouts/presentation/workout_logging_screen.dart';
 import '../features/workouts/presentation/workouts_screen.dart';
 import '../models/enums.dart';
 import '../providers/auth_provider.dart';
+import '../providers/community_providers.dart';
 import '../providers/user_profile_provider.dart';
 
 const _authRoutes = {'/welcome', '/signin', '/signup'};
@@ -33,37 +42,55 @@ const _authRoutes = {'/welcome', '/signin', '/signup'};
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authAsync = ref.watch(authStateProvider);
   final profileAsync = ref.watch(userProfileProvider);
+  final firestoreUserAsync = ref.watch(firestoreUserProvider);
 
   return GoRouter(
     initialLocation: '/welcome',
     redirect: (context, state) {
-      // Wait for auth state to resolve
       if (authAsync.isLoading) return null;
 
       final user = authAsync.valueOrNull;
       final location = state.matchedLocation;
       final isAuthRoute = _authRoutes.contains(location);
 
-      // Not authenticated → send to /welcome
+      // Not authenticated → welcome
       if (user == null) {
         return isAuthRoute ? null : '/welcome';
       }
 
-      // Authenticated but on an auth route → forward to app
+      // Authenticated on auth route → forward
       if (isAuthRoute) {
         final hasProfile = profileAsync.valueOrNull != null;
-        return hasProfile ? '/dashboard' : '/onboarding';
+        if (!hasProfile) return '/onboarding';
+        final hasFirestoreProfile = firestoreUserAsync.valueOrNull != null;
+        return hasFirestoreProfile ? '/dashboard' : '/profile-setup';
       }
 
-      // Authenticated, not on auth route → existing onboarding guard
+      // Onboarding guard
       final hasProfile = profileAsync.valueOrNull != null;
       final isOnboarding = location == '/onboarding';
+      final isProfileSetup = location == '/profile-setup';
 
       if (!hasProfile && !isOnboarding) return '/onboarding';
-      if (hasProfile && isOnboarding) return '/dashboard';
+      if (hasProfile && isOnboarding) {
+        final hasFirestoreProfile = firestoreUserAsync.valueOrNull != null;
+        return hasFirestoreProfile ? '/dashboard' : '/profile-setup';
+      }
+
+      // Profile setup guard
+      if (hasProfile && !isProfileSetup) {
+        final hasFirestoreProfile = firestoreUserAsync.valueOrNull != null;
+        if (!hasFirestoreProfile &&
+            !isOnboarding &&
+            location != '/profile-setup') {
+          return '/profile-setup';
+        }
+      }
+
       return null;
     },
     routes: [
+      // ─── Auth ─────────────────────────────────────────────────
       GoRoute(
         path: '/welcome',
         builder: (context, state) => const WelcomeScreen(),
@@ -80,10 +107,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
       ),
+      GoRoute(
+        path: '/profile-setup',
+        builder: (context, state) => const ProfileSetupScreen(),
+      ),
+
+      // ─── Main Shell (5 tabs) ──────────────────────────────────
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             ShellScreen(navigationShell: navigationShell),
         branches: [
+          // Tab 0: Home
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -92,6 +126,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          // Tab 1: Workouts
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -139,6 +174,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          // Tab 2: Nutrition
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -201,6 +237,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          // Tab 3: Progress
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -209,7 +246,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'pr-hall',
-                    pageBuilder: (context, state) => slideUpTransitionPage(
+                    pageBuilder: (context, state) =>
+                        slideUpTransitionPage(
                       key: state.pageKey,
                       child: const PRHallScreen(),
                     ),
@@ -218,15 +256,93 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          // Tab 4: Community (replaced AI Coach)
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/ai-coach',
-                builder: (context, state) => const AICoachScreen(),
+                path: '/community',
+                builder: (context, state) => const CommunityScreen(),
               ),
             ],
           ),
         ],
+      ),
+
+      // ─── Standalone routes ────────────────────────────────────
+      GoRoute(
+        path: '/ai-coach',
+        pageBuilder: (context, state) => slideUpTransitionPage(
+          key: state.pageKey,
+          child: const AICoachScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/profile/:userId',
+        pageBuilder: (context, state) {
+          final userId = state.pathParameters['userId']!;
+          return slideUpTransitionPage(
+            key: state.pageKey,
+            child: ProfileScreen(userId: userId),
+          );
+        },
+        routes: [
+          GoRoute(
+            path: 'followers',
+            pageBuilder: (context, state) {
+              final userId = state.pathParameters['userId']!;
+              return slideUpTransitionPage(
+                key: state.pageKey,
+                child: FollowersListScreen(
+                    userId: userId, isFollowers: true),
+              );
+            },
+          ),
+          GoRoute(
+            path: 'following',
+            pageBuilder: (context, state) {
+              final userId = state.pathParameters['userId']!;
+              return slideUpTransitionPage(
+                key: state.pageKey,
+                child: FollowersListScreen(
+                    userId: userId, isFollowers: false),
+              );
+            },
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/profile/edit',
+        pageBuilder: (context, state) => slideUpTransitionPage(
+          key: state.pageKey,
+          child: const EditSocialProfileScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/community/post/:postId',
+        pageBuilder: (context, state) {
+          final postId = state.pathParameters['postId']!;
+          return slideUpTransitionPage(
+            key: state.pageKey,
+            child: PostDetailScreen(postId: postId),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/community/challenge/:challengeId',
+        pageBuilder: (context, state) {
+          final challengeId = state.pathParameters['challengeId']!;
+          return slideUpTransitionPage(
+            key: state.pageKey,
+            child: ChallengeDetailScreen(challengeId: challengeId),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/community/challenge/create',
+        pageBuilder: (context, state) => slideUpTransitionPage(
+          key: state.pageKey,
+          child: const CreateChallengeScreen(),
+        ),
       ),
       GoRoute(
         path: '/settings',

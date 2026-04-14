@@ -96,10 +96,20 @@ class DashboardScreen extends ConsumerWidget {
             middle: Text('${_greeting()}, ${profile.name}'),
             backgroundColor: palette.background.withValues(alpha: 0.8),
             border: null,
-            trailing: CupertinoButton(
-              padding: const EdgeInsets.all(8),
-              onPressed: () => context.push('/settings'),
-              child: const Icon(CupertinoIcons.gear, size: 22),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CupertinoButton(
+                  padding: const EdgeInsets.all(8),
+                  onPressed: () => context.push('/ai-coach'),
+                  child: const Icon(CupertinoIcons.chat_bubble_fill, size: 22),
+                ),
+                CupertinoButton(
+                  padding: const EdgeInsets.all(8),
+                  onPressed: () => context.push('/settings'),
+                  child: const Icon(CupertinoIcons.gear, size: 22),
+                ),
+              ],
             ),
           ),
           body: SingleChildScrollView(

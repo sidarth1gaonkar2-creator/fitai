@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/database/isar_service.dart';
 import 'providers/auth_provider.dart';
+import 'providers/firestore_provider.dart';
 import 'providers/isar_provider.dart';
 import 'providers/unit_system_provider.dart';
 import 'services/notification_service.dart';
@@ -82,6 +85,8 @@ void main() async {
           isarProvider.overrideWithValue(isar),
           sharedPreferencesProvider.overrideWithValue(prefs),
           firebaseAuthProvider.overrideWithValue(FirebaseAuth.instance),
+          firestoreProvider.overrideWithValue(FirebaseFirestore.instance),
+          storageProvider.overrideWithValue(FirebaseStorage.instance),
         ],
         child: const FitAIApp(),
       ),

@@ -12,9 +12,11 @@ import '../../../models/workout.dart';
 import '../../../models/workout_exercise.dart';
 import '../../../models/workout_set.dart';
 import '../../../providers/dashboard_providers.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/personal_records_hall_providers.dart';
 import '../../../providers/workout_providers.dart';
+import '../../community/data/user_repository.dart';
 import '../domain/active_workout_state.dart';
 
 const commonExercises = [
@@ -377,6 +379,12 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
       _ref.invalidate(streakProvider);
       _ref.invalidate(personalRecordsProvider);
       _ref.invalidate(allPersonalRecordsProvider);
+
+      // Sync workout count to Firestore
+      final userId = _ref.read(currentUserIdProvider);
+      if (userId != null) {
+        _ref.read(userRepositoryProvider).incrementWorkoutCount(userId);
+      }
 
       state = state.copyWith(isSaving: false, newPRs: newPRNames);
       return true;

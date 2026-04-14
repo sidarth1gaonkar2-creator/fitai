@@ -15,7 +15,7 @@ class ShellScreen extends StatelessWidget {
     Icons.fitness_center_outlined,
     CupertinoIcons.square_favorites_alt,
     CupertinoIcons.chart_bar,
-    CupertinoIcons.chat_bubble,
+    CupertinoIcons.person_2,
   ];
 
   static const _activeIcons = <IconData>[
@@ -23,7 +23,7 @@ class ShellScreen extends StatelessWidget {
     Icons.fitness_center,
     CupertinoIcons.square_favorites_alt_fill,
     CupertinoIcons.chart_bar_fill,
-    CupertinoIcons.chat_bubble_fill,
+    CupertinoIcons.person_2_fill,
   ];
 
   static const _labels = <String>[
@@ -31,7 +31,7 @@ class ShellScreen extends StatelessWidget {
     'Workouts',
     'Nutrition',
     'Progress',
-    'AI Coach',
+    'Community',
   ];
 
   @override
