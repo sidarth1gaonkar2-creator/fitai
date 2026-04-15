@@ -1,57 +1,69 @@
 ---
 name: UI Patterns - Theme
-description: AppColors token palette, usage conventions, and light/dark approach for FitAI after UI overhaul
+description: AppColors token palette (iOS-native black/white/blue), Palette system, usage conventions, and light/dark approach after Cupertino migration
 type: project
 ---
 
+## Architecture
+
+App uses `CupertinoApp.router` (lib/app.dart) with a `Theme` wrapper that injects Material `ThemeData` for remaining Material widgets (Card, ListTile, Switch, TextField). Two systems coexist:
+- `CupertinoThemeData` — primary, drives nav bars and Cupertino widgets
+- `AppTheme.dark` / `AppTheme.light` (Material ThemeData) — injected via `builder:` for legacy Material widgets
+
 ## Color Palette — AppColors (lib/core/theme/app_colors.dart)
 
-Dark mode canonical tokens:
-- `AppColors.darkBackground` (#1A1A1A) — Scaffold background
-- `AppColors.darkSurface` (#242424) — Card/sheet surfaces
-- `AppColors.darkSurfaceBorder` (white 12%) — Card outline borders
-- `AppColors.darkSearchField` (#2E2E2E) — Search input background
-- `AppColors.purple` (#7B5CF6) — Primary accent; hero card backgrounds, progress fills
-- `AppColors.purpleLight` (#A78BFA) — Carbs macro bar; subtitle text (purpleLight used as darkTextSecondary)
-- `AppColors.purpleDark` (#3D2FA0) — Icon containers (48x48 circles); streak card background
-- `AppColors.lime` (#C8F135) — CTA buttons; selected calendar dates; water dots (filled); chevrons; FABs; workout dots; lime badge
+### Palette system (preferred API)
+`AppColors.dark`, `AppColors.light`, and `AppColors.of(context)` return a `Palette` object:
 
-Shared accents:
-- `AppColors.error` (#EF4444) — Over-budget calorie ring; error states
-- `AppColors.warning` (#F59E0B)
-- `AppColors.success` (#22C55E)
+| Palette field     | Dark value   | Light value  | Usage                          |
+|-------------------|-------------|-------------|--------------------------------|
+| `background`      | #000000     | #F2F2F7     | Scaffold background            |
+| `surface`         | #1C1C1E     | #FFFFFF     | Card/sheet surfaces            |
+| `surfaceElevated` | #2C2C2E     | #F2F2F7     | Elevated surfaces, search fields|
+| `border`          | white 12%   | black 10%   | Card/container borders         |
+| `separator`       | white 8%    | black 6%    | Thin dividers                  |
+| `text`            | #FFFFFF     | #000000     | Primary text                   |
+| `textSecondary`   | #8E8E93     | #8E8E93     | Secondary/subtitle text        |
+| `accent`          | #0A84FF     | #007AFF     | iOS system blue; primary accent|
+| `success`         | #32D74B     | #34C759     | Success states                 |
+| `destructive`     | #FF453A     | #FF3B30     | Errors, over-budget, delete    |
+| `warning`         | #FF9F0A     | #FF9500     | Warning states                 |
 
-Light mode: `lightBackground` #F5F5F5, `lightSurface` white, `lightPrimary` #6D4FE0, `lightCta` #8DB000.
+### Legacy aliases (still in code, point to dark palette values)
 
-## Semantic Usage Patterns
+**WARNING:** Variable names are misleading — they are vestiges of the old purple/lime design.
 
-| Element | Token |
-|---|---|
-| Calorie ring normal | purple → purpleLight gradient |
-| Calorie ring ≥80% | lime → lime 70% alpha gradient |
-| Calorie ring ≥100% | error → error 60% alpha gradient |
-| Macro bar — Protein | AppColors.purple |
-| Macro bar — Carbs | AppColors.purpleLight |
-| Macro bar — Fat | AppColors.lime |
-| Macro bar track | AppColors.darkSurface |
-| Icon circle containers | AppColors.purpleDark background, white icon |
-| Hero cards (workout, etc.) | AppColors.purple background, white text |
-| CTA / FAB / quick-action buttons | AppColors.lime background, Colors.black text |
-| Streak card | AppColors.purpleDark container, lime fire icon, white text |
-| Water dots filled | AppColors.lime |
-| Water dots empty | white border, transparent |
-| Calendar selected day | AppColors.lime circle, black text |
-| Calendar today | AppColors.purple 20% alpha background |
-| Calendar day headers | AppColors.purple |
-| Calendar workout dot | AppColors.lime (black when day is selected) |
-| Workout tile subtitle | AppColors.purpleLight |
-| Workout tile chevron | AppColors.lime |
-| Tab bar active pill | AppColors.lime fill, black text |
-| Tab bar inactive | AppColors.purple border 50% alpha, purple text |
+| Legacy name          | Actual value | What it really is             |
+|----------------------|-------------|-------------------------------|
+| `AppColors.purple`   | #0A84FF     | iOS dark system blue (accent) |
+| `AppColors.purpleLight`| #64B5FF   | Light blue variant            |
+| `AppColors.purpleDark` | #0050A0   | Dark blue variant             |
+| `AppColors.lime`     | #FFFFFF     | White (was lime green)        |
+| `AppColors.darkBackground` | #000000 | Pure black                 |
+| `AppColors.darkSurface`    | #1C1C1E | iOS dark surface            |
+| `AppColors.darkSearchField` | #2C2C2E | Elevated surface           |
+| `AppColors.darkSurfaceBorder`| white 12% | Subtle white border     |
+| `AppColors.error`    | #FF453A     | iOS red                       |
+| `AppColors.warning`  | #FF9F0A     | iOS orange                    |
+| `AppColors.success`  | #32D74B     | iOS green                     |
+| `AppColors.lightBackground` | #F2F2F7 | iOS grouped background     |
+| `AppColors.lightSurface`    | #FFFFFF | White                       |
+| `AppColors.lightPrimary`    | #007AFF | iOS light system blue       |
+| `AppColors.lightCta`        | #007AFF | Same as lightPrimary        |
+| `AppColors.bottomNavBar`    | #000000 | Pure black                  |
 
-## Material 3 colorScheme tokens still in use
-- `colorScheme.onSurface` / `onSurfaceVariant` — body text and secondary labels
-- `colorScheme.surfaceContainerHighest` — shimmer base (in shimmer widgets only)
-- `colorScheme.surfaceContainerLow` — shimmer highlight
+## Font Pairing
+- **Poppins** Bold/SemiBold/Medium — headings, nav titles, CTAs
+- **League Spartan** Regular/Medium — body text, labels, subtitles
+- Both declared as asset fonts in pubspec.yaml (not google_fonts package)
 
-**How to apply:** Use AppColors tokens for design-system-specific colors. Use colorScheme tokens for generic text/surface roles. Never hardcode hex values in widget files.
+## Material ThemeData mapping (AppTheme)
+- `colorScheme.primary` = `AppColors.purple` (#0A84FF blue)
+- `colorScheme.secondary` = `AppColors.lime` (#FFFFFF white)
+- `colorScheme.tertiary` = `AppColors.purpleLight` (#64B5FF light blue)
+- `colorScheme.error` = `AppColors.error` (#FF453A red)
+- `filledButtonTheme` bg = `AppColors.lime` (white bg, black text)
+- `appBarTheme` bg = `AppColors.purple` (#0A84FF blue)
+- `cardTheme` = `AppColors.darkSurface` with `darkSurfaceBorder`
+
+**How to apply:** Always use `AppColors.of(context)` Palette for new code. Be aware that legacy alias names are misleading. Never assume `AppColors.purple` is purple or `AppColors.lime` is lime — check the actual hex values.

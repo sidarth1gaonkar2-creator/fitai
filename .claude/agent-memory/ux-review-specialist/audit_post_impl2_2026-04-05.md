@@ -4,6 +4,8 @@ description: Critical and major UX findings from the full UI overhaul covering s
 type: project
 ---
 
+> **STALE COLOR REFERENCES:** This audit was written during the purple/lime era. All hex values and contrast calculations referencing #C8F135 (lime), #7B5CF6 (purple), #3D2FA0 (purpleDark), #242424 (darkSurface), #1A1A1A (darkBackground) are outdated. The app now uses an iOS-native black/white/blue palette. See `ui_theme_pattern.md` for current values. Tap target, semantics, and structural findings remain valid.
+
 ## Findings summary
 
 ### Critical

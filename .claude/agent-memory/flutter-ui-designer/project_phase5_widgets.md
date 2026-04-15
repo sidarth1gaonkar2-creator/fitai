@@ -37,8 +37,8 @@ Phase 5 (UI widgets) implemented 2026-04-05. All widgets complete.
 
 ## Key design patterns established
 
-- **Macro colour coding**: `<90%` → primary, `90-110%` → secondary, `>110%` → error. Sodium inverts.
-- **MuscleGroupDiagram**: Non-interactive. Normalised 0-1 coords scaled to canvas. Primary = error colour, secondary = tertiary colour.
+- **Macro colour coding**: Uses `AppColors.of(context).accent` (iOS blue) for primary, `AppColors.of(context).destructive` for over-budget. Legacy code may still reference `AppColors.purple`/`purpleLight`/`lime` — these map to blue/light-blue/white, NOT their namesake colors.
+- **MuscleGroupDiagram**: Non-interactive. Normalised 0-1 coords scaled to canvas.
 - **ExercisePickerSheet**: Multi-muscle filter groups mapped locally (Legs = quads+hamstrings+glutes+calves). Provider only supports single MuscleGroup; multi-group filtering is done locally after provider query.
 - **TemplatePreviewScreen**: Calls `loadFromTemplate()` on `activeWorkoutProvider.notifier` then `context.go('/workouts/new')`.
 - **CompleteDayButton**: `completeDay(ref)` / `uncompleteDay(ref)` are top-level functions in `nutrition_providers.dart`.

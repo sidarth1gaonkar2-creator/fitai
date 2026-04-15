@@ -5,10 +5,14 @@ type: project
 ---
 
 Flutter fitness app targeting iOS (and Android). Stack: Flutter + Riverpod (manual providers,
-no code-gen) + Isar v3 + go_router + Material 3.
+no code-gen) + Isar v3 + go_router + CupertinoApp.router (with Material ThemeData wrapper).
 
 **Why:** isar_generator has codegen conflicts with other build_runner generators, so all
 Riverpod providers are hand-written. Never suggest migrating to code-generated providers.
+
+**Color system:** iOS-native black/white/blue palette. Legacy variable names in AppColors
+(purple, lime, purpleDark, etc.) are misleading — they map to blues and white, not their
+namesake colors. Always check actual hex values before referencing colors.
 
 **Key directories:**
 - `lib/data/` — static in-memory databases: `us_food_database.dart` (142 foods),
