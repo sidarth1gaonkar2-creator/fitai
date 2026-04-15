@@ -1,10 +1,10 @@
 # UX Review Specialist Memory — FitAI
 
-- [Codebase Overview](codebase_overview.md) — Screen inventory, widget conventions, tech stack confirmation
-- [Audit — Full App Pass 1 (2026-04-05)](audit_pass1_2026-04-05.md) — Findings from first full UX audit across all screens
-- [Recurring Patterns](recurring_patterns.md) — Anti-patterns and good practices seen consistently across the codebase
-- [Pre-Implementation Review — Planned Features (2026-04-05)](audit_pre_impl_2026-04-05.md) — UX risks for food search dual-source, nutrition redesign, exercise library, templates, settings nav
-- [Post-Implementation Audit — Phase 5/6 Features (2026-04-05)](audit_post_impl_2026-04-05.md) — Findings from targeted review of all new/modified files in nutrition, food search, exercise, templates, settings
-- [Pre-Implementation Review — Round 2 (2026-04-05)](audit_pre_impl2_2026-04-05.md) — Micronutrient always-visible, day completion sheet, settings back nav, instant local search, macro colour, full design system overhaul + current-state audit of dashboard/ai_coach/progress/shell
-- [Post-Implementation Audit — UI Overhaul Pass (2026-04-05)](audit_post_impl2_2026-04-05.md) — Critical/major findings from the full UI overhaul: sub-48dp tap targets (water buttons, calendar cells, tab pills), missing semantics, haptic gaps, profile null blank screen
-- [Cupertino Migration Audit (2026-04-08)](audit_cupertino_migration_2026-04-08.md) — HIG violations, Theme.of fallback risk, unconverted Material widgets, ScaffoldMessenger remnants after Material→Cupertino migration
+- [Codebase Overview](codebase_overview.md) — Full screen inventory (30+ screens), tech stack, routing, color system
+- [Recurring Patterns](recurring_patterns.md) — Anti-patterns and good practices seen consistently
+- [Audit — Full App Pass 1 (2026-04-05)](audit_pass1_2026-04-05.md) — First full UX audit across all screens
+- [Pre-Implementation Review — Planned Features (2026-04-05)](audit_pre_impl_2026-04-05.md) — UX risks for food search, nutrition redesign, exercise library, templates, settings
+- [Post-Implementation Audit — Phase 5/6 (2026-04-05)](audit_post_impl_2026-04-05.md) — Findings for nutrition, food search, exercise, templates, settings
+- [Pre-Implementation Review — Round 2 (2026-04-05)](audit_pre_impl2_2026-04-05.md) — Micros, day completion, macro colour, design system overhaul
+- [Post-Implementation Audit — UI Overhaul (2026-04-05)](audit_post_impl2_2026-04-05.md) — STALE COLOR REFS; tap targets, semantics, haptic findings still valid
+- [Cupertino Migration Audit (2026-04-08)](audit_cupertino_migration_2026-04-08.md) — HIG violations, unconverted Material widgets, Theme.of fallback risk

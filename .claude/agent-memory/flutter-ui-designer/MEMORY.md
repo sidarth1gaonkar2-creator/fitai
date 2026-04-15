@@ -1,10 +1,16 @@
-- [User Profile](user_flutter_dev.md) — Flutter developer building FitAI with Riverpod/Isar/go_router
-- [Project Stack](project_stack.md) — Tech stack, package versions, and key architecture decisions
-- [UI Patterns - Shimmer](ui_shimmer_pattern.md) — Custom shimmer system already built; no external package used
-- [UI Patterns - Theme](ui_theme_pattern.md) — iOS-native black/white/blue palette (NOT purple/lime); Palette API; legacy alias mapping
-- [Dashboard Widget Map](project_dashboard_widgets.md) — What each dashboard widget does and how it loads data
-- [Onboarding Step Map](project_onboarding_steps.md) — All 6 onboarding steps, what they collect, current visual state
-- [Nutrition Redesign Plan](project_nutrition_redesign_plan.md) — Cronometer-style redesign: micros, CompletedDay model, colour-coded macros
-- [Phase 5 Widget Map](project_phase5_widgets.md) — All Phase 5 UI files: paths, patterns, macro colour coding, muscle diagram, templates
-- [Known Bugs and Fixes](project_known_bugs.md) — Confirmed bugs with exact file/line, root cause, and fix plan
-- [UI Design System — Current State](project_ui_overhaul_plan.md) — Post-Cupertino migration state; CupertinoApp.router, remaining Material widgets
+- [User Profile](user_flutter_dev.md) — Flutter developer building FitAI with Riverpod/Isar/Firebase/Cupertino
+- [Project Stack](project_stack.md) — Tech stack, packages, Isar+Firebase dual persistence, architecture constraints
+- [UI Patterns - Theme](ui_theme_pattern.md) — iOS-native black/white/blue palette; Palette API; legacy alias mapping
+- [UI Patterns - Shimmer](ui_shimmer_pattern.md) — Custom shimmer system; no external package
+- [UI Design System](project_ui_overhaul_plan.md) — Post-Cupertino migration state; CupertinoApp.router; remaining Material widgets
+- [Dashboard Widget Map](project_dashboard_widgets.md) — Dashboard widgets, data sources, supplement checklist
+- [Onboarding Step Map](project_onboarding_steps.md) — All 6 onboarding steps, what they collect
+- [Community Feature](project_community_feature.md) — Social system: feed, profiles, follows, leaderboards, challenges (Firebase/Firestore)
+- [Supplements Feature](project_supplements_feature.md) — Supplement tracking: checklist, consistency, library + API catalog (Isar)
+- [Firebase Integration](project_firebase_integration.md) — Auth, Firestore, Storage services and providers
+- [Custom Meal Plans](project_meal_plans_feature.md) — Create, browse, import meal plans (Isar, 3 linked models)
+- [Personal Records Hall](project_personal_records_feature.md) — PR tracking, migration, gallery, celebrations
+- [Notifications System](project_notifications_feature.md) — Local notifications: workouts, meals, water, streak, supplements, PRs
+- [Nutrition Redesign Plan](project_nutrition_redesign_plan.md) — Cronometer-style redesign: micros, CompletedDay, colour-coded macros
+- [Phase 5 Widget Map](project_phase5_widgets.md) — Phase 5 UI files: paths, patterns, muscle diagram, templates
+- [Known Bugs and Fixes](project_known_bugs.md) — Confirmed bugs with file/line, root cause, fix plan
