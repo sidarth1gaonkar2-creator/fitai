@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show IconButton, Icons, Theme, VisualDensity;
+import 'package:flutter/services.dart';
 import '../../domain/active_workout_state.dart';
 
 class SetRow extends StatefulWidget {
@@ -12,6 +13,7 @@ class SetRow extends StatefulWidget {
     required this.onRemove,
     this.previousReps,
     this.previousWeight,
+    this.onCopyFromPrevious,
   });
 
   final ActiveSet set;
@@ -21,6 +23,10 @@ class SetRow extends StatefulWidget {
   final VoidCallback onRemove;
   final int? previousReps;
   final double? previousWeight;
+
+  /// If non-null, a copy icon is shown next to the weight field; tapping it
+  /// copies the prior set's reps + weight into this row.
+  final VoidCallback? onCopyFromPrevious;
 
   @override
   State<SetRow> createState() => _SetRowState();
@@ -39,22 +45,32 @@ class _SetRowState extends State<SetRow> {
       text: widget.set.reps > 0 ? widget.set.reps.toString() : '',
     );
     _weightController = TextEditingController(
-      text: widget.set.weight > 0 ? widget.set.weight.toString() : '',
+      text: widget.set.weight > 0 ? _formatWeight(widget.set.weight) : '',
     );
   }
 
   @override
   void didUpdateWidget(SetRow oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Only update controllers if the underlying data changed externally
+    // Reps: only rewrite controller text if the parsed value changed.
     if (widget.set.reps != oldWidget.set.reps) {
-      final newText = widget.set.reps > 0 ? widget.set.reps.toString() : '';
-      if (_repsController.text != newText) _repsController.text = newText;
+      final currentParsed = int.tryParse(_repsController.text);
+      if (currentParsed != widget.set.reps) {
+        _repsController.text =
+            widget.set.reps > 0 ? widget.set.reps.toString() : '';
+      }
     }
+    // Weight: only rewrite controller text if parsing the current text
+    // would give a *different* value than the state. This preserves in-progress
+    // typing like "1" or "1." that parses to 1.0 but would otherwise be
+    // rewritten to "1.0" mid-keystroke and inject a stray decimal point.
     if (widget.set.weight != oldWidget.set.weight) {
-      final newText =
-          widget.set.weight > 0 ? widget.set.weight.toString() : '';
-      if (_weightController.text != newText) _weightController.text = newText;
+      final currentParsed = double.tryParse(_weightController.text);
+      if (currentParsed != widget.set.weight) {
+        _weightController.text = widget.set.weight > 0
+            ? _formatWeight(widget.set.weight)
+            : '';
+      }
     }
   }
 
@@ -140,6 +156,23 @@ class _SetRowState extends State<SetRow> {
               ),
             ),
           ),
+          if (widget.onCopyFromPrevious != null)
+            SizedBox(
+              width: 32,
+              child: IconButton(
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  widget.onCopyFromPrevious!();
+                },
+                icon: Icon(
+                  Icons.content_copy,
+                  size: 16,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                visualDensity: VisualDensity.compact,
+                tooltip: 'Copy from previous set',
+              ),
+            ),
           SizedBox(
             width: 48,
             child: widget.set.isCompleted

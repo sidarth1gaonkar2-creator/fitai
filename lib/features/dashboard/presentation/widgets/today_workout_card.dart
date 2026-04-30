@@ -23,13 +23,13 @@ class TodayWorkoutCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.fitness_center, color: palette.text),
+              const Icon(Icons.fitness_center, color: Colors.white),
               const SizedBox(width: 8),
               Text(
                 "Today's Workout",
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: palette.text,
+                  color: Colors.white,
                 ),
               ),
             ],
@@ -40,7 +40,7 @@ class TodayWorkoutCard extends StatelessWidget {
               workout!.title,
               style: textTheme.bodyLarge?.copyWith(
                 fontWeight: FontWeight.w500,
-                color: palette.text,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 8),
@@ -50,13 +50,13 @@ class TodayWorkoutCard extends StatelessWidget {
                   Icon(
                     Icons.timer_outlined,
                     size: 16,
-                    color: palette.text.withValues(alpha: 0.7),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                   const SizedBox(width: 4),
                   Text(
                     '${workout!.durationMinutes} min',
                     style: textTheme.bodyMedium?.copyWith(
-                      color: palette.text.withValues(alpha: 0.7),
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -67,22 +67,22 @@ class TodayWorkoutCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: palette.text,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.check_circle_outline,
                         size: 14,
-                        color: Colors.black,
+                        color: palette.accent,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         'Completed',
                         style: textTheme.labelSmall?.copyWith(
-                          color: Colors.black,
+                          color: palette.accent,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -95,7 +95,7 @@ class TodayWorkoutCard extends StatelessWidget {
             Text(
               'No workout logged yet today.',
               style: textTheme.bodyMedium?.copyWith(
-                color: palette.text.withValues(alpha: 0.7),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
             const SizedBox(height: 12),
@@ -103,13 +103,13 @@ class TodayWorkoutCard extends StatelessWidget {
               height: 40,
               child: CupertinoButton(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                color: palette.text,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
                 onPressed: () => context.go('/workouts'),
                 child: Text(
                   'Log Workout',
                   style: textTheme.labelMedium?.copyWith(
-                    color: Colors.black,
+                    color: palette.accent,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

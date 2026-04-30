@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/logger.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../data/exercise_library.dart';
 import '../../../data/workout_templates.dart';
@@ -41,6 +42,13 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
   void initState() {
     super.initState();
     _titleController = TextEditingController();
+    AppLogger.log(
+      widget.editWorkoutId != null
+          ? 'Workout logging started (edit id=${widget.editWorkoutId})'
+          : widget.initialTemplate != null
+              ? 'Workout logging started (template="${widget.initialTemplate!.name}")'
+              : 'Workout logging started',
+    );
 
     if (widget.editWorkoutId != null) {
       // Load existing workout for editing
@@ -123,25 +131,39 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
       return;
     }
 
-    final success = await controller.saveWorkout();
-    if (mounted) {
-      if (success) {
-        final prNames = ref.read(activeWorkoutProvider).newPRs;
-        if (prNames.isNotEmpty) {
-          // Show confetti then navigate
-          await showCupertinoDialog(
-            context: context,
-            barrierDismissible: true,
-            builder: (_) => PRConfettiOverlay(
-              exerciseNames: prNames,
-              onDismiss: () => Navigator.of(context, rootNavigator: true).pop(),
-            ),
-          );
-        }
-        if (mounted) context.go('/workouts');
-      } else {
-        showCupertinoToast(context, 'Failed to save workout.');
-      }
+    final savedWorkoutId = await controller.saveWorkout();
+    if (!mounted) return;
+
+    if (savedWorkoutId == null) {
+      showCupertinoToast(context, 'Failed to save workout.');
+      return;
+    }
+
+    final prNames = ref.read(activeWorkoutProvider).newPRs;
+    if (prNames.isNotEmpty) {
+      // Show confetti then continue
+      await showCupertinoDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (_) => PRConfettiOverlay(
+          exerciseNames: prNames,
+          onDismiss: () => Navigator.of(context, rootNavigator: true).pop(),
+        ),
+      );
+    }
+    if (!mounted) return;
+
+    // Ask the user if they want to share this workout with the community.
+    final shouldShare = await showCupertinoModalPopup<bool>(
+      context: context,
+      builder: (_) => _ShareWorkoutPrompt(),
+    );
+    if (!mounted) return;
+
+    if (shouldShare == true) {
+      context.go('/community/create-post?workoutId=$savedWorkoutId');
+    } else {
+      context.go('/workouts');
     }
   }
 
@@ -282,6 +304,88 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
           // Rest timer (bottom)
           const RestTimerSheet(),
         ],
+      ),
+    );
+  }
+}
+
+/// Bottom sheet shown after a successful workout save, asking whether the
+/// user wants to share it with the community.
+class _ShareWorkoutPrompt extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 5,
+              decoration: BoxDecoration(
+                color: palette.textSecondary.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Share this workout with the community?',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                fontSize: 17,
+                color: palette.text,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: CupertinoButton(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text(
+                      'Skip',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: CupertinoButton(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    color: palette.accent,
+                    borderRadius: BorderRadius.circular(12),
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text(
+                      'Share',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        color: CupertinoColors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -114,6 +114,16 @@ class ExerciseCard extends ConsumerWidget {
                     onUpdateSet(setIndex, reps: reps, weight: weight),
                 onComplete: () => onCompleteSet(setIndex),
                 onRemove: () => onRemoveSet(setIndex),
+                onCopyFromPrevious: setIndex == 0
+                    ? null
+                    : () {
+                        final prev = exercise.sets[setIndex - 1];
+                        onUpdateSet(
+                          setIndex,
+                          reps: prev.reps,
+                          weight: prev.weight,
+                        );
+                      },
               );
             }),
             const SizedBox(height: 4),

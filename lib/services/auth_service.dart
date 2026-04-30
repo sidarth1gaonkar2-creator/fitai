@@ -1,8 +1,32 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../core/utils/logger.dart';
+
 class AuthService {
-  AuthService(this._auth);
+  AuthService(this._auth) {
+    // Keep Crashlytics' user identifier in lockstep with the current auth
+    // state so crashes are attributed to the signed-in user (UID only — no
+    // PII). This also covers session restoration on app launch.
+    _auth.authStateChanges().listen((user) async {
+      try {
+        if (user != null) {
+          await FirebaseCrashlytics.instance.setUserIdentifier(user.uid);
+          AppLogger.log('Auth: user signed in ${user.uid}');
+        } else {
+          await FirebaseCrashlytics.instance.setUserIdentifier('');
+          AppLogger.log('Auth: user signed out');
+        }
+      } catch (e, st) {
+        AppLogger.error(
+          'Failed to sync Crashlytics user identifier',
+          error: e,
+          stack: st,
+        );
+      }
+    });
+  }
 
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn = GoogleSignIn();

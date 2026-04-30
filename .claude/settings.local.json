@@ -30,7 +30,19 @@
       "Bash(curl -s -H 'X-Auth-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZGJlNGQxNDJjN2Q4Y2IxODdkOTNkNiIsImVtYWlsIjoiZml0YWktZGV2QGV4YW1wbGUuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NzYwMTg2NDIsImV4cCI6MTgwNzU1NDY0Mn0.w4ff6jXqsHZNjy6hzTLi4Mci5A47BJmCz2FlnHdCgUw' https://vitamins-and-supplements.vercel.app/api/supplement/)",
       "Bash(python3 -m json.tool)",
       "Bash(curl -s -H 'X-Auth-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZGJlNGQxNDJjN2Q4Y2IxODdkOTNkNiIsImVtYWlsIjoiZml0YWktZGV2QGV4YW1wbGUuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NzYwMTg2NDIsImV4cCI6MTgwNzU1NDY0Mn0.w4ff6jXqsHZNjy6hzTLi4Mci5A47BJmCz2FlnHdCgUw' https://vitamins-and-supplements.vercel.app/api/vitamin/)",
-      "Bash(curl -s -H 'X-Auth-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZGJlNGQxNDJjN2Q4Y2IxODdkOTNkNiIsImVtYWlsIjoiZml0YWktZGV2QGV4YW1wbGUuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NzYwMTg2NDIsImV4cCI6MTgwNzU1NDY0Mn0.w4ff6jXqsHZNjy6hzTLi4Mci5A47BJmCz2FlnHdCgUw' 'https://vitamins-and-supplements.vercel.app/api/supplement/?lang=en')"
+      "Bash(curl -s -H 'X-Auth-Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZGJlNGQxNDJjN2Q4Y2IxODdkOTNkNiIsImVtYWlsIjoiZml0YWktZGV2QGV4YW1wbGUuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NzYwMTg2NDIsImV4cCI6MTgwNzU1NDY0Mn0.w4ff6jXqsHZNjy6hzTLi4Mci5A47BJmCz2FlnHdCgUw' 'https://vitamins-and-supplements.vercel.app/api/supplement/?lang=en')",
+      "Bash(grep -E \"\\\\.dart$\")",
+      "Bash(dart pub:*)",
+      "Bash(cmd //c \"flutter pub get\")",
+      "Bash(git push:*)",
+      "Bash(xargs basename:*)",
+      "Bash(grep:*)",
+      "Bash(git rm *)",
+      "Bash(firebase --version)",
+      "Bash(firebase firestore:rules:get)",
+      "Bash(firebase --help)",
+      "Bash(firebase deploy *)",
+      "PowerShell($lines = Get-Content -Path 'C:\\\\Users\\\\sidar\\\\fitai\\\\assets\\\\.env' -Encoding UTF8; $first = $lines[0]; $val = $first.Substring\\($first.IndexOf\\('='\\) + 1\\); \"Value length: $\\($val.Length\\)\"; \"Char before value \\(after '='\\): [$\\($first[$first.IndexOf\\('='\\)]\\)] next byte code: $\\([int]$val[0]\\)\"; \"Last char byte code: $\\([int]$val[$val.Length - 1]\\)\"; \"Trimmed matches raw: $\\($val -eq $val.Trim\\(\\)\\)\"; \"Bytes of raw line end: $\\(\\(\\($first[-3..-1]\\) | ForEach-Object { [int]$_ }\\) -join ','\\)\")"
     ]
   }
 }

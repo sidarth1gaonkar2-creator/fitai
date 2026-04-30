@@ -12,23 +12,15 @@ import '../../domain/post.dart';
 import 'widgets/comment_tile.dart';
 import 'widgets/post_card.dart';
 
-/// Provider that fetches a single post by ID.
 final _postByIdProvider =
-    FutureProvider.family<Post?, String>((ref, postId) async {
-  final posts = await ref.watch(postRepositoryProvider).getUserPosts('');
-  // Fetch directly from Firestore
-  return null; // Will be passed via extra or fetched below
+    FutureProvider.family.autoDispose<Post?, String>((ref, postId) async {
+  return ref.watch(postRepositoryProvider).getPost(postId);
 });
 
 class PostDetailScreen extends ConsumerStatefulWidget {
-  const PostDetailScreen({
-    super.key,
-    required this.postId,
-    this.post,
-  });
+  const PostDetailScreen({super.key, required this.postId});
 
   final String postId;
-  final Post? post;
 
   @override
   ConsumerState<PostDetailScreen> createState() => _PostDetailScreenState();
@@ -82,7 +74,9 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     final commentsAsync = ref.watch(postCommentsProvider(widget.postId));
     final currentUserId = ref.watch(currentUserIdProvider);
     final likedAsync = ref.watch(isPostLikedProvider(widget.postId));
+    final postAsync = ref.watch(_postByIdProvider(widget.postId));
     final isLiked = likedAsync.valueOrNull ?? false;
+    final post = postAsync.valueOrNull;
 
     return CupertinoPageScaffold(
       backgroundColor: palette.background,
@@ -105,10 +99,11 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
               child: ListView(
                 padding: const EdgeInsets.only(top: 8, bottom: 16),
                 children: [
-                  if (widget.post != null)
+                  if (post != null)
                     PostCard(
-                      post: widget.post!,
+                      post: post,
                       isLiked: isLiked,
+                      isOwner: post.userId == currentUserId,
                       onLike: () async {
                         if (currentUserId == null) return;
                         await ref
@@ -116,13 +111,51 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                             .toggleLike(widget.postId, currentUserId);
                         ref.invalidate(
                             isPostLikedProvider(widget.postId));
+                        ref.invalidate(_postByIdProvider(widget.postId));
                       },
                       onComment: () {
                         // Already on detail screen; no-op
                       },
                       onTapUser: () {
-                        context.push('/profile/${widget.post!.userId}');
+                        context.push('/profile/${post.userId}');
                       },
+                      onDelete: post.userId == currentUserId
+                          ? () async {
+                              final confirmed =
+                                  await showCupertinoDialog<bool>(
+                                context: context,
+                                builder: (ctx) => CupertinoAlertDialog(
+                                  title: const Text('Delete post?'),
+                                  content: const Text(
+                                      'This will permanently remove the post for everyone.'),
+                                  actions: [
+                                    CupertinoDialogAction(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    CupertinoDialogAction(
+                                      isDestructiveAction: true,
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(true),
+                                      child: const Text('Delete'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirmed == true && mounted) {
+                                await ref
+                                    .read(postRepositoryProvider)
+                                    .deletePost(widget.postId);
+                                if (mounted) context.pop();
+                              }
+                            }
+                          : null,
+                    ),
+                  if (postAsync.isLoading)
+                    const Padding(
+                      padding: EdgeInsets.all(40),
+                      child: Center(child: CupertinoActivityIndicator()),
                     ),
                   Padding(
                     padding: const EdgeInsets.symmetric(

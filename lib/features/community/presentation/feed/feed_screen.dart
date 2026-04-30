@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart'
+    show FloatingActionButton, Icons, Scaffold;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -164,21 +166,16 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final feedState = ref.watch(feedControllerProvider);
     final currentUserId = ref.watch(currentUserIdProvider);
 
-    return CupertinoPageScaffold(
+    return Scaffold(
       backgroundColor: palette.background,
-      navigationBar: CupertinoNavigationBar(
-        backgroundColor: palette.surface,
-        border: Border(bottom: BorderSide(color: palette.border)),
-        middle: Text(
-          'Feed',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: palette.text,
-          ),
-        ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: palette.accent,
+        foregroundColor: CupertinoColors.white,
+        onPressed: () => context.push('/community/create-post'),
+        tooltip: 'New post',
+        child: const Icon(Icons.add),
       ),
-      child: feedState.posts.isEmpty && !feedState.isLoading
+      body: feedState.posts.isEmpty && !feedState.isLoading
           ? _buildEmptyState(palette)
           : CustomScrollView(
               controller: _scrollController,
@@ -188,7 +185,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                       ref.read(feedControllerProvider.notifier).refresh(),
                 ),
                 SliverPadding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 16),
+                  padding: const EdgeInsets.only(top: 8, bottom: 96),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
@@ -222,25 +219,56 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   Widget _buildEmptyState(Palette palette) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            CupertinoIcons.person_2,
-            size: 48,
-            color: palette.accent,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Follow users to see their\nworkouts here',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontSize: 16,
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              CupertinoIcons.person_2,
+              size: 48,
               color: palette.textSecondary,
             ),
-          ),
-        ],
+            const SizedBox(height: 14),
+            Text(
+              'Your feed is empty',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                fontSize: 17,
+                color: palette.text,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Follow users to see their posts, or share your first workout.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'LeagueSpartan',
+                fontSize: 14,
+                color: palette.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 18),
+            CupertinoButton(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 20, vertical: 10),
+              color: palette.accent,
+              borderRadius: BorderRadius.circular(10),
+              onPressed: () => context.push('/community/create-post'),
+              child: const Text(
+                'Share a workout',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: CupertinoColors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -260,10 +288,12 @@ class _PostCardWrapper extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final likedAsync = ref.watch(isPostLikedProvider(post.postId));
     final isLiked = likedAsync.valueOrNull ?? false;
+    final isOwner = currentUserId == post.userId;
 
     return PostCard(
       post: post,
       isLiked: isLiked,
+      isOwner: isOwner,
       onLike: () async {
         if (currentUserId == null) return;
         await ref
@@ -273,11 +303,40 @@ class _PostCardWrapper extends ConsumerWidget {
         ref.read(feedControllerProvider.notifier).refresh();
       },
       onComment: () {
-        context.push('/feed/post/${post.postId}');
+        context.push('/community/post/${post.postId}');
       },
       onTapUser: () {
         context.push('/profile/${post.userId}');
       },
+      onDelete: isOwner
+          ? () async {
+              final confirmed = await showCupertinoDialog<bool>(
+                context: context,
+                builder: (ctx) => CupertinoAlertDialog(
+                  title: const Text('Delete post?'),
+                  content: const Text(
+                      'This will permanently remove the post for everyone.'),
+                  actions: [
+                    CupertinoDialogAction(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    CupertinoDialogAction(
+                      isDestructiveAction: true,
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('Delete'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed == true) {
+                await ref
+                    .read(postRepositoryProvider)
+                    .deletePost(post.postId);
+                ref.read(feedControllerProvider.notifier).refresh();
+              }
+            }
+          : null,
     );
   }
 }

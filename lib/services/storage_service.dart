@@ -40,4 +40,31 @@ class StorageService {
       debugPrint('[StorageService] Delete failed: $e');
     }
   }
+
+  /// Upload a challenge proof photo and return the download URL.
+  ///
+  /// Path: challenges/{challengeId}/proofs/{userId}/{yyyyMMdd}.jpg
+  Future<String> uploadChallengeProof({
+    required String challengeId,
+    required String userId,
+    required DateTime date,
+    required File file,
+  }) async {
+    final key = _dayKey(date);
+    final ref =
+        _storage.ref('challenges/$challengeId/proofs/$userId/$key.jpg');
+    await ref.putFile(
+      file,
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
+    return ref.getDownloadURL();
+  }
+
+  String _dayKey(DateTime d) {
+    final utc = d.toUtc();
+    final y = utc.year.toString().padLeft(4, '0');
+    final m = utc.month.toString().padLeft(2, '0');
+    final day = utc.day.toString().padLeft(2, '0');
+    return '$y$m$day';
+  }
 }

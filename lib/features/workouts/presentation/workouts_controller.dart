@@ -4,6 +4,7 @@ import 'dart:developer' as dev;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
+import '../../../core/utils/logger.dart';
 import '../../../data/exercise_library.dart';
 import '../../../services/notification_service.dart';
 import '../../../models/enums.dart';
@@ -16,7 +17,9 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/personal_records_hall_providers.dart';
 import '../../../providers/workout_providers.dart';
+import '../../community/data/leaderboard_repository.dart';
 import '../../community/data/user_repository.dart';
+import '../../community/domain/leaderboard_entry.dart';
 import '../domain/active_workout_state.dart';
 
 const commonExercises = [
@@ -261,11 +264,12 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
     );
   }
 
-  Future<bool> saveWorkout() async {
-    if (state.title.trim().isEmpty || state.exercises.isEmpty) return false;
+  Future<int?> saveWorkout() async {
+    if (state.title.trim().isEmpty || state.exercises.isEmpty) return null;
 
     state = state.copyWith(isSaving: true);
     final isar = _ref.read(isarProvider);
+    int? savedWorkoutId;
 
     try {
       await isar.writeTxn(() async {
@@ -294,6 +298,7 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
           ..date = state.editingWorkoutId != null ? state.startTime : now
           ..durationMinutes = durationMinutes;
         await isar.workouts.put(workout);
+        savedWorkoutId = workout.id;
 
         for (final activeExercise in state.exercises) {
           final exercise = WorkoutExercise()
@@ -380,17 +385,66 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
       _ref.invalidate(personalRecordsProvider);
       _ref.invalidate(allPersonalRecordsProvider);
 
-      // Sync workout count to Firestore
+      // Sync workout count + leaderboard entry to Firestore
       final userId = _ref.read(currentUserIdProvider);
       if (userId != null) {
         _ref.read(userRepositoryProvider).incrementWorkoutCount(userId);
+        unawaited(_syncLeaderboardEntry(userId));
       }
 
+      AppLogger.log('Workout saved: "${state.title.trim()}"');
       state = state.copyWith(isSaving: false, newPRs: newPRNames);
-      return true;
-    } catch (_) {
+      return savedWorkoutId;
+    } catch (e, st) {
+      AppLogger.error('Workout save failed', error: e, stack: st);
       state = state.copyWith(isSaving: false);
-      return false;
+      return null;
+    }
+  }
+
+  Future<void> _syncLeaderboardEntry(String userId) async {
+    try {
+      final isar = _ref.read(isarProvider);
+      final workouts = await isar.workouts.where().findAll();
+      final totalWorkouts = workouts.length;
+
+      double totalVolume = 0;
+      for (final w in workouts) {
+        await w.exercises.load();
+        for (final ex in w.exercises) {
+          await ex.sets.load();
+          for (final s in ex.sets) {
+            if (s.isCompleted) {
+              totalVolume += s.weight * s.reps;
+            }
+          }
+        }
+      }
+
+      final streak = await _ref.read(streakProvider.future);
+
+      final user = await _ref
+          .read(userRepositoryProvider)
+          .getUser(userId);
+
+      final entry = LeaderboardEntry(
+        userId: userId,
+        username: user?.username ?? 'User',
+        avatarUrl: user?.profilePictureUrl,
+        currentStreak: streak,
+        totalWorkouts: totalWorkouts,
+        totalVolume: totalVolume,
+      );
+
+      await _ref
+          .read(leaderboardRepositoryProvider)
+          .updateEntry(entry);
+    } catch (e, st) {
+      AppLogger.error(
+        'Leaderboard entry sync failed (userId=$userId)',
+        error: e,
+        stack: st,
+      );
     }
   }
 

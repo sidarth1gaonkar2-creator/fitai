@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/logger.dart';
 import '../../../models/enums.dart';
 import '../../../providers/ai_coach_providers.dart';
 import 'widgets/chat_bubble.dart';
@@ -17,6 +18,12 @@ class AICoachScreen extends ConsumerStatefulWidget {
 
 class _AICoachScreenState extends ConsumerState<AICoachScreen> {
   final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    AppLogger.log('AI Coach opened');
+  }
 
   @override
   void dispose() {

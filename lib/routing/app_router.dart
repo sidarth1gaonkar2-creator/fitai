@@ -10,9 +10,11 @@ import '../features/community/presentation/challenges/create_challenge_screen.da
 import '../features/community/presentation/community_screen.dart';
 import '../features/community/presentation/feed/post_detail_screen.dart';
 import '../features/community/presentation/followers/followers_list_screen.dart';
+import '../features/community/presentation/notifications/notifications_screen.dart';
 import '../features/community/presentation/profile/edit_social_profile_screen.dart';
 import '../features/community/presentation/profile/profile_screen.dart';
 import '../features/community/presentation/profile_setup/profile_setup_screen.dart';
+import '../features/community/presentation/share/create_post_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/nutrition/domain/food_search_result.dart';
 import '../features/nutrition/presentation/barcode_scanner_screen.dart';
@@ -343,6 +345,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           key: state.pageKey,
           child: const CreateChallengeScreen(),
         ),
+      ),
+      GoRoute(
+        path: '/community/notifications',
+        pageBuilder: (context, state) => slideUpTransitionPage(
+          key: state.pageKey,
+          child: const NotificationsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/community/create-post',
+        pageBuilder: (context, state) {
+          final idParam = state.uri.queryParameters['workoutId'];
+          final workoutId = idParam != null ? int.tryParse(idParam) : null;
+          return slideUpTransitionPage(
+            key: state.pageKey,
+            child: CreatePostScreen(initialWorkoutId: workoutId),
+          );
+        },
       ),
       GoRoute(
         path: '/settings',

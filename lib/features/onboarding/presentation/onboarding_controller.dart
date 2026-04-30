@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/logger.dart';
 import '../../../core/utils/tdee_calculator.dart';
 import '../../../models/enums.dart';
 import '../../../models/onboarding_progress.dart';
@@ -113,6 +114,11 @@ class OnboardingController extends StateNotifier<OnboardingState> {
       // new profile before the router re-evaluates the redirect.
       _ref.invalidate(userProfileProvider);
       await _ref.read(userProfileProvider.future);
+
+      AppLogger.log('Onboarding completed');
+    } catch (e, st) {
+      AppLogger.error('Onboarding save failed', error: e, stack: st);
+      rethrow;
     } finally {
       state = state.copyWith(isSaving: false);
     }

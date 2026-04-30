@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show CircleAvatar, Colors;
+import 'package:flutter/material.dart' show CircleAvatar;
+import 'package:go_router/go_router.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../../domain/leaderboard_entry.dart';
@@ -24,8 +25,11 @@ class LeaderboardTile extends StatelessWidget {
   String get _metricValue {
     return switch (metricField) {
       'currentStreak' => '${entry.currentStreak}',
-      'weeklyVolume' => '${entry.weeklyVolume.toStringAsFixed(0)} kg',
-      'weeklyWorkouts' => '${entry.weeklyWorkouts}',
+      'totalVolume' =>
+        entry.totalVolume >= 1000
+            ? '${(entry.totalVolume / 1000).toStringAsFixed(1)}t'
+            : '${entry.totalVolume.toStringAsFixed(0)} kg',
+      'totalWorkouts' => '${entry.totalWorkouts}',
       _ => '',
     };
   }
@@ -38,7 +42,9 @@ class LeaderboardTile extends StatelessWidget {
     final secondaryTextColor =
         isCurrentUser ? CupertinoColors.white.withOpacity(0.8) : palette.textSecondary;
 
-    return Container(
+    return GestureDetector(
+      onTap: () => context.push('/profile/${entry.userId}'),
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: bg,
@@ -76,10 +82,10 @@ class LeaderboardTile extends StatelessWidget {
           CircleAvatar(
             radius: 20,
             backgroundColor: palette.surfaceElevated,
-            backgroundImage: entry.profilePictureUrl != null
-                ? CachedNetworkImageProvider(entry.profilePictureUrl!)
+            backgroundImage: entry.avatarUrl != null
+                ? CachedNetworkImageProvider(entry.avatarUrl!)
                 : null,
-            child: entry.profilePictureUrl == null
+            child: entry.avatarUrl == null
                 ? Icon(
                     CupertinoIcons.person_fill,
                     size: 20,
@@ -115,6 +121,7 @@ class LeaderboardTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

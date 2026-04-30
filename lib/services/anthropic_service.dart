@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer' as dev;
 import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+
+import '../core/utils/logger.dart';
 
 /// Streaming + non-streaming client for the Anthropic Messages API.
 class AnthropicService {
@@ -50,11 +53,14 @@ class AnthropicService {
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 15);
     try {
-      dev.log('[Anthropic] Opening streaming request', name: 'FitAI.AI');
+      final bodyJson = jsonEncode(
+          _body(systemPrompt: systemPrompt, messages: messages, stream: true));
+      debugPrint('[Anthropic] → POST $_endpoint (streaming)');
+      debugPrint('[Anthropic] → body: ${_truncate(bodyJson, 500)}');
+
       final request = await client.postUrl(Uri.parse(_endpoint));
       _headers(streaming: true).forEach(request.headers.set);
-      request.write(jsonEncode(
-          _body(systemPrompt: systemPrompt, messages: messages, stream: true)));
+      request.add(utf8.encode(bodyJson));
 
       final response = await request.close().timeout(
             const Duration(seconds: 15),
@@ -62,12 +68,11 @@ class AnthropicService {
                 'Timed out connecting to the AI service.'),
           );
 
+      debugPrint('[Anthropic] ← status ${response.statusCode}');
+
       if (response.statusCode != 200) {
         final errorBody = await response.transform(utf8.decoder).join();
-        dev.log(
-          '[Anthropic] HTTP ${response.statusCode}: $errorBody',
-          name: 'FitAI.AI',
-        );
+        debugPrint('[Anthropic] ← error body: ${_truncate(errorBody, 1000)}');
         Map<String, dynamic>? errorJson;
         try {
           errorJson = jsonDecode(errorBody) as Map<String, dynamic>?;
@@ -79,6 +84,7 @@ class AnthropicService {
 
       // Parse SSE stream with an idle-timeout so we never hang forever.
       String buffer = '';
+      int chunksYielded = 0;
       final lines = response
           .transform(utf8.decoder)
           .timeout(_streamTimeout, onTimeout: (sink) {
@@ -96,7 +102,10 @@ class AnthropicService {
 
           if (!line.startsWith('data: ')) continue;
           final data = line.substring(6);
-          if (data == '[DONE]') return;
+          if (data == '[DONE]') {
+            debugPrint('[Anthropic] ← stream [DONE] ($chunksYielded chunks)');
+            return;
+          }
 
           try {
             final event = jsonDecode(data) as Map<String, dynamic>;
@@ -106,28 +115,49 @@ class AnthropicService {
               final delta = event['delta'] as Map<String, dynamic>?;
               if (delta != null && delta['type'] == 'text_delta') {
                 final text = delta['text'] as String? ?? '';
-                if (text.isNotEmpty) yield text;
+                if (text.isNotEmpty) {
+                  chunksYielded++;
+                  yield text;
+                }
               }
             } else if (type == 'message_stop') {
+              debugPrint(
+                  '[Anthropic] ← message_stop ($chunksYielded chunks)');
               return;
             } else if (type == 'error') {
               final error = event['error'] as Map<String, dynamic>?;
-              throw AnthropicException(
-                  error?['message'] as String? ?? 'Stream error');
+              final msg = error?['message'] as String? ?? 'Stream error';
+              debugPrint('[Anthropic] ← stream error event: $msg');
+              throw AnthropicException(msg);
             }
-          } on FormatException {
-            // Skip malformed JSON lines
+          } on FormatException catch (e) {
+            debugPrint(
+                '[Anthropic] SSE line failed to parse: $e (line=${_truncate(line, 200)})');
           }
         }
       }
     } on TimeoutException catch (e, st) {
-      dev.log('[Anthropic] Timeout: $e', name: 'FitAI.AI', error: e, stackTrace: st);
+      AppLogger.error(
+        'Anthropic stream timed out',
+        error: e,
+        stack: st,
+      );
       throw AnthropicException('AI service timed out. Please try again.');
+    } on SocketException catch (e, st) {
+      AppLogger.error(
+        'Anthropic stream SocketException',
+        error: e,
+        stack: st,
+      );
+      rethrow;
     } on AnthropicException {
       rethrow;
     } catch (e, st) {
-      dev.log('[Anthropic] Stream error: $e',
-          name: 'FitAI.AI', error: e, stackTrace: st);
+      AppLogger.error(
+        'Anthropic stream unexpected error (${e.runtimeType})',
+        error: e,
+        stack: st,
+      );
       rethrow;
     } finally {
       client.close(force: true);
@@ -142,12 +172,14 @@ class AnthropicService {
     final client = HttpClient();
     client.connectionTimeout = const Duration(seconds: 20);
     try {
-      dev.log('[Anthropic] Non-streaming fallback request',
-          name: 'FitAI.AI');
+      final bodyJson = jsonEncode(
+          _body(systemPrompt: systemPrompt, messages: messages, stream: false));
+      debugPrint('[Anthropic] → POST $_endpoint (non-streaming fallback)');
+      debugPrint('[Anthropic] → body: ${_truncate(bodyJson, 500)}');
+
       final request = await client.postUrl(Uri.parse(_endpoint));
       _headers(streaming: false).forEach(request.headers.set);
-      request.write(jsonEncode(_body(
-          systemPrompt: systemPrompt, messages: messages, stream: false)));
+      request.add(utf8.encode(bodyJson));
 
       final response = await request.close().timeout(
             const Duration(seconds: 60),
@@ -156,9 +188,10 @@ class AnthropicService {
           );
 
       final body = await response.transform(utf8.decoder).join();
+      debugPrint('[Anthropic] ← status ${response.statusCode}');
+      debugPrint('[Anthropic] ← body: ${_truncate(body, 1000)}');
+
       if (response.statusCode != 200) {
-        dev.log('[Anthropic] HTTP ${response.statusCode}: $body',
-            name: 'FitAI.AI');
         Map<String, dynamic>? errorJson;
         try {
           errorJson = jsonDecode(body) as Map<String, dynamic>?;
@@ -182,14 +215,27 @@ class AnthropicService {
       return buffer.toString();
     } on AnthropicException {
       rethrow;
+    } on SocketException catch (e, st) {
+      AppLogger.error(
+        'Anthropic non-stream SocketException',
+        error: e,
+        stack: st,
+      );
+      throw AnthropicException("No internet connection.");
     } catch (e, st) {
-      dev.log('[Anthropic] Non-stream error: $e',
-          name: 'FitAI.AI', error: e, stackTrace: st);
+      AppLogger.error(
+        'Anthropic non-stream unexpected error (${e.runtimeType})',
+        error: e,
+        stack: st,
+      );
       throw AnthropicException("Couldn't reach the AI coach. $e");
     } finally {
       client.close(force: true);
     }
   }
+
+  static String _truncate(String s, int max) =>
+      s.length <= max ? s : '${s.substring(0, max)}…(${s.length - max} more)';
 }
 
 class AnthropicException implements Exception {

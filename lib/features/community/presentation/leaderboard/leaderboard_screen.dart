@@ -26,7 +26,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     2: 'Workouts \u{1F4CA}',
   };
 
-  static const _fieldNames = ['currentStreak', 'weeklyVolume', 'weeklyWorkouts'];
+  static const _fieldNames = ['currentStreak', 'totalVolume', 'totalWorkouts'];
 
   String get _currentField => _fieldNames[_selectedTab];
 

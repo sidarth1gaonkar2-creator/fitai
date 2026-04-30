@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
 import '../../data/follow_repository.dart';
@@ -194,7 +195,14 @@ class _UserTile extends ConsumerWidget {
         padding: EdgeInsets.all(16),
         child: CupertinoActivityIndicator(),
       ),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (e, st) {
+        AppLogger.error(
+          'Followers list: user row load failed (userId=$userId)',
+          error: e,
+          stack: st,
+        );
+        return const SizedBox.shrink();
+      },
     );
   }
 

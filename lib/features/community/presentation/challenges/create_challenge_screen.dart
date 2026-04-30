@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,15 +21,15 @@ class CreateChallengeScreen extends ConsumerStatefulWidget {
 class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
-  final _targetController = TextEditingController();
 
-  int _typeIndex = 0; // 0=Streak, 1=Volume, 2=Workouts
-  int _durationIndex = 0; // 0=7, 1=14, 2=30, 3=60
+  int _typeIndex = 0; // 0=workout, 1=nutrition, 2=habit
+  int _durationIndex = 2; // 0=7, 1=14, 2=30, 3=60 → default 30
   bool _isPublic = true;
+  bool _requiresPhotoProof = false;
   bool _isSaving = false;
 
-  static const _typeKeys = ['streak', 'volume', 'workouts'];
-  static const _typeLabels = {0: 'Streak', 1: 'Volume', 2: 'Workouts'};
+  static const _typeKeys = ['workout', 'nutrition', 'habit'];
+  static const _typeLabels = {0: 'Workout', 1: 'Nutrition', 2: 'Habit'};
   static const _durationDays = [7, 14, 30, 60];
   static const _durationLabels = {
     0: '7 days',
@@ -39,26 +38,19 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
     3: '60 days',
   };
 
-  String get _targetUnit => switch (_typeKeys[_typeIndex]) {
-        'streak' => 'days',
-        'volume' => 'kg',
-        'workouts' => 'count',
-        _ => '',
-      };
-
   @override
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
-    _targetController.dispose();
     super.dispose();
   }
 
   Future<void> _create() async {
     final title = _titleController.text.trim();
-    if (title.isEmpty) return;
-    final targetVal = double.tryParse(_targetController.text.trim());
-    if (targetVal == null || targetVal <= 0) return;
+    if (title.isEmpty) {
+      _showError('Please enter a title.');
+      return;
+    }
 
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) return;
@@ -80,33 +72,55 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
         creatorId: userId,
         creatorUsername: user?.username ?? '',
         type: _typeKeys[_typeIndex],
-        target: targetVal,
         durationDays: duration,
         startDate: now,
         endDate: endDate,
         participantCount: 1,
         isPublic: _isPublic,
+        requiresPhotoProof: _requiresPhotoProof,
         createdAt: now,
       );
 
       await repo.createChallenge(challenge);
 
-      // Auto-join creator
+      // Auto-join creator.
       final participant = ChallengeParticipant(
         challengeId: id,
         userId: userId,
         username: user?.username ?? '',
         profilePictureUrl: user?.profilePictureUrl,
+        joinedAt: now,
       );
       await repo.joinChallenge(participant);
 
       ref.invalidate(publicChallengesProvider);
       ref.invalidate(myChallengesProvider);
 
-      if (mounted) context.pop();
+      if (mounted) {
+        // Replace the create screen with the detail screen.
+        context.pushReplacement('/community/challenge/$id');
+      }
+    } catch (e) {
+      if (mounted) _showError('Could not create challenge: $e');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  void _showError(String msg) {
+    showCupertinoDialog<void>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('Could not create'),
+        content: Text(msg),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -133,7 +147,6 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // ─── Title ─────────────────────────────────────────────────
             _label(palette, 'Title'),
             const SizedBox(height: 6),
             CupertinoTextField(
@@ -152,23 +165,18 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
                 fontSize: 15,
                 color: palette.textSecondary,
               ),
-              decoration: BoxDecoration(
-                color: palette.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: palette.border, width: 0.5),
-              ),
+              decoration: _fieldDecoration(palette),
             ),
 
             const SizedBox(height: 20),
 
-            // ─── Description ───────────────────────────────────────────
             _label(palette, 'Description'),
             const SizedBox(height: 6),
             CupertinoTextField(
               controller: _descController,
-              placeholder: 'Optional description',
-              maxLength: 300,
-              maxLines: 3,
+              placeholder: 'What is this challenge about?',
+              maxLength: 500,
+              maxLines: 4,
               padding: const EdgeInsets.all(14),
               style: TextStyle(
                 fontFamily: 'LeagueSpartan',
@@ -180,16 +188,11 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
                 fontSize: 15,
                 color: palette.textSecondary,
               ),
-              decoration: BoxDecoration(
-                color: palette.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: palette.border, width: 0.5),
-              ),
+              decoration: _fieldDecoration(palette),
             ),
 
             const SizedBox(height: 20),
 
-            // ─── Type ──────────────────────────────────────────────────
             _label(palette, 'Type'),
             const SizedBox(height: 6),
             SizedBox(
@@ -203,9 +206,7 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
                     key,
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
+                          horizontal: 10, vertical: 6),
                       child: Text(
                         label,
                         style: TextStyle(
@@ -231,39 +232,6 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
 
             const SizedBox(height: 20),
 
-            // ─── Target ────────────────────────────────────────────────
-            _label(palette, 'Target ($_targetUnit)'),
-            const SizedBox(height: 6),
-            CupertinoTextField(
-              controller: _targetController,
-              placeholder: 'e.g. 30',
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
-              ],
-              maxLines: 1,
-              padding: const EdgeInsets.all(14),
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 15,
-                color: palette.text,
-              ),
-              placeholderStyle: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 15,
-                color: palette.textSecondary,
-              ),
-              decoration: BoxDecoration(
-                color: palette.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: palette.border, width: 0.5),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // ─── Duration ──────────────────────────────────────────────
             _label(palette, 'Duration'),
             const SizedBox(height: 6),
             SizedBox(
@@ -277,9 +245,7 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
                     key,
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 6,
-                      ),
+                          horizontal: 6, vertical: 6),
                       child: Text(
                         label,
                         style: TextStyle(
@@ -305,45 +271,35 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
 
             const SizedBox(height: 20),
 
-            // ─── Public toggle ─────────────────────────────────────────
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: palette.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: palette.border, width: 0.5),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Public challenge',
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
-                        fontSize: 15,
-                        color: palette.text,
-                      ),
-                    ),
-                  ),
-                  CupertinoSwitch(
-                    value: _isPublic,
-                    activeTrackColor: palette.accent,
-                    onChanged: (v) => setState(() => _isPublic = v),
-                  ),
-                ],
-              ),
+            _switchRow(
+              palette: palette,
+              label: 'Public challenge',
+              subtitle: 'Anyone can discover and join',
+              value: _isPublic,
+              onChanged: (v) => setState(() => _isPublic = v),
+            ),
+            const SizedBox(height: 10),
+            _switchRow(
+              palette: palette,
+              label: 'Photo proof required',
+              subtitle: 'Participants upload a photo for each check-in',
+              value: _requiresPhotoProof,
+              onChanged: (v) => setState(() => _requiresPhotoProof = v),
             ),
 
             const SizedBox(height: 32),
-
-            // ─── Create button ─────────────────────────────────────────
             SizedBox(
               width: double.infinity,
               child: CupertinoButton(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 color: palette.accent,
                 borderRadius: BorderRadius.circular(12),
-                onPressed: _isSaving ? null : _create,
+                onPressed: _isSaving
+                    ? null
+                    : () {
+                        HapticFeedback.mediumImpact();
+                        _create();
+                      },
                 child: _isSaving
                     ? const CupertinoActivityIndicator(
                         color: CupertinoColors.white,
@@ -365,6 +321,12 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
     );
   }
 
+  BoxDecoration _fieldDecoration(Palette palette) => BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: palette.border, width: 0.5),
+      );
+
   Widget _label(Palette palette, String text) {
     return Text(
       text,
@@ -373,6 +335,54 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
         fontWeight: FontWeight.w500,
         fontSize: 13,
         color: palette.textSecondary,
+      ),
+    );
+  }
+
+  Widget _switchRow({
+    required Palette palette,
+    required String label,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: _fieldDecoration(palette),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                    color: palette.text,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontFamily: 'LeagueSpartan',
+                    fontSize: 12,
+                    color: palette.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          CupertinoSwitch(
+            value: value,
+            activeTrackColor: palette.accent,
+            onChanged: onChanged,
+          ),
+        ],
       ),
     );
   }

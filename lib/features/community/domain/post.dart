@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Post {
-  const Post({
+  Post({
     required this.postId,
     required this.userId,
     required this.username,
@@ -16,6 +16,8 @@ class Post {
     this.likesCount = 0,
     this.commentsCount = 0,
     this.createdAt,
+    this.allowedUsers,
+    this.workoutId,
   });
 
   final String postId;
@@ -32,6 +34,10 @@ class Post {
   final int likesCount;
   final int commentsCount;
   final DateTime? createdAt;
+  final List<String>? allowedUsers;
+
+  /// Local Isar workout ID that this post was generated from (optional).
+  final int? workoutId;
 
   /// Firestore document snapshot for pagination cursor.
   DocumentSnapshot? documentSnapshot;
@@ -56,6 +62,10 @@ class Post {
       likesCount: (map['likesCount'] as num?)?.toInt() ?? 0,
       commentsCount: (map['commentsCount'] as num?)?.toInt() ?? 0,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
+      allowedUsers: (map['allowedUsers'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
+      workoutId: (map['workoutId'] as num?)?.toInt(),
     );
     post.documentSnapshot = doc;
     return post;
@@ -79,6 +89,8 @@ class Post {
       'createdAt': createdAt != null
           ? Timestamp.fromDate(createdAt!)
           : FieldValue.serverTimestamp(),
+      'allowedUsers': allowedUsers ?? [],
+      if (workoutId != null) 'workoutId': workoutId,
     };
   }
 }

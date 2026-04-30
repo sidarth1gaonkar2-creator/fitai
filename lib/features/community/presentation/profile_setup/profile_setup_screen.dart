@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show CircleAvatar, Colors, Icons;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,7 +29,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   File? _imageFile;
   bool _isPublic = true;
   bool _isSaving = false;
-  String _usernameStatus = ''; // '', 'checking', 'available', 'taken', 'short', 'invalid'
+  String _usernameStatus = ''; // '', 'checking', 'available', 'taken', 'short', 'invalid', 'error'
+  String _usernameErrorDetail = '';
   Timer? _debounce;
 
   @override
@@ -61,11 +63,77 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     setState(() => _usernameStatus = 'checking');
 
     _debounce = Timer(const Duration(milliseconds: 500), () async {
-      final taken =
-          await ref.read(userRepositoryProvider).isUsernameTaken(value);
-      if (!mounted || _usernameController.text != value) return;
-      setState(() => _usernameStatus = taken ? 'taken' : 'available');
+      try {
+        final currentUser = FirebaseAuth.instance.currentUser;
+        debugPrint(
+            '[ProfileSetup] auth state before check: uid=${currentUser?.uid} '
+            'emailVerified=${currentUser?.emailVerified} '
+            'isAnonymous=${currentUser?.isAnonymous}');
+
+        if (currentUser == null) {
+          // Auth hasn't resolved yet — wait for the first real event.
+          debugPrint('[ProfileSetup] currentUser is null, awaiting authStateChanges');
+          final resolved = await FirebaseAuth.instance
+              .authStateChanges()
+              .firstWhere((u) => u != null)
+              .timeout(const Duration(seconds: 5));
+          debugPrint('[ProfileSetup] auth resolved: uid=${resolved?.uid}');
+        }
+
+        // Force the ID token to be fetched so Firestore's internal auth token
+        // provider has it before the request goes out. Fixes a race where the
+        // Firestore client sends the first request before the auth token
+        // propagates from firebase_auth → cloud_firestore.
+        await FirebaseAuth.instance.currentUser
+            ?.getIdToken()
+            .timeout(const Duration(seconds: 5));
+
+        final taken = await ref
+            .read(userRepositoryProvider)
+            .isUsernameTaken(value)
+            .timeout(const Duration(seconds: 5));
+        if (!mounted || _usernameController.text != value) return;
+        setState(() {
+          _usernameStatus = taken ? 'taken' : 'available';
+          _usernameErrorDetail = '';
+        });
+      } on FirebaseException catch (e) {
+        debugPrint(
+            '[ProfileSetup] isUsernameTaken FirebaseException code=${e.code} message=${e.message}');
+        if (!mounted || _usernameController.text != value) return;
+        setState(() {
+          _usernameStatus = 'error';
+          _usernameErrorDetail = _describeFirebaseError(e.code);
+        });
+      } on TimeoutException catch (e) {
+        debugPrint('[ProfileSetup] isUsernameTaken timed out: $e');
+        if (!mounted || _usernameController.text != value) return;
+        setState(() {
+          _usernameStatus = 'error';
+          _usernameErrorDetail = 'timed out — check your connection';
+        });
+      } catch (e) {
+        debugPrint('[ProfileSetup] isUsernameTaken failed: $e');
+        if (!mounted || _usernameController.text != value) return;
+        setState(() {
+          _usernameStatus = 'error';
+          _usernameErrorDetail = 'unexpected error';
+        });
+      }
     });
+  }
+
+  String _describeFirebaseError(String code) {
+    switch (code) {
+      case 'permission-denied':
+        return 'permission denied — Firestore rules are blocking this read';
+      case 'unavailable':
+        return 'Firestore unreachable — check your connection';
+      case 'unauthenticated':
+        return 'not signed in — please sign in again';
+      default:
+        return 'Firestore error ($code)';
+    }
   }
 
   Future<void> _pickImage() async {
@@ -338,6 +406,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       case 'invalid':
         text = 'Letters, numbers, and underscores only';
         color = colors.warning;
+      case 'error':
+        text = _usernameErrorDetail.isNotEmpty
+            ? 'Could not check username: $_usernameErrorDetail'
+            : 'Could not check username. Check your connection and try again.';
+        color = colors.destructive;
       default:
         return const SizedBox(height: 18);
     }

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/firestore_provider.dart';
 import '../domain/leaderboard_entry.dart';
@@ -16,7 +15,9 @@ class LeaderboardRepository {
       _firestore.collection('leaderboard_entries');
 
   Future<void> updateEntry(LeaderboardEntry entry) async {
-    await _entries.doc(entry.userId).set(entry.toMap(), SetOptions(merge: true));
+    await _entries
+        .doc(entry.userId)
+        .set(entry.toMap(), SetOptions(merge: true));
   }
 
   Future<List<LeaderboardEntry>> getTopBy(String field,
@@ -36,7 +37,7 @@ class LeaderboardRepository {
     final ids = friendIds.toList();
     final results = <LeaderboardEntry>[];
 
-    // Batch whereIn (max 30)
+    // Batch whereIn (max 30 in Firestore, Flutter SDK limit 30)
     for (var i = 0; i < ids.length; i += 30) {
       final batch = ids.sublist(i, (i + 30).clamp(0, ids.length));
       final snap = await _entries
@@ -58,8 +59,8 @@ class LeaderboardRepository {
   double _fieldValue(LeaderboardEntry e, String field) {
     return switch (field) {
       'currentStreak' => e.currentStreak.toDouble(),
-      'weeklyVolume' => e.weeklyVolume,
-      'weeklyWorkouts' => e.weeklyWorkouts.toDouble(),
+      'totalVolume' => e.totalVolume,
+      'totalWorkouts' => e.totalWorkouts.toDouble(),
       _ => 0,
     };
   }

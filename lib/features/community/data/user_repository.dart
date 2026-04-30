@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/logger.dart';
 import '../../../providers/firestore_provider.dart';
 import '../domain/firestore_user.dart';
 
@@ -32,8 +32,12 @@ class UserRepository {
       final doc = await _users.doc(userId).get();
       if (!doc.exists || doc.data() == null) return null;
       return FirestoreUser.fromMap(doc.data()!);
-    } catch (e) {
-      debugPrint('[UserRepository] getUser failed: $e');
+    } catch (e, st) {
+      AppLogger.error(
+        'UserRepository.getUser failed (userId=$userId)',
+        error: e,
+        stack: st,
+      );
       return null;
     }
   }
@@ -64,8 +68,12 @@ class UserRepository {
       await _users.doc(userId).update({
         'workoutsCount': FieldValue.increment(1),
       });
-    } catch (e) {
-      debugPrint('[UserRepository] incrementWorkoutCount failed: $e');
+    } catch (e, st) {
+      AppLogger.error(
+        'UserRepository.incrementWorkoutCount failed (userId=$userId)',
+        error: e,
+        stack: st,
+      );
     }
   }
 }
