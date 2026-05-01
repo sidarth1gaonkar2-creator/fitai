@@ -203,13 +203,12 @@ class _Header extends StatelessWidget {
         if (isOwner && (onEdit != null || onDelete != null))
           CupertinoButton(
             padding: EdgeInsets.zero,
-            minSize: 32,
             onPressed: () => _openMenu(context),
             child: Icon(
               CupertinoIcons.ellipsis,
               size: 20,
               color: palette.textSecondary,
-            ),
+            ), minimumSize: Size(32, 32),
           ),
       ],
     );
@@ -273,8 +272,8 @@ class _PostAvatar extends StatelessWidget {
             width: radius * 2,
             height: radius * 2,
             fit: BoxFit.cover,
-            placeholder: (_, __) => const CupertinoActivityIndicator(radius: 8),
-            errorWidget: (_, __, ___) => _avatarFallback(letter),
+            placeholder: (_, _) => const CupertinoActivityIndicator(radius: 8),
+            errorWidget: (_, _, _) => _avatarFallback(letter),
           ),
         ),
       );
@@ -472,13 +471,12 @@ class _ActionsRow extends StatelessWidget {
         if (onShare != null)
           CupertinoButton(
             padding: EdgeInsets.zero,
-            minSize: 32,
             onPressed: onShare,
             child: Icon(
               CupertinoIcons.share,
               size: 20,
               color: palette.textSecondary,
-            ),
+            ), minimumSize: Size(32, 32),
           ),
       ],
     );

@@ -169,7 +169,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
         return ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: entries.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
           itemBuilder: (context, index) => LeaderboardTile(
             rank: index + 1,
             entry: entries[index],
@@ -186,7 +186,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
 
     return asyncFriendIds.when(
       loading: () => const Center(child: CupertinoActivityIndicator()),
-      error: (_, __) => Center(
+      error: (_, _) => Center(
         child: Text(
           'Something went wrong.',
           style: TextStyle(
@@ -215,7 +215,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             return ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: entries.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) => LeaderboardTile(
                 rank: index + 1,
                 entry: entries[index],

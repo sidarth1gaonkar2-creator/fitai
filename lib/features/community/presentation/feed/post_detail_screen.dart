@@ -204,7 +204,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                       padding: EdgeInsets.all(20),
                       child: Center(child: CupertinoActivityIndicator()),
                     ),
-                    error: (_, __) => Padding(
+                    error: (_, _) => Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text(
                         'Failed to load comments.',
@@ -262,7 +262,6 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
           const SizedBox(width: 8),
           CupertinoButton(
             padding: EdgeInsets.zero,
-            minSize: 36,
             onPressed: _isSending ? null : _sendComment,
             child: _isSending
                 ? const CupertinoActivityIndicator()
@@ -270,7 +269,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                     CupertinoIcons.arrow_up_circle_fill,
                     size: 32,
                     color: palette.accent,
-                  ),
+                  ), minimumSize: Size(36, 36),
           ),
         ],
       ),

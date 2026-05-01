@@ -126,7 +126,7 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             scrollDirection: Axis.horizontal,
             itemCount: premadeChallenges.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
               final pm = premadeChallenges[index];
               return _PremadeCard(
@@ -179,7 +179,7 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
         return ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: challenges.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          separatorBuilder: (_, _) => const SizedBox(height: 10),
           itemBuilder: (context, index) =>
               _ChallengeCard(challenge: challenges[index], palette: palette),
         );

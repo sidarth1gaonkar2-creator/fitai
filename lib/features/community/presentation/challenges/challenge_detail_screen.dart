@@ -46,7 +46,7 @@ class ChallengeDetailScreen extends ConsumerWidget {
       ),
       child: asyncChallenge.when(
         loading: () => const Center(child: CupertinoActivityIndicator()),
-        error: (_, __) => Center(
+        error: (_, _) => Center(
           child: Text(
             'Failed to load challenge.',
             style: TextStyle(
@@ -139,7 +139,7 @@ class _Body extends ConsumerWidget {
           const SizedBox(height: 12),
           asyncParticipants.when(
             loading: () => const Center(child: CupertinoActivityIndicator()),
-            error: (_, __) => Text(
+            error: (_, _) => Text(
               'Could not load participants.',
               style: TextStyle(
                 fontFamily: 'LeagueSpartan',
@@ -744,12 +744,12 @@ class _ProofFeed extends StatelessWidget {
               child: CachedNetworkImage(
                 imageUrl: photos[index],
                 fit: BoxFit.cover,
-                placeholder: (_, __) => Container(
+                placeholder: (_, _) => Container(
                   color: palette.surfaceElevated,
                   child:
                       const Center(child: CupertinoActivityIndicator()),
                 ),
-                errorWidget: (_, __, ___) => Container(
+                errorWidget: (_, _, _) => Container(
                   color: palette.surfaceElevated,
                   child: Icon(CupertinoIcons.photo,
                       color: palette.textSecondary),

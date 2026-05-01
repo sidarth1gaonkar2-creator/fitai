@@ -135,7 +135,7 @@ class _SearchResults extends ConsumerWidget {
 
     return resultsAsync.when(
       loading: () => const Center(child: CupertinoActivityIndicator()),
-      error: (_, __) => Center(
+      error: (_, _) => Center(
         child: Text(
           'Something went wrong.',
           style: TextStyle(
@@ -161,7 +161,7 @@ class _SearchResults extends ConsumerWidget {
         return ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           itemCount: users.length,
-          separatorBuilder: (_, __) => Divider(
+          separatorBuilder: (_, _) => Divider(
             height: 1,
             color: colors.border,
           ),
@@ -256,8 +256,8 @@ class _UserRow extends ConsumerWidget {
             width: 48,
             height: 48,
             fit: BoxFit.cover,
-            placeholder: (_, __) => const CupertinoActivityIndicator(),
-            errorWidget: (_, __, ___) => Text(
+            placeholder: (_, _) => const CupertinoActivityIndicator(),
+            errorWidget: (_, _, _) => Text(
               letter,
               style: TextStyle(
                 fontFamily: 'Poppins',
@@ -336,7 +336,6 @@ class _RowFollowButtonState extends ConsumerState<_RowFollowButton> {
       width: 96,
       child: CupertinoButton(
         padding: const EdgeInsets.symmetric(vertical: 6),
-        minSize: 0,
         color: isFollowing ? null : colors.accent,
         borderRadius: BorderRadius.circular(8),
         onPressed: () => _toggle(isFollowing),
@@ -360,7 +359,7 @@ class _RowFollowButtonState extends ConsumerState<_RowFollowButton> {
               color: isFollowing ? colors.accent : Colors.white,
             ),
           ),
-        ),
+        ), minimumSize: Size(0, 0),
       ),
     );
   }

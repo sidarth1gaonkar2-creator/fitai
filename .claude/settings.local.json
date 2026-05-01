@@ -42,7 +42,9 @@
       "Bash(firebase firestore:rules:get)",
       "Bash(firebase --help)",
       "Bash(firebase deploy *)",
-      "PowerShell($lines = Get-Content -Path 'C:\\\\Users\\\\sidar\\\\fitai\\\\assets\\\\.env' -Encoding UTF8; $first = $lines[0]; $val = $first.Substring\\($first.IndexOf\\('='\\) + 1\\); \"Value length: $\\($val.Length\\)\"; \"Char before value \\(after '='\\): [$\\($first[$first.IndexOf\\('='\\)]\\)] next byte code: $\\([int]$val[0]\\)\"; \"Last char byte code: $\\([int]$val[$val.Length - 1]\\)\"; \"Trimmed matches raw: $\\($val -eq $val.Trim\\(\\)\\)\"; \"Bytes of raw line end: $\\(\\(\\($first[-3..-1]\\) | ForEach-Object { [int]$_ }\\) -join ','\\)\")"
+      "PowerShell($lines = Get-Content -Path 'C:\\\\Users\\\\sidar\\\\fitai\\\\assets\\\\.env' -Encoding UTF8; $first = $lines[0]; $val = $first.Substring\\($first.IndexOf\\('='\\) + 1\\); \"Value length: $\\($val.Length\\)\"; \"Char before value \\(after '='\\): [$\\($first[$first.IndexOf\\('='\\)]\\)] next byte code: $\\([int]$val[0]\\)\"; \"Last char byte code: $\\([int]$val[$val.Length - 1]\\)\"; \"Trimmed matches raw: $\\($val -eq $val.Trim\\(\\)\\)\"; \"Bytes of raw line end: $\\(\\(\\($first[-3..-1]\\) | ForEach-Object { [int]$_ }\\) -join ','\\)\")",
+      "Bash(git -C /c/Users/sidar/fitai log --all --oneline -- \"ios/Runner/GoogleService-Info.plist\")",
+      "Bash(git -C /c/Users/sidar/fitai check-ignore -v ios/Runner/GoogleService-Info.plist)"
     ]
   }
 }

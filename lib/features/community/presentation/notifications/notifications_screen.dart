@@ -63,7 +63,7 @@ class NotificationsScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: const ShimmerList(itemCount: 5),
           ),
-          error: (_, __) => Center(
+          error: (_, _) => Center(
             child: Text(
               'Could not load notifications.',
               style: TextStyle(
@@ -79,7 +79,7 @@ class NotificationsScreen extends ConsumerWidget {
             return ListView.separated(
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: items.length,
-              separatorBuilder: (_, __) => Container(
+              separatorBuilder: (_, _) => Container(
                 height: 0.5,
                 color: palette.border,
                 margin: const EdgeInsets.symmetric(horizontal: 16),

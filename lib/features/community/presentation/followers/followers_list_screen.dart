@@ -75,7 +75,7 @@ class FollowersListScreen extends ConsumerWidget {
             );
           },
           loading: () => const Center(child: CupertinoActivityIndicator()),
-          error: (_, __) => Center(
+          error: (_, _) => Center(
             child: Text(
               'Failed to load list.',
               style: TextStyle(
@@ -156,7 +156,6 @@ class _UserTile extends ConsumerWidget {
                   CupertinoButton(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 6),
-                    minSize: 0,
                     color: isFollowing
                         ? palette.surfaceElevated
                         : palette.accent,
@@ -184,7 +183,7 @@ class _UserTile extends ConsumerWidget {
                             ? palette.text
                             : CupertinoColors.white,
                       ),
-                    ),
+                    ), minimumSize: Size(0, 0),
                   ),
               ],
             ),

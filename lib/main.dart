@@ -25,6 +25,25 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   debugPrint('[startup] WidgetsFlutterBinding initialized');
 
+  if (kReleaseMode) {
+    ErrorWidget.builder = (FlutterErrorDetails details) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'Something went wrong. Please restart the app.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      );
+    };
+  }
+
   try {
     await dotenv.load(fileName: 'assets/.env');
     debugPrint('[startup] dotenv loaded');
@@ -38,7 +57,7 @@ void main() async {
     debugPrint('[startup] Firebase initialized');
   } catch (e, st) {
     debugPrint('[startup] Firebase init FAILED: $e\n$st');
-    runApp(_StartupErrorApp(error: e, stack: st));
+    runApp(_StartupErrorApp(phase: _StartupPhase.firebase, error: e, stack: st));
     return;
   }
 
@@ -93,7 +112,11 @@ void main() async {
 
   debugPrint('[startup] before runApp');
   if (isar == null) {
-    runApp(_StartupErrorApp(error: initError, stack: initStack));
+    runApp(_StartupErrorApp(
+      phase: _StartupPhase.isar,
+      error: initError,
+      stack: initStack,
+    ));
   } else {
     runApp(
       ProviderScope(
@@ -111,10 +134,23 @@ void main() async {
   debugPrint('[startup] after runApp');
 }
 
+enum _StartupPhase { firebase, isar }
+
 class _StartupErrorApp extends StatelessWidget {
-  const _StartupErrorApp({this.error, this.stack});
+  const _StartupErrorApp({required this.phase, this.error, this.stack});
+  final _StartupPhase phase;
   final Object? error;
   final StackTrace? stack;
+
+  String get _subtitle {
+    switch (phase) {
+      case _StartupPhase.firebase:
+        return 'Firebase could not be initialized. '
+            'GoogleService-Info.plist may be missing from the iOS bundle.';
+      case _StartupPhase.isar:
+        return 'Local database (Isar) could not be opened.';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -138,27 +174,35 @@ class _StartupErrorApp extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Local database (Isar) could not be opened.',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                  const SizedBox(height: 16),
                   Text(
-                    '$error',
-                    style: const TextStyle(
-                      color: Colors.redAccent,
-                      fontFamily: 'monospace',
-                    ),
+                    _subtitle,
+                    style: const TextStyle(color: Colors.white70),
                   ),
-                  if (stack != null) ...[
+                  if (kDebugMode) ...[
                     const SizedBox(height: 16),
                     Text(
-                      '$stack',
+                      '$error',
                       style: const TextStyle(
-                        color: Colors.white38,
+                        color: Colors.redAccent,
                         fontFamily: 'monospace',
-                        fontSize: 11,
                       ),
+                    ),
+                    if (stack != null) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        '$stack',
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontFamily: 'monospace',
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ] else ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Please reinstall the app or contact support if this persists.',
+                      style: TextStyle(color: Colors.white54),
                     ),
                   ],
                 ],

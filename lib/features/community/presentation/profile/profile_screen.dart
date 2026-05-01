@@ -241,8 +241,8 @@ class _Avatar extends StatelessWidget {
             width: 80,
             height: 80,
             fit: BoxFit.cover,
-            placeholder: (_, __) => const CupertinoActivityIndicator(),
-            errorWidget: (_, __, ___) => _fallback(fallbackLetter),
+            placeholder: (_, _) => const CupertinoActivityIndicator(),
+            errorWidget: (_, _, _) => _fallback(fallbackLetter),
           ),
         ),
       );
@@ -532,7 +532,7 @@ class _PostsTab extends ConsumerWidget {
           ),
         ),
       ),
-      error: (_, __) => SliverToBoxAdapter(
+      error: (_, _) => SliverToBoxAdapter(
         child: _TabEmpty(
           icon: CupertinoIcons.exclamationmark_triangle,
           title: 'Could not load posts',
@@ -584,7 +584,7 @@ class _WorkoutsTab extends ConsumerWidget {
             child: const ShimmerList(itemCount: 4),
           ),
         ),
-        error: (_, __) => SliverToBoxAdapter(
+        error: (_, _) => SliverToBoxAdapter(
           child: _TabEmpty(
             icon: CupertinoIcons.exclamationmark_triangle,
             title: 'Could not load workouts',
@@ -729,7 +729,7 @@ class _PRsTab extends ConsumerWidget {
           child: const ShimmerList(itemCount: 4),
         ),
       ),
-      error: (_, __) => SliverToBoxAdapter(
+      error: (_, _) => SliverToBoxAdapter(
         child: _TabEmpty(
           icon: CupertinoIcons.exclamationmark_triangle,
           title: 'Could not load PRs',

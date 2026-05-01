@@ -303,8 +303,8 @@ class _EditSocialProfileScreenState
             width: 160,
             height: 160,
             fit: BoxFit.cover,
-            placeholder: (_, __) => const CupertinoActivityIndicator(),
-            errorWidget: (_, __, ___) => Icon(
+            placeholder: (_, _) => const CupertinoActivityIndicator(),
+            errorWidget: (_, _, _) => Icon(
               Icons.person,
               size: 64,
               color: colors.textSecondary,
