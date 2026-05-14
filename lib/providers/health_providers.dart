@@ -1,8 +1,10 @@
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/utils/logger.dart';
 import '../services/health_service.dart';
 import 'unit_system_provider.dart';
 
@@ -134,92 +136,167 @@ final healthDashboardEnabledProvider = Provider<bool>((ref) {
 // safe defaults without calling HealthKit.
 // ───────────────────────────────────────────────────────────────────────────
 
-final todayStepsProvider = FutureProvider.autoDispose<int>((ref) {
-  if (!ref.watch(healthConnectedProvider)) return Future.value(0);
-  return ref.read(healthServiceProvider).getTodaySteps();
+/// Wraps a provider body so a thrown exception from HealthService returns a
+/// safe fallback rather than propagating into the widget's error state and
+/// re-firing on every rebuild.
+Future<T> _safe<T>(
+  String name,
+  Future<T> Function() compute,
+  T fallback,
+) async {
+  try {
+    return await compute();
+  } catch (e, st) {
+    debugPrint('[HealthProvider] $name failed: $e');
+    AppLogger.error('[HealthProvider] $name failed', error: e, stack: st);
+    return fallback;
+  }
+}
+
+final todayStepsProvider = FutureProvider.autoDispose<int>((ref) async {
+  if (!ref.watch(healthConnectedProvider)) return 0;
+  return _safe(
+    'todaySteps',
+    () => ref.read(healthServiceProvider).getTodaySteps(),
+    0,
+  );
 });
 
-final todayCaloriesBurnedProvider = FutureProvider.autoDispose<double>((ref) {
-  if (!ref.watch(healthConnectedProvider)) return Future.value(0);
-  return ref.read(healthServiceProvider).getTodayCaloriesBurned();
+final todayCaloriesBurnedProvider =
+    FutureProvider.autoDispose<double>((ref) async {
+  if (!ref.watch(healthConnectedProvider)) return 0;
+  return _safe(
+    'todayCaloriesBurned',
+    () => ref.read(healthServiceProvider).getTodayCaloriesBurned(),
+    0.0,
+  );
 });
 
-final todayActiveCaloriesProvider = FutureProvider.autoDispose<double>((ref) {
-  if (!ref.watch(healthConnectedProvider)) return Future.value(0);
-  return ref.read(healthServiceProvider).getTodayActiveCalories();
+final todayActiveCaloriesProvider =
+    FutureProvider.autoDispose<double>((ref) async {
+  if (!ref.watch(healthConnectedProvider)) return 0;
+  return _safe(
+    'todayActiveCalories',
+    () => ref.read(healthServiceProvider).getTodayActiveCalories(),
+    0.0,
+  );
 });
 
-final todayDistanceProvider = FutureProvider.autoDispose<double>((ref) {
-  if (!ref.watch(healthConnectedProvider)) return Future.value(0);
-  return ref.read(healthServiceProvider).getTodayDistance();
+final todayDistanceProvider =
+    FutureProvider.autoDispose<double>((ref) async {
+  if (!ref.watch(healthConnectedProvider)) return 0;
+  return _safe(
+    'todayDistance',
+    () => ref.read(healthServiceProvider).getTodayDistance(),
+    0.0,
+  );
 });
 
-final todayFlightsProvider = FutureProvider.autoDispose<int>((ref) {
-  if (!ref.watch(healthConnectedProvider)) return Future.value(0);
-  return ref.read(healthServiceProvider).getTodayFlightsClimbed();
+final todayFlightsProvider = FutureProvider.autoDispose<int>((ref) async {
+  if (!ref.watch(healthConnectedProvider)) return 0;
+  return _safe(
+    'todayFlights',
+    () => ref.read(healthServiceProvider).getTodayFlightsClimbed(),
+    0,
+  );
 });
 
-final todayActiveMinutesProvider = FutureProvider.autoDispose<int>((ref) {
-  if (!ref.watch(healthConnectedProvider)) return Future.value(0);
-  return ref.read(healthServiceProvider).getTodayActiveMinutes();
+final todayActiveMinutesProvider =
+    FutureProvider.autoDispose<int>((ref) async {
+  if (!ref.watch(healthConnectedProvider)) return 0;
+  return _safe(
+    'todayActiveMinutes',
+    () => ref.read(healthServiceProvider).getTodayActiveMinutes(),
+    0,
+  );
 });
 
-final latestHeartRateProvider = FutureProvider.autoDispose<int?>((ref) {
-  if (!ref.watch(healthConnectedProvider)) return Future.value(null);
-  return ref.read(healthServiceProvider).getLatestHeartRate();
+final latestHeartRateProvider =
+    FutureProvider.autoDispose<int?>((ref) async {
+  if (!ref.watch(healthConnectedProvider)) return null;
+  return _safe<int?>(
+    'latestHeartRate',
+    () => ref.read(healthServiceProvider).getLatestHeartRate(),
+    null,
+  );
 });
 
-final latestWeightProvider = FutureProvider.autoDispose<double?>((ref) {
-  if (!ref.watch(healthConnectedProvider)) return Future.value(null);
-  return ref.read(healthServiceProvider).getLatestWeight();
+final latestWeightProvider =
+    FutureProvider.autoDispose<double?>((ref) async {
+  if (!ref.watch(healthConnectedProvider)) return null;
+  return _safe<double?>(
+    'latestWeight',
+    () => ref.read(healthServiceProvider).getLatestWeight(),
+    null,
+  );
 });
 
-final lastNightSleepProvider = FutureProvider.autoDispose<int>((ref) {
-  if (!ref.watch(healthConnectedProvider)) return Future.value(0);
-  return ref.read(healthServiceProvider).getLastNightSleepMinutes();
+final lastNightSleepProvider =
+    FutureProvider.autoDispose<int>((ref) async {
+  if (!ref.watch(healthConnectedProvider)) return 0;
+  return _safe(
+    'lastNightSleep',
+    () => ref.read(healthServiceProvider).getLastNightSleepMinutes(),
+    0,
+  );
 });
+
+const Map<String, dynamic> _emptyHealthSummary = {
+  'steps': 0,
+  'caloriesBurned': 0.0,
+  'activeCalories': 0.0,
+  'distanceMeters': 0.0,
+  'flightsClimbed': 0,
+  'activeMinutes': 0,
+  'heartRate': null,
+  'weightKg': null,
+  'sleepMinutes': 0,
+};
 
 final dailyHealthSummaryProvider =
-    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
-  if (!ref.watch(healthConnectedProvider)) {
-    return Future.value(const {
-      'steps': 0,
-      'caloriesBurned': 0.0,
-      'activeCalories': 0.0,
-      'distanceMeters': 0.0,
-      'flightsClimbed': 0,
-      'activeMinutes': 0,
-      'heartRate': null,
-      'weightKg': null,
-      'sleepMinutes': 0,
-    });
-  }
-  return ref.read(healthServiceProvider).getDailySummary();
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  if (!ref.watch(healthConnectedProvider)) return _emptyHealthSummary;
+  return _safe(
+    'dailySummary',
+    () => ref.read(healthServiceProvider).getDailySummary(),
+    _emptyHealthSummary,
+  );
 });
 
 // ───────────────────────────────────────────────────────────────────────────
 // Multi-day reads (charts)
 // ───────────────────────────────────────────────────────────────────────────
 
-final weeklyStepsProvider = FutureProvider.autoDispose<List<int>>((ref) {
-  if (!ref.watch(healthConnectedProvider)) {
-    return Future.value(List<int>.filled(7, 0));
-  }
-  return ref.read(healthServiceProvider).getDailySteps(days: 7);
+final weeklyStepsProvider =
+    FutureProvider.autoDispose<List<int>>((ref) async {
+  if (!ref.watch(healthConnectedProvider)) return List<int>.filled(7, 0);
+  return _safe(
+    'weeklySteps',
+    () => ref.read(healthServiceProvider).getDailySteps(days: 7),
+    List<int>.filled(7, 0),
+  );
 });
 
 final weeklyActiveCaloriesProvider =
-    FutureProvider.autoDispose<List<double>>((ref) {
+    FutureProvider.autoDispose<List<double>>((ref) async {
   if (!ref.watch(healthConnectedProvider)) {
-    return Future.value(List<double>.filled(7, 0));
+    return List<double>.filled(7, 0);
   }
-  return ref.read(healthServiceProvider).getDailyActiveCalories(days: 7);
+  return _safe(
+    'weeklyActiveCalories',
+    () => ref.read(healthServiceProvider).getDailyActiveCalories(days: 7),
+    List<double>.filled(7, 0),
+  );
 });
 
-final healthWeightHistoryProvider =
-    FutureProvider.autoDispose<List<({DateTime date, double weightKg})>>((ref) {
+final healthWeightHistoryProvider = FutureProvider.autoDispose<
+    List<({DateTime date, double weightKg})>>((ref) async {
   if (!ref.watch(healthConnectedProvider)) {
-    return Future.value(const []);
+    return const <({DateTime date, double weightKg})>[];
   }
-  return ref.read(healthServiceProvider).getWeightHistory(days: 90);
+  return _safe(
+    'weightHistory',
+    () => ref.read(healthServiceProvider).getWeightHistory(days: 90),
+    const <({DateTime date, double weightKg})>[],
+  );
 });

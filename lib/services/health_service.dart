@@ -1,15 +1,52 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:health/health.dart';
 
+import '../core/constants/app_constants.dart';
 import '../core/utils/logger.dart';
 
 class HealthService {
   HealthService();
 
+  /// Native pre-flight channel registered by `ios/Runner/AppDelegate.swift`.
+  /// Returns true only when the device supports HealthKit and `HKHealthStore`
+  /// can be allocated. We call this before ever touching the [health] plugin
+  /// so the plugin's `HKHealthStore` never runs without a sanity check.
+  static const _healthCheckChannel =
+      MethodChannel('com.sidarth.fitai/health_check');
+
   final Health _health = Health();
   bool _configured = false;
+
+  /// Cached result of the native pre-flight. Tri-state:
+  ///   * `null` — never run, will run on first access.
+  ///   * `true` — native side said HealthKit is usable.
+  ///   * `false` — native pre-flight returned false OR threw; we will NOT
+  ///     touch the `health` plugin in this session.
+  bool? _nativeReady;
+
+  /// True if HealthKit can be used on this device. Cheap to call repeatedly;
+  /// the underlying native check runs at most once per app launch. Always
+  /// returns false on non-iOS or when the feature flag is off.
+  Future<bool> canUseHealthKit() async {
+    if (!AppConstants.healthKitEnabled) return false;
+    if (!Platform.isIOS) return false;
+    final cached = _nativeReady;
+    if (cached != null) return cached;
+    bool ok = false;
+    try {
+      ok = await _healthCheckChannel.invokeMethod<bool>('canUseHealthKit') ??
+          false;
+    } catch (e, st) {
+      debugPrint('[HealthService] canUseHealthKit channel threw: $e');
+      AppLogger.error('canUseHealthKit channel threw', error: e, stack: st);
+      ok = false;
+    }
+    _nativeReady = ok;
+    return ok;
+  }
 
   // Simple in-memory cache to avoid repeatedly hitting HealthKit while the user
   // pulls-to-refresh or navigates between tabs.
@@ -62,54 +99,95 @@ class HealthService {
   /// All types the app may write (subset of read-write).
   static const List<HealthDataType> writeTypes = _readWriteTypes;
 
-  void _ensureConfigured() {
+  /// `Health.configure()` returns a Future and the docs ("The plugin must be
+  /// configured using the configure method before used") explicitly require it
+  /// to complete before any other call into the plugin.
+  ///
+  /// Throws [_HealthUnavailable] if the native pre-flight failed — callers
+  /// already wrap every public method in try/catch and return safe defaults,
+  /// so this is the cheapest way to ensure NO call into the `health` plugin
+  /// happens when HealthKit can't be used on this device.
+  Future<void> _ensureConfigured() async {
+    final ready = await canUseHealthKit();
+    if (!ready) throw const _HealthUnavailable();
     if (_configured) return;
-    _health.configure();
-    _configured = true;
+    try {
+      await _health.configure();
+      _configured = true;
+    } catch (e, st) {
+      AppLogger.error('HealthService.configure failed', error: e, stack: st);
+      rethrow;
+    }
   }
 
   // ───────────────────────────────────────────────────────────────────
   // Availability & permissions
   // ───────────────────────────────────────────────────────────────────
 
-  Future<bool> isAvailable() async {
-    if (!Platform.isIOS) return false;
-    try {
-      _ensureConfigured();
-      return _health.isDataTypeAvailable(HealthDataType.STEPS);
-    } catch (e, st) {
-      AppLogger.error('HealthService.isAvailable failed', error: e, stack: st);
-      return false;
-    }
-  }
+  /// True when the dashboard / settings should surface HealthKit affordances.
+  /// Combines the feature flag, the platform check, and the native pre-flight.
+  Future<bool> isAvailable() async => canUseHealthKit();
+
+  /// Diagnostic-mode permission set. We request the bare minimum first so
+  /// that if the native side is still crashing we can isolate which type is
+  /// to blame. The fuller set in [_readOnlyTypes]/[_readWriteTypes] is the
+  /// long-term target — once the connect flow is verified working on a real
+  /// signed build, expand [_diagnosticTypes]/[_diagnosticPerms] back to those
+  /// const lists.
+  static const List<HealthDataType> _diagnosticTypes = [
+    HealthDataType.STEPS,
+    HealthDataType.ACTIVE_ENERGY_BURNED,
+    HealthDataType.WEIGHT,
+    HealthDataType.WATER,
+  ];
+  static const List<HealthDataAccess> _diagnosticPerms = [
+    HealthDataAccess.READ,
+    HealthDataAccess.READ,
+    HealthDataAccess.READ_WRITE,
+    HealthDataAccess.READ_WRITE,
+  ];
 
   Future<bool> requestPermissions() async {
-    if (!Platform.isIOS) return false;
+    // Native pre-flight first. If HealthKit can't be used on this device or
+    // the entitlement is missing, this returns false WITHOUT touching the
+    // `health` plugin — so the plugin's HKHealthStore.requestAuthorization
+    // can never be called in an environment that would crash it.
+    final canUse = await canUseHealthKit();
+    if (!canUse) {
+      debugPrint(
+        '[HealthService] requestPermissions skipped: '
+        'native pre-flight returned false',
+      );
+      return false;
+    }
+
     try {
-      _ensureConfigured();
-      // Build parallel `types` and `permissions` arrays. Every read-only type
-      // gets HealthDataAccess.READ; every read-write type gets READ_WRITE.
-      // Mismatched lengths or wrong access-for-type both crash natively.
-      final types = <HealthDataType>[
-        ..._readOnlyTypes,
-        ..._readWriteTypes,
-      ];
-      final permissions = <HealthDataAccess>[
-        ..._readOnlyTypes.map((_) => HealthDataAccess.READ),
-        ..._readWriteTypes.map((_) => HealthDataAccess.READ_WRITE),
-      ];
-      assert(
-        types.length == permissions.length,
-        'types and permissions must be the same length',
-      );
-      final granted = await _health.requestAuthorization(
-        types,
-        permissions: permissions,
-      );
-      _cache.clear();
-      return granted;
+      await _ensureConfigured();
+    } on _HealthUnavailable {
+      return false;
     } catch (e, st) {
-      debugPrint('[HealthService] requestPermissions crashed: $e');
+      debugPrint('[HealthService] configure threw: $e');
+      AppLogger.error('configure() threw', error: e, stack: st);
+      return false;
+    }
+
+    try {
+      debugPrint(
+        '[HealthService] requesting auth for ${_diagnosticTypes.length} types',
+      );
+      assert(
+        _diagnosticTypes.length == _diagnosticPerms.length,
+        'types/permissions must be same length',
+      );
+      final authorized = await _health.requestAuthorization(
+        _diagnosticTypes,
+        permissions: _diagnosticPerms,
+      );
+      debugPrint('[HealthService] authorization result: $authorized');
+      _cache.clear();
+      return authorized;
+    } catch (e, st) {
+      debugPrint('[HealthService] requestAuthorization threw: $e');
       AppLogger.error(
         'HealthService.requestPermissions failed',
         error: e,
@@ -128,7 +206,7 @@ class HealthService {
   Future<int> getTodaySteps() => _cached('steps', () async {
         if (!Platform.isIOS) return 0;
         try {
-          _ensureConfigured();
+          await _ensureConfigured();
           final now = DateTime.now();
           final midnight = DateTime(now.year, now.month, now.day);
           final steps =
@@ -182,7 +260,7 @@ class HealthService {
   Future<int?> getLatestHeartRate() => _cached('latest_hr', () async {
         if (!Platform.isIOS) return null;
         try {
-          _ensureConfigured();
+          await _ensureConfigured();
           final now = DateTime.now();
           final data = await _health.getHealthDataFromTypes(
             types: [HealthDataType.HEART_RATE],
@@ -206,7 +284,7 @@ class HealthService {
   ) async {
     if (!Platform.isIOS) return [];
     try {
-      _ensureConfigured();
+      await _ensureConfigured();
       return await _health.getHealthDataFromTypes(
         types: [HealthDataType.HEART_RATE],
         startTime: start,
@@ -221,7 +299,7 @@ class HealthService {
   Future<double?> getLatestWeight() => _cached('latest_weight', () async {
         if (!Platform.isIOS) return null;
         try {
-          _ensureConfigured();
+          await _ensureConfigured();
           final now = DateTime.now();
           final data = await _health.getHealthDataFromTypes(
             types: [HealthDataType.WEIGHT],
@@ -245,7 +323,7 @@ class HealthService {
   }) async {
     if (!Platform.isIOS) return [];
     try {
-      _ensureConfigured();
+      await _ensureConfigured();
       final now = DateTime.now();
       final start = now.subtract(Duration(days: days));
       final data = await _health.getHealthDataFromTypes(
@@ -284,7 +362,7 @@ class HealthService {
   Future<Duration> getLastNightSleep() async {
     if (!Platform.isIOS) return Duration.zero;
     try {
-      _ensureConfigured();
+      await _ensureConfigured();
       final now = DateTime.now();
       final yesterday = now.subtract(const Duration(hours: 24));
       final data = await _health.getHealthDataFromTypes(
@@ -308,7 +386,7 @@ class HealthService {
   Future<List<int>> getDailySteps({int days = 7}) async {
     if (!Platform.isIOS) return List.filled(days, 0);
     try {
-      _ensureConfigured();
+      await _ensureConfigured();
       final now = DateTime.now();
       final result = <int>[];
       for (int i = days - 1; i >= 0; i--) {
@@ -329,7 +407,7 @@ class HealthService {
   Future<List<double>> getDailyActiveCalories({int days = 7}) async {
     if (!Platform.isIOS) return List.filled(days, 0);
     try {
-      _ensureConfigured();
+      await _ensureConfigured();
       final now = DateTime.now();
       final result = <double>[];
       for (int i = days - 1; i >= 0; i--) {
@@ -362,7 +440,7 @@ class HealthService {
   }) async {
     if (!Platform.isIOS) return false;
     try {
-      _ensureConfigured();
+      await _ensureConfigured();
       final ok = await _health.writeWorkoutData(
         activityType: _mapWorkoutType(workoutType),
         start: start,
@@ -381,7 +459,7 @@ class HealthService {
   Future<bool> writeWeight(double weightKg) async {
     if (!Platform.isIOS) return false;
     try {
-      _ensureConfigured();
+      await _ensureConfigured();
       final now = DateTime.now();
       final ok = await _health.writeHealthData(
         value: weightKg,
@@ -401,7 +479,7 @@ class HealthService {
   Future<bool> writeWater(double liters) async {
     if (!Platform.isIOS) return false;
     try {
-      _ensureConfigured();
+      await _ensureConfigured();
       final now = DateTime.now();
       return await _health.writeHealthData(
         value: liters,
@@ -424,7 +502,7 @@ class HealthService {
   }) async {
     if (!Platform.isIOS) return false;
     try {
-      _ensureConfigured();
+      await _ensureConfigured();
       final now = DateTime.now();
       final results = await Future.wait([
         _health.writeHealthData(
@@ -509,7 +587,7 @@ class HealthService {
   }) async {
     if (!Platform.isIOS) return 0;
     try {
-      _ensureConfigured();
+      await _ensureConfigured();
       final data = await _health.getHealthDataFromTypes(
         types: types,
         startTime: range.$1,
@@ -574,4 +652,13 @@ class _CacheEntry {
   final Object? value;
   final DateTime expiresAt;
   bool get isExpired => DateTime.now().isAfter(expiresAt);
+}
+
+/// Sentinel thrown by [HealthService._ensureConfigured] when the native
+/// pre-flight has confirmed HealthKit is not usable. Read/write methods
+/// catch it silently and return safe defaults instead of logging an error
+/// (no error has actually occurred — we're just refusing to call into a
+/// disabled subsystem).
+class _HealthUnavailable implements Exception {
+  const _HealthUnavailable();
 }

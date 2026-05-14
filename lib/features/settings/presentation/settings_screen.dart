@@ -214,8 +214,12 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // Apple Health section (iOS only)
-                if (Platform.isIOS) ...[
+                // Apple Health section (iOS only, and only when the native
+                // pre-flight in HealthService.canUseHealthKit() says we're
+                // safe to talk to HealthKit at all).
+                if (Platform.isIOS &&
+                    (ref.watch(healthAvailableProvider).valueOrNull ??
+                        false)) ...[
                   _SectionLabel(label: 'Apple Health', textTheme: textTheme),
                   const SizedBox(height: 8),
                   const _AppleHealthSection(),
