@@ -15,7 +15,9 @@ import '../models/meal.dart';
 import '../models/nutrition_log.dart';
 import '../services/open_food_facts_service.dart';
 import '../services/usda_service.dart';
+import '../core/utils/logger.dart';
 import 'dashboard_providers.dart';
+import 'health_providers.dart';
 import 'isar_provider.dart';
 import 'user_profile_provider.dart';
 
@@ -257,6 +259,19 @@ Future<bool> completeDay(WidgetRef ref) async {
     });
 
     ref.invalidate(todayCompletedDayProvider);
+
+    // Fire-and-forget: sync daily nutrition totals to Apple Health.
+    if (ref.read(healthConnectedProvider) &&
+        ref.read(healthPrefsProvider).syncNutrition) {
+      ref
+          .read(healthServiceProvider)
+          .writeNutrition(calories: cal, protein: pro, carbs: carb, fat: fat)
+          .catchError((Object e, StackTrace st) {
+        AppLogger.error('Apple Health nutrition sync failed',
+            error: e, stack: st);
+        return false;
+      });
+    }
     return true;
   } catch (_) {
     return false;

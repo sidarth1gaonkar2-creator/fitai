@@ -6,9 +6,17 @@ import '../../../../models/weight_entry.dart';
 import '../../../../providers/unit_system_provider.dart';
 
 class WeightChart extends ConsumerWidget {
-  const WeightChart({super.key, required this.entries});
+  const WeightChart({
+    super.key,
+    required this.entries,
+    this.healthEntries = const [],
+  });
 
   final List<WeightEntry> entries;
+
+  /// Optional second series sourced from Apple Health. When non-empty, the
+  /// chart shows both lines with a legend.
+  final List<({DateTime date, double weightKg})> healthEntries;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,11 +60,47 @@ class WeightChart extends ConsumerWidget {
       maSpots.add(FlSpot(x, sum / count));
     }
 
-    final allValues = entries.map((e) => toDisplay(e.weightKg));
+    final healthSpots = <FlSpot>[
+      for (final h in healthEntries)
+        FlSpot(
+          h.date.difference(firstDate).inDays.toDouble(),
+          toDisplay(h.weightKg),
+        ),
+    ];
+
+    final allValues = [
+      ...entries.map((e) => toDisplay(e.weightKg)),
+      ...healthEntries.map((e) => toDisplay(e.weightKg)),
+    ];
     final minY = allValues.reduce((a, b) => a < b ? a : b) - 2;
     final maxY = allValues.reduce((a, b) => a > b ? a : b) + 2;
 
-    return SizedBox(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (healthEntries.isNotEmpty) ...[
+          Row(
+            children: [
+              _LegendDot(color: colorScheme.primary),
+              const SizedBox(width: 4),
+              Text(
+                'Manual',
+                style: textTheme.bodySmall
+                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(width: 12),
+              const _LegendDot(color: Color(0xFFFF9F0A)),
+              const SizedBox(width: 4),
+              Text(
+                'Apple Health',
+                style: textTheme.bodySmall
+                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
+        SizedBox(
       height: 220,
       child: LineChart(
         LineChartData(
@@ -142,9 +186,44 @@ class WeightChart extends ConsumerWidget {
                 color: colorScheme.primary.withValues(alpha: 0.08),
               ),
             ),
+            // Apple Health overlay (orange dashed)
+            if (healthSpots.isNotEmpty)
+              LineChartBarData(
+                spots: healthSpots,
+                isCurved: true,
+                curveSmoothness: 0.3,
+                color: const Color(0xFFFF9F0A),
+                barWidth: 2,
+                dashArray: const [6, 4],
+                dotData: FlDotData(
+                  show: true,
+                  getDotPainter: (_, _, _, _) => FlDotCirclePainter(
+                    radius: 2.5,
+                    color: const Color(0xFFFF9F0A),
+                    strokeWidth: 0,
+                  ),
+                ),
+                belowBarData: BarAreaData(show: false),
+              ),
           ],
         ),
       ),
+    ),
+      ],
+    );
+  }
+}
+
+class _LegendDot extends StatelessWidget {
+  const _LegendDot({required this.color});
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }

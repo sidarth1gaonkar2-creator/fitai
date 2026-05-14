@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,10 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/unit_converter.dart';
+import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../models/enums.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/health_providers.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/settings_providers.dart';
 import '../../../providers/unit_system_provider.dart';
@@ -209,6 +213,14 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
+
+                // Apple Health section (iOS only)
+                if (Platform.isIOS) ...[
+                  _SectionLabel(label: 'Apple Health', textTheme: textTheme),
+                  const SizedBox(height: 8),
+                  const _AppleHealthSection(),
+                  const SizedBox(height: 24),
+                ],
 
                 // Supplements section
                 _SectionLabel(label: 'Supplements', textTheme: textTheme),
@@ -523,6 +535,212 @@ class _SettingsCard extends StatelessWidget {
         border: Border.all(color: palette.border),
       ),
       child: child,
+    );
+  }
+}
+
+// ─── Apple Health section ─────────────────────────────────────────────────────
+
+class _AppleHealthSection extends ConsumerWidget {
+  const _AppleHealthSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final prefs = ref.watch(healthPrefsProvider);
+    final availableAsync = ref.watch(healthAvailableProvider);
+    final available = availableAsync.valueOrNull ?? false;
+
+    return _SettingsCard(
+      child: Column(
+        children: [
+          // Connect toggle
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              children: [
+                _SettingsIconBadge(
+                  icon: Icons.favorite,
+                  color: palette.destructive,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Connect Apple Health',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.text,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        !available
+                            ? 'Not available on this device'
+                            : prefs.connected
+                                ? 'Connected'
+                                : 'Not connected',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: prefs.connected
+                              ? palette.success
+                              : palette.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                CupertinoSwitch(
+                  value: prefs.connected,
+                  activeTrackColor: palette.accent,
+                  onChanged: !available
+                      ? null
+                      : (value) async {
+                          HapticFeedback.selectionClick();
+                          if (value) {
+                            final granted = await ref
+                                .read(healthServiceProvider)
+                                .requestPermissions();
+                            await ref
+                                .read(healthPrefsProvider.notifier)
+                                .setConnected(granted);
+                            if (!context.mounted) return;
+                            if (granted) {
+                              ref.invalidate(dailyHealthSummaryProvider);
+                              showCupertinoToast(
+                                context,
+                                'Apple Health connected',
+                              );
+                            } else {
+                              showCupertinoToast(
+                                context,
+                                'Permission denied. Enable it in iOS '
+                                'Settings → Health.',
+                              );
+                            }
+                          } else {
+                            await ref
+                                .read(healthPrefsProvider.notifier)
+                                .setConnected(false);
+                          }
+                        },
+                ),
+              ],
+            ),
+          ),
+          if (prefs.connected) ...[
+            _SettingsDivider(),
+            _HealthSwitchTile(
+              label: 'Show on Dashboard',
+              subtitle: 'Burned-calorie ring overlay and activity row',
+              value: prefs.showOnDashboard,
+              onChanged: (v) => ref
+                  .read(healthPrefsProvider.notifier)
+                  .setShowOnDashboard(v),
+            ),
+            _SettingsDivider(),
+            _HealthSwitchTile(
+              label: 'Sync Workouts',
+              subtitle: 'Write completed workouts to Apple Health',
+              value: prefs.syncWorkouts,
+              onChanged: (v) =>
+                  ref.read(healthPrefsProvider.notifier).setSyncWorkouts(v),
+            ),
+            _SettingsDivider(),
+            _HealthSwitchTile(
+              label: 'Sync Nutrition',
+              subtitle: 'Write daily totals when completing a day',
+              value: prefs.syncNutrition,
+              onChanged: (v) =>
+                  ref.read(healthPrefsProvider.notifier).setSyncNutrition(v),
+            ),
+            _SettingsDivider(),
+            _HealthSwitchTile(
+              label: 'Sync Weight',
+              subtitle: 'Write weight entries',
+              value: prefs.syncWeight,
+              onChanged: (v) =>
+                  ref.read(healthPrefsProvider.notifier).setSyncWeight(v),
+            ),
+            _SettingsDivider(),
+            _HealthSwitchTile(
+              label: 'Sync Water',
+              subtitle: 'Write water intake (debounced)',
+              value: prefs.syncWater,
+              onChanged: (v) =>
+                  ref.read(healthPrefsProvider.notifier).setSyncWater(v),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HealthSwitchTile extends StatelessWidget {
+  const _HealthSwitchTile({
+    required this.label,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: palette.text,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: palette.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          CupertinoSwitch(
+            value: value,
+            activeTrackColor: palette.accent,
+            onChanged: (v) {
+              HapticFeedback.selectionClick();
+              onChanged(v);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 1,
+      margin: const EdgeInsets.symmetric(horizontal: 14),
+      color: AppColors.of(context).separator,
     );
   }
 }

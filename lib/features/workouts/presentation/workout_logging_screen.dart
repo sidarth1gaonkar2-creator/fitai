@@ -190,6 +190,12 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
     }
     if (!mounted) return;
 
+    // Wait for the modal popup to finish its dismissal animation before we
+    // push a new route. Calling context.go() while the sheet is still
+    // animating closed races with the navigator and leaves the screen black.
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
+
     if (shouldShare == true) {
       debugPrint('[Finish] Navigating to /community/create-post');
       context.go('/community/create-post?workoutId=$savedWorkoutId');

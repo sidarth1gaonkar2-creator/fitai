@@ -14,6 +14,7 @@ import '../../../models/workout_exercise.dart';
 import '../../../models/workout_set.dart';
 import '../../../providers/dashboard_providers.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/health_providers.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/personal_records_hall_providers.dart';
 import '../../../providers/workout_providers.dart';
@@ -392,6 +393,9 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
         unawaited(_syncLeaderboardEntry(userId));
       }
 
+      // Sync the workout to Apple Health (iOS, connected, sync-workouts on)
+      unawaited(_syncWorkoutToHealth());
+
       AppLogger.log('Workout saved: "${state.title.trim()}"');
       state = state.copyWith(isSaving: false, newPRs: newPRNames);
       return savedWorkoutId;
@@ -399,6 +403,37 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
       AppLogger.error('Workout save failed', error: e, stack: st);
       state = state.copyWith(isSaving: false);
       return null;
+    }
+  }
+
+  /// Writes the most recently saved workout to Apple Health if the user is on
+  /// iOS, has connected Apple Health, and has the Sync Workouts toggle on.
+  /// Estimated calories: total completed-set volume × 0.05, clamped to
+  /// [50, 1500] so degenerate inputs don't produce silly values.
+  Future<void> _syncWorkoutToHealth() async {
+    if (!_ref.read(healthConnectedProvider)) return;
+    if (!_ref.read(healthPrefsProvider).syncWorkouts) return;
+
+    final end = DateTime.now();
+    final start = state.startTime;
+    double volume = 0;
+    for (final ex in state.exercises) {
+      for (final s in ex.sets) {
+        if (s.isCompleted) volume += s.weight * s.reps;
+      }
+    }
+    final estCalories = (volume * 0.05).clamp(50.0, 1500.0).toDouble();
+
+    try {
+      final service = _ref.read(healthServiceProvider);
+      await service.writeWorkout(
+        start: start,
+        end: end,
+        caloriesBurned: estCalories,
+        workoutType: 'strength',
+      );
+    } catch (e, st) {
+      AppLogger.error('Apple Health workout sync failed', error: e, stack: st);
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
+import '../core/utils/logger.dart';
 import '../features/progress/domain/milestone.dart';
 import '../models/nutrition_log.dart';
 import '../models/user_profile.dart';
@@ -8,6 +9,7 @@ import '../models/weight_entry.dart';
 import '../models/workout.dart';
 import '../models/workout_exercise.dart';
 import 'dashboard_providers.dart';
+import 'health_providers.dart';
 import 'isar_provider.dart';
 import 'user_profile_provider.dart';
 import 'workout_providers.dart';
@@ -43,6 +45,19 @@ Future<bool> saveWeightEntry(WidgetRef ref, double kg) async {
     });
     ref.invalidate(weightEntriesProvider);
     ref.invalidate(userProfileProvider);
+
+    // Fire-and-forget Apple Health weight sync.
+    if (ref.read(healthConnectedProvider) &&
+        ref.read(healthPrefsProvider).syncWeight) {
+      ref
+          .read(healthServiceProvider)
+          .writeWeight(kg)
+          .catchError((Object e, StackTrace st) {
+        AppLogger.error('Apple Health weight sync failed',
+            error: e, stack: st);
+        return false;
+      });
+    }
     return true;
   } catch (_) {
     return false;

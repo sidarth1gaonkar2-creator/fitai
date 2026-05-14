@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +10,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../providers/dashboard_providers.dart';
+import '../../../providers/health_providers.dart';
 import '../../../providers/user_profile_provider.dart';
+import 'widgets/activity_row.dart';
 import 'widgets/calorie_ring.dart';
 import 'widgets/dashboard_skeleton.dart';
 import 'widgets/macro_row.dart';
@@ -82,6 +87,13 @@ class DashboardScreen extends ConsumerWidget {
         final carbs = nutrition?.totalCarbs ?? 0;
         final fat = nutrition?.totalFat ?? 0;
 
+        // Burned calories from Apple Health (0 unless connected + dashboard on)
+        final dashboardHealthOn =
+            ref.watch(healthDashboardEnabledProvider);
+        final burnedAsync = ref.watch(todayActiveCaloriesProvider);
+        final burned =
+            dashboardHealthOn ? (burnedAsync.valueOrNull ?? 0.0) : 0.0;
+
         final isNutritionLoading =
             nutritionAsync.isLoading && !nutritionAsync.hasValue;
         final isWorkoutLoading =
@@ -132,6 +144,7 @@ class DashboardScreen extends ConsumerWidget {
                             key: const ValueKey('ring-loaded'),
                             consumed: calories.toDouble(),
                             target: tdee,
+                            burned: burned,
                           ),
                   ),
                 ),
@@ -172,6 +185,12 @@ class DashboardScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
 
+                // --- Activity row (Apple Health, iOS only) ---
+                if (Platform.isIOS) ...[
+                  const ActivityRow(),
+                  const SizedBox(height: 20),
+                ],
+
                 // --- Streak + Water side by side ---
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,12 +215,20 @@ class DashboardScreen extends ConsumerWidget {
                     Expanded(
                       child: WaterTracker(
                         glasses: glasses,
-                        onIncrement: () => ref
-                            .read(waterIntakeProvider.notifier)
-                            .update((s) => s + 1),
-                        onDecrement: () => ref
-                            .read(waterIntakeProvider.notifier)
-                            .update((s) => s > 0 ? s - 1 : 0),
+                        onIncrement: () {
+                          ref
+                              .read(waterIntakeProvider.notifier)
+                              .update((s) => s + 1);
+                          _syncWaterToHealth(ref, 1);
+                        },
+                        onDecrement: () {
+                          final current = ref.read(waterIntakeProvider);
+                          if (current <= 0) return;
+                          ref
+                              .read(waterIntakeProvider.notifier)
+                              .update((s) => s > 0 ? s - 1 : 0);
+                          _syncWaterToHealth(ref, -1);
+                        },
                       ),
                     ),
                   ],
@@ -253,6 +280,41 @@ class DashboardScreen extends ConsumerWidget {
       },
     );
   }
+}
+
+/// One glass of water in our UI represents 250 ml. Apple Health takes liters.
+const _kGlassLiters = 0.25;
+
+/// Debounced water sync. Rapid taps coalesce into one write 2s after the last
+/// change, with the [glassDelta] passed reflecting the net change since the
+/// last flush.
+class _WaterSyncDebouncer {
+  Timer? _timer;
+  int _pendingGlasses = 0;
+
+  void schedule(WidgetRef ref, int delta) {
+    _pendingGlasses += delta;
+    _timer?.cancel();
+    _timer = Timer(const Duration(seconds: 2), () => _flush(ref));
+  }
+
+  void _flush(WidgetRef ref) {
+    final glasses = _pendingGlasses;
+    _pendingGlasses = 0;
+    if (glasses <= 0) return; // Only write positive deltas — HealthKit doesn't
+    // support negative water entries.
+    ref
+        .read(healthServiceProvider)
+        .writeWater(glasses * _kGlassLiters); // fire-and-forget
+  }
+}
+
+final _waterDebouncer = _WaterSyncDebouncer();
+
+void _syncWaterToHealth(WidgetRef ref, int delta) {
+  if (!ref.read(healthConnectedProvider)) return;
+  if (!ref.read(healthPrefsProvider).syncWater) return;
+  _waterDebouncer.schedule(ref, delta);
 }
 
 // ---------------------------------------------------------------------------
