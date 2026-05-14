@@ -70,6 +70,13 @@ class _TemplatePreviewScreenState
     setState(() => _exercises.removeAt(index));
   }
 
+  void _restoreExercise(int index, TemplateExercise exercise) {
+    setState(() {
+      final clampedIndex = index.clamp(0, _exercises.length);
+      _exercises.insert(clampedIndex, exercise);
+    });
+  }
+
   Future<void> _startWorkout() async {
     if (_exercises.isEmpty) return;
     HapticFeedback.mediumImpact();
@@ -235,11 +242,14 @@ class _TemplatePreviewScreenState
                         direction: DismissDirection.endToStart,
                         onDismissed: (_) {
                           HapticFeedback.mediumImpact();
-                          final removed = _exercises[index];
-                          _removeExercise(index);
-                          showCupertinoToast(
+                          final removedIndex = index;
+                          final removed = _exercises[removedIndex];
+                          _removeExercise(removedIndex);
+                          showCupertinoUndoToast(
                             context,
                             'Removed ${_exerciseName(removed.exerciseId)}',
+                            onUndo: () =>
+                                _restoreExercise(removedIndex, removed),
                           );
                         },
                         background: Container(

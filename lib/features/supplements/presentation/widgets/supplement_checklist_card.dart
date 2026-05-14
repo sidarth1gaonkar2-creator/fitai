@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../models/enums.dart';
 import '../../../../providers/supplement_providers.dart';
@@ -196,7 +197,55 @@ class SupplementChecklistCard extends ConsumerWidget {
       },
       loading: () => const ShimmerBox(
           width: double.infinity, height: 100, borderRadius: 16),
-      error: (_, _) => const SizedBox.shrink(),
+      error: (e, st) {
+        AppLogger.error(
+          'Supplement checklist load failed',
+          error: e,
+          stack: st,
+        );
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: palette.border),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(CupertinoIcons.exclamationmark_circle,
+                  size: 28, color: palette.destructive),
+              const SizedBox(height: 8),
+              Text(
+                'Could not load supplements',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: palette.text,
+                ),
+              ),
+              const SizedBox(height: 8),
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 6),
+                color: palette.accent,
+                borderRadius: BorderRadius.circular(8),
+                onPressed: () => ref.invalidate(supplementChecklistProvider),
+                child: const Text(
+                  'Retry',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

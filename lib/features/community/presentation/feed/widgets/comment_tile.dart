@@ -72,12 +72,12 @@ class CommentTile extends StatelessWidget {
           if (isOwn && onDelete != null)
             CupertinoButton(
               padding: EdgeInsets.zero,
-              onPressed: onDelete,
+              onPressed: onDelete, minimumSize: Size(24, 24),
               child: Icon(
                 CupertinoIcons.trash,
                 size: 16,
                 color: palette.destructive,
-              ), minimumSize: Size(24, 24),
+              ),
             ),
         ],
       ),

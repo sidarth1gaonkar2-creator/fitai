@@ -121,19 +121,29 @@ class _WaterIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: enabled ? onPressed : null,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: AppColors.of(context).accent.withValues(alpha: enabled ? 0.25 : 0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: AppColors.of(context).accent.withValues(alpha: enabled ? 1.0 : 0.4),
+    final label = icon == Icons.add ? 'Add a glass of water' : 'Remove a glass of water';
+    return Semantics(
+      label: label,
+      button: true,
+      enabled: enabled,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: enabled ? onPressed : null,
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color:
+                AppColors.of(context).accent.withValues(alpha: enabled ? 0.25 : 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: AppColors.of(context)
+                .accent
+                .withValues(alpha: enabled ? 1.0 : 0.4),
+          ),
         ),
       ),
     );

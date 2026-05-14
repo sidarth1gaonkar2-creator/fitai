@@ -21,7 +21,7 @@ class FitAIApp extends ConsumerWidget {
         isLight ? CupertinoColors.black : CupertinoColors.white;
 
     return CupertinoApp.router(
-      title: 'FitAI',
+      title: 'SwoleCoach',
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       localizationsDelegates: const [

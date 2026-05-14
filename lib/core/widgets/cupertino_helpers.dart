@@ -223,15 +223,54 @@ void showCupertinoToast(
   overlay.insert(entry);
 }
 
+/// iOS-style toast with an inline "Undo" action button. Stays visible for
+/// [duration] (default 5 seconds) or until the user taps Undo.
+void showCupertinoUndoToast(
+  BuildContext context,
+  String message, {
+  required VoidCallback onUndo,
+  String actionLabel = 'Undo',
+  Duration duration = const Duration(seconds: 5),
+}) {
+  final overlay = Overlay.of(context, rootOverlay: true);
+  late OverlayEntry entry;
+  bool undone = false;
+  entry = OverlayEntry(
+    builder: (ctx) => _ToastWidget(
+      message: message,
+      duration: duration,
+      onDismiss: () {
+        try {
+          entry.remove();
+        } catch (_) {/* already removed */}
+      },
+      actionLabel: actionLabel,
+      onAction: () {
+        if (undone) return;
+        undone = true;
+        onUndo();
+        try {
+          entry.remove();
+        } catch (_) {/* already removed */}
+      },
+    ),
+  );
+  overlay.insert(entry);
+}
+
 class _ToastWidget extends StatefulWidget {
   const _ToastWidget({
     required this.message,
     required this.duration,
     required this.onDismiss,
+    this.actionLabel,
+    this.onAction,
   });
   final String message;
   final Duration duration;
   final VoidCallback onDismiss;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   State<_ToastWidget> createState() => _ToastWidgetState();
@@ -292,14 +331,42 @@ class _ToastWidgetState extends State<_ToastWidget>
                   ),
                 ],
               ),
-              child: Text(
-                widget.message,
-                style: const TextStyle(
-                  color: CupertinoColors.white,
-                  fontFamily: 'Poppins',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      widget.message,
+                      style: const TextStyle(
+                        color: CupertinoColors.white,
+                        fontFamily: 'Poppins',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  if (widget.actionLabel != null &&
+                      widget.onAction != null) ...[
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: widget.onAction,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 4),
+                        child: Text(
+                          widget.actionLabel!,
+                          style: const TextStyle(
+                            color: Color(0xFFCCFF00),
+                            fontFamily: 'Poppins',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ),

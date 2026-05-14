@@ -118,7 +118,31 @@ class _Body extends ConsumerWidget {
                 error: e,
                 stack: st,
               );
-              return const SizedBox.shrink();
+              return Row(
+                children: [
+                  Icon(CupertinoIcons.exclamationmark_circle,
+                      size: 16, color: palette.destructive),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "Couldn't check your join status.",
+                      style: TextStyle(
+                        fontFamily: 'LeagueSpartan',
+                        fontSize: 13,
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                  ),
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(0, 0),
+                    onPressed: () => ref.invalidate(
+                        isParticipantProvider(challenge.challengeId)),
+                    child:
+                        const Text('Retry', style: TextStyle(fontSize: 13)),
+                  ),
+                ],
+              );
             },
             data: (isJoined) => _ActionButtons(
               challenge: challenge,
@@ -253,7 +277,7 @@ class _Header extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${challenge.durationDays} days · by ${challenge.creatorUsername.isEmpty ? 'FitAI' : challenge.creatorUsername}',
+                      '${challenge.durationDays} days · by ${challenge.creatorUsername.isEmpty ? 'SwoleCoach' : challenge.creatorUsername}',
                       style: TextStyle(
                         fontFamily: 'LeagueSpartan',
                         fontSize: 13,

@@ -68,11 +68,11 @@ class _ProgressTabToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
     return Container(
-      height: 44,
+      height: 48,
       decoration: BoxDecoration(
         color: palette.surface,
         border: Border.all(color: palette.border),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(24),
       ),
       padding: const EdgeInsets.all(3),
       child: Row(
@@ -107,32 +107,39 @@ class _TabPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          decoration: BoxDecoration(
-            color: isActive ? AppColors.of(context).accent : Colors.transparent,
-            borderRadius: BorderRadius.circular(19),
-            border: isActive
-                ? null
-                : Border.all(
-                    color: AppColors.of(context).border,
-                    width: 1,
-                  ),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: isActive ? Colors.black : AppColors.of(context).text,
+      child: Semantics(
+        label: label,
+        button: true,
+        selected: isActive,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onTap();
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            decoration: BoxDecoration(
+              color:
+                  isActive ? AppColors.of(context).accent : Colors.transparent,
+              borderRadius: BorderRadius.circular(21),
+              border: isActive
+                  ? null
+                  : Border.all(
+                      color: AppColors.of(context).border,
+                      width: 1,
+                    ),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: isActive ? Colors.black : AppColors.of(context).text,
+              ),
             ),
           ),
         ),

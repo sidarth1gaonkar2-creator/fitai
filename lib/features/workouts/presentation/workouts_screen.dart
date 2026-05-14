@@ -136,43 +136,49 @@ class _PillTabBarState extends State<_PillTabBar> {
 
     final palette = AppColors.of(context);
     return Container(
-      height: 44,
+      height: 48,
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: palette.border),
       ),
       child: Row(
         children: List.generate(tabs.length, (index) {
           final isActive = widget.controller.index == index;
           return Expanded(
-            child: GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                widget.controller.animateTo(index);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                margin: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: isActive ? palette.accent : Colors.transparent,
-                  borderRadius: BorderRadius.circular(19),
-                  border: isActive
-                      ? null
-                      : Border.all(
-                          color: palette.border,
-                          width: 1,
-                        ),
-                ),
-                child: Center(
-                  child: Text(
-                    tabs[index],
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: isActive ? Colors.white : palette.text,
+            child: Semantics(
+              label: tabs[index],
+              button: true,
+              selected: isActive,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  widget.controller.animateTo(index);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  margin: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: isActive ? palette.accent : Colors.transparent,
+                    borderRadius: BorderRadius.circular(21),
+                    border: isActive
+                        ? null
+                        : Border.all(
+                            color: palette.border,
+                            width: 1,
+                          ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      tabs[index],
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: isActive ? Colors.white : palette.text,
+                      ),
                     ),
                   ),
                 ),

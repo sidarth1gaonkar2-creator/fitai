@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/logger.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../data/curated_meal_plans.dart';
 import '../../../models/custom_meal_plan.dart';
@@ -69,7 +70,38 @@ class MealPlansContent extends ConsumerWidget {
               child: CupertinoActivityIndicator(),
             ),
           ),
-          error: (_, _) => const SizedBox.shrink(),
+          error: (e, st) {
+            AppLogger.error('Custom meal plans load failed',
+                error: e, stack: st);
+            final palette = AppColors.of(context);
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                children: [
+                  Icon(CupertinoIcons.exclamationmark_circle,
+                      size: 16, color: palette.destructive),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Could not load your plans.',
+                      style: TextStyle(
+                        fontFamily: 'LeagueSpartan',
+                        fontSize: 13,
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                  ),
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    onPressed: () =>
+                        ref.invalidate(allCustomMealPlansProvider),
+                    child: const Text('Retry',
+                        style: TextStyle(fontSize: 13)),
+                  ),
+                ],
+              ),
+            );
+          },
           data: (plans) {
             if (plans.isEmpty) return const SizedBox.shrink();
             return Column(

@@ -9,11 +9,17 @@ class FoodEntryTile extends StatelessWidget {
     super.key,
     required this.entry,
     required this.onDelete,
+    this.onRestore,
     this.isLocked = false,
   });
 
   final FoodEntry entry;
   final VoidCallback onDelete;
+
+  /// If non-null, an "Undo" action is offered for 5 seconds after swipe-delete.
+  /// Tapping Undo invokes this callback with the deleted entry's data so the
+  /// parent can re-insert it.
+  final void Function(FoodEntry entry)? onRestore;
 
   /// When true, disables swipe-to-delete.
   final bool isLocked;
@@ -94,9 +100,9 @@ class FoodEntryTile extends StatelessWidget {
     if (isLocked) return tile;
 
     return _SwipeTile(
-      entryId: entry.id,
-      entryName: entry.name,
+      entry: entry,
       onDelete: onDelete,
+      onRestore: onRestore,
       child: tile,
     );
   }
@@ -167,15 +173,15 @@ class _ServingTag extends StatelessWidget {
 
 class _SwipeTile extends StatefulWidget {
   const _SwipeTile({
-    required this.entryId,
-    required this.entryName,
+    required this.entry,
     required this.onDelete,
     required this.child,
+    this.onRestore,
   });
 
-  final int entryId;
-  final String entryName;
+  final FoodEntry entry;
   final VoidCallback onDelete;
+  final void Function(FoodEntry entry)? onRestore;
   final Widget child;
 
   @override
@@ -194,7 +200,7 @@ class _SwipeTileState extends State<_SwipeTile> {
         final showRed = fraction >= 0.2;
 
         return Dismissible(
-          key: ValueKey(widget.entryId),
+          key: ValueKey(widget.entry.id),
           direction: DismissDirection.endToStart,
           dismissThresholds: const {DismissDirection.endToStart: 0.3},
           onUpdate: (details) {
@@ -203,9 +209,20 @@ class _SwipeTileState extends State<_SwipeTile> {
           confirmDismiss: (_) async {
             if (_dragExtent.abs() < 40) return false;
             HapticFeedback.mediumImpact();
+            final restore = widget.onRestore;
+            // Snapshot the entry data BEFORE deletion so we can restore it.
+            final snapshot = restore != null ? _cloneEntry(widget.entry) : null;
             widget.onDelete();
             if (context.mounted) {
-              showCupertinoToast(context, 'Removed ${widget.entryName}');
+              if (snapshot != null && restore != null) {
+                showCupertinoUndoToast(
+                  context,
+                  'Removed ${widget.entry.name}',
+                  onUndo: () => restore(snapshot),
+                );
+              } else {
+                showCupertinoToast(context, 'Removed ${widget.entry.name}');
+              }
             }
             return false;
           },
@@ -224,5 +241,31 @@ class _SwipeTileState extends State<_SwipeTile> {
         );
       },
     );
+  }
+
+  /// Detached copy of an entry's user-visible fields. The clone is not
+  /// attached to Isar, so deleting the original does not invalidate this
+  /// data — it can be used to re-insert via [addFoodEntry].
+  static FoodEntry _cloneEntry(FoodEntry e) {
+    return FoodEntry()
+      ..name = e.name
+      ..calories = e.calories
+      ..protein = e.protein
+      ..carbs = e.carbs
+      ..fat = e.fat
+      ..servingSize = e.servingSize
+      ..servingUnit = e.servingUnit
+      ..vitaminDMcg = e.vitaminDMcg
+      ..ironMg = e.ironMg
+      ..calciumMg = e.calciumMg
+      ..vitaminCMg = e.vitaminCMg
+      ..magnesiumMg = e.magnesiumMg
+      ..sodiumMg = e.sodiumMg
+      ..potassiumMg = e.potassiumMg
+      ..zincMg = e.zincMg
+      ..vitaminB12Mcg = e.vitaminB12Mcg
+      ..folateMcg = e.folateMcg
+      ..fibre = e.fibre
+      ..sugar = e.sugar;
   }
 }

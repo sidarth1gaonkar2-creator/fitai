@@ -310,7 +310,7 @@ class SettingsScreen extends ConsumerWidget {
                       color: palette.accent,
                     ),
                     title: Text(
-                      'FitAI',
+                      'SwoleCoach',
                       style: textTheme.bodyLarge?.copyWith(
                         color: palette.text,
                         fontWeight: FontWeight.w500,
@@ -338,7 +338,8 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context) => CupertinoAlertDialog(
         title: const Text('Sign Out?'),
         content: const Text(
-          'You will need to sign in again to access your data.',
+          'Local data on this device will be cleared. You will need to sign '
+          'in again to continue.',
         ),
         actions: [
           CupertinoDialogAction(
@@ -356,6 +357,14 @@ class SettingsScreen extends ConsumerWidget {
 
     if (confirmed == true && context.mounted) {
       HapticFeedback.mediumImpact();
+      // Clear local data before sign-out so the next account that signs in
+      // on this device doesn't inherit this user's profile/workouts/etc.
+      // The router uses userProfileProvider (Isar) to gate onboarding —
+      // leaving stale data here causes a new account to skip onboarding
+      // and land in profile-setup with the previous user's stats.
+      final isar = ref.read(isarProvider);
+      await isar.writeTxn(() => isar.clear());
+      ref.invalidate(userProfileProvider);
       await ref.read(authServiceProvider).signOut();
       if (context.mounted) context.go('/welcome');
     }

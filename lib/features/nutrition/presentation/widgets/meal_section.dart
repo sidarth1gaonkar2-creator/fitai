@@ -13,6 +13,7 @@ class MealSection extends StatelessWidget {
     required this.entries,
     required this.onAddFood,
     required this.onDeleteEntry,
+    this.onRestoreEntry,
     this.isLocked = false,
   });
 
@@ -20,6 +21,7 @@ class MealSection extends StatelessWidget {
   final List<FoodEntry> entries;
   final VoidCallback onAddFood;
   final void Function(int entryId) onDeleteEntry;
+  final void Function(MealType mealType, FoodEntry entry)? onRestoreEntry;
 
   /// When true, hides the "Add Food" button and disables swipe-to-delete.
   final bool isLocked;
@@ -116,6 +118,9 @@ class MealSection extends StatelessWidget {
               ...entries.map((entry) => FoodEntryTile(
                     entry: entry,
                     onDelete: () => onDeleteEntry(entry.id),
+                    onRestore: onRestoreEntry == null
+                        ? null
+                        : (e) => onRestoreEntry!(mealType, e),
                     isLocked: isLocked,
                   )),
             ] else ...[

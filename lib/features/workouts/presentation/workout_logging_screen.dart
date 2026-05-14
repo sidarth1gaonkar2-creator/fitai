@@ -115,54 +115,86 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
   }
 
   Future<void> _finishWorkout() async {
+    debugPrint('[Finish] Finish button tapped');
     final controller = ref.read(activeWorkoutProvider.notifier);
     final title = _titleController.text.trim();
 
     if (title.isEmpty) {
+      debugPrint('[Finish] Validation failed: title empty');
       showCupertinoToast(context, 'Please enter a workout name.');
       return;
     }
 
     controller.setTitle(title);
 
-    final state = ref.read(activeWorkoutProvider);
-    if (state.exercises.isEmpty) {
+    final stateBefore = ref.read(activeWorkoutProvider);
+    if (stateBefore.exercises.isEmpty) {
+      debugPrint('[Finish] Validation failed: no exercises');
       showCupertinoToast(context, 'Add at least one exercise.');
       return;
     }
 
-    final savedWorkoutId = await controller.saveWorkout();
+    debugPrint('[Finish] Validation passed (title="$title", '
+        'exercises=${stateBefore.exercises.length})');
+    debugPrint('[Finish] Saving workout...');
+
+    int? savedWorkoutId;
+    try {
+      savedWorkoutId = await controller.saveWorkout();
+    } catch (e, st) {
+      debugPrint('[Finish] saveWorkout threw: $e\n$st');
+      AppLogger.error('Finish workout failed', error: e, stack: st);
+    }
+
     if (!mounted) return;
 
     if (savedWorkoutId == null) {
+      debugPrint('[Finish] saveWorkout returned null');
       showCupertinoToast(context, 'Failed to save workout.');
       return;
     }
 
+    debugPrint('[Finish] Workout saved with id=$savedWorkoutId');
+
     final prNames = ref.read(activeWorkoutProvider).newPRs;
     if (prNames.isNotEmpty) {
-      // Show confetti then continue
-      await showCupertinoDialog(
-        context: context,
-        barrierDismissible: true,
-        builder: (_) => PRConfettiOverlay(
-          exerciseNames: prNames,
-          onDismiss: () => Navigator.of(context, rootNavigator: true).pop(),
-        ),
-      );
+      debugPrint('[Finish] Showing PR confetti for ${prNames.length} PR(s)');
+      // Show confetti then continue. Wrapped in try so a failed dialog
+      // can't block the rest of the finish flow.
+      try {
+        await showCupertinoDialog(
+          context: context,
+          barrierDismissible: true,
+          builder: (_) => PRConfettiOverlay(
+            exerciseNames: prNames,
+            onDismiss: () => Navigator.of(context, rootNavigator: true).pop(),
+          ),
+        );
+      } catch (e) {
+        debugPrint('[Finish] PR confetti dialog failed: $e');
+      }
     }
     if (!mounted) return;
 
+    debugPrint('[Finish] Showing share prompt');
     // Ask the user if they want to share this workout with the community.
-    final shouldShare = await showCupertinoModalPopup<bool>(
-      context: context,
-      builder: (_) => _ShareWorkoutPrompt(),
-    );
+    // Wrapped in try so a failed sheet can't strand the user on this screen.
+    bool? shouldShare;
+    try {
+      shouldShare = await showCupertinoModalPopup<bool>(
+        context: context,
+        builder: (_) => const _ShareWorkoutPrompt(),
+      );
+    } catch (e) {
+      debugPrint('[Finish] Share prompt failed: $e');
+    }
     if (!mounted) return;
 
     if (shouldShare == true) {
+      debugPrint('[Finish] Navigating to /community/create-post');
       context.go('/community/create-post?workoutId=$savedWorkoutId');
     } else {
+      debugPrint('[Finish] Navigating to /workouts');
       context.go('/workouts');
     }
   }
@@ -312,6 +344,8 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
 /// Bottom sheet shown after a successful workout save, asking whether the
 /// user wants to share it with the community.
 class _ShareWorkoutPrompt extends StatelessWidget {
+  const _ShareWorkoutPrompt();
+
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);

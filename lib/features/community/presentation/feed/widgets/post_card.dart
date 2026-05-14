@@ -203,12 +203,12 @@ class _Header extends StatelessWidget {
         if (isOwner && (onEdit != null || onDelete != null))
           CupertinoButton(
             padding: EdgeInsets.zero,
-            onPressed: () => _openMenu(context),
+            onPressed: () => _openMenu(context), minimumSize: Size(32, 32),
             child: Icon(
               CupertinoIcons.ellipsis,
               size: 20,
               color: palette.textSecondary,
-            ), minimumSize: Size(32, 32),
+            ),
           ),
       ],
     );
@@ -471,12 +471,12 @@ class _ActionsRow extends StatelessWidget {
         if (onShare != null)
           CupertinoButton(
             padding: EdgeInsets.zero,
-            onPressed: onShare,
+            onPressed: onShare, minimumSize: Size(32, 32),
             child: Icon(
               CupertinoIcons.share,
               size: 20,
               color: palette.textSecondary,
-            ), minimumSize: Size(32, 32),
+            ),
           ),
       ],
     );

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show LinearProgressIndicator;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../../providers/supplement_providers.dart';
 
 class SupplementConsistencyCard extends ConsumerWidget {
@@ -77,7 +78,44 @@ class SupplementConsistencyCard extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
+      error: (e, st) {
+        AppLogger.error(
+          'Supplement consistency load failed (id=$supplementId)',
+          error: e,
+          stack: st,
+        );
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: palette.border),
+          ),
+          child: Row(
+            children: [
+              Icon(CupertinoIcons.exclamationmark_circle,
+                  size: 16, color: palette.destructive),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Unable to load $name consistency',
+                  style: TextStyle(
+                    fontFamily: 'LeagueSpartan',
+                    fontSize: 12,
+                    color: palette.textSecondary,
+                  ),
+                ),
+              ),
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                onPressed: () =>
+                    ref.invalidate(supplementConsistencyProvider(supplementId)),
+                child: const Text('Retry', style: TextStyle(fontSize: 12)),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -262,14 +262,14 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
           const SizedBox(width: 8),
           CupertinoButton(
             padding: EdgeInsets.zero,
-            onPressed: _isSending ? null : _sendComment,
+            onPressed: _isSending ? null : _sendComment, minimumSize: Size(36, 36),
             child: _isSending
                 ? const CupertinoActivityIndicator()
                 : Icon(
                     CupertinoIcons.arrow_up_circle_fill,
                     size: 32,
                     color: palette.accent,
-                  ), minimumSize: Size(36, 36),
+                  ),
           ),
         ],
       ),

@@ -28,6 +28,7 @@ class WorkoutDetailScreen extends ConsumerWidget {
           middle: const Text('Workout'),
           backgroundColor: palette.background.withValues(alpha: 0.8),
           border: null,
+          leading: _BackButton(),
         ),
         body: const Padding(
           padding: EdgeInsets.all(16),
@@ -47,6 +48,7 @@ class WorkoutDetailScreen extends ConsumerWidget {
           middle: const Text('Workout'),
           backgroundColor: palette.background.withValues(alpha: 0.8),
           border: null,
+          leading: _BackButton(),
         ),
         body: ErrorCard(
           message: 'Could not load workout.',
@@ -88,6 +90,7 @@ class WorkoutDetailScreen extends ConsumerWidget {
             middle: Text(workout.title),
             backgroundColor: palette.background.withValues(alpha: 0.8),
             border: null,
+            leading: _BackButton(),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -274,6 +277,31 @@ class WorkoutDetailScreen extends ConsumerWidget {
       await deleteWorkoutById(ref, workoutId);
       if (context.mounted) context.go('/workouts');
     }
+  }
+}
+
+/// Explicit back chevron for the workout detail screen. The screen is
+/// presented as an iOS slide-up modal, which has no swipe-back gesture, so
+/// we must provide a visible affordance.
+class _BackButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoButton(
+      padding: const EdgeInsets.all(8),
+      minimumSize: const Size(48, 48),
+      onPressed: () {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/workouts');
+        }
+      },
+      child: Semantics(
+        label: 'Back',
+        button: true,
+        child: const Icon(CupertinoIcons.back, size: 24),
+      ),
+    );
   }
 }
 

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/utils/tdee_calculator.dart';
@@ -42,10 +43,24 @@ class OnboardingController extends StateNotifier<OnboardingState> {
   Future<void> loadProgress() async {
     final isar = _ref.read(isarProvider);
     final progress = await isar.onboardingProgress.get(1);
-    if (progress == null) return;
 
+    // Pre-fill the name from the Firebase auth profile when we don't have a
+    // saved value yet. Email sign-up sets displayName to the typed name and
+    // Google sign-in carries it from the Google account, so the user
+    // shouldn't have to retype it on the first onboarding step.
+    final fallbackName =
+        FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
+
+    if (progress == null) {
+      if (fallbackName.isNotEmpty) {
+        state = state.copyWith(name: fallbackName);
+      }
+      return;
+    }
+
+    final savedName = progress.name?.trim() ?? '';
     state = OnboardingState(
-      name: progress.name ?? '',
+      name: savedName.isNotEmpty ? savedName : fallbackName,
       age: progress.age,
       sex: progress.sex != null
           ? Sex.values.byName(progress.sex!)

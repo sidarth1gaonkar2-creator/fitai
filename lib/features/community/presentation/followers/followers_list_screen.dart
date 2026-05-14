@@ -172,7 +172,7 @@ class _UserTile extends ConsumerWidget {
                       ref.invalidate(isFollowingProvider(userId));
                       ref.invalidate(followingIdsProvider);
                       ref.invalidate(followerIdsProvider(userId));
-                    },
+                    }, minimumSize: Size(0, 0),
                     child: Text(
                       isFollowing ? 'Unfollow' : 'Follow',
                       style: TextStyle(
@@ -183,7 +183,7 @@ class _UserTile extends ConsumerWidget {
                             ? palette.text
                             : CupertinoColors.white,
                       ),
-                    ), minimumSize: Size(0, 0),
+                    ),
                   ),
               ],
             ),
@@ -200,7 +200,33 @@ class _UserTile extends ConsumerWidget {
           error: e,
           stack: st,
         );
-        return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              Icon(CupertinoIcons.exclamationmark_circle,
+                  size: 16, color: palette.destructive),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Could not load this user.',
+                  style: TextStyle(
+                    fontFamily: 'LeagueSpartan',
+                    fontSize: 13,
+                    color: palette.textSecondary,
+                  ),
+                ),
+              ),
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 0),
+                onPressed: () => ref.invalidate(userByIdProvider(userId)),
+                child: const Text('Retry',
+                    style: TextStyle(fontSize: 13)),
+              ),
+            ],
+          ),
+        );
       },
     );
   }

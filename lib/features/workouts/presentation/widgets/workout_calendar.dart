@@ -60,8 +60,8 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
     final monthName = _monthName(_displayedMonth.month);
     final year = _displayedMonth.year;
 
-    // Each cell: 36dp height + 2dp spacing
-    const cellHeight = 36.0;
+    // Each cell: 48dp height + 2dp spacing (meets 48dp tap target minimum)
+    const cellHeight = 48.0;
     const cellSpacing = 2.0;
     final gridHeight = rowCount * cellHeight + (rowCount - 1) * cellSpacing;
 
@@ -156,37 +156,51 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
                   textColor = palette.text;
                 }
 
-                return GestureDetector(
-                  onTap: () {
-                    widget.onDateSelected(isSelected ? null : date);
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: bgColor,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '$day',
-                          style: textTheme.bodySmall?.copyWith(
-                            fontWeight:
-                                (isToday || isSelected) ? FontWeight.bold : FontWeight.normal,
-                            color: textColor,
-                            fontSize: 11,
-                          ),
-                        ),
-                        if (hasWorkout && !isSelected && !isToday)
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: palette.accent,
+                final dateLabel = '${_monthName(date.month)} $day, '
+                    '${date.year}'
+                    '${hasWorkout ? ", workout logged" : ""}'
+                    '${isSelected ? ", selected" : ""}'
+                    '${isToday ? ", today" : ""}';
+                return Semantics(
+                  label: dateLabel,
+                  button: true,
+                  selected: isSelected,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      widget.onDateSelected(isSelected ? null : date);
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '$day',
+                            style: textTheme.bodySmall?.copyWith(
+                              fontWeight: (isToday || isSelected)
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: textColor,
+                              fontSize: 13,
                             ),
                           ),
-                      ],
+                          if (hasWorkout && !isSelected && !isToday) ...[
+                            const SizedBox(height: 2),
+                            Container(
+                              width: 5,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: palette.accent,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                 );

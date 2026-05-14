@@ -338,7 +338,7 @@ class _RowFollowButtonState extends ConsumerState<_RowFollowButton> {
         padding: const EdgeInsets.symmetric(vertical: 6),
         color: isFollowing ? null : colors.accent,
         borderRadius: BorderRadius.circular(8),
-        onPressed: () => _toggle(isFollowing),
+        onPressed: () => _toggle(isFollowing), minimumSize: Size(0, 0),
         child: Container(
           alignment: Alignment.center,
           decoration: isFollowing
@@ -359,7 +359,7 @@ class _RowFollowButtonState extends ConsumerState<_RowFollowButton> {
               color: isFollowing ? colors.accent : Colors.white,
             ),
           ),
-        ), minimumSize: Size(0, 0),
+        ),
       ),
     );
   }

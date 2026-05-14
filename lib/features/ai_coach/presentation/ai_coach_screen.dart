@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/logger.dart';
@@ -18,11 +19,27 @@ class AICoachScreen extends ConsumerStatefulWidget {
 
 class _AICoachScreenState extends ConsumerState<AICoachScreen> {
   final _scrollController = ScrollController();
+  bool _keyConfigured = true;
+
+  static bool _isPlaceholderKey(String? key) {
+    if (key == null || key.isEmpty) return true;
+    final lower = key.toLowerCase();
+    return lower == 'your-api-key-here' ||
+        lower == 'your-real-key-here' ||
+        lower.startsWith('your-') ||
+        lower.contains('placeholder') ||
+        lower.contains('replace-me');
+  }
 
   @override
   void initState() {
     super.initState();
     AppLogger.log('AI Coach opened');
+    final key = dotenv.isInitialized ? dotenv.env['ANTHROPIC_API_KEY'] : null;
+    _keyConfigured = !_isPlaceholderKey(key);
+    if (!_keyConfigured) {
+      AppLogger.log('AI Coach: API key missing or placeholder');
+    }
   }
 
   @override
@@ -44,6 +61,29 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
   }
 
   void _sendMessage(String text) {
+    if (!_keyConfigured) {
+      showCupertinoDialog<void>(
+        context: context,
+        builder: (ctx) => CupertinoAlertDialog(
+          title: const Text('AI Coach not configured'),
+          content: const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'AI Coach is not configured yet. Please add your '
+              'ANTHROPIC_API_KEY to assets/.env and rebuild the app.',
+            ),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     ref.read(aiChatControllerProvider.notifier).sendMessage(text);
   }
 
@@ -272,21 +312,26 @@ class _SuggestedPromptChip extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        constraints: const BoxConstraints(minHeight: 48),
-        decoration: BoxDecoration(
-          border: Border.all(color: colorScheme.onSurface.withValues(alpha: 0.5), width: 1),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Text(
-          label,
-          style: textTheme.bodyMedium?.copyWith(
-            color: colorScheme.primary,
-            fontWeight: FontWeight.w500,
+    return Semantics(
+      label: label,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+          decoration: BoxDecoration(
+            border: Border.all(
+                color: colorScheme.onSurface.withValues(alpha: 0.5), width: 1),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Text(
+            label,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.primary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ),
