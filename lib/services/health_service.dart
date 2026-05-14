@@ -18,26 +18,32 @@ class HealthService {
 
   // ───────────────────────────────────────────────────────────────────
   // Type registries
+  //
+  // CRITICAL: HealthKit treats some quantity types as system-computed and
+  // read-only. Requesting *share* (write) access on any of them raises
+  // NSInvalidArgumentException at the native bridge and crashes the app
+  // before any try/catch on the Dart side can run. The split below has
+  // been validated against the iOS HealthKit reference — every type in
+  // [_readWriteTypes] is writable, every type in [_readOnlyTypes] is not.
   // ───────────────────────────────────────────────────────────────────
 
-  static const List<HealthDataType> readTypes = [
+  /// Read-only on iOS. Most are computed by the OS (exercise time, flights,
+  /// basal energy) or only meaningful as observations (heart rate, sleep).
+  static const List<HealthDataType> _readOnlyTypes = [
     HealthDataType.STEPS,
     HealthDataType.ACTIVE_ENERGY_BURNED,
     HealthDataType.BASAL_ENERGY_BURNED,
     HealthDataType.HEART_RATE,
     HealthDataType.DISTANCE_WALKING_RUNNING,
     HealthDataType.FLIGHTS_CLIMBED,
-    HealthDataType.WEIGHT,
     HealthDataType.BODY_FAT_PERCENTAGE,
-    HealthDataType.WATER,
     HealthDataType.SLEEP_ASLEEP,
     HealthDataType.SLEEP_IN_BED,
-    HealthDataType.WORKOUT,
-    HealthDataType.DIETARY_ENERGY_CONSUMED,
     HealthDataType.EXERCISE_TIME,
   ];
 
-  static const List<HealthDataType> writeTypes = [
+  /// Types the app both reads from and writes to Apple Health.
+  static const List<HealthDataType> _readWriteTypes = [
     HealthDataType.WEIGHT,
     HealthDataType.WATER,
     HealthDataType.WORKOUT,
@@ -46,6 +52,15 @@ class HealthService {
     HealthDataType.DIETARY_CARBS_CONSUMED,
     HealthDataType.DIETARY_FATS_CONSUMED,
   ];
+
+  /// All types the app may read (read-only + read-write).
+  static const List<HealthDataType> readTypes = [
+    ..._readOnlyTypes,
+    ..._readWriteTypes,
+  ];
+
+  /// All types the app may write (subset of read-write).
+  static const List<HealthDataType> writeTypes = _readWriteTypes;
 
   void _ensureConfigured() {
     if (_configured) return;
@@ -72,15 +87,29 @@ class HealthService {
     if (!Platform.isIOS) return false;
     try {
       _ensureConfigured();
-      final permissions =
-          readTypes.map((_) => HealthDataAccess.READ_WRITE).toList();
+      // Build parallel `types` and `permissions` arrays. Every read-only type
+      // gets HealthDataAccess.READ; every read-write type gets READ_WRITE.
+      // Mismatched lengths or wrong access-for-type both crash natively.
+      final types = <HealthDataType>[
+        ..._readOnlyTypes,
+        ..._readWriteTypes,
+      ];
+      final permissions = <HealthDataAccess>[
+        ..._readOnlyTypes.map((_) => HealthDataAccess.READ),
+        ..._readWriteTypes.map((_) => HealthDataAccess.READ_WRITE),
+      ];
+      assert(
+        types.length == permissions.length,
+        'types and permissions must be the same length',
+      );
       final granted = await _health.requestAuthorization(
-        readTypes,
+        types,
         permissions: permissions,
       );
       _cache.clear();
       return granted;
     } catch (e, st) {
+      debugPrint('[HealthService] requestPermissions crashed: $e');
       AppLogger.error(
         'HealthService.requestPermissions failed',
         error: e,

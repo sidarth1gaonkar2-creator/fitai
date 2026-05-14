@@ -600,9 +600,17 @@ class _AppleHealthSection extends ConsumerWidget {
                       : (value) async {
                           HapticFeedback.selectionClick();
                           if (value) {
-                            final granted = await ref
-                                .read(healthServiceProvider)
-                                .requestPermissions();
+                            bool granted = false;
+                            try {
+                              granted = await ref
+                                  .read(healthServiceProvider)
+                                  .requestPermissions();
+                            } catch (e) {
+                              if (context.mounted) {
+                                _showHealthError(context);
+                              }
+                              return;
+                            }
                             await ref
                                 .read(healthPrefsProvider.notifier)
                                 .setConnected(granted);
@@ -677,6 +685,25 @@ class _AppleHealthSection extends ConsumerWidget {
       ),
     );
   }
+}
+
+void _showHealthError(BuildContext context) {
+  showCupertinoDialog<void>(
+    context: context,
+    builder: (ctx) => CupertinoAlertDialog(
+      title: const Text('Apple Health'),
+      content: const Text(
+        'Unable to connect to Apple Health. Open the iOS Settings app and '
+        'check Privacy → Health → SwoleCoach.',
+      ),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('OK'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _HealthSwitchTile extends StatelessWidget {
