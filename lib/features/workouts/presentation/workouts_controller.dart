@@ -17,7 +17,10 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/personal_records_hall_providers.dart';
+import '../../../providers/theme_store_providers.dart';
+import '../../../providers/unit_system_provider.dart';
 import '../../../providers/workout_providers.dart';
+import '../../../services/currency_service.dart';
 import '../../community/data/leaderboard_repository.dart';
 import '../../community/data/user_repository.dart';
 import '../../community/domain/leaderboard_entry.dart';
@@ -396,6 +399,10 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
       // Sync the workout to Apple Health (iOS, connected, sync-workouts on)
       unawaited(_syncWorkoutToHealth());
 
+      // Award coins: workout + PR + streak milestones. Each is independent
+      // so a workout that hits a 7-day streak AND sets a PR earns all three.
+      unawaited(_awardCoinsForWorkout(prCount: newPRNames.length));
+
       AppLogger.log('Workout saved: "${state.title.trim()}"');
       state = state.copyWith(isSaving: false, newPRs: newPRNames);
       return savedWorkoutId;
@@ -403,6 +410,37 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
       AppLogger.error('Workout save failed', error: e, stack: st);
       state = state.copyWith(isSaving: false);
       return null;
+    }
+  }
+
+  /// Awards coins for the saved workout: base reward plus per-PR bonus plus
+  /// a one-time streak-milestone reward when the user just hit a 7- or 30-day
+  /// streak. Streak milestone state is debounced via SharedPreferences so we
+  /// don't double-pay on the same streak day.
+  Future<void> _awardCoinsForWorkout({required int prCount}) async {
+    final coins = _ref.read(coinBalanceProvider.notifier);
+    try {
+      await coins.award(CurrencyService.coinsPerWorkout, 'workout_completed');
+      if (prCount > 0) {
+        await coins.award(
+          CurrencyService.coinsPerPR * prCount,
+          'pr_set',
+        );
+      }
+      final streak = await _ref.read(streakProvider.future);
+      final prefs = _ref.read(sharedPreferencesProvider);
+      const k7 = 'currency_streak7_awarded';
+      const k30 = 'currency_streak30_awarded';
+      if (streak >= 7 && !(prefs.getBool(k7) ?? false)) {
+        await coins.award(CurrencyService.coinsPerStreak7, 'streak_7_days');
+        await prefs.setBool(k7, true);
+      }
+      if (streak >= 30 && !(prefs.getBool(k30) ?? false)) {
+        await coins.award(CurrencyService.coinsPerStreak30, 'streak_30_days');
+        await prefs.setBool(k30, true);
+      }
+    } catch (e, st) {
+      AppLogger.error('Coin award failed', error: e, stack: st);
     }
   }
 

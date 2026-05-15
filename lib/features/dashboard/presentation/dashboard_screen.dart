@@ -12,9 +12,11 @@ import '../../../core/widgets/shimmer_loading.dart';
 import '../../../providers/dashboard_providers.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/user_profile_provider.dart';
+import 'widgets/activity_rings.dart';
 import 'widgets/activity_row.dart';
 import 'widgets/calorie_ring.dart';
 import 'widgets/dashboard_skeleton.dart';
+import 'widgets/fitness_workouts_card.dart';
 import 'widgets/macro_row.dart';
 import 'widgets/streak_counter.dart';
 import 'widgets/today_workout_card.dart';
@@ -185,9 +187,17 @@ class DashboardScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // --- Activity row (Apple Health, iOS only) ---
+                // --- Apple Activity Rings (Move / Exercise / Stand) ---
+                // ActivityRings, ActivityRow and FitnessWorkoutsCard each
+                // self-gate on Platform.isIOS + healthConnectedProvider, so
+                // they collapse cleanly to zero height on Android or when
+                // Health is disconnected.
                 if (Platform.isIOS) ...[
+                  const ActivityRings(),
+                  const SizedBox(height: 12),
                   const ActivityRow(),
+                  const SizedBox(height: 12),
+                  const FitnessWorkoutsCard(),
                   const SizedBox(height: 20),
                 ],
 

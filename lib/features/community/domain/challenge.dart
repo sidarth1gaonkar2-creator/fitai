@@ -1,5 +1,35 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// How the app verifies that a participant has met a challenge's daily
+/// goal. Stored as the string name of the enum value in Firestore — keep
+/// the names stable.
+enum ChallengeTrackingMode {
+  /// User self-reports (photo, manual tap). The pre-existing behaviour for
+  /// every existing challenge in Firestore.
+  manual,
+
+  /// Auto-import daily steps from HealthKit. Goal expressed in steps.
+  autoSteps,
+
+  /// Auto-import daily active calories burned. Goal expressed in kcal.
+  autoCalories,
+
+  /// Auto-detect any workout logged in Isar today. Goal: 1 workout.
+  autoWorkouts,
+
+  /// Auto-import water intake from the local tracker (NOT HealthKit — water
+  /// has different units in HK and the local store is the source of truth).
+  /// Goal expressed in millilitres.
+  autoWater,
+}
+
+ChallengeTrackingMode _parseTrackingMode(String? raw) {
+  for (final m in ChallengeTrackingMode.values) {
+    if (m.name == raw) return m;
+  }
+  return ChallengeTrackingMode.manual;
+}
+
 /// A user or system-created challenge.
 class Challenge {
   const Challenge({
@@ -20,6 +50,9 @@ class Challenge {
     this.icon,
     this.difficulty,
     this.createdAt,
+    this.trackingMode = ChallengeTrackingMode.manual,
+    this.dailyGoalValue,
+    this.goalUnit,
   });
 
   final String challengeId;
@@ -41,6 +74,20 @@ class Challenge {
   final String? icon;
   final String? difficulty;
   final DateTime? createdAt;
+
+  /// How the challenge tracks daily progress (manual photo proof vs. an
+  /// automated HealthKit/Isar reading). Defaults to [ChallengeTrackingMode.manual]
+  /// so existing Firestore docs without this field continue to work.
+  final ChallengeTrackingMode trackingMode;
+
+  /// Target value per day. Interpreted via [goalUnit]. Only set when
+  /// [trackingMode] is one of the auto modes.
+  final double? dailyGoalValue;
+
+  /// Unit string for [dailyGoalValue]: 'steps', 'kcal', 'ml', 'workouts'.
+  final String? goalUnit;
+
+  bool get isAutoTracked => trackingMode != ChallengeTrackingMode.manual;
 
   bool get isActive {
     if (endDate == null) return true;
@@ -73,6 +120,9 @@ class Challenge {
       icon: map['icon'] as String?,
       difficulty: map['difficulty'] as String?,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
+      trackingMode: _parseTrackingMode(map['trackingMode'] as String?),
+      dailyGoalValue: (map['dailyGoalValue'] as num?)?.toDouble(),
+      goalUnit: map['goalUnit'] as String?,
     );
   }
 
@@ -97,6 +147,9 @@ class Challenge {
       'createdAt': createdAt != null
           ? Timestamp.fromDate(createdAt!)
           : FieldValue.serverTimestamp(),
+      'trackingMode': trackingMode.name,
+      if (dailyGoalValue != null) 'dailyGoalValue': dailyGoalValue,
+      if (goalUnit != null) 'goalUnit': goalUnit,
     };
   }
 }

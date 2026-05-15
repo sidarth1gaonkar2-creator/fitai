@@ -24,6 +24,8 @@ class NotificationSettings {
     this.streakEnabled = false,
     this.prEnabled = true,
     this.supplementEnabled = false,
+    this.restDays = const <int>{},
+    this.challengeRemindersEnabled = true,
   });
 
   final bool workoutEnabled;
@@ -44,6 +46,14 @@ class NotificationSettings {
   final bool prEnabled;
   final bool supplementEnabled;
 
+  /// Weekdays the user wants left alone — no workout or streak reminders.
+  /// 0 = Monday … 6 = Sunday. Empty = remind every day.
+  final Set<int> restDays;
+
+  /// Master toggle for challenge-related notifications (daily check-ins,
+  /// goal-reached, completion).
+  final bool challengeRemindersEnabled;
+
   NotificationSettings copyWith({
     bool? workoutEnabled,
     List<int>? workoutDays,
@@ -62,6 +72,8 @@ class NotificationSettings {
     bool? streakEnabled,
     bool? prEnabled,
     bool? supplementEnabled,
+    Set<int>? restDays,
+    bool? challengeRemindersEnabled,
   }) {
     return NotificationSettings(
       workoutEnabled: workoutEnabled ?? this.workoutEnabled,
@@ -81,6 +93,9 @@ class NotificationSettings {
       streakEnabled: streakEnabled ?? this.streakEnabled,
       prEnabled: prEnabled ?? this.prEnabled,
       supplementEnabled: supplementEnabled ?? this.supplementEnabled,
+      restDays: restDays ?? this.restDays,
+      challengeRemindersEnabled:
+          challengeRemindersEnabled ?? this.challengeRemindersEnabled,
     );
   }
 }
@@ -112,6 +127,9 @@ class NotificationSettingsNotifier extends StateNotifier<NotificationSettings> {
       streakEnabled: _prefs.getBool('notif_streak_enabled') ?? false,
       prEnabled: _prefs.getBool('notif_pr_enabled') ?? true,
       supplementEnabled: _prefs.getBool('notif_supplement_enabled') ?? false,
+      restDays: (_loadIntList('notif_rest_days') ?? const <int>[]).toSet(),
+      challengeRemindersEnabled:
+          _prefs.getBool('notif_challenge_enabled') ?? true,
     );
   }
 
@@ -140,6 +158,14 @@ class NotificationSettingsNotifier extends StateNotifier<NotificationSettings> {
     await _prefs.setBool('notif_streak_enabled', state.streakEnabled);
     await _prefs.setBool('notif_pr_enabled', state.prEnabled);
     await _prefs.setBool('notif_supplement_enabled', state.supplementEnabled);
+    await _prefs.setString(
+      'notif_rest_days',
+      jsonEncode(state.restDays.toList()..sort()),
+    );
+    await _prefs.setBool(
+      'notif_challenge_enabled',
+      state.challengeRemindersEnabled,
+    );
   }
 
   Future<void> _syncSchedules() async {

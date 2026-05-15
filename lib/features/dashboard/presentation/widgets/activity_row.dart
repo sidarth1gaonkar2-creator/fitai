@@ -11,6 +11,7 @@ import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../providers/health_providers.dart';
 import '../../../../providers/unit_system_provider.dart';
+import '../../../../services/health_service.dart';
 
 /// Horizontal scrolling row of Apple Health stats. Only renders on iOS when
 /// the user is connected and has the dashboard toggle on. Shows a connect CTA
@@ -64,7 +65,10 @@ class ActivityRow extends ConsumerWidget {
     }
     if (!context.mounted) return;
     if (granted) {
-      await ref.read(healthPrefsProvider.notifier).setConnected(true);
+      final notifier = ref.read(healthPrefsProvider.notifier);
+      await notifier.setConnected(true);
+      await notifier
+          .markAuthorizedAt(HealthService.permissionsSchemaVersion);
       ref.invalidate(dailyHealthSummaryProvider);
       ref.invalidate(weeklyStepsProvider);
       ref.invalidate(weeklyActiveCaloriesProvider);
@@ -160,7 +164,9 @@ class _ActivityCardsList extends ConsumerWidget {
           final flights = (data['flightsClimbed'] as int?) ?? 0;
           final activeMinutes = (data['activeMinutes'] as int?) ?? 0;
           final heartRate = data['heartRate'] as int?;
+          final restingHr = data['restingHeartRate'] as int?;
           final sleepMinutes = (data['sleepMinutes'] as int?) ?? 0;
+          final standHours = (data['standHours'] as int?) ?? 0;
 
           final isMetric = units == UnitSystem.metric;
           final distanceLabel = isMetric ? 'km' : 'mi';
@@ -168,6 +174,12 @@ class _ActivityCardsList extends ConsumerWidget {
               ? (distanceMeters / 1000).toStringAsFixed(1)
               : (distanceMeters / 1609.34).toStringAsFixed(1);
 
+          // Stats that are inherently numeric (steps, distance, flights,
+          // active minutes) show their literal value — including 0. They're
+          // only ever "missing" if the user revoked READ permission for that
+          // type, which the user will see immediately as zeros across the
+          // board. Heart rate and sleep can be genuinely null (no Apple
+          // Watch reading, no sleep tracked) so those still show "—".
           return ListView(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.zero,
@@ -180,19 +192,19 @@ class _ActivityCardsList extends ConsumerWidget {
               const SizedBox(width: 8),
               _ActivityCard(
                 icon: CupertinoIcons.location_solid,
-                value: distanceMeters > 0 ? distanceValue : '—',
+                value: distanceValue,
                 label: distanceLabel,
               ),
               const SizedBox(width: 8),
               _ActivityCard(
                 icon: Icons.stairs,
-                value: flights > 0 ? flights.toString() : '—',
+                value: flights.toString(),
                 label: 'Flights',
               ),
               const SizedBox(width: 8),
               _ActivityCard(
                 icon: CupertinoIcons.timer,
-                value: activeMinutes > 0 ? '$activeMinutes' : '—',
+                value: '$activeMinutes',
                 label: 'Active',
               ),
               const SizedBox(width: 8),
@@ -200,6 +212,18 @@ class _ActivityCardsList extends ConsumerWidget {
                 icon: Icons.favorite,
                 value: heartRate != null ? '$heartRate' : '—',
                 label: 'bpm',
+              ),
+              const SizedBox(width: 8),
+              _ActivityCard(
+                icon: Icons.monitor_heart,
+                value: restingHr != null ? '$restingHr' : '—',
+                label: 'Resting',
+              ),
+              const SizedBox(width: 8),
+              _ActivityCard(
+                icon: Icons.accessibility,
+                value: '$standHours',
+                label: 'Stand',
               ),
               const SizedBox(width: 8),
               _ActivityCard(

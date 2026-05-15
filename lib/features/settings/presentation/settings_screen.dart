@@ -15,8 +15,10 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/settings_providers.dart';
+import '../../../providers/theme_store_providers.dart';
 import '../../../providers/unit_system_provider.dart';
 import '../../../providers/user_profile_provider.dart';
+import '../../../services/health_service.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -65,6 +67,47 @@ class SettingsScreen extends ConsumerWidget {
                 // Appearance section
                 _SectionLabel(label: 'Appearance', textTheme: textTheme),
                 const SizedBox(height: 8),
+                _SettingsCard(
+                  child: Builder(builder: (context) {
+                    final activeTheme = ref.watch(activeThemeProvider);
+                    final coins = ref.watch(coinBalanceProvider);
+                    return CupertinoListTile(
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              activeTheme.backgroundColor,
+                              activeTheme.primaryColor,
+                            ],
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      title: Text(
+                        'Themes',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.text,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${activeTheme.name} · $coins coins',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      trailing: Icon(
+                        CupertinoIcons.chevron_right,
+                        color: palette.text,
+                        size: 18,
+                      ),
+                      onTap: () => context.push('/settings/themes'),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 12),
                 _SettingsCard(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -615,9 +658,14 @@ class _AppleHealthSection extends ConsumerWidget {
                               }
                               return;
                             }
-                            await ref
-                                .read(healthPrefsProvider.notifier)
-                                .setConnected(granted);
+                            final notifier =
+                                ref.read(healthPrefsProvider.notifier);
+                            await notifier.setConnected(granted);
+                            if (granted) {
+                              await notifier.markAuthorizedAt(
+                                HealthService.permissionsSchemaVersion,
+                              );
+                            }
                             if (!context.mounted) return;
                             if (granted) {
                               ref.invalidate(dailyHealthSummaryProvider);
@@ -643,6 +691,10 @@ class _AppleHealthSection extends ConsumerWidget {
             ),
           ),
           if (prefs.connected) ...[
+            _SettingsDivider(),
+            _RefreshPermissionsTile(
+              stale: ref.watch(healthPermissionsStaleProvider),
+            ),
             _SettingsDivider(),
             _HealthSwitchTile(
               label: 'Show on Dashboard',
@@ -708,6 +760,92 @@ void _showHealthError(BuildContext context) {
       ],
     ),
   );
+}
+
+/// Tile inside the Apple Health section that lets the user re-run
+/// `requestAuthorization` against the current full type set. When [stale] is
+/// true (the app now requests more types than the user last authorized) we
+/// show an inline hint and color the row in the warning palette.
+class _RefreshPermissionsTile extends ConsumerWidget {
+  const _RefreshPermissionsTile({required this.stale});
+
+  final bool stale;
+
+  Future<void> _onTap(BuildContext context, WidgetRef ref) async {
+    HapticFeedback.selectionClick();
+    bool granted = false;
+    try {
+      granted =
+          await ref.read(healthServiceProvider).requestPermissions();
+    } catch (e) {
+      if (context.mounted) _showHealthError(context);
+      return;
+    }
+    if (granted) {
+      await ref
+          .read(healthPrefsProvider.notifier)
+          .markAuthorizedAt(HealthService.permissionsSchemaVersion);
+      ref.invalidate(dailyHealthSummaryProvider);
+      ref.invalidate(weeklyStepsProvider);
+      ref.invalidate(weeklyActiveCaloriesProvider);
+    }
+    if (!context.mounted) return;
+    showCupertinoToast(
+      context,
+      granted
+          ? 'Permissions refreshed'
+          : 'Could not refresh permissions. Open iOS Settings → Health.',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final color = stale ? palette.warning : palette.accent;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _onTap(context, ref),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Icon(CupertinoIcons.refresh, size: 18, color: color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    stale
+                        ? 'New permissions available'
+                        : 'Refresh permissions',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    stale
+                        ? 'Tap to grant access to newly added health stats'
+                        : 'Re-prompt iOS for any new HealthKit types',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: palette.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              CupertinoIcons.chevron_right,
+              size: 16,
+              color: palette.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _HealthSwitchTile extends StatelessWidget {

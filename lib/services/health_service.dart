@@ -128,23 +128,46 @@ class HealthService {
   /// Combines the feature flag, the platform check, and the native pre-flight.
   Future<bool> isAvailable() async => canUseHealthKit();
 
-  /// Diagnostic-mode permission set. We request the bare minimum first so
-  /// that if the native side is still crashing we can isolate which type is
-  /// to blame. The fuller set in [_readOnlyTypes]/[_readWriteTypes] is the
-  /// long-term target — once the connect flow is verified working on a real
-  /// signed build, expand [_diagnosticTypes]/[_diagnosticPerms] back to those
-  /// const lists.
-  static const List<HealthDataType> _diagnosticTypes = [
+  /// Schema version of the permission set requested by [requestPermissions].
+  /// Bump this whenever the type lists below change — the settings UI uses it
+  /// to decide whether the current authorization is stale and the user
+  /// should re-prompt iOS for the new types.
+  ///
+  /// History:
+  ///   * v1 — diagnostic-only set (STEPS, ACTIVE_ENERGY, WEIGHT, WATER).
+  ///   * v2 — full set: all safe read-only stats + writable food/weight/water/workout.
+  ///   * v3 — added APPLE_STAND_HOUR, RESTING_HEART_RATE (read-only Fitness app data).
+  ///   * v4 — added HEIGHT (read-write, user-set body measurement).
+  static const int permissionsSchemaVersion = 4;
+
+  /// Full read-only set requested with [HealthDataAccess.READ]. None of these
+  /// are writable in HealthKit (they're system-computed or sensor-derived),
+  /// so requesting WRITE access on any of them raises NSInvalidArgumentException.
+  static const List<HealthDataType> _fullReadTypes = [
     HealthDataType.STEPS,
     HealthDataType.ACTIVE_ENERGY_BURNED,
-    HealthDataType.WEIGHT,
-    HealthDataType.WATER,
+    HealthDataType.BASAL_ENERGY_BURNED,
+    HealthDataType.HEART_RATE,
+    HealthDataType.RESTING_HEART_RATE,
+    HealthDataType.DISTANCE_WALKING_RUNNING,
+    HealthDataType.FLIGHTS_CLIMBED,
+    HealthDataType.SLEEP_ASLEEP,
+    HealthDataType.SLEEP_IN_BED,
+    HealthDataType.EXERCISE_TIME,
+    HealthDataType.APPLE_STAND_HOUR,
+    HealthDataType.BODY_FAT_PERCENTAGE,
   ];
-  static const List<HealthDataAccess> _diagnosticPerms = [
-    HealthDataAccess.READ,
-    HealthDataAccess.READ,
-    HealthDataAccess.READ_WRITE,
-    HealthDataAccess.READ_WRITE,
+
+  /// Types we both read from and write to Apple Health.
+  static const List<HealthDataType> _fullReadWriteTypes = [
+    HealthDataType.WEIGHT,
+    HealthDataType.HEIGHT,
+    HealthDataType.WATER,
+    HealthDataType.WORKOUT,
+    HealthDataType.DIETARY_ENERGY_CONSUMED,
+    HealthDataType.DIETARY_PROTEIN_CONSUMED,
+    HealthDataType.DIETARY_CARBS_CONSUMED,
+    HealthDataType.DIETARY_FATS_CONSUMED,
   ];
 
   Future<bool> requestPermissions() async {
@@ -171,17 +194,27 @@ class HealthService {
       return false;
     }
 
+    final allTypes = <HealthDataType>[
+      ..._fullReadTypes,
+      ..._fullReadWriteTypes,
+    ];
+    final allPermissions = <HealthDataAccess>[
+      ..._fullReadTypes.map((_) => HealthDataAccess.READ),
+      ..._fullReadWriteTypes.map((_) => HealthDataAccess.READ_WRITE),
+    ];
+    assert(
+      allTypes.length == allPermissions.length,
+      'types/permissions must be same length',
+    );
+
     try {
       debugPrint(
-        '[HealthService] requesting auth for ${_diagnosticTypes.length} types',
-      );
-      assert(
-        _diagnosticTypes.length == _diagnosticPerms.length,
-        'types/permissions must be same length',
+        '[HealthService] requesting auth for ${allTypes.length} types '
+        '(schema v$permissionsSchemaVersion)',
       );
       final authorized = await _health.requestAuthorization(
-        _diagnosticTypes,
-        permissions: _diagnosticPerms,
+        allTypes,
+        permissions: allPermissions,
       );
       debugPrint('[HealthService] authorization result: $authorized');
       _cache.clear();
@@ -403,6 +436,155 @@ class HealthService {
     }
   }
 
+  /// Apple Activity-style stand hours for today. HealthKit emits one
+  /// `APPLE_STAND_HOUR` sample for every hour the user stood for at least one
+  /// minute, so the count of distinct hour-of-day values gives us the stand
+  /// ring number directly.
+  Future<int> getTodayStandHours() => _cached('stand_hours', () async {
+        if (!Platform.isIOS) return 0;
+        try {
+          await _ensureConfigured();
+          final (start, end) = _todayRange();
+          final data = await _health.getHealthDataFromTypes(
+            types: [HealthDataType.APPLE_STAND_HOUR],
+            startTime: start,
+            endTime: end,
+          );
+          final hours = <int>{};
+          for (final point in data) {
+            hours.add(point.dateFrom.hour);
+          }
+          return hours.length;
+        } on _HealthUnavailable {
+          return 0;
+        } catch (e, st) {
+          debugPrint('[HealthService] stand hours error: $e');
+          AppLogger.error('Stand hours read failed', error: e, stack: st);
+          return 0;
+        }
+      });
+
+  /// Resting heart rate from HealthKit's `RESTING_HEART_RATE` series (computed
+  /// by iOS from passive HR readings — much more accurate than scanning for
+  /// the lowest HR sample of the day).
+  Future<int?> getRestingHeartRate() => _cached('resting_hr', () async {
+        if (!Platform.isIOS) return null;
+        try {
+          await _ensureConfigured();
+          final now = DateTime.now();
+          final start = now.subtract(const Duration(days: 7));
+          final data = await _health.getHealthDataFromTypes(
+            types: [HealthDataType.RESTING_HEART_RATE],
+            startTime: start,
+            endTime: now,
+          );
+          if (data.isEmpty) return null;
+          data.sort((a, b) => b.dateFrom.compareTo(a.dateFrom));
+          final v = data.first.value;
+          if (v is NumericHealthValue) return v.numericValue.toInt();
+          return null;
+        } on _HealthUnavailable {
+          return null;
+        } catch (e, st) {
+          debugPrint('[HealthService] resting HR error: $e');
+          AppLogger.error('Resting HR read failed', error: e, stack: st);
+          return null;
+        }
+      });
+
+  /// VO2 max placeholder. VO2_MAX / VO2MAX are NOT defined in `health 13.3.1`'s
+  /// `HealthDataType` enum, so we can't query the type without a compile-time
+  /// error. Returns null and logs once at startup so the caller can hide the
+  /// VO2 card.
+  Future<double?> getLatestVO2Max() async {
+    debugPrint(
+      '[HealthService] VO2 max not available in health 13.3.1 — '
+      'no HealthDataType.VO2MAX enum entry. Returning null.',
+    );
+    return null;
+  }
+
+  /// Recent workouts from Apple Fitness / Apple Watch / 3rd-party apps. Each
+  /// row's `source` is the originating app name (e.g. "Apple Fitness",
+  /// "Strava"). Energy is read from the workout's [WorkoutHealthValue].
+  Future<List<Map<String, dynamic>>> getRecentFitnessWorkouts({
+    int days = 7,
+  }) async {
+    if (!Platform.isIOS) return const [];
+    try {
+      await _ensureConfigured();
+      final now = DateTime.now();
+      final start = now.subtract(Duration(days: days));
+      final data = await _health.getHealthDataFromTypes(
+        types: [HealthDataType.WORKOUT],
+        startTime: start,
+        endTime: now,
+      );
+      final rows = <Map<String, dynamic>>[];
+      for (final point in data) {
+        final duration = point.dateTo.difference(point.dateFrom);
+        String activity = 'workout';
+        double calories = 0;
+        final v = point.value;
+        if (v is WorkoutHealthValue) {
+          activity = v.workoutActivityType.name;
+          calories = (v.totalEnergyBurned ?? 0).toDouble();
+        }
+        rows.add({
+          'activity': activity,
+          'start': point.dateFrom,
+          'end': point.dateTo,
+          'durationMinutes': duration.inMinutes,
+          'calories': calories,
+          'source': point.sourceName,
+        });
+      }
+      rows.sort(
+        (a, b) => (b['start'] as DateTime).compareTo(a['start'] as DateTime),
+      );
+      return rows;
+    } on _HealthUnavailable {
+      return const [];
+    } catch (e, st) {
+      debugPrint('[HealthService] fitness workouts error: $e');
+      AppLogger.error('Fitness workouts read failed', error: e, stack: st);
+      return const [];
+    }
+  }
+
+  /// Generic 7-day rollup for a numeric quantity type. Used by the Fitness
+  /// Trends charts on the Progress screen.
+  Future<List<double>> getWeeklyData(HealthDataType type) async {
+    if (!Platform.isIOS) return List<double>.filled(7, 0);
+    try {
+      await _ensureConfigured();
+      final now = DateTime.now();
+      final results = <double>[];
+      for (int i = 6; i >= 0; i--) {
+        final dayStart = DateTime(now.year, now.month, now.day)
+            .subtract(Duration(days: i));
+        final dayEnd = dayStart.add(const Duration(days: 1));
+        final total = await _sumNumeric(
+          [type],
+          (dayStart, dayEnd),
+          useCache: false,
+        );
+        results.add(total);
+      }
+      return results;
+    } on _HealthUnavailable {
+      return List<double>.filled(7, 0);
+    } catch (e, st) {
+      debugPrint('[HealthService] weekly data error for $type: $e');
+      AppLogger.error(
+        'Weekly data read failed for $type',
+        error: e,
+        stack: st,
+      );
+      return List<double>.filled(7, 0);
+    }
+  }
+
   /// Daily active calories burned over the last [days] days, oldest first.
   Future<List<double>> getDailyActiveCalories({int days = 7}) async {
     if (!Platform.isIOS) return List.filled(days, 0);
@@ -472,6 +654,60 @@ class HealthService {
       return ok;
     } catch (e, st) {
       AppLogger.error('Write weight failed', error: e, stack: st);
+      return false;
+    }
+  }
+
+  /// Returns the most recent height value in centimetres, or null if there
+  /// are no `HEIGHT` samples in HealthKit (or the user denied permission).
+  Future<double?> getLatestHeight() => _cached('latest_height', () async {
+        if (!Platform.isIOS) return null;
+        try {
+          await _ensureConfigured();
+          final now = DateTime.now();
+          final data = await _health.getHealthDataFromTypes(
+            types: [HealthDataType.HEIGHT],
+            startTime: now.subtract(const Duration(days: 3650)),
+            endTime: now,
+          );
+          if (data.isEmpty) return null;
+          data.sort((a, b) => b.dateFrom.compareTo(a.dateFrom));
+          final v = data.first.value;
+          if (v is NumericHealthValue) {
+            // HealthKit reports HEIGHT in METERS; convert to cm for the rest
+            // of the app which uses centimetres throughout.
+            return v.numericValue.toDouble() * 100;
+          }
+          return null;
+        } on _HealthUnavailable {
+          return null;
+        } catch (e, st) {
+          debugPrint('[HealthService] height read error: $e');
+          AppLogger.error('Height read failed', error: e, stack: st);
+          return null;
+        }
+      });
+
+  /// Writes a single HEIGHT sample. [heightCm] is in centimetres; we convert
+  /// to metres for the HealthKit METER unit.
+  Future<bool> writeHeight(double heightCm) async {
+    if (!Platform.isIOS) return false;
+    try {
+      await _ensureConfigured();
+      final now = DateTime.now();
+      final ok = await _health.writeHealthData(
+        value: heightCm / 100,
+        type: HealthDataType.HEIGHT,
+        startTime: now,
+        endTime: now,
+        unit: HealthDataUnit.METER,
+      );
+      _cache.clear();
+      return ok;
+    } on _HealthUnavailable {
+      return false;
+    } catch (e, st) {
+      AppLogger.error('Write height failed', error: e, stack: st);
       return false;
     }
   }
@@ -556,6 +792,8 @@ class HealthService {
       getLatestHeartRate(),
       getLatestWeight(),
       getLastNightSleepMinutes(),
+      getTodayStandHours(),
+      getRestingHeartRate(),
     ]);
     return {
       'steps': results[0] as int,
@@ -567,6 +805,8 @@ class HealthService {
       'heartRate': results[6] as int?,
       'weightKg': results[7] as double?,
       'sleepMinutes': results[8] as int,
+      'standHours': results[9] as int,
+      'restingHeartRate': results[10] as int?,
     };
   }
 

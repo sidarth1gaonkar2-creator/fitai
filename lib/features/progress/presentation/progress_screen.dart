@@ -11,6 +11,7 @@ import '../../../core/widgets/shimmer_loading.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/progress_providers.dart';
 import 'widgets/activity_trends.dart';
+import 'widgets/fitness_trends.dart';
 import 'widgets/milestone_badges.dart';
 import 'widgets/nutrition_trends.dart';
 import 'widgets/strength_chart.dart';
@@ -261,6 +262,17 @@ class _WorkoutLogTab extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             const ActivityTrends(),
+            const SizedBox(height: 24),
+            Text(
+              'Fitness Trends',
+              style: textTheme.titleMedium?.copyWith(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                color: AppColors.of(context).accent,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const FitnessTrends(),
             const SizedBox(height: 24),
           ],
         ],

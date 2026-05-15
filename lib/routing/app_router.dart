@@ -27,6 +27,7 @@ import '../features/progress/presentation/pr_hall_screen.dart';
 import '../features/progress/presentation/progress_screen.dart';
 import '../features/settings/presentation/edit_profile_screen.dart';
 import '../features/settings/presentation/notification_settings_screen.dart';
+import '../features/settings/presentation/theme_store_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/supplements/presentation/supplements_screen.dart';
 import '../features/shell/presentation/shell_screen.dart';
@@ -383,6 +384,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => slideUpTransitionPage(
               key: state.pageKey,
               child: const NotificationSettingsScreen(),
+            ),
+          ),
+          GoRoute(
+            path: 'themes',
+            pageBuilder: (context, state) => slideUpTransitionPage(
+              key: state.pageKey,
+              child: const ThemeStoreScreen(),
             ),
           ),
         ],

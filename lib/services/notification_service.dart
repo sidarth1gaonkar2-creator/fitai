@@ -288,4 +288,147 @@ class NotificationService {
   Future<void> cancelAll() async {
     await _plugin.cancelAll();
   }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Smart streak protection (IDs 800-801)
+  //
+  // The plain [scheduleStreakReminder] above still ships untouched (it's
+  // tied to existing user settings). [scheduleStreakReminderSmart] is the
+  // newer variant that respects rest days and current streak length, and
+  // is what new code should call.
+  // ───────────────────────────────────────────────────────────────────────
+
+  static const _streakSoftId = 800;
+  static const _streakHardId = 801;
+
+  Future<void> scheduleStreakReminderSmart({
+    required int currentStreak,
+    required DateTime? lastWorkoutDate,
+    required Set<int> restDays,
+  }) async {
+    final now = DateTime.now();
+    final todayWeekday = now.weekday - 1; // 0=Mon..6=Sun
+
+    // Always start by clearing — we may end up scheduling nothing on rest
+    // days or when there is no streak to protect.
+    await _plugin.cancel(id: _streakSoftId);
+    await _plugin.cancel(id: _streakHardId);
+
+    if (restDays.contains(todayWeekday)) return;
+    if (currentStreak <= 0) return;
+
+    final daysSinceWorkout = lastWorkoutDate == null
+        ? 999
+        : now.difference(lastWorkoutDate).inDays;
+
+    if (daysSinceWorkout >= 1) {
+      // 6 PM gentle reminder if no workout yet today.
+      await _scheduleDaily(
+        id: _streakSoftId,
+        hour: 18,
+        minute: 0,
+        title: 'Streak Alert',
+        body:
+            'Your $currentStreak-day streak is still going! Log a workout '
+            'today to keep it alive.',
+        channelId: 'streak_reminders',
+        channelName: 'Streak Reminders',
+      );
+    }
+    if (daysSinceWorkout >= 2) {
+      // Immediate "about to break" toast.
+      await _plugin.show(
+        id: _streakHardId,
+        title: 'Streak about to break',
+        body:
+            'Your $currentStreak-day streak will break tomorrow! Squeeze in a '
+            'quick workout to save it.',
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'streak_reminders',
+            'Streak Reminders',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+      );
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Challenge reminders (IDs 900-999)
+  // ───────────────────────────────────────────────────────────────────────
+
+  static int _challengeIdFromKey(String challengeId) =>
+      900 + challengeId.hashCode.abs() % 100;
+
+  Future<void> scheduleChallengeReminder({
+    required String challengeId,
+    required String challengeTitle,
+    required int daysRemaining,
+    required bool requiresPhotoProof,
+    required bool isAutoTracked,
+  }) async {
+    final id = _challengeIdFromKey(challengeId);
+    final body = isAutoTracked
+        ? 'Auto-tracked via Apple Health — $daysRemaining days left.'
+        : requiresPhotoProof
+            ? "Don't forget to log today with a photo. "
+                '$daysRemaining days left.'
+            : 'Keep going — $daysRemaining days remaining.';
+    await _scheduleDaily(
+      id: id,
+      hour: 9,
+      minute: 0,
+      title: challengeTitle,
+      body: body,
+      channelId: 'challenge_reminders',
+      channelName: 'Challenge Reminders',
+    );
+  }
+
+  Future<void> cancelChallengeReminder(String challengeId) async {
+    await _plugin.cancel(id: _challengeIdFromKey(challengeId));
+  }
+
+  Future<void> notifyChallengeGoalReached({
+    required String challengeTitle,
+  }) async {
+    await _plugin.show(
+      id: 950,
+      title: 'Daily Goal Met!',
+      body: 'You\'ve hit your "$challengeTitle" goal for today. Keep it up!',
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'challenge_reminders',
+          'Challenge Reminders',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+    );
+  }
+
+  Future<void> notifyChallengeComplete({
+    required String challengeTitle,
+  }) async {
+    await _plugin.show(
+      id: 951,
+      title: 'Challenge Complete',
+      body:
+          'Amazing! You\'ve completed "$challengeTitle". Share your win with '
+          'the community.',
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'challenge_reminders',
+          'Challenge Reminders',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+    );
+  }
 }
