@@ -160,6 +160,132 @@ class FoodSearchResult {
     );
   }
 
+  /// Spoonacular `/food/menuItems/{id}` and `/food/menuItems/search` items.
+  /// Restaurant menu items typically expose nutrition per serving rather
+  /// than per 100 g, so we use [weightPerServing] if present to normalise,
+  /// otherwise fall back to treating the values as per-100g and clamping
+  /// the default serving to the reported size.
+  factory FoodSearchResult.fromSpoonacularMenuItem(
+    Map<String, dynamic> item,
+  ) {
+    final nutrition = item['nutrition'] as Map<String, dynamic>?;
+    return _fromSpoonacular(
+      name: (item['title'] as String?) ?? 'Unknown Item',
+      brand: item['restaurantChain'] as String?,
+      imageUrl: item['image'] as String?,
+      nutrition: nutrition,
+      servings: item['servings'] as Map<String, dynamic>?,
+    );
+  }
+
+  /// Spoonacular `/food/products/{id}`, `/food/products/search`, and
+  /// `/food/products/upc/{upc}` items. Branded grocery products — preserves
+  /// the barcode in [barcode] when present so the same row is dedupable
+  /// against OpenFoodFacts results.
+  factory FoodSearchResult.fromSpoonacularProduct(
+    Map<String, dynamic> product,
+  ) {
+    final nutrition = product['nutrition'] as Map<String, dynamic>?;
+    final brands = product['brand'] as String? ??
+        (product['brands'] is List
+            ? (product['brands'] as List).join(', ')
+            : product['brands'] as String?);
+    return _fromSpoonacular(
+      name: (product['title'] as String?) ?? 'Unknown Product',
+      brand: brands,
+      imageUrl: product['image'] as String?,
+      barcode: product['upc'] as String?,
+      nutrition: nutrition,
+      servings: product['servings'] as Map<String, dynamic>?,
+    );
+  }
+
+  /// Shared parser for Spoonacular menu items and products. Both endpoints
+  /// return the same nutrition envelope: `nutrients: [{name, amount, unit}]`
+  /// plus an optional `weightPerServing`. We convert to the app's per-100 g
+  /// canonical form by `(per_serving / grams_per_serving) * 100`.
+  static FoodSearchResult _fromSpoonacular({
+    required String name,
+    String? brand,
+    String? imageUrl,
+    String? barcode,
+    Map<String, dynamic>? nutrition,
+    Map<String, dynamic>? servings,
+  }) {
+    final nutrients = (nutrition?['nutrients'] as List<dynamic>?) ?? const [];
+    double valueOf(String displayName) {
+      for (final raw in nutrients) {
+        final n = raw as Map<String, dynamic>;
+        if ((n['name'] as String?)?.toLowerCase() ==
+            displayName.toLowerCase()) {
+          return (n['amount'] as num?)?.toDouble() ?? 0;
+        }
+      }
+      return 0;
+    }
+
+    double? optValueOf(String displayName) {
+      final v = valueOf(displayName);
+      return v > 0 ? v : null;
+    }
+
+    final weightPerServing =
+        nutrition?['weightPerServing'] as Map<String, dynamic>?;
+    final gramsPerServing =
+        (weightPerServing?['amount'] as num?)?.toDouble() ?? 0;
+    final servingGrams = gramsPerServing > 0 ? gramsPerServing : 100.0;
+    final scale = 100.0 / servingGrams;
+
+    return FoodSearchResult(
+      name: name.length > 80 ? '${name.substring(0, 80)}…' : name,
+      brand: brand,
+      imageUrl: imageUrl,
+      barcode: barcode,
+      caloriesPer100g: valueOf('Calories') * scale,
+      proteinPer100g: valueOf('Protein') * scale,
+      carbsPer100g: valueOf('Carbohydrates') * scale,
+      fatPer100g: valueOf('Fat') * scale,
+      fibrePer100g: _scaleOpt(optValueOf('Fiber'), scale),
+      sugarPer100g: _scaleOpt(optValueOf('Sugar'), scale),
+      sodiumMgPer100g: _scaleOpt(optValueOf('Sodium'), scale),
+      vitaminDMcgPer100g: _scaleOpt(optValueOf('Vitamin D'), scale),
+      ironMgPer100g: _scaleOpt(optValueOf('Iron'), scale),
+      calciumMgPer100g: _scaleOpt(optValueOf('Calcium'), scale),
+      vitaminCMgPer100g: _scaleOpt(optValueOf('Vitamin C'), scale),
+      magnesiumMgPer100g: _scaleOpt(optValueOf('Magnesium'), scale),
+      potassiumMgPer100g: _scaleOpt(optValueOf('Potassium'), scale),
+      zincMgPer100g: _scaleOpt(optValueOf('Zinc'), scale),
+      vitaminB12McgPer100g: _scaleOpt(optValueOf('Vitamin B12'), scale),
+      folateMcgPer100g: _scaleOpt(optValueOf('Folate'), scale),
+      defaultServingSize: servingGrams,
+      servingUnit: 'g',
+      servingDescription: _describeServing(servings, gramsPerServing),
+      source: FoodSource.spoonacular,
+    );
+  }
+
+  static double? _scaleOpt(double? v, double scale) =>
+      v == null ? null : v * scale;
+
+  static String? _describeServing(
+    Map<String, dynamic>? servings,
+    double gramsPerServing,
+  ) {
+    if (servings == null) {
+      return gramsPerServing > 0
+          ? '${gramsPerServing.toInt()} g per serving'
+          : null;
+    }
+    final number = (servings['number'] as num?)?.toDouble();
+    final size = (servings['size'] as num?)?.toDouble();
+    final unit = servings['unit'] as String?;
+    if (number != null && size != null && unit != null && unit.isNotEmpty) {
+      return '${number.toStringAsFixed(0)} × ${size.toStringAsFixed(0)} $unit';
+    }
+    if (gramsPerServing > 0) return '${gramsPerServing.toInt()} g per serving';
+    return null;
+  }
+
   factory FoodSearchResult.fromOpenFoodFacts(Map<String, dynamic> product) {
     final nutriments = product['nutriments'] as Map<String, dynamic>? ?? {};
     final name = (product['product_name'] as String?) ?? 'Unknown Product';

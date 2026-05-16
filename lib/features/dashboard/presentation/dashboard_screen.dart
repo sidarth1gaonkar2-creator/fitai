@@ -18,6 +18,7 @@ import 'widgets/calorie_ring.dart';
 import 'widgets/dashboard_skeleton.dart';
 import 'widgets/fitness_workouts_card.dart';
 import 'widgets/macro_row.dart';
+import 'widgets/saved_meals_quick_log.dart';
 import 'widgets/streak_counter.dart';
 import 'widgets/today_workout_card.dart';
 import 'widgets/water_tracker.dart';
@@ -243,6 +244,10 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+
+                // --- Quick Log (saved meals — self-gates on availability) ---
+                const SavedMealsQuickLog(),
                 const SizedBox(height: 16),
 
                 // --- Supplements Checklist ---

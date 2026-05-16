@@ -102,6 +102,16 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
         middle: const Text('Nutrition'),
         backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
         border: null,
+        trailing: CupertinoButton(
+          padding: const EdgeInsets.all(8),
+          onPressed: () => context.push('/nutrition/saved-meals'),
+          child: Icon(
+            Icons.bookmark_outline,
+            size: 22,
+            color: AppColors.of(context).accent,
+            semanticLabel: 'Saved meals',
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16),

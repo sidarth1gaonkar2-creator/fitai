@@ -1,10 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Divider, Icons, Theme;
+import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../models/enums.dart';
 import '../../../../models/food_entry.dart';
 import 'food_entry_tile.dart';
+import 'save_meal_sheet.dart';
 
 class MealSection extends StatelessWidget {
   const MealSection({
@@ -25,6 +27,43 @@ class MealSection extends StatelessWidget {
 
   /// When true, hides the "Add Food" button and disables swipe-to-delete.
   final bool isLocked;
+
+  String _defaultMealName() {
+    final weekday = switch (DateTime.now().weekday) {
+      DateTime.monday => 'Monday',
+      DateTime.tuesday => 'Tuesday',
+      DateTime.wednesday => 'Wednesday',
+      DateTime.thursday => 'Thursday',
+      DateTime.friday => 'Friday',
+      DateTime.saturday => 'Saturday',
+      DateTime.sunday => 'Sunday',
+      _ => '',
+    };
+    return '$weekday ${mealType.label}';
+  }
+
+  String? _defaultEmoji() => switch (mealType) {
+        MealType.breakfast => '🍳',
+        MealType.lunch => '🥗',
+        MealType.dinner => '🍗',
+        MealType.snack => '🍎',
+      };
+
+  Future<void> _onSavePressed(BuildContext context) async {
+    HapticFeedback.selectionClick();
+    if (entries.isEmpty) {
+      showCupertinoToast(context, 'Add foods first before saving');
+      return;
+    }
+    await showCupertinoModalPopup<void>(
+      context: context,
+      builder: (_) => SaveMealSheet(
+        defaultName: _defaultMealName(),
+        defaultEmoji: _defaultEmoji(),
+        entries: entries,
+      ),
+    );
+  }
 
   IconData get _icon => switch (mealType) {
         MealType.breakfast => Icons.egg_outlined,
@@ -77,6 +116,22 @@ class MealSection extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (!isLocked && entries.isNotEmpty)
+                  // "Save as Meal" bookmark — only when there's something to
+                  // save. Toast handles the empty-entries case for safety.
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _onSavePressed(context),
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(
+                        Icons.bookmark_outline,
+                        size: 18,
+                        color: palette.textSecondary,
+                        semanticLabel: 'Save meal',
+                      ),
+                    ),
+                  ),
                 if (entries.isNotEmpty) ...[
                   // Protein subtotal
                   Text(
@@ -123,6 +178,34 @@ class MealSection extends StatelessWidget {
                         : (e) => onRestoreEntry!(mealType, e),
                     isLocked: isLocked,
                   )),
+              if (!isLocked && entries.length >= 2)
+                // Gentle nudge — visible only when there are multiple
+                // items in the section (saving a 1-item meal isn't useful).
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, left: 4),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _onSavePressed(context),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.bookmark_add_outlined,
+                          size: 14,
+                          color: palette.accent,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Save this as a reusable meal',
+                          style: textTheme.labelSmall?.copyWith(
+                            color: palette.accent,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ] else ...[
               const SizedBox(height: 8),
               Text(

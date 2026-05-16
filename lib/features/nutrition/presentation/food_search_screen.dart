@@ -9,8 +9,11 @@ import '../../../core/constants/nutrient_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../models/enums.dart';
+import '../../../models/saved_meal.dart';
 import '../../../providers/nutrition_providers.dart';
+import '../../../providers/saved_meal_providers.dart';
 import '../domain/food_search_result.dart';
+import 'widgets/use_saved_meal_sheet.dart';
 
 class FoodSearchScreen extends ConsumerStatefulWidget {
   const FoodSearchScreen({
@@ -149,8 +152,31 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
       );
     }
 
+    // Suggested saved meals — only meaningful when the user is logging
+    // into a real meal section (not in returnMode, where we'd just pop
+    // with the food not the meal).
+    final savedMealMatches = widget.returnMode
+        ? <SavedMeal>[]
+        : (ref
+                .watch(savedMealsMatchingProvider(_currentQuery))
+                .valueOrNull ??
+            const <SavedMeal>[]);
+
     return CustomScrollView(
       slivers: [
+        if (savedMealMatches.isNotEmpty) ...[
+          _SectionHeader(
+            label: 'Saved Meals',
+            icon: Icons.bookmark_outline,
+            isPrimary: true,
+          ),
+          SliverList.builder(
+            itemCount: savedMealMatches.length,
+            itemBuilder: (context, index) => _SavedMealSuggestionTile(
+              meal: savedMealMatches[index],
+            ),
+          ),
+        ],
         // Local results section — always at top, renders first frame
         if (localResults.isNotEmpty) ...[
           _SectionHeader(
@@ -479,6 +505,76 @@ class _EmptyState extends StatelessWidget {
               label: const Text('Scan Barcode'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Suggestion row shown above food search results when the current query
+/// matches a saved meal. Tapping opens the use-meal bottom sheet, letting
+/// the user log the entire meal instead of adding a single ingredient.
+class _SavedMealSuggestionTile extends StatelessWidget {
+  const _SavedMealSuggestionTile({required this.meal});
+
+  final SavedMeal meal;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => showCupertinoModalPopup<bool>(
+          context: context,
+          builder: (_) => UseSavedMealSheet(meal: meal),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: palette.accent.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: palette.accent.withValues(alpha: 0.4),
+            ),
+          ),
+          child: Row(
+            children: [
+              Text(meal.emoji ?? '🔖',
+                  style: const TextStyle(fontSize: 22)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Log entire "${meal.name}"?',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        color: palette.text,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '${meal.totalCalories.toInt()} kcal saved meal',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(CupertinoIcons.chevron_right,
+                  size: 16, color: palette.accent),
+            ],
+          ),
         ),
       ),
     );

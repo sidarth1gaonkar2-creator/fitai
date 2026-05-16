@@ -27,6 +27,8 @@ import '../features/progress/presentation/pr_hall_screen.dart';
 import '../features/progress/presentation/progress_screen.dart';
 import '../features/settings/presentation/edit_profile_screen.dart';
 import '../features/settings/presentation/notification_settings_screen.dart';
+import '../features/nutrition/presentation/create_saved_meal_screen.dart';
+import '../features/nutrition/presentation/saved_meals_screen.dart';
 import '../features/settings/presentation/theme_store_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/supplements/presentation/supplements_screen.dart';
@@ -235,6 +237,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                             mealType: mealType, food: food),
                       );
                     },
+                  ),
+                  GoRoute(
+                    path: 'saved-meals',
+                    pageBuilder: (context, state) => slideUpTransitionPage(
+                      key: state.pageKey,
+                      child: const SavedMealsScreen(),
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: 'create',
+                        pageBuilder: (context, state) =>
+                            slideUpTransitionPage(
+                          key: state.pageKey,
+                          child: const CreateSavedMealScreen(),
+                        ),
+                      ),
+                      GoRoute(
+                        path: ':id/edit',
+                        pageBuilder: (context, state) {
+                          final id = int.tryParse(
+                              state.pathParameters['id'] ?? '');
+                          return slideUpTransitionPage(
+                            key: state.pageKey,
+                            child: CreateSavedMealScreen(savedMealId: id),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),

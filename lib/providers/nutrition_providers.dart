@@ -14,6 +14,7 @@ import '../models/food_entry.dart';
 import '../models/meal.dart';
 import '../models/nutrition_log.dart';
 import '../services/open_food_facts_service.dart';
+import '../services/spoonacular_service.dart';
 import '../services/usda_service.dart';
 import '../core/utils/logger.dart';
 import 'dashboard_providers.dart';
@@ -30,6 +31,15 @@ final openFoodFactsServiceProvider = Provider<OpenFoodFactsService>((ref) {
 final usdaServiceProvider = Provider<UsdaService>((ref) {
   final apiKey = dotenv.env['USDA_API_KEY'] ?? '';
   return UsdaService(apiKey);
+});
+
+/// Spoonacular service — SECONDARY source. Primary food data comes from
+/// USDA + the hardcoded restaurant builders; this provider is consumed
+/// only as a fallback for branded products, barcode lookups that miss in
+/// OpenFoodFacts, and restaurant items absent from our hardcoded catalogue.
+final spoonacularServiceProvider = Provider<SpoonacularService>((ref) {
+  final apiKey = dotenv.env['SPOONACULAR_API_KEY'] ?? '';
+  return SpoonacularService(apiKey);
 });
 
 /// Which tab is selected on the Nutrition screen (0 = Meal Plans, 1 = Food Log).

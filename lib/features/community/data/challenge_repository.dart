@@ -245,9 +245,13 @@ class ChallengeRepository {
       joinedAt: participant.joinedAt,
       completedDays: newCompletedDays,
       currentStreak: newStreak,
+      // Keep the `if (x != null) x` form rather than the modern `?x`
+      // null-aware element — the Isar v3 generator bundles an older
+      // analyzer that fails to parse the latter.
       proofPhotos: [
         ...participant.proofPhotos,
-        ?proofUrl,
+        // ignore: use_null_aware_elements
+        if (proofUrl != null) proofUrl,
       ],
       isCompleted: isCompleted,
       lastCheckInDate: today,

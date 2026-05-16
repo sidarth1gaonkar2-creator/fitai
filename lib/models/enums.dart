@@ -56,6 +56,7 @@ enum FoodSource {
   localDb,
   openFoodFacts,
   usda,
+  spoonacular,
 }
 
 enum FoodCategory {

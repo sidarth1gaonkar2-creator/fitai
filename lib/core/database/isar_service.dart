@@ -14,6 +14,8 @@ import '../../models/custom_meal_plan.dart';
 import '../../models/custom_meal_plan_food.dart';
 import '../../models/custom_meal_plan_meal.dart';
 import '../../models/personal_record.dart';
+import '../../models/saved_meal.dart';
+import '../../models/saved_meal_item.dart';
 import '../../models/supplement.dart';
 import '../../models/supplement_log.dart';
 import '../../models/weight_entry.dart';
@@ -41,6 +43,8 @@ class IsarService {
           CustomMealPlanMealSchema,
           CustomMealPlanFoodSchema,
           PersonalRecordSchema,
+          SavedMealSchema,
+          SavedMealItemSchema,
           SupplementSchema,
           SupplementLogSchema,
         ],
