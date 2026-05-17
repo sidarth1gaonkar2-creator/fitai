@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show IconButton, Icons, Theme, VisualDensity;
 import 'package:flutter/services.dart';
+import '../../../../core/utils/unit_converter.dart';
 import '../../domain/active_workout_state.dart';
 
 class SetRow extends StatefulWidget {
@@ -11,6 +12,7 @@ class SetRow extends StatefulWidget {
     required this.onUpdate,
     required this.onComplete,
     required this.onRemove,
+    required this.units,
     this.previousReps,
     this.previousWeight,
     this.onCopyFromPrevious,
@@ -18,10 +20,21 @@ class SetRow extends StatefulWidget {
 
   final ActiveSet set;
   final int setNumber;
+
+  /// `weight` passed up via [onUpdate] is ALWAYS in kg — SetRow handles the
+  /// imperial display ↔ metric storage conversion internally so the rest of
+  /// the app can treat weight values as canonical kilograms.
   final void Function({int? reps, double? weight}) onUpdate;
   final VoidCallback onComplete;
   final VoidCallback onRemove;
+
+  /// User's preferred unit system. SetRow converts kg ↔ lbs based on this so
+  /// the displayed number matches what the user typed.
+  final UnitSystem units;
+
   final int? previousReps;
+
+  /// Stored in kg. Converted for display + comparison locally.
   final double? previousWeight;
 
   /// If non-null, a copy icon is shown next to the weight field; tapping it
@@ -35,6 +48,17 @@ class SetRow extends StatefulWidget {
 class _SetRowState extends State<SetRow> {
   static String _formatWeight(double w) =>
       w == w.roundToDouble() ? w.toInt().toString() : w.toString();
+
+  /// Imperial users see and edit lbs; metric users see and edit kg. The
+  /// canonical [ActiveSet.weight] is ALWAYS kg, so we convert here on
+  /// display and convert back when emitting changes to onUpdate.
+  double _displayWeight(double kg) =>
+      UnitConverter.kgToDisplayWeight(kg, widget.units);
+
+  /// Inverse of [_displayWeight] — what to store given a user-typed value.
+  double _inputToKg(double displayValue) =>
+      UnitConverter.displayWeightToKg(displayValue, widget.units);
+
   late final TextEditingController _repsController;
   late final TextEditingController _weightController;
 
@@ -45,7 +69,9 @@ class _SetRowState extends State<SetRow> {
       text: widget.set.reps > 0 ? widget.set.reps.toString() : '',
     );
     _weightController = TextEditingController(
-      text: widget.set.weight > 0 ? _formatWeight(widget.set.weight) : '',
+      text: widget.set.weight > 0
+          ? _formatWeight(_displayWeight(widget.set.weight))
+          : '',
     );
   }
 
@@ -60,15 +86,19 @@ class _SetRowState extends State<SetRow> {
             widget.set.reps > 0 ? widget.set.reps.toString() : '';
       }
     }
-    // Weight: only rewrite controller text if parsing the current text
-    // would give a *different* value than the state. This preserves in-progress
-    // typing like "1" or "1." that parses to 1.0 but would otherwise be
-    // rewritten to "1.0" mid-keystroke and inject a stray decimal point.
-    if (widget.set.weight != oldWidget.set.weight) {
-      final currentParsed = double.tryParse(_weightController.text);
-      if (currentParsed != widget.set.weight) {
+    // Weight: only rewrite the controller when the parsed input (in kg)
+    // genuinely differs from state. Compare in kg so a "205 lbs" in the
+    // field that round-trips to itself doesn't get rewritten mid-typing.
+    final unitsChanged = widget.units != oldWidget.units;
+    if (widget.set.weight != oldWidget.set.weight || unitsChanged) {
+      final currentTextDisplay =
+          double.tryParse(_weightController.text);
+      final currentAsKg = currentTextDisplay == null
+          ? null
+          : _inputToKg(currentTextDisplay);
+      if (unitsChanged || currentAsKg != widget.set.weight) {
         _weightController.text = widget.set.weight > 0
-            ? _formatWeight(widget.set.weight)
+            ? _formatWeight(_displayWeight(widget.set.weight))
             : '';
       }
     }
@@ -136,8 +166,9 @@ class _SetRowState extends State<SetRow> {
                     const TextInputType.numberWithOptions(decimal: true),
                 textAlign: TextAlign.center,
                 style: textTheme.bodyMedium,
+                // previousWeight is kg → convert to user's display unit.
                 placeholder: widget.previousWeight != null
-                    ? _formatWeight(widget.previousWeight!)
+                    ? _formatWeight(_displayWeight(widget.previousWeight!))
                     : '0',
                 placeholderStyle: textTheme.bodyMedium?.copyWith(
                   color: widget.previousWeight != null
@@ -150,8 +181,13 @@ class _SetRowState extends State<SetRow> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 onChanged: (value) {
-                  final weight = double.tryParse(value);
-                  if (weight != null) widget.onUpdate(weight: weight);
+                  // User typed in their PREFERRED unit (lbs or kg). Always
+                  // emit kg upward — the storage layer treats every weight
+                  // as kilograms.
+                  final typed = double.tryParse(value);
+                  if (typed != null) {
+                    widget.onUpdate(weight: _inputToKg(typed));
+                  }
                 },
               ),
             ),

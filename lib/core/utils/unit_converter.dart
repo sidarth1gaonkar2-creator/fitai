@@ -49,4 +49,12 @@ class UnitConverter {
     if (units == UnitSystem.imperial) return lbsToKg(displayValue);
     return displayValue;
   }
+
+  /// Inverse of [displayWeightToKg] — converts a stored kg value into the
+  /// numeric value to show the user. Imperial users see lbs, metric users
+  /// see kg unchanged.
+  static double kgToDisplayWeight(double kg, UnitSystem units) {
+    if (units == UnitSystem.imperial) return kgToLbs(kg);
+    return kg;
+  }
 }

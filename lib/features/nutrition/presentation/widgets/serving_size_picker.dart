@@ -65,11 +65,16 @@ class _ServingSizePickerState extends ConsumerState<ServingSizePicker> {
   late ServingMode _mode;
   // Serving mode state
   double _servingQty = 1.0;
+  late TextEditingController _servingManualController;
   // Container mode state
   double _containerFraction = 1.0;
   // Weight mode state
   late TextEditingController _weightController;
   bool _weightInOunces = false;
+  // One-shot guard so the imperial auto-flip doesn't run on every rebuild
+  // (the old code would fight the user if they manually picked grams while
+  // on an imperial profile).
+  bool _appliedImperialDefault = false;
 
   static const _quickQuantities = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0];
   static const _containerFractions = [0.25, 1 / 3, 0.5, 2 / 3, 0.75, 1.0];
@@ -79,6 +84,20 @@ class _ServingSizePickerState extends ConsumerState<ServingSizePicker> {
   double get _gramsPerServing {
     final reported = widget.food.defaultServingSize;
     return reported > 0 ? reported : 100.0;
+  }
+
+  /// The label to show in Serving mode. USDA + Spoonacular foods are usually
+  /// normalised to grams, which makes the raw `servingUnit` field ('g') look
+  /// identical to Weight mode — so we collapse 'g' / empty to "serving"
+  /// and surface the gram weight separately as a subtitle. Restaurant-tagged
+  /// foods (which set servingUnit explicitly) keep their natural unit
+  /// ("bowl", "piece", "slice").
+  String get _servingUnitLabel {
+    final raw = widget.food.servingUnit.trim().toLowerCase();
+    if (raw.isEmpty || raw == 'g' || raw == 'grams' || raw == 'gram') {
+      return 'serving';
+    }
+    return widget.food.servingUnit;
   }
 
   /// Heuristic: if the serving description includes "container" or the
@@ -112,6 +131,8 @@ class _ServingSizePickerState extends ConsumerState<ServingSizePicker> {
     final initialG = widget.initialGrams ?? _gramsPerServing;
     _weightController =
         TextEditingController(text: initialG.toStringAsFixed(0));
+    _servingManualController =
+        TextEditingController(text: _formatQty(_servingQty));
     // Defer the first emit so listeners can use the picker's initial values
     // synchronously on the same frame.
     WidgetsBinding.instance.addPostFrameCallback((_) => _emit());
@@ -120,6 +141,7 @@ class _ServingSizePickerState extends ConsumerState<ServingSizePicker> {
   @override
   void dispose() {
     _weightController.dispose();
+    _servingManualController.dispose();
     super.dispose();
   }
 
@@ -129,16 +151,15 @@ class _ServingSizePickerState extends ConsumerState<ServingSizePicker> {
   }
 
   ServingSelection _currentSelection() {
-    final unit = widget.food.servingUnit.isEmpty
-        ? 'serving'
-        : widget.food.servingUnit;
+    final unit = _servingUnitLabel;
     switch (_mode) {
       case ServingMode.serving:
         final grams = _servingQty * _gramsPerServing;
         final qtyLabel = _formatQty(_servingQty);
+        final plural = _servingQty == 1 ? unit : '${unit}s';
         return ServingSelection(
           totalGrams: grams,
-          label: '$qtyLabel $unit${_servingQty == 1 ? '' : 's'}',
+          label: '$qtyLabel $plural',
           mode: _mode,
         );
       case ServingMode.container:
@@ -186,19 +207,25 @@ class _ServingSizePickerState extends ConsumerState<ServingSizePicker> {
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
     final unitSystem = ref.watch(unitSystemProvider);
-    if (unitSystem == UnitSystem.imperial && !_weightInOunces) {
-      // Pre-select oz for imperial users on first build only.
+    // One-shot: on first build for imperial users, flip the Weight-mode
+    // unit to oz so the displayed number is a sensible portion. Guarded by
+    // _appliedImperialDefault so the user can manually switch back to grams
+    // without us flipping them back to oz on every rebuild.
+    if (unitSystem == UnitSystem.imperial &&
+        !_weightInOunces &&
+        !_appliedImperialDefault) {
+      _appliedImperialDefault = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && !_weightInOunces) {
-          setState(() => _weightInOunces = true);
-          // Convert displayed value g→oz so the user sees a sane number.
+        if (!mounted) return;
+        setState(() {
+          _weightInOunces = true;
           final raw =
               double.tryParse(_weightController.text.replaceAll(',', '.')) ?? 0;
           if (raw > 0) {
             _weightController.text = (raw / 28.3495).toStringAsFixed(1);
           }
-          _emit();
-        }
+        });
+        _emit();
       });
     }
     return Column(
@@ -224,15 +251,29 @@ class _ServingSizePickerState extends ConsumerState<ServingSizePicker> {
   Widget _buildBody(Palette palette) {
     switch (_mode) {
       case ServingMode.serving:
+        final grams = _servingQty * _gramsPerServing;
+        // Build a subtitle like "1 serving · 100 g" so the user can see the
+        // gram weight even when working in abstract "serving" units.
+        final subtitle = widget.food.servingDescription ??
+            '${grams.toStringAsFixed(0)} g';
         return _ServingModeBody(
           quantity: _servingQty,
-          unit: widget.food.servingUnit.isEmpty
-              ? 'serving'
-              : widget.food.servingUnit,
-          servingDescription: widget.food.servingDescription,
+          unit: _servingUnitLabel,
+          servingDescription: subtitle,
           quickValues: _quickQuantities,
+          manualController: _servingManualController,
           onQuantityChanged: (q) {
-            setState(() => _servingQty = q);
+            setState(() {
+              _servingQty = q;
+              _servingManualController.text = _formatQty(q);
+            });
+            _emit();
+          },
+          onManualTextChanged: (text) {
+            final parsed =
+                double.tryParse(text.replaceAll(',', '.')) ?? 0;
+            if (parsed <= 0) return;
+            setState(() => _servingQty = parsed);
             _emit();
           },
         );
@@ -341,14 +382,18 @@ class _ServingModeBody extends StatelessWidget {
     required this.unit,
     required this.servingDescription,
     required this.quickValues,
+    required this.manualController,
     required this.onQuantityChanged,
+    required this.onManualTextChanged,
   });
 
   final double quantity;
   final String unit;
   final String? servingDescription;
   final List<double> quickValues;
+  final TextEditingController manualController;
   final ValueChanged<double> onQuantityChanged;
+  final ValueChanged<String> onManualTextChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -406,7 +451,28 @@ class _ServingModeBody extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        // Manual numeric input — falls back to the steppers if the user
+        // doesn't want to type.
+        CupertinoTextField(
+          controller: manualController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          textAlign: TextAlign.center,
+          decoration: BoxDecoration(
+            color: palette.surfaceElevated,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          style: TextStyle(
+            fontFamily: 'LeagueSpartan',
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            color: palette.text,
+          ),
+          onChanged: onManualTextChanged,
+        ),
+        const SizedBox(height: 12),
         Wrap(
           alignment: WrapAlignment.center,
           spacing: 6,

@@ -30,17 +30,37 @@ enum SelectionMode { single, multiple }
 /// A logical step in a meal builder — "pick a rice", "pick a protein",
 /// "add toppings". A category can be optional (e.g. cheese on a sandwich)
 /// or required (e.g. you must pick exactly one protein for a bowl).
+///
+/// When [allowDouble] is true the builder UI surfaces a "Double" toggle once
+/// the user has picked an item — calories/macros for that line multiply by 2.
+/// Use this for chains that publish a "double protein" upcharge (Chipotle,
+/// Subway, sweetgreen, CAVA, etc.).
+///
+/// When [allowHalfHalf] is true (single-mode categories only — typically
+/// protein at Chipotle) the user can pick TWO items at half portion each.
+/// The builder UI splits the selection into a half-and-half row, and each
+/// item's nutrition is multiplied by 0.5 when summing totals.
+///
+/// [maxSelections] caps a multiple-select category. Used for Panda Express
+/// where Bowl = 1 entree, Plate = 2 entrees, Bigger Plate = 3 entrees.
+/// `null` means unlimited.
 class MenuCategory {
   const MenuCategory({
     required this.name,
     required this.mode,
     this.optional = false,
+    this.allowDouble = false,
+    this.allowHalfHalf = false,
+    this.maxSelections,
     required this.items,
   });
 
   final String name;
   final SelectionMode mode;
   final bool optional;
+  final bool allowDouble;
+  final bool allowHalfHalf;
+  final int? maxSelections;
   final List<MenuItem> items;
 }
 
@@ -92,6 +112,8 @@ const _chipotleBeans = MenuCategory(
 const _chipotleProtein = MenuCategory(
   name: 'Protein',
   mode: SelectionMode.single,
+  allowDouble: true,
+  allowHalfHalf: true,
   items: [
     MenuItem(name: 'Chicken', calories: 180, protein: 32, carbs: 0, fat: 7),
     MenuItem(name: 'Steak', calories: 150, protein: 21, carbs: 1, fat: 6),
@@ -129,6 +151,194 @@ const _chipotleSides = MenuCategory(
     MenuItem(name: 'Chips & Guac', calories: 770, protein: 9, carbs: 81, fat: 47),
     MenuItem(name: 'Chips & Queso', calories: 660, protein: 12, carbs: 77, fat: 34),
     MenuItem(name: 'Chips & Salsa (Mild)', calories: 565, protein: 8, carbs: 77, fat: 25),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────────────
+// Subway shared building-blocks
+// ─────────────────────────────────────────────────────────────────────
+const _subwayBread6 = MenuCategory(
+  name: 'Bread',
+  mode: SelectionMode.single,
+  items: [
+    MenuItem(name: 'Italian White', calories: 200, protein: 8, carbs: 38, fat: 2),
+    MenuItem(name: '9-Grain Wheat', calories: 210, protein: 9, carbs: 39, fat: 3),
+    MenuItem(name: 'Italian Herbs & Cheese', calories: 250, protein: 11, carbs: 39, fat: 6),
+    MenuItem(name: 'Hearty Multigrain', calories: 220, protein: 9, carbs: 41, fat: 3),
+    MenuItem(name: 'Flatbread', calories: 220, protein: 9, carbs: 40, fat: 5),
+  ],
+);
+
+const _subwayBread12 = MenuCategory(
+  name: 'Bread',
+  mode: SelectionMode.single,
+  items: [
+    MenuItem(name: 'Italian White', calories: 400, protein: 16, carbs: 76, fat: 4),
+    MenuItem(name: '9-Grain Wheat', calories: 420, protein: 18, carbs: 78, fat: 6),
+    MenuItem(name: 'Italian Herbs & Cheese', calories: 500, protein: 22, carbs: 78, fat: 12),
+    MenuItem(name: 'Hearty Multigrain', calories: 440, protein: 18, carbs: 82, fat: 6),
+    MenuItem(name: 'Flatbread', calories: 440, protein: 18, carbs: 80, fat: 10),
+  ],
+);
+
+// Subway lets you stack proteins on the same sandwich (Turkey + Ham, Chicken
+// + Bacon, etc.) — switch to multi-select. allowDouble still on so callers
+// can double an individual protein's portion.
+const _subwayProtein6 = MenuCategory(
+  name: 'Protein',
+  mode: SelectionMode.multiple,
+  allowDouble: true,
+  items: [
+    MenuItem(name: 'Turkey Breast', calories: 60, protein: 12, carbs: 2, fat: 1),
+    MenuItem(name: 'Black Forest Ham', calories: 60, protein: 11, carbs: 2, fat: 1),
+    MenuItem(name: 'Rotisserie-Style Chicken', calories: 130, protein: 21, carbs: 2, fat: 4),
+    MenuItem(name: 'Roast Beef', calories: 80, protein: 14, carbs: 2, fat: 2),
+    MenuItem(name: 'Tuna', calories: 250, protein: 13, carbs: 0, fat: 21),
+    MenuItem(name: 'Steak', calories: 110, protein: 17, carbs: 4, fat: 3),
+    MenuItem(name: 'Meatball Marinara', calories: 280, protein: 14, carbs: 22, fat: 14),
+    MenuItem(name: 'Bacon Strips', calories: 80, protein: 6, carbs: 0, fat: 6),
+    MenuItem(name: 'Pepperoni', calories: 80, protein: 4, carbs: 0, fat: 7),
+    MenuItem(name: 'Veggie Patty', calories: 100, protein: 9, carbs: 12, fat: 3),
+  ],
+);
+
+/// Footlong proteins are pre-doubled. Multi-select like the 6-inch so users
+/// can stack Turkey + Ham + Bacon on a single sub.
+const _subwayProtein12 = MenuCategory(
+  name: 'Protein',
+  mode: SelectionMode.multiple,
+  allowDouble: true,
+  items: [
+    MenuItem(name: 'Turkey Breast', calories: 120, protein: 24, carbs: 4, fat: 2),
+    MenuItem(name: 'Black Forest Ham', calories: 120, protein: 22, carbs: 4, fat: 2),
+    MenuItem(name: 'Rotisserie-Style Chicken', calories: 260, protein: 42, carbs: 4, fat: 8),
+    MenuItem(name: 'Roast Beef', calories: 160, protein: 28, carbs: 4, fat: 4),
+    MenuItem(name: 'Tuna', calories: 500, protein: 26, carbs: 0, fat: 42),
+    MenuItem(name: 'Steak', calories: 220, protein: 34, carbs: 8, fat: 6),
+    MenuItem(name: 'Meatball Marinara', calories: 560, protein: 28, carbs: 44, fat: 28),
+    MenuItem(name: 'Bacon Strips', calories: 160, protein: 12, carbs: 0, fat: 12),
+    MenuItem(name: 'Pepperoni', calories: 160, protein: 8, carbs: 0, fat: 14),
+  ],
+);
+
+const _subwayCheese = MenuCategory(
+  name: 'Cheese',
+  mode: SelectionMode.single,
+  optional: true,
+  items: [
+    MenuItem(name: 'American', calories: 40, protein: 2, carbs: 1, fat: 4),
+    MenuItem(name: 'Provolone', calories: 50, protein: 4, carbs: 0, fat: 4),
+    MenuItem(name: 'Pepper Jack', calories: 50, protein: 4, carbs: 0, fat: 4),
+    MenuItem(name: 'Swiss', calories: 50, protein: 4, carbs: 0, fat: 4),
+    MenuItem(name: 'Shredded Mozzarella', calories: 45, protein: 4, carbs: 0, fat: 3),
+    MenuItem(name: 'Monterey Cheddar (shredded)', calories: 50, protein: 4, carbs: 0, fat: 4),
+  ],
+);
+
+const _subwayVeggies = MenuCategory(
+  name: 'Vegetables',
+  mode: SelectionMode.multiple,
+  optional: true,
+  items: [
+    MenuItem(name: 'Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
+    MenuItem(name: 'Tomatoes', calories: 5, protein: 0, carbs: 1, fat: 0),
+    MenuItem(name: 'Cucumbers', calories: 5, protein: 0, carbs: 1, fat: 0),
+    MenuItem(name: 'Green Peppers', calories: 5, protein: 0, carbs: 1, fat: 0),
+    MenuItem(name: 'Red Onions', calories: 5, protein: 0, carbs: 1, fat: 0),
+    MenuItem(name: 'Pickles', calories: 0, protein: 0, carbs: 0, fat: 0),
+    MenuItem(name: 'Black Olives', calories: 5, protein: 0, carbs: 0, fat: 1),
+    MenuItem(name: 'Jalapeños', calories: 0, protein: 0, carbs: 0, fat: 0),
+    MenuItem(name: 'Banana Peppers', calories: 0, protein: 0, carbs: 0, fat: 0),
+    MenuItem(name: 'Spinach', calories: 5, protein: 0, carbs: 1, fat: 0),
+    MenuItem(name: 'Avocado', calories: 60, protein: 1, carbs: 3, fat: 5),
+  ],
+);
+
+const _subwaySauces = MenuCategory(
+  name: 'Sauces',
+  mode: SelectionMode.multiple,
+  optional: true,
+  items: [
+    MenuItem(name: 'Mayonnaise', calories: 110, protein: 0, carbs: 0, fat: 12),
+    MenuItem(name: 'Light Mayonnaise', calories: 50, protein: 0, carbs: 1, fat: 5),
+    MenuItem(name: 'Mustard', calories: 5, protein: 0, carbs: 0, fat: 0),
+    MenuItem(name: 'Honey Mustard', calories: 30, protein: 0, carbs: 7, fat: 0),
+    MenuItem(name: 'Ranch', calories: 110, protein: 0, carbs: 2, fat: 11),
+    MenuItem(name: 'Chipotle Southwest', calories: 100, protein: 0, carbs: 1, fat: 10),
+    MenuItem(name: 'Sweet Onion Teriyaki', calories: 40, protein: 0, carbs: 9, fat: 0),
+    MenuItem(name: 'BBQ Sauce', calories: 35, protein: 0, carbs: 8, fat: 0),
+    MenuItem(name: 'Buffalo Sauce', calories: 10, protein: 0, carbs: 2, fat: 0),
+    MenuItem(name: 'Oil & Vinegar', calories: 45, protein: 0, carbs: 0, fat: 5),
+  ],
+);
+
+/// ─── Panda Express shared building-blocks ─────────────────────────
+/// Panda lets users pick 1/2/3 entrees depending on the plate size — we
+/// model this with the same MenuCategory list and `maxSelections` to cap
+/// the picks. The builder UI greys-out unselected items once the cap is hit.
+const _pandaSide = MenuCategory(
+  name: 'Side',
+  mode: SelectionMode.single,
+  items: [
+    MenuItem(name: 'Chow Mein', calories: 510, protein: 13, carbs: 80, fat: 20),
+    MenuItem(name: 'Fried Rice', calories: 520, protein: 11, carbs: 85, fat: 16),
+    MenuItem(name: 'White Steamed Rice', calories: 380, protein: 7, carbs: 87, fat: 0),
+    MenuItem(name: 'Brown Steamed Rice', calories: 420, protein: 9, carbs: 86, fat: 4),
+    MenuItem(name: 'Super Greens', calories: 90, protein: 6, carbs: 10, fat: 3),
+    MenuItem(name: 'Half Chow Mein + Half Greens', calories: 300, protein: 10, carbs: 45, fat: 12),
+  ],
+);
+
+const _pandaEntreeItems = [
+  MenuItem(name: 'Orange Chicken', calories: 510, protein: 25, carbs: 51, fat: 23),
+  MenuItem(name: 'Beijing Beef', calories: 480, protein: 14, carbs: 47, fat: 27),
+  MenuItem(name: 'Honey Walnut Shrimp', calories: 360, protein: 13, carbs: 35, fat: 19),
+  MenuItem(name: 'Kung Pao Chicken', calories: 290, protein: 16, carbs: 14, fat: 19),
+  MenuItem(name: 'Mushroom Chicken', calories: 220, protein: 14, carbs: 10, fat: 14),
+  MenuItem(name: 'Black Pepper Angus Steak', calories: 210, protein: 19, carbs: 13, fat: 10),
+  MenuItem(name: 'Broccoli Beef', calories: 150, protein: 9, carbs: 13, fat: 7),
+  MenuItem(name: 'Honey Sesame Chicken Breast', calories: 340, protein: 14, carbs: 35, fat: 15),
+  MenuItem(name: 'Grilled Teriyaki Chicken', calories: 275, protein: 36, carbs: 14, fat: 7),
+  MenuItem(name: 'String Bean Chicken Breast', calories: 190, protein: 14, carbs: 13, fat: 9),
+  MenuItem(name: 'Sweetfire Chicken Breast', calories: 380, protein: 14, carbs: 47, fat: 15),
+  MenuItem(name: 'Eggplant Tofu', calories: 340, protein: 7, carbs: 33, fat: 19),
+];
+
+const _pandaEntreesPick1 = MenuCategory(
+  name: 'Entree',
+  mode: SelectionMode.multiple,
+  maxSelections: 1,
+  items: _pandaEntreeItems,
+);
+const _pandaEntreesPick2 = MenuCategory(
+  name: 'Entrees',
+  mode: SelectionMode.multiple,
+  maxSelections: 2,
+  items: _pandaEntreeItems,
+);
+const _pandaEntreesPick3 = MenuCategory(
+  name: 'Entrees',
+  mode: SelectionMode.multiple,
+  maxSelections: 3,
+  items: _pandaEntreeItems,
+);
+
+/// Chick-fil-A drinks — reused across Sandwich and Nuggets meals.
+const _cfaDrink = MenuCategory(
+  name: 'Drink',
+  mode: SelectionMode.single,
+  optional: true,
+  items: [
+    MenuItem(name: 'Lemonade (Small)', calories: 220, protein: 0, carbs: 55, fat: 0),
+    MenuItem(name: 'Lemonade (Medium)', calories: 320, protein: 0, carbs: 79, fat: 0),
+    MenuItem(name: 'Lemonade (Large)', calories: 420, protein: 0, carbs: 105, fat: 0),
+    MenuItem(name: 'Diet Lemonade (Medium)', calories: 35, protein: 0, carbs: 13, fat: 0),
+    MenuItem(name: 'Sweet Tea (Medium)', calories: 160, protein: 0, carbs: 41, fat: 0),
+    MenuItem(name: 'Unsweet Tea', calories: 0, protein: 0, carbs: 0, fat: 0),
+    MenuItem(name: 'Coca-Cola (Medium)', calories: 290, protein: 0, carbs: 78, fat: 0),
+    MenuItem(name: 'Diet Coke (Medium)', calories: 0, protein: 0, carbs: 0, fat: 0),
+    MenuItem(name: 'Water', calories: 0, protein: 0, carbs: 0, fat: 0),
+    MenuItem(name: 'Milk (1%)', calories: 100, protein: 8, carbs: 12, fat: 3),
   ],
 );
 
@@ -220,7 +430,7 @@ final List<RestaurantMenu> restaurantMenus = [
     },
   ),
 
-  // 2. SUBWAY — 6-inch sandwich values from subway.com; footlong = ×2.
+  // 2. SUBWAY — 6-inch and footlong values from subway.com nutrition guide.
   RestaurantMenu(
     id: 'subway',
     name: 'Subway',
@@ -229,98 +439,22 @@ final List<RestaurantMenu> restaurantMenus = [
     mealTypes: const ['6-inch Sub', 'Footlong Sub', 'Wrap', 'Salad'],
     builders: {
       '6-inch Sub': const [
-        MenuCategory(
-          name: 'Bread',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Italian White', calories: 200, protein: 8, carbs: 38, fat: 2),
-            MenuItem(name: '9-Grain Wheat', calories: 210, protein: 9, carbs: 39, fat: 3),
-            MenuItem(name: 'Italian Herbs & Cheese', calories: 250, protein: 11, carbs: 39, fat: 6),
-            MenuItem(name: 'Hearty Multigrain', calories: 220, protein: 9, carbs: 41, fat: 3),
-          ],
-        ),
-        MenuCategory(
-          name: 'Protein',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Turkey Breast', calories: 60, protein: 12, carbs: 2, fat: 1),
-            MenuItem(name: 'Black Forest Ham', calories: 60, protein: 11, carbs: 2, fat: 1),
-            MenuItem(name: 'Rotisserie-Style Chicken', calories: 130, protein: 21, carbs: 2, fat: 4),
-            MenuItem(name: 'Roast Beef', calories: 80, protein: 14, carbs: 2, fat: 2),
-            MenuItem(name: 'Tuna', calories: 250, protein: 13, carbs: 0, fat: 21),
-            MenuItem(name: 'Steak', calories: 110, protein: 17, carbs: 4, fat: 3),
-            MenuItem(name: 'Meatball Marinara', calories: 280, protein: 14, carbs: 22, fat: 14),
-            MenuItem(name: 'Veggie Patty', calories: 100, protein: 9, carbs: 12, fat: 3),
-          ],
-        ),
-        MenuCategory(
-          name: 'Cheese',
-          mode: SelectionMode.single,
-          optional: true,
-          items: [
-            MenuItem(name: 'American', calories: 40, protein: 2, carbs: 1, fat: 4),
-            MenuItem(name: 'Provolone', calories: 50, protein: 4, carbs: 0, fat: 4),
-            MenuItem(name: 'Pepper Jack', calories: 50, protein: 4, carbs: 0, fat: 4),
-            MenuItem(name: 'Swiss', calories: 50, protein: 4, carbs: 0, fat: 4),
-            MenuItem(name: 'Shredded Monterey Cheddar', calories: 50, protein: 4, carbs: 0, fat: 4),
-          ],
-        ),
-        MenuCategory(
-          name: 'Veggies',
-          mode: SelectionMode.multiple,
-          items: [
-            MenuItem(name: 'Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
-            MenuItem(name: 'Tomato', calories: 5, protein: 0, carbs: 1, fat: 0),
-            MenuItem(name: 'Onion', calories: 5, protein: 0, carbs: 1, fat: 0),
-            MenuItem(name: 'Bell Peppers', calories: 5, protein: 0, carbs: 1, fat: 0),
-            MenuItem(name: 'Cucumber', calories: 5, protein: 0, carbs: 1, fat: 0),
-            MenuItem(name: 'Spinach', calories: 5, protein: 0, carbs: 1, fat: 0),
-            MenuItem(name: 'Pickles', calories: 5, protein: 0, carbs: 1, fat: 0),
-            MenuItem(name: 'Banana Peppers', calories: 5, protein: 0, carbs: 1, fat: 0),
-            MenuItem(name: 'Jalapeños', calories: 5, protein: 0, carbs: 1, fat: 0),
-            MenuItem(name: 'Olives', calories: 10, protein: 0, carbs: 1, fat: 1),
-            MenuItem(name: 'Avocado', calories: 60, protein: 1, carbs: 3, fat: 5),
-          ],
-        ),
-        MenuCategory(
-          name: 'Sauce',
-          mode: SelectionMode.multiple,
-          optional: true,
-          items: [
-            MenuItem(name: 'Mayonnaise', calories: 100, protein: 0, carbs: 0, fat: 11),
-            MenuItem(name: 'Light Mayonnaise', calories: 50, protein: 0, carbs: 1, fat: 5),
-            MenuItem(name: 'Honey Mustard', calories: 30, protein: 0, carbs: 7, fat: 0),
-            MenuItem(name: 'Mustard', calories: 5, protein: 0, carbs: 1, fat: 0),
-            MenuItem(name: 'Sweet Onion', calories: 35, protein: 0, carbs: 8, fat: 0),
-            MenuItem(name: 'Chipotle Southwest', calories: 90, protein: 0, carbs: 1, fat: 10),
-            MenuItem(name: 'Ranch', calories: 110, protein: 1, carbs: 1, fat: 11),
-            MenuItem(name: 'Buffalo Sauce', calories: 0, protein: 0, carbs: 0, fat: 0),
-            MenuItem(name: 'Oil & Vinegar', calories: 45, protein: 0, carbs: 0, fat: 5),
-          ],
-        ),
+        _subwayBread6,
+        _subwayProtein6,
+        _subwayCheese,
+        _subwayVeggies,
+        _subwaySauces,
       ],
+      // Footlong = bread + protein doubled; cheese/veggies/sauces are shared
+      // with the 6-inch entry — Subway publishes them as the same per-unit
+      // calorie counts (a sandwich uses one helping of each topping no matter
+      // the size).
       'Footlong Sub': const [
-        // Same as 6-inch but doubled; the data here is the per-foot serving.
-        MenuCategory(
-          name: 'Bread',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Italian White', calories: 400, protein: 16, carbs: 76, fat: 4),
-            MenuItem(name: '9-Grain Wheat', calories: 420, protein: 18, carbs: 78, fat: 6),
-            MenuItem(name: 'Italian Herbs & Cheese', calories: 500, protein: 22, carbs: 78, fat: 12),
-          ],
-        ),
-        MenuCategory(
-          name: 'Protein (×2)',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Turkey Breast', calories: 120, protein: 24, carbs: 4, fat: 2),
-            MenuItem(name: 'Black Forest Ham', calories: 120, protein: 22, carbs: 4, fat: 2),
-            MenuItem(name: 'Rotisserie-Style Chicken', calories: 260, protein: 42, carbs: 4, fat: 8),
-            MenuItem(name: 'Tuna', calories: 500, protein: 26, carbs: 0, fat: 42),
-            MenuItem(name: 'Steak', calories: 220, protein: 34, carbs: 8, fat: 6),
-          ],
-        ),
+        _subwayBread12,
+        _subwayProtein12,
+        _subwayCheese,
+        _subwayVeggies,
+        _subwaySauces,
       ],
       'Wrap': const [
         MenuCategory(
@@ -331,15 +465,10 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Spinach Wrap', calories: 290, protein: 11, carbs: 49, fat: 6),
           ],
         ),
-        MenuCategory(
-          name: 'Protein',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Rotisserie Chicken', calories: 130, protein: 21, carbs: 2, fat: 4),
-            MenuItem(name: 'Turkey Breast', calories: 60, protein: 12, carbs: 2, fat: 1),
-            MenuItem(name: 'Steak', calories: 110, protein: 17, carbs: 4, fat: 3),
-          ],
-        ),
+        _subwayProtein6,
+        _subwayCheese,
+        _subwayVeggies,
+        _subwaySauces,
       ],
       'Salad': const [
         MenuCategory(
@@ -349,15 +478,10 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Mixed Greens', calories: 50, protein: 3, carbs: 9, fat: 1),
           ],
         ),
-        MenuCategory(
-          name: 'Protein',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Rotisserie Chicken', calories: 130, protein: 21, carbs: 2, fat: 4),
-            MenuItem(name: 'Turkey Breast', calories: 60, protein: 12, carbs: 2, fat: 1),
-            MenuItem(name: 'Tuna', calories: 250, protein: 13, carbs: 0, fat: 21),
-          ],
-        ),
+        _subwayProtein6,
+        _subwayCheese,
+        _subwayVeggies,
+        _subwaySauces,
       ],
     },
   ),
@@ -382,6 +506,7 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Quarter Pounder w/ Cheese', calories: 520, protein: 30, carbs: 42, fat: 26),
             MenuItem(name: 'Double Quarter Pounder w/ Cheese', calories: 740, protein: 48, carbs: 43, fat: 42),
             MenuItem(name: 'Big Mac', calories: 590, protein: 25, carbs: 46, fat: 34),
+            MenuItem(name: 'Filet-O-Fish', calories: 390, protein: 16, carbs: 39, fat: 19),
           ],
         ),
         MenuCategory(
@@ -405,8 +530,11 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Large Coke', calories: 380, protein: 0, carbs: 100, fat: 0),
             MenuItem(name: 'Diet Coke', calories: 0, protein: 0, carbs: 0, fat: 0),
             MenuItem(name: 'Sprite (Medium)', calories: 280, protein: 0, carbs: 77, fat: 0),
+            MenuItem(name: 'Hi-C Orange (Medium)', calories: 240, protein: 0, carbs: 66, fat: 0),
             MenuItem(name: 'Iced Tea (Unsweet)', calories: 0, protein: 0, carbs: 0, fat: 0),
             MenuItem(name: 'Water', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Low-Fat Milk (1%)', calories: 100, protein: 8, carbs: 12, fat: 3),
+            MenuItem(name: 'Chocolate Milk (1%)', calories: 150, protein: 8, carbs: 22, fat: 3),
             MenuItem(name: 'Coffee (Small)', calories: 0, protein: 0, carbs: 0, fat: 0),
           ],
         ),
@@ -481,9 +609,13 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(name: 'Apple Pie', calories: 230, protein: 2, carbs: 36, fat: 11),
             MenuItem(name: 'McFlurry M&M (Snack)', calories: 430, protein: 9, carbs: 67, fat: 14),
+            MenuItem(name: 'McFlurry Oreo (Snack)', calories: 340, protein: 8, carbs: 53, fat: 11),
+            MenuItem(name: 'McFlurry M&M (Regular)', calories: 640, protein: 14, carbs: 96, fat: 22),
+            MenuItem(name: 'McFlurry Oreo (Regular)', calories: 510, protein: 13, carbs: 80, fat: 16),
             MenuItem(name: 'Vanilla Cone', calories: 200, protein: 5, carbs: 32, fat: 5),
             MenuItem(name: 'Hot Fudge Sundae', calories: 320, protein: 7, carbs: 50, fat: 9),
             MenuItem(name: 'Chocolate Chip Cookie', calories: 170, protein: 2, carbs: 22, fat: 8),
+            MenuItem(name: 'Baked Apple Pie', calories: 230, protein: 2, carbs: 36, fat: 11),
           ],
         ),
       ],
@@ -508,6 +640,7 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Spicy Chicken Sandwich', calories: 450, protein: 28, carbs: 42, fat: 19),
             MenuItem(name: 'Spicy Deluxe Sandwich', calories: 540, protein: 32, carbs: 44, fat: 26),
             MenuItem(name: 'Grilled Chicken Sandwich', calories: 320, protein: 28, carbs: 41, fat: 6),
+            MenuItem(name: 'Grilled Chicken Club', calories: 440, protein: 36, carbs: 42, fat: 13),
             MenuItem(name: 'Chicken Club Sandwich', calories: 520, protein: 35, carbs: 41, fat: 23),
           ],
         ),
@@ -538,6 +671,7 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Sriracha Sauce', calories: 70, protein: 0, carbs: 10, fat: 4),
           ],
         ),
+        _cfaDrink,
       ],
       'Nuggets Meal': const [
         MenuCategory(
@@ -550,6 +684,8 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Nuggets (30 ct)', calories: 950, protein: 100, carbs: 42, fat: 42),
             MenuItem(name: 'Grilled Nuggets (8 ct)', calories: 130, protein: 25, carbs: 1, fat: 3),
             MenuItem(name: 'Grilled Nuggets (12 ct)', calories: 200, protein: 38, carbs: 2, fat: 4),
+            MenuItem(name: 'Chicken Strips (3 ct)', calories: 350, protein: 28, carbs: 17, fat: 17),
+            MenuItem(name: 'Chicken Strips (4 ct)', calories: 470, protein: 38, carbs: 23, fat: 23),
           ],
         ),
         MenuCategory(
@@ -570,8 +706,11 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Polynesian Sauce', calories: 110, protein: 0, carbs: 17, fat: 5),
             MenuItem(name: 'Honey Mustard', calories: 45, protein: 0, carbs: 10, fat: 0),
             MenuItem(name: 'BBQ Sauce', calories: 45, protein: 0, carbs: 11, fat: 0),
+            MenuItem(name: 'Sriracha Sauce', calories: 70, protein: 0, carbs: 10, fat: 4),
+            MenuItem(name: 'Buffalo Sauce', calories: 15, protein: 0, carbs: 1, fat: 1),
           ],
         ),
+        _cfaDrink,
       ],
       'Salad': const [
         MenuCategory(
@@ -643,6 +782,19 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Doritos Locos Taco', calories: 170, protein: 8, carbs: 13, fat: 9),
             MenuItem(name: 'Doritos Locos Taco Supreme', calories: 200, protein: 9, carbs: 16, fat: 11),
             MenuItem(name: 'Spicy Potato Soft Taco', calories: 230, protein: 6, carbs: 28, fat: 11),
+            MenuItem(name: 'Cheesy Gordita Crunch', calories: 500, protein: 20, carbs: 41, fat: 27),
+            MenuItem(name: 'Chalupa Supreme (Beef)', calories: 360, protein: 13, carbs: 30, fat: 21),
+          ],
+        ),
+        MenuCategory(
+          name: 'Sauce Packets',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Mild Sauce', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Hot Sauce', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Fire Sauce', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Diablo Sauce', calories: 0, protein: 0, carbs: 0, fat: 0),
           ],
         ),
       ],
@@ -819,112 +971,17 @@ final List<RestaurantMenu> restaurantMenus = [
     mealTypes: const ['Bowl', 'Plate', 'Bigger Plate', 'A La Carte'],
     builders: {
       'Bowl': const [
-        MenuCategory(
-          name: 'Side',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Chow Mein', calories: 510, protein: 13, carbs: 80, fat: 20),
-            MenuItem(name: 'Fried Rice', calories: 520, protein: 11, carbs: 85, fat: 16),
-            MenuItem(name: 'White Steamed Rice', calories: 380, protein: 7, carbs: 87, fat: 0),
-            MenuItem(name: 'Brown Steamed Rice', calories: 420, protein: 9, carbs: 86, fat: 4),
-            MenuItem(name: 'Super Greens', calories: 90, protein: 6, carbs: 10, fat: 3),
-            MenuItem(name: 'Half Chow Mein + Half Greens', calories: 300, protein: 10, carbs: 45, fat: 12),
-          ],
-        ),
-        MenuCategory(
-          name: 'Entree',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Orange Chicken', calories: 510, protein: 25, carbs: 51, fat: 23),
-            MenuItem(name: 'Beijing Beef', calories: 480, protein: 14, carbs: 47, fat: 27),
-            MenuItem(name: 'Honey Walnut Shrimp', calories: 360, protein: 13, carbs: 35, fat: 19),
-            MenuItem(name: 'Kung Pao Chicken', calories: 290, protein: 16, carbs: 14, fat: 19),
-            MenuItem(name: 'Mushroom Chicken', calories: 220, protein: 14, carbs: 10, fat: 14),
-            MenuItem(name: 'Black Pepper Angus Steak', calories: 210, protein: 19, carbs: 13, fat: 10),
-            MenuItem(name: 'Broccoli Beef', calories: 150, protein: 9, carbs: 13, fat: 7),
-            MenuItem(name: 'Honey Sesame Chicken Breast', calories: 340, protein: 14, carbs: 35, fat: 15),
-            MenuItem(name: 'String Bean Chicken Breast', calories: 190, protein: 14, carbs: 13, fat: 9),
-            MenuItem(name: 'Sweetfire Chicken Breast', calories: 380, protein: 14, carbs: 47, fat: 15),
-            MenuItem(name: 'Eggplant Tofu', calories: 340, protein: 7, carbs: 33, fat: 19),
-          ],
-        ),
+        _pandaSide,
+        _pandaEntreesPick1,
       ],
       'Plate': const [
-        MenuCategory(
-          name: 'Side',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Chow Mein', calories: 510, protein: 13, carbs: 80, fat: 20),
-            MenuItem(name: 'Fried Rice', calories: 520, protein: 11, carbs: 85, fat: 16),
-            MenuItem(name: 'White Steamed Rice', calories: 380, protein: 7, carbs: 87, fat: 0),
-            MenuItem(name: 'Brown Steamed Rice', calories: 420, protein: 9, carbs: 86, fat: 4),
-            MenuItem(name: 'Super Greens', calories: 90, protein: 6, carbs: 10, fat: 3),
-          ],
-        ),
-        MenuCategory(
-          name: 'Entree #1',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Orange Chicken', calories: 510, protein: 25, carbs: 51, fat: 23),
-            MenuItem(name: 'Beijing Beef', calories: 480, protein: 14, carbs: 47, fat: 27),
-            MenuItem(name: 'Kung Pao Chicken', calories: 290, protein: 16, carbs: 14, fat: 19),
-            MenuItem(name: 'String Bean Chicken Breast', calories: 190, protein: 14, carbs: 13, fat: 9),
-            MenuItem(name: 'Broccoli Beef', calories: 150, protein: 9, carbs: 13, fat: 7),
-            MenuItem(name: 'Mushroom Chicken', calories: 220, protein: 14, carbs: 10, fat: 14),
-          ],
-        ),
-        MenuCategory(
-          name: 'Entree #2',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Orange Chicken', calories: 510, protein: 25, carbs: 51, fat: 23),
-            MenuItem(name: 'Beijing Beef', calories: 480, protein: 14, carbs: 47, fat: 27),
-            MenuItem(name: 'Kung Pao Chicken', calories: 290, protein: 16, carbs: 14, fat: 19),
-            MenuItem(name: 'String Bean Chicken Breast', calories: 190, protein: 14, carbs: 13, fat: 9),
-            MenuItem(name: 'Broccoli Beef', calories: 150, protein: 9, carbs: 13, fat: 7),
-            MenuItem(name: 'Mushroom Chicken', calories: 220, protein: 14, carbs: 10, fat: 14),
-          ],
-        ),
+        _pandaSide,
+        // Plate = 1 side + 2 entrees. maxSelections enforced by the builder UI.
+        _pandaEntreesPick2,
       ],
       'Bigger Plate': const [
-        MenuCategory(
-          name: 'Side',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Chow Mein', calories: 510, protein: 13, carbs: 80, fat: 20),
-            MenuItem(name: 'Fried Rice', calories: 520, protein: 11, carbs: 85, fat: 16),
-            MenuItem(name: 'White Steamed Rice', calories: 380, protein: 7, carbs: 87, fat: 0),
-            MenuItem(name: 'Super Greens', calories: 90, protein: 6, carbs: 10, fat: 3),
-          ],
-        ),
-        MenuCategory(
-          name: 'Entree #1',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Orange Chicken', calories: 510, protein: 25, carbs: 51, fat: 23),
-            MenuItem(name: 'Beijing Beef', calories: 480, protein: 14, carbs: 47, fat: 27),
-            MenuItem(name: 'Kung Pao Chicken', calories: 290, protein: 16, carbs: 14, fat: 19),
-            MenuItem(name: 'Broccoli Beef', calories: 150, protein: 9, carbs: 13, fat: 7),
-          ],
-        ),
-        MenuCategory(
-          name: 'Entree #2',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Orange Chicken', calories: 510, protein: 25, carbs: 51, fat: 23),
-            MenuItem(name: 'Mushroom Chicken', calories: 220, protein: 14, carbs: 10, fat: 14),
-            MenuItem(name: 'String Bean Chicken Breast', calories: 190, protein: 14, carbs: 13, fat: 9),
-          ],
-        ),
-        MenuCategory(
-          name: 'Entree #3',
-          mode: SelectionMode.single,
-          items: [
-            MenuItem(name: 'Orange Chicken', calories: 510, protein: 25, carbs: 51, fat: 23),
-            MenuItem(name: 'Broccoli Beef', calories: 150, protein: 9, carbs: 13, fat: 7),
-            MenuItem(name: 'Honey Sesame Chicken Breast', calories: 340, protein: 14, carbs: 35, fat: 15),
-          ],
-        ),
+        _pandaSide,
+        _pandaEntreesPick3,
       ],
       'A La Carte': const [
         MenuCategory(
@@ -1053,6 +1110,8 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Arugula', calories: 25, protein: 3, carbs: 5, fat: 0),
             MenuItem(name: 'Shredded Kale', calories: 60, protein: 4, carbs: 10, fat: 1),
             MenuItem(name: 'Spinach', calories: 25, protein: 3, carbs: 4, fat: 0),
+            MenuItem(name: 'Warm Quinoa', calories: 220, protein: 8, carbs: 39, fat: 4),
+            MenuItem(name: 'Warm Wild Rice', calories: 240, protein: 8, carbs: 52, fat: 1),
             MenuItem(name: 'Spicy Broccoli + Greens', calories: 100, protein: 7, carbs: 16, fat: 3),
           ],
         ),
@@ -1060,9 +1119,12 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Protein',
           mode: SelectionMode.single,
           optional: true,
+          allowDouble: true,
           items: [
             MenuItem(name: 'Roasted Chicken', calories: 220, protein: 36, carbs: 1, fat: 7),
             MenuItem(name: 'Blackened Chicken', calories: 240, protein: 36, carbs: 3, fat: 9),
+            MenuItem(name: 'Crispy Chicken', calories: 310, protein: 28, carbs: 16, fat: 16),
+            MenuItem(name: 'Roasted Salmon', calories: 270, protein: 33, carbs: 1, fat: 14),
             MenuItem(name: 'Steelhead', calories: 270, protein: 33, carbs: 1, fat: 14),
             MenuItem(name: 'Falafel', calories: 360, protein: 12, carbs: 38, fat: 19),
             MenuItem(name: 'Spicy Sunflower Tofu', calories: 200, protein: 14, carbs: 11, fat: 12),
@@ -1111,6 +1173,7 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.single,
           items: [
             MenuItem(name: 'Wild Rice', calories: 240, protein: 8, carbs: 52, fat: 1),
+            MenuItem(name: 'Warm Quinoa', calories: 220, protein: 8, carbs: 39, fat: 4),
             MenuItem(name: 'Spicy Broccoli', calories: 160, protein: 8, carbs: 18, fat: 8),
             MenuItem(name: 'Sweetpotato + Wild Rice', calories: 310, protein: 8, carbs: 64, fat: 2),
           ],
@@ -1118,9 +1181,13 @@ final List<RestaurantMenu> restaurantMenus = [
         MenuCategory(
           name: 'Protein',
           mode: SelectionMode.single,
+          allowDouble: true,
           items: [
             MenuItem(name: 'Roasted Chicken', calories: 220, protein: 36, carbs: 1, fat: 7),
+            MenuItem(name: 'Blackened Chicken', calories: 240, protein: 36, carbs: 3, fat: 9),
+            MenuItem(name: 'Crispy Chicken', calories: 310, protein: 28, carbs: 16, fat: 16),
             MenuItem(name: 'Steelhead', calories: 270, protein: 33, carbs: 1, fat: 14),
+            MenuItem(name: 'Caramelized Garlic Steak', calories: 240, protein: 32, carbs: 3, fat: 11),
             MenuItem(name: 'Falafel', calories: 360, protein: 12, carbs: 38, fat: 19),
             MenuItem(name: 'Spicy Sunflower Tofu', calories: 200, protein: 14, carbs: 11, fat: 12),
           ],
@@ -1190,6 +1257,7 @@ final List<RestaurantMenu> restaurantMenus = [
         MenuCategory(
           name: 'Protein',
           mode: SelectionMode.single,
+          allowDouble: true,
           items: [
             MenuItem(name: 'Grilled Chicken', calories: 250, protein: 36, carbs: 1, fat: 11),
             MenuItem(name: 'Spicy Lamb Meatballs', calories: 350, protein: 22, carbs: 5, fat: 26),

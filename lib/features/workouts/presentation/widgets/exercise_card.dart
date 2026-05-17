@@ -108,12 +108,16 @@ class ExerciseCard extends ConsumerWidget {
               return SetRow(
                 set: activeSet,
                 setNumber: setIndex + 1,
+                units: units,
                 previousReps: activeSet.previousReps,
                 previousWeight: activeSet.previousWeight,
                 onUpdate: ({int? reps, double? weight}) =>
                     onUpdateSet(setIndex, reps: reps, weight: weight),
                 onComplete: () => onCompleteSet(setIndex),
                 onRemove: () => onRemoveSet(setIndex),
+                // prev.weight is already kg in state; pass it through
+                // unchanged — the storage layer is kg-canonical and SetRow
+                // will display it correctly for the user's preferred unit.
                 onCopyFromPrevious: setIndex == 0
                     ? null
                     : () {
