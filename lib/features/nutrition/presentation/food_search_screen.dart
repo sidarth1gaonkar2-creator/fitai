@@ -225,23 +225,56 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
             ),
           ),
         ] else if (remoteData != null && remoteData.isNotEmpty) ...[
-          _SectionHeader(
-            label: 'From USDA',
-            icon: Icons.public_outlined,
-          ),
-          SliverList.builder(
-            itemCount: remoteData.length,
-            itemBuilder: (context, index) => _FoodResultTile(
-              food: remoteData[index],
-              mealType: widget.mealType,
-              returnMode: widget.returnMode,
-            ),
-          ),
+          // Split the merged remote result into USDA (Common Foods) vs.
+          // Spoonacular (Branded & Restaurant) so the user can tell at a
+          // glance where each row came from. The unified provider already
+          // merges them in priority order.
+          ..._buildRemoteSections(remoteData),
         ],
 
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
       ],
     );
+  }
+
+  /// Splits the merged remote list into two visually-grouped sections.
+  List<Widget> _buildRemoteSections(List<FoodSearchResult> remoteData) {
+    final usda = remoteData
+        .where((r) => r.source == FoodSource.usda)
+        .toList();
+    final branded = remoteData
+        .where((r) => r.source == FoodSource.spoonacular)
+        .toList();
+    return [
+      if (usda.isNotEmpty) ...[
+        _SectionHeader(
+          label: 'Common Foods',
+          icon: Icons.public_outlined,
+        ),
+        SliverList.builder(
+          itemCount: usda.length,
+          itemBuilder: (context, index) => _FoodResultTile(
+            food: usda[index],
+            mealType: widget.mealType,
+            returnMode: widget.returnMode,
+          ),
+        ),
+      ],
+      if (branded.isNotEmpty) ...[
+        _SectionHeader(
+          label: 'Branded & Restaurant',
+          icon: Icons.storefront_outlined,
+        ),
+        SliverList.builder(
+          itemCount: branded.length,
+          itemBuilder: (context, index) => _FoodResultTile(
+            food: branded[index],
+            mealType: widget.mealType,
+            returnMode: widget.returnMode,
+          ),
+        ),
+      ],
+    ];
   }
 }
 

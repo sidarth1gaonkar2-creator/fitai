@@ -20,8 +20,10 @@ import '../features/nutrition/domain/food_search_result.dart';
 import '../features/nutrition/presentation/barcode_scanner_screen.dart';
 import '../features/nutrition/presentation/food_detail_screen.dart';
 import '../features/nutrition/presentation/food_search_screen.dart';
+import '../features/nutrition/presentation/meal_builder_screen.dart';
 import '../features/nutrition/presentation/meal_plan_preview_screen.dart';
 import '../features/nutrition/presentation/nutrition_screen.dart';
+import '../features/nutrition/presentation/restaurant_browser_screen.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
 import '../features/progress/presentation/pr_hall_screen.dart';
 import '../features/progress/presentation/progress_screen.dart';
@@ -237,6 +239,46 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                             mealType: mealType, food: food),
                       );
                     },
+                  ),
+                  GoRoute(
+                    path: 'restaurants',
+                    pageBuilder: (context, state) {
+                      final mealTypeParam =
+                          state.uri.queryParameters['mealType'];
+                      MealType? mt;
+                      if (mealTypeParam != null) {
+                        try {
+                          mt = MealType.values.byName(mealTypeParam);
+                        } catch (_) {/* ignore bad param */}
+                      }
+                      return slideUpTransitionPage(
+                        key: state.pageKey,
+                        child: RestaurantBrowserScreen(mealType: mt),
+                      );
+                    },
+                    routes: [
+                      GoRoute(
+                        path: ':id',
+                        pageBuilder: (context, state) {
+                          final id = state.pathParameters['id']!;
+                          final mealTypeParam =
+                              state.uri.queryParameters['mealType'];
+                          MealType? mt;
+                          if (mealTypeParam != null) {
+                            try {
+                              mt = MealType.values.byName(mealTypeParam);
+                            } catch (_) {/* ignore bad param */}
+                          }
+                          return slideUpTransitionPage(
+                            key: state.pageKey,
+                            child: MealBuilderScreen(
+                              restaurantId: id,
+                              initialMealType: mt,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: 'saved-meals',

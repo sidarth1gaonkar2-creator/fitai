@@ -3,6 +3,7 @@ import 'dart:developer' as dev;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/micro_rdas.dart';
 import '../core/utils/macro_targets.dart';
 import '../data/curated_meal_plans.dart';
@@ -114,19 +115,44 @@ final foodLocalSearchProvider =
 });
 
 /// Remote USDA FoodData Central search — async, network-dependent.
+///
+/// When USDA returns fewer than 3 hits we also query Spoonacular for branded
+/// products and restaurant menu items, merging the two streams. USDA stays
+/// first so generic foods are still preferred — Spoonacular fills the gaps.
 final foodRemoteSearchProvider =
     FutureProvider.family<List<FoodSearchResult>, String>((ref, query) async {
   if (query.trim().isEmpty) return [];
-  final service = ref.read(usdaServiceProvider);
-  final results = await service.search(query);
+  final usdaService = ref.read(usdaServiceProvider);
+  final spoon = ref.read(spoonacularServiceProvider);
+
+  final usdaResults = await usdaService.search(query);
   // Deduplicate against local results
   final localNames = ref
       .read(foodLocalSearchProvider(query))
       .map((r) => r.name.toLowerCase().trim())
       .toSet();
-  return results
+  final usdaFiltered = usdaResults
       .where((r) => !localNames.contains(r.name.toLowerCase().trim()))
       .toList();
+
+  if (usdaFiltered.length >= 3) return usdaFiltered;
+
+  // USDA was thin — supplement with Spoonacular branded/restaurant items.
+  // Both calls are best-effort: any failure returns empty so the search
+  // result list still surfaces whatever USDA produced.
+  final results = await Future.wait([
+    spoon.searchMenuItems(query).catchError((_) => <FoodSearchResult>[]),
+    spoon.searchProducts(query).catchError((_) => <FoodSearchResult>[]),
+  ]);
+  final usdaNames = usdaFiltered
+      .map((r) => r.name.toLowerCase().trim())
+      .toSet();
+  final spoonFiltered = [...results[0], ...results[1]]
+      .where((r) =>
+          !localNames.contains(r.name.toLowerCase().trim()) &&
+          !usdaNames.contains(r.name.toLowerCase().trim()))
+      .toList();
+  return [...usdaFiltered, ...spoonFiltered];
 });
 
 /// Legacy provider kept for backward compatibility (barcode lookup etc.)
@@ -142,11 +168,65 @@ final foodSearchProvider =
   return [...local, ...remote];
 });
 
-/// Look up a product by barcode.
+/// Negative-cache key for barcodes we've already failed to resolve.
+/// Stored as a SharedPreferences string list with `barcode|expiryMs` entries.
+/// 24-hour TTL — long enough to skip the API hit on repeated scans, short
+/// enough that newly-indexed products eventually become visible.
+const _barcodeNegativeCacheKey = 'barcode_negative_cache';
+const _barcodeNegativeCacheTtl = Duration(hours: 24);
+
+Future<bool> _isInNegativeCache(String barcode) async {
+  final prefs = await SharedPreferences.getInstance();
+  final raw = prefs.getStringList(_barcodeNegativeCacheKey) ?? const <String>[];
+  final now = DateTime.now().millisecondsSinceEpoch;
+  for (final entry in raw) {
+    final parts = entry.split('|');
+    if (parts.length != 2) continue;
+    final expiry = int.tryParse(parts[1]) ?? 0;
+    if (expiry > now && parts[0] == barcode) return true;
+  }
+  return false;
+}
+
+Future<void> _addToNegativeCache(String barcode) async {
+  final prefs = await SharedPreferences.getInstance();
+  final raw = prefs.getStringList(_barcodeNegativeCacheKey) ?? const <String>[];
+  final now = DateTime.now().millisecondsSinceEpoch;
+  // Prune expired and the matching barcode (in case of duplicates).
+  final kept = raw.where((e) {
+    final parts = e.split('|');
+    if (parts.length != 2) return false;
+    final expiry = int.tryParse(parts[1]) ?? 0;
+    return expiry > now && parts[0] != barcode;
+  }).toList();
+  final expiry = now + _barcodeNegativeCacheTtl.inMilliseconds;
+  kept.add('$barcode|$expiry');
+  await prefs.setStringList(_barcodeNegativeCacheKey, kept);
+}
+
+/// Look up a product by barcode. Tries OpenFoodFacts first (free), then
+/// falls back to Spoonacular. Misses are recorded in a 24h negative cache
+/// to avoid burning the Spoonacular quota on repeated dud scans.
 final barcodeLookupProvider =
     FutureProvider.family<FoodSearchResult?, String>((ref, barcode) async {
-  final service = ref.read(openFoodFactsServiceProvider);
-  return service.getByBarcode(barcode);
+  if (barcode.trim().isEmpty) return null;
+  // Negative cache short-circuit — confirmed-not-found in the last 24h.
+  if (await _isInNegativeCache(barcode)) return null;
+
+  final off = ref.read(openFoodFactsServiceProvider);
+  try {
+    final fromOff = await off.getByBarcode(barcode);
+    if (fromOff != null) return fromOff;
+  } catch (_) {/* fall through to Spoonacular */}
+
+  final spoon = ref.read(spoonacularServiceProvider);
+  try {
+    final fromSpoon = await spoon.getProductByBarcode(barcode);
+    if (fromSpoon != null) return fromSpoon;
+  } catch (_) {/* fall through to negative cache */}
+
+  await _addToNegativeCache(barcode);
+  return null;
 });
 
 // ---------------------------------------------------------------------------

@@ -190,18 +190,26 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
     }
     if (!mounted) return;
 
-    // Wait for the modal popup to finish its dismissal animation before we
-    // push a new route. Calling context.go() while the sheet is still
-    // animating closed races with the navigator and leaves the screen black.
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (!mounted) return;
+    // Two-step navigation to avoid the black-screen bug.
+    //
+    // The workout logging screen lives inside the Workouts shell branch
+    // (StatefulShellRoute.indexedStack), but /community/create-post is a
+    // STANDALONE route outside the shell. Calling `context.go(...)` to jump
+    // directly cross-stack tears down the shell+page transition mid-flight
+    // and produces a black frame the OS never recovers from.
+    //
+    // Instead: first go back to /workouts (still inside the shell — safe
+    // and animates correctly), give the navigator a frame to settle, then
+    // push the standalone create-post route on top of the root navigator.
+    debugPrint('[Finish] Navigating back to /workouts (shell)');
+    context.go('/workouts');
 
     if (shouldShare == true) {
-      debugPrint('[Finish] Navigating to /community/create-post');
-      context.go('/community/create-post?workoutId=$savedWorkoutId');
-    } else {
-      debugPrint('[Finish] Navigating to /workouts');
-      context.go('/workouts');
+      // One frame for the shell route to render before we stack on top.
+      await Future.delayed(const Duration(milliseconds: 150));
+      if (!mounted) return;
+      debugPrint('[Finish] Pushing /community/create-post on top');
+      context.push('/community/create-post?workoutId=$savedWorkoutId');
     }
   }
 

@@ -13,6 +13,8 @@ import 'widgets/complete_day_button.dart';
 import 'widgets/daily_summary_header.dart';
 import 'widgets/meal_section.dart';
 import 'widgets/micronutrient_section.dart';
+import 'widgets/quick_add_sheet.dart';
+import 'widgets/recent_foods_sheet.dart';
 import 'meal_plans_screen.dart';
 
 class NutritionScreen extends ConsumerStatefulWidget {
@@ -139,7 +141,17 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
                 carbsTarget: targets?.carbs ?? 250,
                 fatTarget: targets?.fat ?? 70,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
+              // ── Quick search bar (taps into unified search) ──
+              if (!isLocked) ...[
+                _SearchTrigger(
+                  onTap: () => context.go(
+                      '/nutrition/search/${MealType.lunch.name}'),
+                ),
+                const SizedBox(height: 10),
+                _QuickActionChips(isLocked: isLocked),
+                const SizedBox(height: 12),
+              ],
               // Micronutrient section (always visible)
               MicronutrientSection(consumed: micros),
               const SizedBox(height: 8),
@@ -288,3 +300,155 @@ class _TabPill extends StatelessWidget {
   }
 }
 
+// ─── Search trigger + quick action chips ──────────────────────────
+
+class _SearchTrigger extends StatelessWidget {
+  const _SearchTrigger({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: palette.surfaceElevated,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(CupertinoIcons.search, size: 18, color: palette.textSecondary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Search foods, restaurants, or scan barcode...',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 14,
+                  color: palette.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickActionChips extends ConsumerWidget {
+  const _QuickActionChips({required this.isLocked});
+  final bool isLocked;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SizedBox(
+      height: 38,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        children: [
+          _Chip(
+            icon: CupertinoIcons.search,
+            label: 'Search',
+            onTap: () =>
+                context.go('/nutrition/search/${MealType.lunch.name}'),
+          ),
+          _Chip(
+            icon: CupertinoIcons.qrcode_viewfinder,
+            label: 'Scan',
+            onTap: () =>
+                context.go('/nutrition/scan/${MealType.lunch.name}'),
+          ),
+          _Chip(
+            emoji: '🍔',
+            label: 'Restaurants',
+            onTap: () => context.push('/nutrition/restaurants'),
+          ),
+          _Chip(
+            icon: Icons.bookmark_outline,
+            label: 'Saved',
+            onTap: () => context.push('/nutrition/saved-meals'),
+          ),
+          _Chip(
+            icon: CupertinoIcons.clock,
+            label: 'Recent',
+            onTap: () => showCupertinoModalPopup(
+              context: context,
+              builder: (_) => const RecentFoodsSheet(),
+            ),
+          ),
+          _Chip(
+            icon: CupertinoIcons.pencil,
+            label: 'Quick Add',
+            onTap: () => showCupertinoModalPopup(
+              context: context,
+              builder: (_) => const QuickAddSheet(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip({
+    this.icon,
+    this.emoji,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData? icon;
+  final String? emoji;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: palette.surfaceElevated,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: palette.border),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (emoji != null)
+                Text(emoji!, style: const TextStyle(fontSize: 16))
+              else if (icon != null)
+                Icon(icon, size: 16, color: palette.text),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: palette.text,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
