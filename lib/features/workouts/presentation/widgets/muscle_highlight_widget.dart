@@ -1,107 +1,171 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../data/anatomy_paths.dart';
 import '../../../../data/muscle_map.dart';
 
-/// Apple-Fitness-inspired muscle highlight. Renders a minimal body
-/// silhouette behind a set of glowing ovals — primary muscles at full
-/// accent strength, secondary muscles dimmed and softer.
+/// Anatomically-shaped muscle highlight. Each muscle group renders as its
+/// own closed path (chest fans, lat wings, glute curves, triceps horseshoe,
+/// …) rather than a generic oval — see [AnatomyPaths].
 ///
-/// Sizing:
-///   * Compact (default `height: 160`): single front-or-back silhouette.
-///   * Full (`height: 360+`): front + back side by side when the muscles
-///     span both. The widget auto-picks which sides to render based on
-///     whether any of the supplied muscles map there.
-class MuscleHighlightWidget extends StatelessWidget {
+/// Two display modes:
+///   * Compact (`height: 120`) — shows ONE side, picked automatically based
+///     on which side carries the most highlighted muscles. Used for inline
+///     contexts like exercise cards.
+///   * Full (`height: 280`) — shows front + back side by side. Used in the
+///     exercise detail screen and workout history detail.
+///
+/// On first build, highlights fade in over 400ms with an easeOutCubic curve
+/// so the user gets a brief "lighting up" effect.
+class MuscleHighlightWidget extends StatefulWidget {
   const MuscleHighlightWidget({
     super.key,
     required this.targetMuscles,
     this.secondaryMuscles = const [],
-    this.height = 160,
-    this.maxWidth = 220,
+    this.height = 280,
+    this.compact = false,
   });
 
   final List<String> targetMuscles;
   final List<String> secondaryMuscles;
   final double height;
 
-  /// Caps the combined width when both panels are visible so the widget
-  /// doesn't stretch to fill an entire scroll view.
-  final double maxWidth;
+  /// When true, renders ONLY the side with the most active muscles. The
+  /// `height` should typically be ~120 in this mode.
+  final bool compact;
+
+  /// Legend swatch helpers — colours that match the actual fill opacity
+  /// used by the painter so on-screen swatches read correctly.
+  static Color targetColor(Color accent) =>
+      accent.withValues(alpha: 0.75);
+  static Color secondaryColor(Color accent) =>
+      accent.withValues(alpha: 0.35);
+
+  @override
+  State<MuscleHighlightWidget> createState() => _MuscleHighlightWidgetState();
+}
+
+class _MuscleHighlightWidgetState extends State<MuscleHighlightWidget>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(MuscleHighlightWidget old) {
+    super.didUpdateWidget(old);
+    // Restart the fade-in any time the muscle list changes — gives the
+    // user a clear visual cue that the highlights have shifted.
+    if (!_eq(old.targetMuscles, widget.targetMuscles) ||
+        !_eq(old.secondaryMuscles, widget.secondaryMuscles)) {
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool _eq(List<String> a, List<String> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
     final brightness = MediaQuery.platformBrightnessOf(context);
-    final silhouetteColor = brightness == Brightness.dark
-        ? const Color(0xFFBFBFBF) // light grey on dark
-        : const Color(0xFF333333); // dark grey on light
+    // Apple-Fitness-style silhouette: subtle fill + slightly stronger
+    // outline. Colours differ per brightness so the silhouette stays
+    // readable on both backgrounds.
+    final fillBase = brightness == Brightness.dark
+        ? const Color(0xFF2A2A35)
+        : const Color(0xFFD0D0D8);
+    final strokeBase = brightness == Brightness.dark
+        ? const Color(0xFF3A3A45)
+        : const Color(0xFFB0B0B8);
 
-    final all = [...targetMuscles, ...secondaryMuscles];
-    final showFront = MuscleMap.hasMusclesOnSide(all, BodySide.front);
-    final showBack = MuscleMap.hasMusclesOnSide(all, BodySide.back);
-    // Always show at least one side so the widget never collapses.
-    final useFrontOnly = showFront && !showBack;
-    final useBothSides = showFront && showBack;
-    final useBackOnly = !showFront && showBack;
-    final fallbackToFront = !showFront && !showBack;
+    final all = [
+      ...widget.targetMuscles.map(MuscleMap.normalize),
+      ...widget.secondaryMuscles.map(MuscleMap.normalize),
+    ];
+    final hasFront =
+        all.any((m) => AnatomyPaths.frontPathFor(m, const Size(1, 1)) != null);
+    final hasBack =
+        all.any((m) => AnatomyPaths.backPathFor(m, const Size(1, 1)) != null);
 
-    final panels = <Widget>[];
-    if (useFrontOnly || useBothSides || fallbackToFront) {
-      panels.add(_panel(
-        side: BodySide.front,
-        accent: palette.accent,
-        silhouette: silhouetteColor,
-      ));
-    }
-    if (useBackOnly || useBothSides) {
-      panels.add(_panel(
-        side: BodySide.back,
-        accent: palette.accent,
-        silhouette: silhouetteColor,
-      ));
+    // Side selection.
+    final List<BodySide> sides;
+    if (widget.compact) {
+      // Single side — pick whichever has more highlights, defaulting to
+      // front when the lists are empty or balanced.
+      if (hasBack && !hasFront) {
+        sides = [BodySide.back];
+      } else {
+        sides = [BodySide.front];
+      }
+    } else {
+      // Full view — render both sides whenever at least one has muscles
+      // to show. If nothing maps anywhere we still show the front
+      // silhouette so the widget never collapses.
+      if (hasFront && hasBack) {
+        sides = [BodySide.front, BodySide.back];
+      } else if (hasBack && !hasFront) {
+        sides = [BodySide.back];
+      } else {
+        sides = [BodySide.front];
+      }
     }
 
     return SizedBox(
-      height: height,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: Row(
+      height: widget.height,
+      child: AnimatedBuilder(
+        animation: _fade,
+        builder: (context, _) => Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            for (var i = 0; i < panels.length; i++) ...[
-              Expanded(child: panels[i]),
-              if (i < panels.length - 1) const SizedBox(width: 12),
+            for (var i = 0; i < sides.length; i++) ...[
+              AspectRatio(
+                aspectRatio: 0.5, // body is 2× taller than wide
+                child: CustomPaint(
+                  painter: _BodyPainter(
+                    side: sides[i],
+                    targetMuscles: widget.targetMuscles
+                        .map(MuscleMap.normalize)
+                        .toList(),
+                    secondaryMuscles: widget.secondaryMuscles
+                        .map(MuscleMap.normalize)
+                        .toList(),
+                    accent: palette.accent,
+                    silhouetteFill: fillBase,
+                    silhouetteStroke: strokeBase,
+                    fadeProgress: _fade.value,
+                  ),
+                ),
+              ),
+              if (i < sides.length - 1) const SizedBox(width: 16),
             ],
           ],
         ),
       ),
     );
   }
-
-  Widget _panel({
-    required BodySide side,
-    required Color accent,
-    required Color silhouette,
-  }) {
-    return CustomPaint(
-      painter: _BodyPainter(
-        side: side,
-        targetMuscles: targetMuscles,
-        secondaryMuscles: secondaryMuscles,
-        accent: accent,
-        silhouette: silhouette,
-      ),
-      size: Size.infinite,
-    );
-  }
-
-  /// Reused by callers that want to render a legend swatch matching the
-  /// actual highlight intensity used inside the widget.
-  static Color targetColor(Color accent) =>
-      accent.withValues(alpha: 0.85);
-  static Color secondaryColor(Color accent) =>
-      accent.withValues(alpha: 0.35);
 }
 
 class _BodyPainter extends CustomPainter {
@@ -110,227 +174,121 @@ class _BodyPainter extends CustomPainter {
     required this.targetMuscles,
     required this.secondaryMuscles,
     required this.accent,
-    required this.silhouette,
+    required this.silhouetteFill,
+    required this.silhouetteStroke,
+    required this.fadeProgress,
   });
 
   final BodySide side;
   final List<String> targetMuscles;
   final List<String> secondaryMuscles;
   final Color accent;
-  final Color silhouette;
+  final Color silhouetteFill;
+  final Color silhouetteStroke;
+
+  /// 0..1 — multiplied into every muscle's fill opacity for the fade-in.
+  final double fadeProgress;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
+    // 1. Silhouette backdrop.
+    final silhouette = AnatomyPaths.silhouette(size);
+    canvas.drawPath(
+      silhouette,
+      Paint()
+        ..color = silhouetteFill.withValues(alpha: 0.30)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawPath(
+      silhouette,
+      Paint()
+        ..color = silhouetteStroke
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0
+        ..strokeJoin = StrokeJoin.round
+        ..strokeCap = StrokeCap.round,
+    );
 
-    // Backdrop silhouette first — glows blend on top.
-    _drawSilhouette(canvas, w, h);
-
-    // Secondary muscles first (drawn UNDER primary so a "both" highlight
-    // reads as primary).
-    final secondary = _resolveZones(secondaryMuscles);
-    for (final z in secondary) {
-      _drawGlow(canvas, w, h, z,
-          color: accent.withValues(alpha: 0.35),
-          blurRadius: 10,
-          stretchFactor: 0.85);
+    // 2. Secondary muscles (drawn below primary so a muscle marked as both
+    //    ends up reading as primary).
+    for (final raw in secondaryMuscles) {
+      final path = _pathFor(raw, size);
+      if (path == null) continue;
+      _drawMuscle(
+        canvas,
+        path,
+        opacity: 0.35,
+        glowBlur: 3,
+        outlineWidth: 0.5,
+      );
     }
 
-    final primary = _resolveZones(targetMuscles);
-    for (final z in primary) {
-      _drawGlow(canvas, w, h, z,
-          color: accent.withValues(alpha: 0.80),
-          blurRadius: 14,
-          stretchFactor: 1.0);
+    // 3. Primary muscles on top.
+    for (final raw in targetMuscles) {
+      final path = _pathFor(raw, size);
+      if (path == null) continue;
+      _drawMuscle(
+        canvas,
+        path,
+        opacity: 0.75,
+        glowBlur: 4,
+        outlineWidth: 0.8,
+      );
     }
   }
 
-  /// Looks up zones for the current [side] only. Returns each zone twice
-  /// when [MuscleZone.mirrored] so paired muscles render on both arms/legs.
-  List<MuscleZone> _resolveZones(List<String> names) {
-    final out = <MuscleZone>[];
-    final source = side == BodySide.front
-        ? MuscleMap.frontZones
-        : MuscleMap.backZones;
-    for (final raw in names) {
-      final key = MuscleMap.normalize(raw);
-      final z = source[key];
-      if (z == null) continue;
-      out.add(z);
-      if (z.mirrored) {
-        out.add(MuscleZone(1.0 - z.cx, z.cy, z.rx, z.ry));
-      }
-    }
-    return out;
+  Path? _pathFor(String name, Size size) {
+    return side == BodySide.front
+        ? AnatomyPaths.frontPathFor(name, size)
+        : AnatomyPaths.backPathFor(name, size);
   }
 
-  void _drawGlow(
+  /// Renders a single muscle in three layers: a subtle outer glow (blurred
+  /// stroke), the solid fill, and a slightly brighter outline. The glow is
+  /// deliberately small (blur 3–4) so the shape stays defined rather than
+  /// turning into the flashlight-through-fog look the earlier version had.
+  void _drawMuscle(
     Canvas canvas,
-    double w,
-    double h,
-    MuscleZone z, {
-    required Color color,
-    required double blurRadius,
-    required double stretchFactor,
+    Path path, {
+    required double opacity,
+    required double glowBlur,
+    required double outlineWidth,
   }) {
-    final rect = Rect.fromCenter(
-      center: Offset(z.cx * w, z.cy * h),
-      width: z.rx * 2 * w * stretchFactor,
-      height: z.ry * 2 * h * stretchFactor,
+    final effective = opacity * fadeProgress;
+    // Glow (drawn first so the fill sits on top of it)
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = accent.withValues(alpha: effective * 0.6)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = glowBlur
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, glowBlur),
     );
-    final paint = Paint()
-      ..color = color
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, blurRadius);
-    canvas.drawOval(rect, paint);
-    // Crisper core on top of the glow so the highlight has a recognisable
-    // shape rather than just being a fuzzy cloud.
-    final core = Paint()
-      ..color = color.withValues(alpha: (color.a * 0.6).clamp(0.0, 1.0));
-    final coreRect = Rect.fromCenter(
-      center: rect.center,
-      width: rect.width * 0.65,
-      height: rect.height * 0.65,
+    // Solid fill
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = accent.withValues(alpha: effective)
+        ..style = PaintingStyle.fill,
     );
-    canvas.drawOval(coreRect, core);
-  }
-
-  // ───────────────────────────────────────────────────────────────────
-  // Silhouette — same outline for front and back. Apple Fitness style:
-  // a single soft path, no internal muscle delineation. Coordinates are
-  // expressed relative to the widget bounds via `w` and `h`.
-  // ───────────────────────────────────────────────────────────────────
-  void _drawSilhouette(Canvas canvas, double w, double h) {
-    final fill = Paint()
-      ..color = silhouette.withValues(alpha: 0.10)
-      ..style = PaintingStyle.fill;
-    final stroke = Paint()
-      ..color = silhouette.withValues(alpha: 0.45)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4
-      ..strokeJoin = StrokeJoin.round;
-
-    final path = _bodyPath(w, h);
-    canvas.drawPath(path, fill);
-    canvas.drawPath(path, stroke);
-  }
-
-  /// Builds a soft, generic body silhouette. Reused for front and back —
-  /// they're indistinguishable from a single outline view.
-  Path _bodyPath(double w, double h) {
-    // Anchor coords as fractions (0..1) of the canvas — same convention as
-    // MuscleZone — then multiply.
-    Offset p(double x, double y) => Offset(x * w, y * h);
-
-    final path = Path();
-
-    // Head (circle approximated as oval, slightly taller than wide).
-    final headTop = 0.04;
-    final headBottom = 0.13;
-    final headLeft = 0.42;
-    final headRight = 0.58;
-    path.addOval(Rect.fromLTRB(
-      headLeft * w,
-      headTop * h,
-      headRight * w,
-      headBottom * h,
-    ));
-
-    // Neck → torso → arms → legs as one continuous outline. Built by
-    // walking down the LEFT side first then back UP the right side.
-    path.moveTo(p(0.46, headBottom + 0.01).dx, p(0.46, headBottom + 0.01).dy);
-    // Left trapezius/shoulder
-    path.quadraticBezierTo(
-      p(0.34, 0.16).dx, p(0.34, 0.16).dy,
-      p(0.20, 0.20).dx, p(0.20, 0.20).dy,
+    // Crisp outline a touch brighter than the fill — pins the shape down.
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = accent.withValues(alpha: (effective + 0.15).clamp(0.0, 1.0))
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = outlineWidth
+        ..strokeJoin = StrokeJoin.round,
     );
-    // Left arm — outer edge
-    path.quadraticBezierTo(
-      p(0.12, 0.30).dx, p(0.12, 0.30).dy,
-      p(0.10, 0.45).dx, p(0.10, 0.45).dy,
-    );
-    // Wrist
-    path.quadraticBezierTo(
-      p(0.09, 0.48).dx, p(0.09, 0.48).dy,
-      p(0.13, 0.50).dx, p(0.13, 0.50).dy,
-    );
-    // Inner arm back up to torso waist
-    path.quadraticBezierTo(
-      p(0.20, 0.40).dx, p(0.20, 0.40).dy,
-      p(0.28, 0.30).dx, p(0.28, 0.30).dy,
-    );
-    // Down the left side of the torso to the waist
-    path.quadraticBezierTo(
-      p(0.30, 0.40).dx, p(0.30, 0.40).dy,
-      p(0.32, 0.50).dx, p(0.32, 0.50).dy,
-    );
-    // Outer thigh
-    path.quadraticBezierTo(
-      p(0.30, 0.62).dx, p(0.30, 0.62).dy,
-      p(0.34, 0.78).dx, p(0.34, 0.78).dy,
-    );
-    // Outer calf
-    path.quadraticBezierTo(
-      p(0.34, 0.86).dx, p(0.34, 0.86).dy,
-      p(0.36, 0.95).dx, p(0.36, 0.95).dy,
-    );
-    // Foot
-    path.lineTo(p(0.46, 0.96).dx, p(0.46, 0.96).dy);
-    // Up inner left leg
-    path.quadraticBezierTo(
-      p(0.46, 0.78).dx, p(0.46, 0.78).dy,
-      p(0.48, 0.58).dx, p(0.48, 0.58).dy,
-    );
-    // Crotch
-    path.lineTo(p(0.52, 0.58).dx, p(0.52, 0.58).dy);
-    // Down inner right leg
-    path.quadraticBezierTo(
-      p(0.54, 0.78).dx, p(0.54, 0.78).dy,
-      p(0.54, 0.96).dx, p(0.54, 0.96).dy,
-    );
-    path.lineTo(p(0.64, 0.95).dx, p(0.64, 0.95).dy);
-    // Outer right calf + thigh
-    path.quadraticBezierTo(
-      p(0.66, 0.86).dx, p(0.66, 0.86).dy,
-      p(0.66, 0.78).dx, p(0.66, 0.78).dy,
-    );
-    path.quadraticBezierTo(
-      p(0.70, 0.62).dx, p(0.70, 0.62).dy,
-      p(0.68, 0.50).dx, p(0.68, 0.50).dy,
-    );
-    // Right side of torso up to underarm
-    path.quadraticBezierTo(
-      p(0.70, 0.40).dx, p(0.70, 0.40).dy,
-      p(0.72, 0.30).dx, p(0.72, 0.30).dy,
-    );
-    // Right inner arm back down to wrist
-    path.quadraticBezierTo(
-      p(0.80, 0.40).dx, p(0.80, 0.40).dy,
-      p(0.87, 0.50).dx, p(0.87, 0.50).dy,
-    );
-    path.quadraticBezierTo(
-      p(0.91, 0.48).dx, p(0.91, 0.48).dy,
-      p(0.90, 0.45).dx, p(0.90, 0.45).dy,
-    );
-    // Up outer right arm to shoulder
-    path.quadraticBezierTo(
-      p(0.88, 0.30).dx, p(0.88, 0.30).dy,
-      p(0.80, 0.20).dx, p(0.80, 0.20).dy,
-    );
-    // Right trapezius back to neck
-    path.quadraticBezierTo(
-      p(0.66, 0.16).dx, p(0.66, 0.16).dy,
-      p(0.54, headBottom + 0.01).dx, p(0.54, headBottom + 0.01).dy,
-    );
-    path.close();
-    return path;
   }
 
   @override
   bool shouldRepaint(covariant _BodyPainter old) {
     return old.side != side ||
         old.accent != accent ||
-        old.silhouette != silhouette ||
+        old.silhouetteFill != silhouetteFill ||
+        old.silhouetteStroke != silhouetteStroke ||
+        old.fadeProgress != fadeProgress ||
         !_listEq(old.targetMuscles, targetMuscles) ||
         !_listEq(old.secondaryMuscles, secondaryMuscles);
   }

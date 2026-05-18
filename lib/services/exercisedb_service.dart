@@ -24,10 +24,19 @@ import '../models/exercisedb_exercise.dart';
 class ExerciseDBService {
   ExerciseDBService();
 
-  // v1 has no auth requirement and exposes the `/exercises/name/{name}`
-  // endpoint we want. Keep this as a single constant so a future swap to a
-  // self-hosted instance is a one-line change.
-  static const _baseUrl = 'https://exercisedb-api.vercel.app/api/v1';
+  // The public ExerciseDB deployments are flaky; we try each in order and
+  // fall back to the next when a request returns no data. Format strings
+  // contain `{q}` which is replaced with the URL-encoded lowercase query.
+  static const List<String> _searchUrls = [
+    // v2 search endpoint — newest, returns `data: [...]` envelope.
+    'https://exercisedb-api.vercel.app/api/v2/exercises?search={q}&limit=1',
+    // v1 path-based — returns a bare list.
+    'https://exercisedb-api.vercel.app/api/v1/exercises/name/{q}?limit=1',
+    // v1 query-based — same payload as path-based but some mirrors honour
+    // only this form.
+    'https://exercisedb-api.vercel.app/api/v1/exercises?search={q}&limit=1',
+  ];
+
   static const _cachePrefix = 'exercisedb_v1_';
   static const _hitTtl = Duration(days: 30);
   static const _missTtl = Duration(hours: 24);
@@ -84,43 +93,57 @@ class ExerciseDBService {
   // Network
   // ───────────────────────────────────────────────────────────────────
 
+  /// Walks the [_searchUrls] in order; returns the first endpoint that
+  /// responds with a usable record. Each attempt is logged in debug mode
+  /// so it's clear from the console which endpoint produced the hit (or
+  /// why all of them missed).
   Future<ExerciseDBExercise?> _fetch(String query) async {
     if (query.trim().isEmpty) return null;
-    try {
-      // v1 path-based search: /exercises/name/{name}. ExerciseDB expects
-      // lowercase, hyphen-or-space-tolerant names — the name map upstream
-      // already lowercases its overrides.
-      final encoded = Uri.encodeComponent(query.toLowerCase());
-      final uri = Uri.parse('$_baseUrl/exercises/name/$encoded?limit=1');
-      final request = await _client.getUrl(uri);
-      request.headers.set('User-Agent', 'FitAI/1.0 (Flutter)');
-      final response = await request.close();
-      if (response.statusCode != 200) {
-        dev.log('[ExerciseDB] $query → ${response.statusCode}',
-            name: 'FitAI.ExerciseDB');
-        return null;
+    final encoded = Uri.encodeComponent(query.toLowerCase());
+    for (final template in _searchUrls) {
+      final uri = Uri.parse(template.replaceFirst('{q}', encoded));
+      try {
+        debugPrint('[ExerciseDB] GET $uri');
+        final request = await _client.getUrl(uri);
+        request.headers.set('User-Agent', 'FitAI/1.0 (Flutter)');
+        request.headers.set('Accept', 'application/json');
+        final response = await request.close();
+        debugPrint('[ExerciseDB] → ${response.statusCode}');
+        if (response.statusCode != 200) {
+          // 4xx / 5xx → try next mirror.
+          continue;
+        }
+        final body = await response.transform(utf8.decoder).join();
+        if (kDebugMode) {
+          final preview =
+              body.length > 500 ? '${body.substring(0, 500)}…' : body;
+          debugPrint('[ExerciseDB] body: $preview');
+        }
+        final decoded = jsonDecode(body);
+        // v2 wraps results in `{ data: [...] }`; v1 returns a bare list or
+        // a `{ success, data }` envelope. Handle all three defensively.
+        List<dynamic>? list;
+        if (decoded is Map<String, dynamic>) {
+          final data = decoded['data'];
+          if (data is List) list = data;
+        } else if (decoded is List) {
+          list = decoded;
+        }
+        if (list == null || list.isEmpty) continue;
+        final first = list.first;
+        if (first is! Map<String, dynamic>) continue;
+        final parsed = ExerciseDBExercise.fromJson(first);
+        debugPrint(
+            '[ExerciseDB] hit "${parsed.name}" image=${parsed.fullImageUrl}');
+        return parsed;
+      } catch (e, st) {
+        debugPrint('[ExerciseDB] $uri threw: $e');
+        _logQuiet(e, st);
+        // continue to next mirror
       }
-      final body = await response.transform(utf8.decoder).join();
-      final decoded = jsonDecode(body);
-      // v2 wraps results in { data: [...] } but some legacy paths return a
-      // bare list. Handle both defensively.
-      List<dynamic>? list;
-      if (decoded is Map<String, dynamic>) {
-        final data = decoded['data'];
-        if (data is List) list = data;
-      } else if (decoded is List) {
-        list = decoded;
-      }
-      if (list == null || list.isEmpty) return null;
-      final first = list.first;
-      if (first is! Map<String, dynamic>) return null;
-      return ExerciseDBExercise.fromJson(first);
-    } catch (e, st) {
-      debugPrint('[ExerciseDB] Fetch failed for "$query": $e');
-      // Don't rethrow — caller treats null as "no data".
-      _logQuiet(e, st);
-      return null;
     }
+    debugPrint('[ExerciseDB] all mirrors missed for "$query"');
+    return null;
   }
 
   void _logQuiet(Object e, StackTrace st) {

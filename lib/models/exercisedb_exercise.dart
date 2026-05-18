@@ -36,21 +36,34 @@ class ExerciseDBExercise {
     return set.toList();
   }
 
-  /// API may return either `imageUrl` (v2 hosted) or a bare filename
-  /// (`Barbell-Bench-Press_Chest.png`). Build the canonical static-CDN URL
-  /// when the field doesn't already include a scheme.
+  /// The ExerciseDB ecosystem has shipped images from a few CDNs over the
+  /// years; the public v1 API now returns full URLs in `gifUrl` on
+  /// `v2.exercisedb.io`. We handle three cases:
+  ///
+  ///   1. Already a full URL → return as-is
+  ///   2. Filename that includes `.gif`/`.png` → prepend v2 CDN
+  ///   3. Bare exerciseId-shaped string → use v2 CDN by id
+  ///
+  /// The previously-hardcoded `static.exercisedb.dev` host was the bug:
+  /// it 404s on most assets in 2025. v2.exercisedb.io is the canonical
+  /// CDN that the upstream project documents.
   String? get fullImageUrl {
     final raw = imageUrl;
-    if (raw == null || raw.isEmpty) return null;
+    if (raw == null || raw.isEmpty) {
+      // Fall back to ID-based lookup if the JSON has an exercise id but
+      // no explicit image URL — the v2 CDN serves images keyed by id.
+      if (id.isNotEmpty) return 'https://v2.exercisedb.io/image/$id';
+      return null;
+    }
     if (raw.startsWith('http')) return raw;
-    return 'https://static.exercisedb.dev/images/$raw';
+    return 'https://v2.exercisedb.io/image/$raw';
   }
 
   String? get fullVideoUrl {
     final raw = videoUrl;
     if (raw == null || raw.isEmpty) return null;
     if (raw.startsWith('http')) return raw;
-    return 'https://static.exercisedb.dev/videos/$raw';
+    return 'https://v2.exercisedb.io/video/$raw';
   }
 
   factory ExerciseDBExercise.fromJson(Map<String, dynamic> json) {
