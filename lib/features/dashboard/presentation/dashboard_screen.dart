@@ -11,7 +11,9 @@ import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../providers/dashboard_providers.dart';
 import '../../../providers/health_providers.dart';
+import '../../../providers/insight_providers.dart';
 import '../../../providers/user_profile_provider.dart';
+import '../../../services/insight_service.dart';
 import 'widgets/activity_rings.dart';
 import 'widgets/activity_row.dart';
 import 'widgets/calorie_ring.dart';
@@ -201,6 +203,13 @@ class DashboardScreen extends ConsumerWidget {
                   const FitnessWorkoutsCard(),
                   const SizedBox(height: 20),
                 ],
+
+                // --- Insights ---
+                // Surfaces up to 3 local-analysis cards (strength progress,
+                // streaks, deload reminders, etc.). Hides entirely while
+                // loading or when no insights are produced so the dashboard
+                // doesn't show an empty section.
+                const _InsightsSection(),
 
                 // --- Streak + Water side by side ---
                 Row(
@@ -452,6 +461,154 @@ class _QuickActionButton extends StatelessWidget {
           fontSize: 15,
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Insights section
+// ---------------------------------------------------------------------------
+
+/// Renders up to 3 local-analysis insight cards. Self-collapses when there's
+/// nothing to show so the dashboard doesn't carry an empty section. A "See
+/// All" link appears only when the service produced 4+ insights (the list is
+/// already capped at 5 inside [InsightService.generate]) — currently routes
+/// to the AI Coach, which is the natural destination for follow-up Q&A.
+class _InsightsSection extends ConsumerWidget {
+  const _InsightsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(dashboardInsightsProvider);
+    final insights = async.valueOrNull;
+    if (insights == null || insights.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final palette = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final visible = insights.take(3).toList();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Insights',
+            style: textTheme.titleMedium?.copyWith(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w600,
+              color: palette.accent,
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Horizontal scroll row — compact cards styled like the activity
+          // row. Card width ~220 keeps two cards visible on most phones so
+          // users notice there's more to swipe to.
+          SizedBox(
+            height: 96,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.zero,
+              itemCount: visible.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
+              itemBuilder: (context, i) =>
+                  _InsightCard(insight: visible[i]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InsightCard extends StatelessWidget {
+  const _InsightCard({required this.insight});
+
+  final Insight insight;
+
+  /// Accent colour per insight type. The body palette already exposes
+  /// success/warning/accent — we route them by type so positives feel light,
+  /// warnings feel alert-y, and suggestions feel informational.
+  Color _accentFor(BuildContext context) {
+    final palette = AppColors.of(context);
+    switch (insight.type) {
+      case InsightType.positive:
+        return palette.success;
+      case InsightType.warning:
+        return palette.warning;
+      case InsightType.suggestion:
+        return palette.accent;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final accent = _accentFor(context);
+
+    final card = Container(
+      width: 240,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(insight.icon, color: accent, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  insight.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.titleSmall?.copyWith(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: palette.text,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  insight.body,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    color: palette.textSecondary,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (insight.route == null) return card;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => context.push(insight.route!),
+      child: card,
     );
   }
 }

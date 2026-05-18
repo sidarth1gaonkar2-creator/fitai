@@ -140,6 +140,65 @@ class PostRepository {
     return doc.exists;
   }
 
+  // ── Emoji reactions ────────────────────────────────────────────────
+  //
+  // Stored at posts/{postId}/reactions/{userId} with fields:
+  //   emoji     String (the picked emoji glyph)
+  //   timestamp serverTimestamp
+  //
+  // Each user has at most one reaction per post; re-tapping the same emoji
+  // removes it (toggle), tapping a different emoji replaces it.
+
+  /// Sets a user's reaction. Pass `null` to clear. Returns the final emoji
+  /// (or null if cleared) for convenience.
+  Future<String?> setReaction(
+    String postId,
+    String userId,
+    String? emoji,
+  ) async {
+    final ref =
+        _posts.doc(postId).collection('reactions').doc(userId);
+    final existing = await ref.get();
+    final prevEmoji =
+        existing.exists ? (existing.data()?['emoji'] as String?) : null;
+
+    if (emoji == null || emoji == prevEmoji) {
+      // Toggle off — same emoji tapped again or explicit clear.
+      if (existing.exists) await ref.delete();
+      return null;
+    }
+    await ref.set({
+      'userId': userId,
+      'emoji': emoji,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+    return emoji;
+  }
+
+  /// Current user's reaction emoji, or null if none.
+  Future<String?> getUserReaction(String postId, String userId) async {
+    final doc =
+        await _posts.doc(postId).collection('reactions').doc(userId).get();
+    if (!doc.exists) return null;
+    return doc.data()?['emoji'] as String?;
+  }
+
+  /// Aggregated reaction counts for a post — emoji → count. Falls back to
+  /// an empty map if the subcollection is empty or unreadable. Caller
+  /// typically caches this in a FutureProvider to avoid re-fetching per
+  /// scroll frame.
+  Future<Map<String, int>> getReactionCounts(String postId) async {
+    final snap =
+        await _posts.doc(postId).collection('reactions').get();
+    final counts = <String, int>{};
+    for (final d in snap.docs) {
+      final emoji = d.data()['emoji'] as String?;
+      if (emoji == null || emoji.isEmpty) continue;
+      counts[emoji] = (counts[emoji] ?? 0) + 1;
+    }
+    return counts;
+  }
+
   Future<void> addComment(String postId, Comment comment) async {
     final id = comment.commentId.isEmpty ? _uuid.v4() : comment.commentId;
     final data = comment.toMap();

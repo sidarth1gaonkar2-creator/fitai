@@ -12,13 +12,17 @@ import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../models/enums.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/dashboard_providers.dart';
+import '../../../providers/drill_sergeant_providers.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/settings_providers.dart';
 import '../../../providers/theme_store_providers.dart';
 import '../../../providers/unit_system_provider.dart';
 import '../../../providers/user_profile_provider.dart';
+import '../../../providers/workout_providers.dart';
 import '../../../services/health_service.dart';
+import '../../../services/notification_service.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -255,6 +259,12 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () => context.push('/settings/notifications'),
                   ),
                 ),
+                const SizedBox(height: 24),
+
+                // Motivation Style section (Toxic Motivator / Drill Sergeant)
+                _SectionLabel(label: 'Motivation Style', textTheme: textTheme),
+                const SizedBox(height: 8),
+                const _DrillSergeantSection(),
                 const SizedBox(height: 24),
 
                 // Apple Health section (iOS only, and only when the native
@@ -935,6 +945,339 @@ class _SettingsIconBadge extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Icon(icon, color: Colors.white, size: 20),
+    );
+  }
+}
+
+// ─── Drill Sergeant settings section ────────────────────────────────
+
+class _DrillSergeantSection extends ConsumerWidget {
+  const _DrillSergeantSection();
+
+  /// Re-applies the user's current settings to the notification scheduler.
+  /// Called any time the prefs change so the in-flight schedule matches what
+  /// the user just toggled. Reads streak + lastWorkout from existing
+  /// providers — neither requires async work in the common path.
+  Future<void> _reschedule(WidgetRef ref) async {
+    final prefs = ref.read(drillSergeantProvider);
+    final service = NotificationService.instance;
+    if (!prefs.enabled) {
+      await service.cancelDrillSergeantReminders();
+      await service.cancelMorningMotivation();
+      return;
+    }
+    // Use whatever's currently in the streak/workout providers — schedule
+    // is approximate; recalibrates on next app launch anyway.
+    final streak = ref.read(streakProvider).valueOrNull ?? 0;
+    final workouts = ref.read(allWorkoutsProvider).valueOrNull ?? const [];
+    final lastWorkoutDate = workouts.isNotEmpty ? workouts.first.date : null;
+    await service.scheduleDrillSergeantReminders(
+      currentStreak: streak,
+      lastWorkoutDate: lastWorkoutDate,
+      // Rest-day awareness isn't wired to a user-facing pref yet; treat
+      // every day as a workout day. When the rest-day setting lands, swap
+      // the empty set for the configured value.
+      restDays: const <int>{},
+      intensity: prefs.intensity,
+    );
+    if (prefs.morningEnabled) {
+      await service.scheduleMorningMotivation(
+        hour: prefs.morningHour,
+        minute: prefs.morningMinute,
+      );
+    } else {
+      await service.cancelMorningMotivation();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prefs = ref.watch(drillSergeantProvider);
+    final palette = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+
+    return _SettingsCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Main toggle row
+            Row(
+              children: [
+                _SettingsIconBadge(
+                  icon: CupertinoIcons.flame_fill,
+                  color: palette.destructive,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Drill Sergeant Mode',
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: palette.text,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text('🪖', style: TextStyle(fontSize: 14)),
+                        ],
+                      ),
+                      Text(
+                        prefs.enabled
+                            ? 'Active · ${prefs.intensityLabel}'
+                            : 'Aggressive workout reminders. Opt-in.',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                CupertinoSwitch(
+                  value: prefs.enabled,
+                  activeTrackColor: palette.destructive,
+                  onChanged: (value) async {
+                    HapticFeedback.selectionClick();
+                    if (value) {
+                      final confirmed =
+                          await _confirmEnable(context, palette) ?? false;
+                      if (!confirmed) return;
+                    }
+                    await ref
+                        .read(drillSergeantProvider.notifier)
+                        .setEnabled(value);
+                    await _reschedule(ref);
+                  },
+                ),
+              ],
+            ),
+            // Sub-settings — only render when enabled
+            if (prefs.enabled) ...[
+              const SizedBox(height: 16),
+              Divider(height: 1, color: palette.separator),
+              const SizedBox(height: 12),
+              Text(
+                'Intensity',
+                style: textTheme.labelLarge?.copyWith(color: palette.text),
+              ),
+              const SizedBox(height: 8),
+              _IntensityPicker(
+                intensity: prefs.intensity,
+                onChanged: (v) async {
+                  await ref
+                      .read(drillSergeantProvider.notifier)
+                      .setIntensity(v);
+                  await _reschedule(ref);
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Morning Motivation',
+                          style: textTheme.bodyLarge?.copyWith(
+                            color: palette.text,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          prefs.morningEnabled
+                              ? 'Daily at ${prefs.morningTimeLabel}'
+                              : 'Wake-up pep talk',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: palette.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  CupertinoSwitch(
+                    value: prefs.morningEnabled,
+                    activeTrackColor: palette.destructive,
+                    onChanged: (value) async {
+                      await ref
+                          .read(drillSergeantProvider.notifier)
+                          .setMorningEnabled(value);
+                      await _reschedule(ref);
+                    },
+                  ),
+                ],
+              ),
+              if (prefs.morningEnabled) ...[
+                const SizedBox(height: 8),
+                CupertinoButton(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                  onPressed: () async {
+                    final picked = await _pickTime(
+                      context,
+                      prefs.morningHour,
+                      prefs.morningMinute,
+                    );
+                    if (picked == null) return;
+                    await ref
+                        .read(drillSergeantProvider.notifier)
+                        .setMorningTime(picked.$1, picked.$2);
+                    await _reschedule(ref);
+                  },
+                  child: Text(
+                    'Change time',
+                    style: TextStyle(color: palette.accent),
+                  ),
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Opt-in confirmation. Returns true on "Bring it on".
+  Future<bool?> _confirmEnable(BuildContext context, Palette palette) async {
+    return showCupertinoDialog<bool>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('Are you sure?'),
+        content: const Padding(
+          padding: EdgeInsets.only(top: 8),
+          child: Text(
+            'These notifications will NOT be gentle. You asked for this.',
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Nevermind'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Bring it on'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<(int, int)?> _pickTime(
+      BuildContext context, int initialHour, int initialMinute) async {
+    var pickedHour = initialHour;
+    var pickedMinute = initialMinute;
+    final ok = await showCupertinoModalPopup<bool>(
+      context: context,
+      builder: (ctx) => Container(
+        height: 280,
+        color: CupertinoColors.systemBackground.resolveFrom(ctx),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CupertinoButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    CupertinoButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('Done'),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.time,
+                  initialDateTime: DateTime(
+                    2024,
+                    1,
+                    1,
+                    initialHour,
+                    initialMinute,
+                  ),
+                  use24hFormat: false,
+                  onDateTimeChanged: (dt) {
+                    pickedHour = dt.hour;
+                    pickedMinute = dt.minute;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (ok == true) return (pickedHour, pickedMinute);
+    return null;
+  }
+}
+
+class _IntensityPicker extends StatelessWidget {
+  const _IntensityPicker({required this.intensity, required this.onChanged});
+
+  final int intensity;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: palette.surfaceElevated,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          _seg('Mild Roast', 1, palette),
+          _seg('Medium Roast', 2, palette),
+          _seg('Full Savage', 3, palette),
+        ],
+      ),
+    );
+  }
+
+  Widget _seg(String label, int value, Palette palette) {
+    final active = intensity == value;
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onChanged(value);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: active ? palette.destructive : null,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              color: active ? Colors.white : palette.text,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

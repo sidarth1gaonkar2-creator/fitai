@@ -4,11 +4,48 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/error_card.dart';
-import '../../../core/widgets/muscle_group_diagram.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../data/exercise_library.dart';
 import '../../../models/enums.dart';
 import '../../../providers/workout_providers.dart';
+import 'widgets/exercise_thumb.dart';
+import 'widgets/muscle_highlight_widget.dart';
+
+/// Maps the local [MuscleGroup] enum to the muscle-name strings that the
+/// [MuscleHighlightWidget] knows zones for. Anything not in this table
+/// (e.g. cardio) is dropped — the widget tolerates unknown names.
+String? _muscleGroupToZoneName(MuscleGroup g) {
+  switch (g) {
+    case MuscleGroup.chest:
+      return 'chest';
+    case MuscleGroup.upperBack:
+      return 'traps';
+    case MuscleGroup.lats:
+      return 'lats';
+    case MuscleGroup.shoulders:
+      return 'deltoids';
+    case MuscleGroup.biceps:
+      return 'biceps';
+    case MuscleGroup.triceps:
+      return 'triceps';
+    case MuscleGroup.forearms:
+      return 'forearms';
+    case MuscleGroup.quads:
+      return 'quadriceps';
+    case MuscleGroup.hamstrings:
+      return 'hamstrings';
+    case MuscleGroup.glutes:
+      return 'glutes';
+    case MuscleGroup.calves:
+      return 'calves';
+    case MuscleGroup.abs:
+      return 'abs';
+    case MuscleGroup.obliques:
+      return 'obliques';
+    case MuscleGroup.cardio:
+      return null;
+  }
+}
 
 class WorkoutDetailScreen extends ConsumerWidget {
   const WorkoutDetailScreen({super.key, required this.workoutId});
@@ -158,16 +195,26 @@ class WorkoutDetailScreen extends ConsumerWidget {
                         ],
                       ],
                     ),
-                    // Muscle diagram
+                    // Combined muscle highlight — aggregates target +
+                    // secondary muscles across every exercise in this
+                    // workout into a single Apple-Fitness-style preview.
                     if (primaryMuscles.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       Card.filled(
                         child: Padding(
                           padding: const EdgeInsets.all(12),
-                          child: MuscleGroupDiagram(
-                            primaryMuscles: primaryMuscles.toList(),
-                            secondaryMuscles: secondaryMuscles.toList(),
-                            height: 180,
+                          child: Center(
+                            child: MuscleHighlightWidget(
+                              targetMuscles: primaryMuscles
+                                  .map(_muscleGroupToZoneName)
+                                  .whereType<String>()
+                                  .toList(),
+                              secondaryMuscles: secondaryMuscles
+                                  .map(_muscleGroupToZoneName)
+                                  .whereType<String>()
+                                  .toList(),
+                              height: 200,
+                            ),
                           ),
                         ),
                       ),
@@ -189,9 +236,31 @@ class WorkoutDetailScreen extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(exerciseName,
-                                  style: textTheme.titleSmall?.copyWith(
-                                      fontWeight: FontWeight.w600)),
+                              // Thumbnail + name — both tap to the
+                              // exercise detail.
+                              Row(
+                                children: [
+                                  ExerciseThumb(
+                                    exerciseName: exerciseName,
+                                    size: 36,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () => context.push(
+                                        '/exercise?name='
+                                        '${Uri.encodeComponent(exerciseName)}',
+                                      ),
+                                      child: Text(
+                                        exerciseName,
+                                        style: textTheme.titleSmall?.copyWith(
+                                            fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                               const SizedBox(height: 8),
                               // Header
                               Row(

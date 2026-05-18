@@ -14,6 +14,7 @@ import '../../../models/workout_exercise.dart';
 import '../../../models/workout_set.dart';
 import '../../../providers/dashboard_providers.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/drill_sergeant_providers.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/personal_records_hall_providers.dart';
@@ -376,9 +377,18 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
           });
           newPRNames.add(activeExercise.name);
 
-          // Fire PR notification
-          NotificationService.instance
-              .showPRNotification(activeExercise.name, bestWeight);
+          // Fire PR notification — use the aggressive Drill Sergeant
+          // variant when the user has opted into that personality.
+          final drill = _ref.read(drillSergeantProvider);
+          if (drill.enabled) {
+            NotificationService.instance.showDrillSergeantPRNotification(
+              activeExercise.name,
+              bestWeight,
+            );
+          } else {
+            NotificationService.instance
+                .showPRNotification(activeExercise.name, bestWeight);
+          }
         }
       }
 

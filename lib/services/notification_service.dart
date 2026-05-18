@@ -3,6 +3,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz_data;
 
+import '../data/motivator_messages.dart';
+
 class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
@@ -424,6 +426,127 @@ class NotificationService {
         android: AndroidNotificationDetails(
           'challenge_reminders',
           'Challenge Reminders',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+    );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Drill Sergeant / Toxic Motivator (IDs 850-853 daily, 860 morning)
+  //
+  // Opt-in personality. Picks aggressive messages from [MotivatorMessages]
+  // based on days-since-last-workout, and skips entirely on configured rest
+  // days. Intensity controls how many daily slots are scheduled.
+  // ───────────────────────────────────────────────────────────────────────
+
+  static const _drillSergeantIds = [850, 851, 852, 853];
+  static const _morningMotivationId = 860;
+
+  /// Slot times per intensity level. Hours are 24h local time.
+  ///   1 = Mild Roast      → 1 notification (6 PM)
+  ///   2 = Medium Roast    → 2 notifications (12 PM + 6 PM)
+  ///   3 = Full Savage     → 4 notifications (10 AM, 12 PM, 5 PM, 7 PM)
+  static const _intensityHours = {
+    1: <int>[18],
+    2: <int>[12, 18],
+    3: <int>[10, 12, 17, 19],
+  };
+
+  /// Schedules the Drill Sergeant's daily roasts. Always cancels any
+  /// previously-scheduled ids before reinstalling — callers should invoke
+  /// this on every app launch (and whenever streak / settings change) to
+  /// keep the slots fresh.
+  ///
+  /// [restDays] uses 0-indexed weekdays (Mon = 0 … Sun = 6). On a rest day
+  /// nothing is scheduled — even the Drill Sergeant respects recovery.
+  Future<void> scheduleDrillSergeantReminders({
+    required int currentStreak,
+    required DateTime? lastWorkoutDate,
+    required Set<int> restDays,
+    required int intensity,
+  }) async {
+    for (final id in _drillSergeantIds) {
+      await _plugin.cancel(id: id);
+    }
+
+    final now = DateTime.now();
+    final todayWeekday = now.weekday - 1;
+    if (restDays.contains(todayWeekday)) return;
+
+    final daysSince = lastWorkoutDate == null
+        ? 999
+        : now.difference(lastWorkoutDate).inDays;
+    if (daysSince <= 0) return; // worked out today — nothing to nag about
+
+    final category = MotivatorMessages.missedCategoryFor(daysSince);
+    final hours =
+        _intensityHours[intensity.clamp(1, 3)] ?? _intensityHours[1]!;
+
+    for (var i = 0; i < hours.length && i < _drillSergeantIds.length; i++) {
+      // One fresh roast per slot — different message at noon vs 7 PM keeps
+      // it from feeling like spam.
+      await _scheduleDaily(
+        id: _drillSergeantIds[i],
+        hour: hours[i],
+        minute: 0,
+        title: 'Drill Sergeant',
+        body: MotivatorMessages.random(
+          category,
+          streakCount: currentStreak,
+        ),
+        channelId: 'drill_sergeant',
+        channelName: 'Drill Sergeant',
+      );
+    }
+  }
+
+  Future<void> cancelDrillSergeantReminders() async {
+    for (final id in _drillSergeantIds) {
+      await _plugin.cancel(id: id);
+    }
+  }
+
+  /// Daily morning pep-talk delivered at the user's chosen [hour]/[minute].
+  /// Picked from [MotivatorCategory.morningMotivation] so it stays in
+  /// character even when the user did work out the day before.
+  Future<void> scheduleMorningMotivation({
+    required int hour,
+    required int minute,
+  }) async {
+    await _plugin.cancel(id: _morningMotivationId);
+    await _scheduleDaily(
+      id: _morningMotivationId,
+      hour: hour,
+      minute: minute,
+      title: 'Wake up',
+      body: MotivatorMessages.random(MotivatorCategory.morningMotivation),
+      channelId: 'drill_sergeant',
+      channelName: 'Drill Sergeant',
+    );
+  }
+
+  Future<void> cancelMorningMotivation() async {
+    await _plugin.cancel(id: _morningMotivationId);
+  }
+
+  /// Aggressive replacement for [showPRNotification] used when the user has
+  /// the Drill Sergeant personality enabled. Same id (450) so the gentler
+  /// version isn't queued alongside it.
+  Future<void> showDrillSergeantPRNotification(
+      String exerciseName, double weight) async {
+    await _plugin.show(
+      id: 450,
+      title: 'NEW PR',
+      body:
+          '${MotivatorMessages.random(MotivatorCategory.prCelebration)}\n'
+          '$exerciseName · ${weight.toStringAsFixed(1)} kg',
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'drill_sergeant',
+          'Drill Sergeant',
           importance: Importance.high,
           priority: Priority.high,
         ),

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:isar/isar.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/imperial_height_formatter.dart';
 import '../../../core/utils/tdee_calculator.dart';
 import '../../../core/utils/unit_converter.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
@@ -46,10 +47,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           ? UnitConverter.kgToLbs(weightKg).toStringAsFixed(1)
           : weightKg.toString(),
     );
+    // Use the canonical heightToDisplay so the imperial format matches what
+    // the parser expects on save ("6'1\""). cmToFtIn returns the same shape
+    // but heightToDisplay also handles the inches-overflow edge case.
     _heightController = TextEditingController(
-      text: units == UnitSystem.imperial
-          ? UnitConverter.cmToFtIn(heightCm)
-          : heightCm.toString(),
+      text: heightCm > 0
+          ? UnitConverter.heightToDisplay(heightCm.toDouble(), units)
+          : '',
     );
     _ageController =
         TextEditingController(text: profile?.age.toString() ?? '');
@@ -67,6 +71,23 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     super.dispose();
   }
 
+  /// Form-level validator for the height field. Handles both metric ("185")
+  /// and imperial ("6'1\"" or "73") inputs and clamps to a reasonable human
+  /// range. Pulled out as a method so it can read the current UnitSystem.
+  String? _validateHeight(String? value) {
+    if (value == null || value.trim().isEmpty) return 'Height is required';
+    final units = ref.read(unitSystemProvider);
+    final cm = UnitConverter.displayHeightToCm(value, units);
+    if (cm == null) {
+      return units == UnitSystem.imperial
+          ? 'Enter height as 6\'1" or in total inches'
+          : 'Enter height in centimeters';
+    }
+    // Sanity range: 3'0" (91 cm) to 8'0" (244 cm).
+    if (cm < 91 || cm > 244) return 'Please enter a valid height';
+    return null;
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_sex == null || _goal == null || _activityLevel == null) return;
@@ -76,9 +97,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final units = ref.read(unitSystemProvider);
     final rawWeight = double.parse(_weightController.text);
     final weight = UnitConverter.displayWeightToKg(rawWeight, units);
-    final height = units == UnitSystem.imperial
-        ? UnitConverter.ftInToCm(_heightController.text)
-        : double.parse(_heightController.text);
+    // Validation has already accepted the height; null here would be a
+    // programming error, but guard with a sensible default rather than
+    // crashing on an unexpected edge case.
+    final height = UnitConverter.displayHeightToCm(
+          _heightController.text,
+          units,
+        ) ??
+        170.0;
     final age = int.parse(_ageController.text);
 
     final bmr = calculateBMR(
@@ -196,11 +222,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _heightController,
-                decoration: InputDecoration(labelText: heightLabel),
+                decoration: InputDecoration(
+                  labelText: heightLabel,
+                  hintText: units == UnitSystem.imperial ? "6'1\"" : '185',
+                ),
                 keyboardType: units == UnitSystem.imperial
                     ? TextInputType.text
                     : const TextInputType.numberWithOptions(decimal: true),
-                validator: (v) => validatePositiveNumber(v, 'Height'),
+                inputFormatters: units == UnitSystem.imperial
+                    ? [ImperialHeightFormatter()]
+                    : [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+                validator: _validateHeight,
               ),
               const SizedBox(height: 16),
               Text('Goal', style: textTheme.labelLarge),

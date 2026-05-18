@@ -1,13 +1,18 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show CircleAvatar;
+import 'package:flutter/material.dart'
+    show CircleAvatar, Colors, Material, showDialog;
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/utils/relative_time.dart';
+import '../../../../../providers/auth_provider.dart';
+import '../../../../../providers/community_providers.dart';
+import '../../../data/post_repository.dart';
 import '../../../domain/post.dart';
 
-class PostCard extends StatefulWidget {
+class PostCard extends ConsumerStatefulWidget {
   const PostCard({
     super.key,
     required this.post,
@@ -31,11 +36,15 @@ class PostCard extends StatefulWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
+  /// The five reaction emoji choices shown in the long-press picker. Ordered
+  /// from "expected default" (muscle) to "savage" (beast-mode-face).
+  static const reactionChoices = ['💪', '🔥', '🏆', '👏', '😤'];
+
   @override
-  State<PostCard> createState() => _PostCardState();
+  ConsumerState<PostCard> createState() => _PostCardState();
 }
 
-class _PostCardState extends State<PostCard>
+class _PostCardState extends ConsumerState<PostCard>
     with SingleTickerProviderStateMixin {
   late final AnimationController _likeAnim;
   late final Animation<double> _likeScale;
@@ -64,6 +73,30 @@ class _PostCardState extends State<PostCard>
     HapticFeedback.lightImpact();
     _likeAnim.forward(from: 0);
     widget.onLike();
+  }
+
+  /// Long-press handler — opens the emoji reaction picker as a small popup
+  /// anchored to where the user pressed. Falls back to a centered modal if
+  /// the tap coordinates aren't usable.
+  Future<void> _openReactionPicker(Offset globalPosition) async {
+    HapticFeedback.mediumImpact();
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) return;
+    final repo = ref.read(postRepositoryProvider);
+    final picked = await showDialog<String>(
+      context: context,
+      barrierColor: Colors.black54,
+      barrierDismissible: true,
+      builder: (ctx) => _ReactionPickerOverlay(
+        anchor: globalPosition,
+        choices: PostCard.reactionChoices,
+      ),
+    );
+    if (picked == null) return;
+    await repo.setReaction(widget.post.postId, userId, picked);
+    // Invalidate so the row recomputes from Firestore.
+    ref.invalidate(postReactionsProvider(widget.post.postId));
+    ref.invalidate(userReactionProvider(widget.post.postId));
   }
 
   @override
@@ -113,13 +146,16 @@ class _PostCardState extends State<PostCard>
             const SizedBox(height: 12),
             _WorkoutAttachment(post: post, palette: palette),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          _ReactionSummaryRow(postId: post.postId),
+          const SizedBox(height: 4),
           _ActionsRow(
             post: post,
             palette: palette,
             isLiked: widget.isLiked,
             likeScale: _likeScale,
             onLike: _handleLike,
+            onLongPressLike: _openReactionPicker,
             onComment: () {
               HapticFeedback.selectionClick();
               widget.onComment();
@@ -133,6 +169,138 @@ class _PostCardState extends State<PostCard>
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─── Reaction summary row ──────────────────────────────────────────────────
+
+class _ReactionSummaryRow extends ConsumerWidget {
+  const _ReactionSummaryRow({required this.postId});
+  final String postId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(postReactionsProvider(postId));
+    final counts = async.valueOrNull;
+    if (counts == null || counts.isEmpty) return const SizedBox.shrink();
+    // Sort by count desc, take top 3 so the row never overflows.
+    final sorted = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final top = sorted.take(3).toList();
+    final palette = AppColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 2, bottom: 2),
+      child: Row(
+        children: [
+          for (final entry in top) ...[
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: palette.surfaceElevated,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(entry.key, style: const TextStyle(fontSize: 13)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${entry.value}',
+                    style: TextStyle(
+                      fontFamily: 'LeagueSpartan',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      color: palette.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Reaction picker overlay ───────────────────────────────────────────────
+
+class _ReactionPickerOverlay extends StatelessWidget {
+  const _ReactionPickerOverlay({
+    required this.anchor,
+    required this.choices,
+  });
+
+  final Offset anchor;
+  final List<String> choices;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    final size = MediaQuery.of(context).size;
+    // Position the picker near the anchor but keep it on-screen. The picker
+    // is roughly 270×52; nudge it leftwards if needed.
+    final left = (anchor.dx - 135).clamp(12.0, size.width - 282.0);
+    final top = (anchor.dy - 70).clamp(60.0, size.height - 60.0);
+    return Stack(
+      children: [
+        // Tap-outside dismiss
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            behavior: HitTestBehavior.opaque,
+          ),
+        ),
+        Positioned(
+          left: left,
+          top: top,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: palette.surface,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+                border: Border.all(color: palette.border),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final emoji in choices)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.of(context).pop(emoji);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          child: Text(
+                            emoji,
+                            style: const TextStyle(fontSize: 28),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -428,6 +596,7 @@ class _ActionsRow extends StatelessWidget {
     required this.isLiked,
     required this.likeScale,
     required this.onLike,
+    required this.onLongPressLike,
     required this.onComment,
     this.onShare,
   });
@@ -437,6 +606,7 @@ class _ActionsRow extends StatelessWidget {
   final bool isLiked;
   final Animation<double> likeScale;
   final VoidCallback onLike;
+  final void Function(Offset globalPosition) onLongPressLike;
   final VoidCallback onComment;
   final VoidCallback? onShare;
 
@@ -444,18 +614,25 @@ class _ActionsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _action(
-          icon: ScaleTransition(
-            scale: likeScale,
-            child: Icon(
-              isLiked ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
-              size: 22,
-              color: isLiked ? palette.destructive : palette.textSecondary,
+        // Wrap the like action in a GestureDetector for long-press → emoji
+        // reaction picker. Short tap still goes to the existing like flow.
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onLongPressStart: (details) =>
+              onLongPressLike(details.globalPosition),
+          child: _action(
+            icon: ScaleTransition(
+              scale: likeScale,
+              child: Icon(
+                isLiked ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
+                size: 22,
+                color: isLiked ? palette.destructive : palette.textSecondary,
+              ),
             ),
+            label: '${post.likesCount}',
+            active: isLiked,
+            onTap: onLike,
           ),
-          label: '${post.likesCount}',
-          active: isLiked,
-          onTap: onLike,
         ),
         const SizedBox(width: 20),
         _action(

@@ -79,6 +79,23 @@ final exerciseNamesProvider = FutureProvider<List<String>>((ref) async {
   return names;
 });
 
+/// The exercise the user has logged most often. Used to pick a sensible
+/// default selection on the strength curve chart so first-time visitors see
+/// a populated chart instead of an empty picker. Returns null when no
+/// exercises have been logged yet.
+final mostFrequentExerciseProvider = FutureProvider<String?>((ref) async {
+  final isar = ref.watch(isarProvider);
+  final exercises = await isar.workoutExercises.where().findAll();
+  if (exercises.isEmpty) return null;
+  final counts = <String, int>{};
+  for (final e in exercises) {
+    counts[e.name] = (counts[e.name] ?? 0) + 1;
+  }
+  final sorted = counts.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
+  return sorted.first.key;
+});
+
 /// Best set weight per workout date for a given exercise name.
 final strengthHistoryProvider = FutureProvider.family<
     List<({DateTime date, double weight})>, String>((ref, exerciseName) async {
@@ -103,6 +120,60 @@ final strengthHistoryProvider = FutureProvider.family<
           weight: best,
         ));
       }
+    }
+  }
+
+  return points;
+});
+
+/// Per-session strength data: best 1RM (Epley), max weight, and total
+/// volume for an exercise. Drives the multi-metric strength curve chart.
+///
+/// Each point is the AGGREGATE for one session — if the user logs multiple
+/// sets of the same exercise on the same day, this rolls them up.
+final strengthCurveProvider = FutureProvider.family<
+    List<
+        ({
+          DateTime date,
+          double oneRepMaxKg,
+          double maxWeightKg,
+          double volumeKg
+        })>,
+    String>((ref, exerciseName) async {
+  final isar = ref.watch(isarProvider);
+  final workouts = await isar.workouts.where().sortByDate().findAll();
+
+  final points = <({
+    DateTime date,
+    double oneRepMaxKg,
+    double maxWeightKg,
+    double volumeKg
+  })>[];
+
+  for (final workout in workouts) {
+    await workout.exercises.load();
+    for (final exercise in workout.exercises) {
+      if (exercise.name.toLowerCase() != exerciseName.toLowerCase()) continue;
+      await exercise.sets.load();
+      double bestOrm = 0;
+      double maxWeight = 0;
+      double volume = 0;
+      for (final s in exercise.sets) {
+        if (s.weight <= 0 || s.reps <= 0) continue;
+        // Epley: 1RM = w * (1 + reps / 30)
+        final orm = s.weight * (1 + s.reps / 30.0);
+        if (orm > bestOrm) bestOrm = orm;
+        if (s.weight > maxWeight) maxWeight = s.weight;
+        volume += s.weight * s.reps;
+      }
+      if (bestOrm <= 0 && maxWeight <= 0 && volume <= 0) continue;
+      points.add((
+        date: DateTime(
+            workout.date.year, workout.date.month, workout.date.day),
+        oneRepMaxKg: bestOrm,
+        maxWeightKg: maxWeight,
+        volumeKg: volume,
+      ));
     }
   }
 

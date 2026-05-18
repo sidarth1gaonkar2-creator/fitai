@@ -36,6 +36,7 @@ import '../features/settings/presentation/settings_screen.dart';
 import '../features/supplements/presentation/supplements_screen.dart';
 import '../features/shell/presentation/shell_screen.dart';
 import '../data/workout_templates.dart';
+import '../features/workouts/presentation/exercise_detail_screen.dart';
 import '../features/workouts/presentation/workout_detail_screen.dart';
 import '../features/workouts/presentation/workout_logging_screen.dart';
 import '../features/workouts/presentation/workouts_screen.dart';
@@ -473,6 +474,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           key: state.pageKey,
           child: const SupplementsScreen(),
         ),
+      ),
+      GoRoute(
+        // Standalone (not in the shell) so it can stack on top of any tab.
+        // The exercise name comes via query param to keep the URL pure.
+        path: '/exercise',
+        pageBuilder: (context, state) {
+          final name = state.uri.queryParameters['name'] ?? '';
+          return slideUpTransitionPage(
+            key: state.pageKey,
+            child: ExerciseDetailScreen(exerciseName: name),
+          );
+        },
       ),
     ],
   );

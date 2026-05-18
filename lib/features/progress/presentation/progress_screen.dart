@@ -10,11 +10,13 @@ import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/progress_providers.dart';
+import '../../../providers/workout_providers.dart';
 import 'widgets/activity_trends.dart';
 import 'widgets/fitness_trends.dart';
 import 'widgets/milestone_badges.dart';
 import 'widgets/nutrition_trends.dart';
 import 'widgets/strength_chart.dart';
+import 'widgets/strength_curve_chart.dart';
 import 'widgets/weight_chart.dart';
 import 'widgets/weight_entry_dialog.dart';
 
@@ -250,6 +252,15 @@ class _WorkoutLogTab extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
+          // --- Strength ---
+          // Multi-metric curve chart (Est. 1RM / Max Weight / Volume) with
+          // an inline exercise picker. The wrapper defaults the selection
+          // to the user's most-frequently-logged exercise so first-time
+          // visitors land on a populated chart instead of an empty picker.
+          // Gated on 3+ workout sessions so a fresh user isn't shown an
+          // empty chart on day one.
+          const _StrengthSectionGate(),
+
           // --- Activity Trends (Apple Health, iOS only when connected) ---
           if (Platform.isIOS && ref.watch(healthConnectedProvider)) ...[
             Text(
@@ -399,5 +410,67 @@ class _PRHallCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ─── Strength section wrapper ───────────────────────────────────────────────
+
+/// Gates the entire strength section behind 3+ logged workouts so a fresh
+/// user doesn't see an empty chart. Once the threshold is hit we render the
+/// section header + the auto-bootstrapping curve chart.
+class _StrengthSectionGate extends ConsumerWidget {
+  const _StrengthSectionGate();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final workoutsAsync = ref.watch(allWorkoutsProvider);
+    final count = workoutsAsync.valueOrNull?.length ?? 0;
+    if (count < 3) return const SizedBox.shrink();
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Strength',
+          style: textTheme.titleMedium?.copyWith(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w600,
+            color: AppColors.of(context).accent,
+          ),
+        ),
+        const SizedBox(height: 12),
+        const _StrengthSection(),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+}
+
+/// Wraps [StrengthCurveChart] with a one-shot bootstrapping step that
+/// selects the user's most-frequently-logged exercise when nothing has been
+/// picked yet. Subsequent picks made via the chart's dropdown win — we
+/// only override the initial null state.
+class _StrengthSection extends ConsumerWidget {
+  const _StrengthSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selected = ref.watch(selectedExerciseProvider);
+    if (selected == null) {
+      // Listen, not watch — we don't want to fight the user if they
+      // explicitly clear the selection later (the chart's dropdown doesn't
+      // expose a "clear" affordance today, so the bootstrap is effectively
+      // one-shot per cold start).
+      final mostFrequentAsync = ref.watch(mostFrequentExerciseProvider);
+      mostFrequentAsync.whenData((name) {
+        if (name != null && ref.read(selectedExerciseProvider) == null) {
+          // Defer to avoid mutating providers during a build.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref.read(selectedExerciseProvider.notifier).state = name;
+          });
+        }
+      });
+    }
+    return const StrengthCurveChart();
   }
 }

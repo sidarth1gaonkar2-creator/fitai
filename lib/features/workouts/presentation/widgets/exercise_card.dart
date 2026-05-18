@@ -1,13 +1,33 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Card, Icons, Theme, IconButton, TextButton, VisualDensity;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/utils/unit_converter.dart';
 import '../../../../providers/unit_system_provider.dart';
 import '../../domain/active_workout_state.dart';
+import 'exercise_thumb.dart';
 import 'set_row.dart';
 
 String _formatWeight(double w) =>
     w == w.roundToDouble() ? w.toInt().toString() : w.toString();
+
+/// Epley 1-rep-max estimate: `weight × (1 + reps/30)`. Returns 0 when either
+/// input is non-positive — caller uses that as the "no data yet" signal.
+double estimatedOneRepMax(double weight, int reps) {
+  if (weight <= 0 || reps <= 0) return 0;
+  return weight * (1 + reps / 30.0);
+}
+
+/// Picks the best Epley 1RM across every set in the exercise. Includes
+/// in-progress sets so the badge updates live as the user types.
+double bestOneRepMaxFor(Iterable<({int reps, double weight})> sets) {
+  var best = 0.0;
+  for (final s in sets) {
+    final est = estimatedOneRepMax(s.weight, s.reps);
+    if (est > best) best = est;
+  }
+  return best;
+}
 
 class ExerciseCard extends ConsumerWidget {
   const ExerciseCard({
@@ -36,22 +56,59 @@ class ExerciseCard extends ConsumerWidget {
     final units = ref.watch(unitSystemProvider);
     final weightLabel = 'Weight (${UnitConverter.weightUnit(units)})';
 
+    // Epley 1RM in kg across all completed-or-typed sets; display-unit
+    // conversion happens at render time so imperial users see lbs.
+    final bestOrmKg = bestOneRepMaxFor(
+      exercise.sets.map((s) => (reps: s.reps, weight: s.weight)),
+    );
+    final ormDisplay =
+        UnitConverter.kgToDisplayWeight(bestOrmKg, units);
+    final ormUnit = UnitConverter.weightUnit(units);
+
     return Card.filled(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Exercise header
+            // Exercise header — thumbnail + name (tap either to view full
+            // exercise detail) + 1RM badge + remove.
             Row(
               children: [
+                ExerciseThumb(exerciseName: exercise.name, size: 40),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    exercise.name,
-                    style: textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => context.push(
+                      '/exercise?name=${Uri.encodeComponent(exercise.name)}',
+                    ),
+                    child: Text(
+                      exercise.name,
+                      style: textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ),
+                if (bestOrmKg > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color:
+                          colorScheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Est. 1RM ${_formatWeight(ormDisplay)} $ormUnit',
+                      style: TextStyle(
+                        fontFamily: 'LeagueSpartan',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ),
                 IconButton(
                   onPressed: onRemove,
                   icon: Icon(Icons.close, size: 20, color: colorScheme.error),
@@ -145,3 +202,4 @@ class ExerciseCard extends ConsumerWidget {
     );
   }
 }
+

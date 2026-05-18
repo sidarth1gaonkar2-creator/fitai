@@ -147,3 +147,20 @@ final unreadNotificationCountProvider = StreamProvider<int>((ref) {
       .watch(notificationRepositoryProvider)
       .streamUnreadCount(userId);
 });
+
+// ─── Reactions ─────────────────────────────────────────────────────────────
+
+/// Aggregated emoji → count map for a post. Auto-disposes so we don't keep
+/// firestore snapshots open for every post the user has scrolled past.
+final postReactionsProvider = FutureProvider.autoDispose
+    .family<Map<String, int>, String>((ref, postId) async {
+  return ref.watch(postRepositoryProvider).getReactionCounts(postId);
+});
+
+/// Current user's reaction emoji for a post, or null if none.
+final userReactionProvider = FutureProvider.autoDispose
+    .family<String?, String>((ref, postId) async {
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return null;
+  return ref.watch(postRepositoryProvider).getUserReaction(postId, userId);
+});
