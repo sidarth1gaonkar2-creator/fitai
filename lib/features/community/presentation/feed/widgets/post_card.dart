@@ -109,14 +109,7 @@ class _PostCardState extends ConsumerState<PostCard>
       decoration: BoxDecoration(
         color: palette.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: palette.border, width: 0.5),
-        boxShadow: [
-          BoxShadow(
-            color: CupertinoColors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: palette.border),
       ),
       padding: const EdgeInsets.all(14),
       child: Column(

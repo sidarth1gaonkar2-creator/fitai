@@ -15,6 +15,19 @@ class CustomMealPlanFood {
   double? servingSize;
   String? servingUnit;
 
+  double? fibre;
+  double? sugar;
+  double? sodiumMg;
+  double? vitaminDMcg;
+  double? ironMg;
+  double? calciumMg;
+  double? vitaminCMg;
+  double? magnesiumMg;
+  double? potassiumMg;
+  double? zincMg;
+  double? vitaminB12Mcg;
+  double? folateMcg;
+
   @Backlink(to: 'foods')
   final meal = IsarLinks<CustomMealPlanMeal>();
 }

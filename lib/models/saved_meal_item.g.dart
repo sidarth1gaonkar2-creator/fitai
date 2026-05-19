@@ -22,69 +22,114 @@ const SavedMealItemSchema = CollectionSchema(
       name: r'barcode',
       type: IsarType.string,
     ),
-    r'calories': PropertySchema(
+    r'calciumMg': PropertySchema(
       id: 1,
+      name: r'calciumMg',
+      type: IsarType.double,
+    ),
+    r'calories': PropertySchema(
+      id: 2,
       name: r'calories',
       type: IsarType.double,
     ),
     r'carbs': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'carbs',
       type: IsarType.double,
     ),
     r'fat': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'fat',
       type: IsarType.double,
     ),
     r'fdcId': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'fdcId',
       type: IsarType.string,
     ),
     r'fiber': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'fiber',
       type: IsarType.double,
     ),
+    r'folateMcg': PropertySchema(
+      id: 7,
+      name: r'folateMcg',
+      type: IsarType.double,
+    ),
     r'foodName': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'foodName',
       type: IsarType.string,
     ),
+    r'ironMg': PropertySchema(
+      id: 9,
+      name: r'ironMg',
+      type: IsarType.double,
+    ),
+    r'magnesiumMg': PropertySchema(
+      id: 10,
+      name: r'magnesiumMg',
+      type: IsarType.double,
+    ),
+    r'potassiumMg': PropertySchema(
+      id: 11,
+      name: r'potassiumMg',
+      type: IsarType.double,
+    ),
     r'protein': PropertySchema(
-      id: 7,
+      id: 12,
       name: r'protein',
       type: IsarType.double,
     ),
     r'quantity': PropertySchema(
-      id: 8,
+      id: 13,
       name: r'quantity',
       type: IsarType.double,
     ),
     r'savedMealId': PropertySchema(
-      id: 9,
+      id: 14,
       name: r'savedMealId',
       type: IsarType.long,
     ),
     r'servingSize': PropertySchema(
-      id: 10,
+      id: 15,
       name: r'servingSize',
       type: IsarType.double,
     ),
     r'servingUnit': PropertySchema(
-      id: 11,
+      id: 16,
       name: r'servingUnit',
       type: IsarType.string,
     ),
     r'sodium': PropertySchema(
-      id: 12,
+      id: 17,
       name: r'sodium',
       type: IsarType.double,
     ),
     r'sugar': PropertySchema(
-      id: 13,
+      id: 18,
       name: r'sugar',
+      type: IsarType.double,
+    ),
+    r'vitaminB12Mcg': PropertySchema(
+      id: 19,
+      name: r'vitaminB12Mcg',
+      type: IsarType.double,
+    ),
+    r'vitaminCMg': PropertySchema(
+      id: 20,
+      name: r'vitaminCMg',
+      type: IsarType.double,
+    ),
+    r'vitaminDMcg': PropertySchema(
+      id: 21,
+      name: r'vitaminDMcg',
+      type: IsarType.double,
+    ),
+    r'zincMg': PropertySchema(
+      id: 22,
+      name: r'zincMg',
       type: IsarType.double,
     )
   },
@@ -146,19 +191,28 @@ void _savedMealItemSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.barcode);
-  writer.writeDouble(offsets[1], object.calories);
-  writer.writeDouble(offsets[2], object.carbs);
-  writer.writeDouble(offsets[3], object.fat);
-  writer.writeString(offsets[4], object.fdcId);
-  writer.writeDouble(offsets[5], object.fiber);
-  writer.writeString(offsets[6], object.foodName);
-  writer.writeDouble(offsets[7], object.protein);
-  writer.writeDouble(offsets[8], object.quantity);
-  writer.writeLong(offsets[9], object.savedMealId);
-  writer.writeDouble(offsets[10], object.servingSize);
-  writer.writeString(offsets[11], object.servingUnit);
-  writer.writeDouble(offsets[12], object.sodium);
-  writer.writeDouble(offsets[13], object.sugar);
+  writer.writeDouble(offsets[1], object.calciumMg);
+  writer.writeDouble(offsets[2], object.calories);
+  writer.writeDouble(offsets[3], object.carbs);
+  writer.writeDouble(offsets[4], object.fat);
+  writer.writeString(offsets[5], object.fdcId);
+  writer.writeDouble(offsets[6], object.fiber);
+  writer.writeDouble(offsets[7], object.folateMcg);
+  writer.writeString(offsets[8], object.foodName);
+  writer.writeDouble(offsets[9], object.ironMg);
+  writer.writeDouble(offsets[10], object.magnesiumMg);
+  writer.writeDouble(offsets[11], object.potassiumMg);
+  writer.writeDouble(offsets[12], object.protein);
+  writer.writeDouble(offsets[13], object.quantity);
+  writer.writeLong(offsets[14], object.savedMealId);
+  writer.writeDouble(offsets[15], object.servingSize);
+  writer.writeString(offsets[16], object.servingUnit);
+  writer.writeDouble(offsets[17], object.sodium);
+  writer.writeDouble(offsets[18], object.sugar);
+  writer.writeDouble(offsets[19], object.vitaminB12Mcg);
+  writer.writeDouble(offsets[20], object.vitaminCMg);
+  writer.writeDouble(offsets[21], object.vitaminDMcg);
+  writer.writeDouble(offsets[22], object.zincMg);
 }
 
 SavedMealItem _savedMealItemDeserialize(
@@ -169,20 +223,29 @@ SavedMealItem _savedMealItemDeserialize(
 ) {
   final object = SavedMealItem();
   object.barcode = reader.readStringOrNull(offsets[0]);
-  object.calories = reader.readDouble(offsets[1]);
-  object.carbs = reader.readDouble(offsets[2]);
-  object.fat = reader.readDouble(offsets[3]);
-  object.fdcId = reader.readStringOrNull(offsets[4]);
-  object.fiber = reader.readDoubleOrNull(offsets[5]);
-  object.foodName = reader.readString(offsets[6]);
+  object.calciumMg = reader.readDoubleOrNull(offsets[1]);
+  object.calories = reader.readDouble(offsets[2]);
+  object.carbs = reader.readDouble(offsets[3]);
+  object.fat = reader.readDouble(offsets[4]);
+  object.fdcId = reader.readStringOrNull(offsets[5]);
+  object.fiber = reader.readDoubleOrNull(offsets[6]);
+  object.folateMcg = reader.readDoubleOrNull(offsets[7]);
+  object.foodName = reader.readString(offsets[8]);
   object.id = id;
-  object.protein = reader.readDouble(offsets[7]);
-  object.quantity = reader.readDouble(offsets[8]);
-  object.savedMealId = reader.readLong(offsets[9]);
-  object.servingSize = reader.readDouble(offsets[10]);
-  object.servingUnit = reader.readString(offsets[11]);
-  object.sodium = reader.readDoubleOrNull(offsets[12]);
-  object.sugar = reader.readDoubleOrNull(offsets[13]);
+  object.ironMg = reader.readDoubleOrNull(offsets[9]);
+  object.magnesiumMg = reader.readDoubleOrNull(offsets[10]);
+  object.potassiumMg = reader.readDoubleOrNull(offsets[11]);
+  object.protein = reader.readDouble(offsets[12]);
+  object.quantity = reader.readDouble(offsets[13]);
+  object.savedMealId = reader.readLong(offsets[14]);
+  object.servingSize = reader.readDouble(offsets[15]);
+  object.servingUnit = reader.readString(offsets[16]);
+  object.sodium = reader.readDoubleOrNull(offsets[17]);
+  object.sugar = reader.readDoubleOrNull(offsets[18]);
+  object.vitaminB12Mcg = reader.readDoubleOrNull(offsets[19]);
+  object.vitaminCMg = reader.readDoubleOrNull(offsets[20]);
+  object.vitaminDMcg = reader.readDoubleOrNull(offsets[21]);
+  object.zincMg = reader.readDoubleOrNull(offsets[22]);
   return object;
 }
 
@@ -196,30 +259,48 @@ P _savedMealItemDeserializeProp<P>(
     case 0:
       return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 2:
       return (reader.readDouble(offset)) as P;
     case 3:
       return (reader.readDouble(offset)) as P;
     case 4:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 5:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readString(offset)) as P;
-    case 7:
-      return (reader.readDouble(offset)) as P;
-    case 8:
-      return (reader.readDouble(offset)) as P;
-    case 9:
-      return (reader.readLong(offset)) as P;
-    case 10:
-      return (reader.readDouble(offset)) as P;
-    case 11:
-      return (reader.readString(offset)) as P;
-    case 12:
       return (reader.readDoubleOrNull(offset)) as P;
+    case 7:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 8:
+      return (reader.readString(offset)) as P;
+    case 9:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 10:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 11:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 12:
+      return (reader.readDouble(offset)) as P;
     case 13:
+      return (reader.readDouble(offset)) as P;
+    case 14:
+      return (reader.readLong(offset)) as P;
+    case 15:
+      return (reader.readDouble(offset)) as P;
+    case 16:
+      return (reader.readString(offset)) as P;
+    case 17:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 18:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 19:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 20:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 21:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 22:
       return (reader.readDoubleOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -573,6 +654,90 @@ extension SavedMealItemQueryFilter
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'barcode',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      calciumMgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'calciumMg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      calciumMgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'calciumMg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      calciumMgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'calciumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      calciumMgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'calciumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      calciumMgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'calciumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      calciumMgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'calciumMg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
       ));
     });
   }
@@ -1011,6 +1176,90 @@ extension SavedMealItemQueryFilter
   }
 
   QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      folateMcgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'folateMcg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      folateMcgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'folateMcg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      folateMcgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'folateMcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      folateMcgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'folateMcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      folateMcgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'folateMcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      folateMcgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'folateMcg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
       foodNameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1196,6 +1445,258 @@ extension SavedMealItemQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      ironMgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'ironMg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      ironMgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'ironMg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      ironMgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'ironMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      ironMgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'ironMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      ironMgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'ironMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      ironMgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'ironMg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      magnesiumMgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'magnesiumMg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      magnesiumMgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'magnesiumMg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      magnesiumMgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'magnesiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      magnesiumMgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'magnesiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      magnesiumMgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'magnesiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      magnesiumMgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'magnesiumMg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      potassiumMgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'potassiumMg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      potassiumMgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'potassiumMg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      potassiumMgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'potassiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      potassiumMgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'potassiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      potassiumMgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'potassiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      potassiumMgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'potassiumMg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
       ));
     });
   }
@@ -1757,6 +2258,342 @@ extension SavedMealItemQueryFilter
       ));
     });
   }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminB12McgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vitaminB12Mcg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminB12McgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vitaminB12Mcg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminB12McgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vitaminB12Mcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminB12McgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vitaminB12Mcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminB12McgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vitaminB12Mcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminB12McgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vitaminB12Mcg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminCMgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vitaminCMg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminCMgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vitaminCMg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminCMgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vitaminCMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminCMgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vitaminCMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminCMgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vitaminCMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminCMgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vitaminCMg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminDMcgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vitaminDMcg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminDMcgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vitaminDMcg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminDMcgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vitaminDMcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminDMcgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vitaminDMcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminDMcgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vitaminDMcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      vitaminDMcgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vitaminDMcg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      zincMgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'zincMg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      zincMgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'zincMg',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      zincMgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'zincMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      zincMgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'zincMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      zincMgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'zincMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterFilterCondition>
+      zincMgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'zincMg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
 }
 
 extension SavedMealItemQueryObject
@@ -1776,6 +2613,19 @@ extension SavedMealItemQuerySortBy
   QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> sortByBarcodeDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'barcode', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> sortByCalciumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calciumMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      sortByCalciumMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calciumMg', Sort.desc);
     });
   }
 
@@ -1840,6 +2690,19 @@ extension SavedMealItemQuerySortBy
     });
   }
 
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> sortByFolateMcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'folateMcg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      sortByFolateMcgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'folateMcg', Sort.desc);
+    });
+  }
+
   QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> sortByFoodName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'foodName', Sort.asc);
@@ -1850,6 +2713,44 @@ extension SavedMealItemQuerySortBy
       sortByFoodNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'foodName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> sortByIronMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ironMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> sortByIronMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ironMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> sortByMagnesiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'magnesiumMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      sortByMagnesiumMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'magnesiumMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> sortByPotassiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'potassiumMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      sortByPotassiumMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'potassiumMg', Sort.desc);
     });
   }
 
@@ -1940,6 +2841,58 @@ extension SavedMealItemQuerySortBy
       return query.addSortBy(r'sugar', Sort.desc);
     });
   }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      sortByVitaminB12Mcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminB12Mcg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      sortByVitaminB12McgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminB12Mcg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> sortByVitaminCMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminCMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      sortByVitaminCMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminCMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> sortByVitaminDMcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminDMcg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      sortByVitaminDMcgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminDMcg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> sortByZincMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'zincMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> sortByZincMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'zincMg', Sort.desc);
+    });
+  }
 }
 
 extension SavedMealItemQuerySortThenBy
@@ -1953,6 +2906,19 @@ extension SavedMealItemQuerySortThenBy
   QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> thenByBarcodeDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'barcode', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> thenByCalciumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calciumMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      thenByCalciumMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calciumMg', Sort.desc);
     });
   }
 
@@ -2017,6 +2983,19 @@ extension SavedMealItemQuerySortThenBy
     });
   }
 
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> thenByFolateMcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'folateMcg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      thenByFolateMcgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'folateMcg', Sort.desc);
+    });
+  }
+
   QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> thenByFoodName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'foodName', Sort.asc);
@@ -2039,6 +3018,44 @@ extension SavedMealItemQuerySortThenBy
   QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> thenByIronMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ironMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> thenByIronMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ironMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> thenByMagnesiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'magnesiumMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      thenByMagnesiumMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'magnesiumMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> thenByPotassiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'potassiumMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      thenByPotassiumMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'potassiumMg', Sort.desc);
     });
   }
 
@@ -2129,6 +3146,58 @@ extension SavedMealItemQuerySortThenBy
       return query.addSortBy(r'sugar', Sort.desc);
     });
   }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      thenByVitaminB12Mcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminB12Mcg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      thenByVitaminB12McgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminB12Mcg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> thenByVitaminCMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminCMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      thenByVitaminCMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminCMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> thenByVitaminDMcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminDMcg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy>
+      thenByVitaminDMcgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminDMcg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> thenByZincMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'zincMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QAfterSortBy> thenByZincMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'zincMg', Sort.desc);
+    });
+  }
 }
 
 extension SavedMealItemQueryWhereDistinct
@@ -2137,6 +3206,12 @@ extension SavedMealItemQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'barcode', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QDistinct> distinctByCalciumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'calciumMg');
     });
   }
 
@@ -2171,10 +3246,36 @@ extension SavedMealItemQueryWhereDistinct
     });
   }
 
+  QueryBuilder<SavedMealItem, SavedMealItem, QDistinct> distinctByFolateMcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'folateMcg');
+    });
+  }
+
   QueryBuilder<SavedMealItem, SavedMealItem, QDistinct> distinctByFoodName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'foodName', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QDistinct> distinctByIronMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'ironMg');
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QDistinct>
+      distinctByMagnesiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'magnesiumMg');
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QDistinct>
+      distinctByPotassiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'potassiumMg');
     });
   }
 
@@ -2222,6 +3323,32 @@ extension SavedMealItemQueryWhereDistinct
       return query.addDistinctBy(r'sugar');
     });
   }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QDistinct>
+      distinctByVitaminB12Mcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vitaminB12Mcg');
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QDistinct> distinctByVitaminCMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vitaminCMg');
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QDistinct>
+      distinctByVitaminDMcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vitaminDMcg');
+    });
+  }
+
+  QueryBuilder<SavedMealItem, SavedMealItem, QDistinct> distinctByZincMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'zincMg');
+    });
+  }
 }
 
 extension SavedMealItemQueryProperty
@@ -2235,6 +3362,12 @@ extension SavedMealItemQueryProperty
   QueryBuilder<SavedMealItem, String?, QQueryOperations> barcodeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'barcode');
+    });
+  }
+
+  QueryBuilder<SavedMealItem, double?, QQueryOperations> calciumMgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'calciumMg');
     });
   }
 
@@ -2268,9 +3401,33 @@ extension SavedMealItemQueryProperty
     });
   }
 
+  QueryBuilder<SavedMealItem, double?, QQueryOperations> folateMcgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'folateMcg');
+    });
+  }
+
   QueryBuilder<SavedMealItem, String, QQueryOperations> foodNameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'foodName');
+    });
+  }
+
+  QueryBuilder<SavedMealItem, double?, QQueryOperations> ironMgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'ironMg');
+    });
+  }
+
+  QueryBuilder<SavedMealItem, double?, QQueryOperations> magnesiumMgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'magnesiumMg');
+    });
+  }
+
+  QueryBuilder<SavedMealItem, double?, QQueryOperations> potassiumMgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'potassiumMg');
     });
   }
 
@@ -2313,6 +3470,31 @@ extension SavedMealItemQueryProperty
   QueryBuilder<SavedMealItem, double?, QQueryOperations> sugarProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'sugar');
+    });
+  }
+
+  QueryBuilder<SavedMealItem, double?, QQueryOperations>
+      vitaminB12McgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vitaminB12Mcg');
+    });
+  }
+
+  QueryBuilder<SavedMealItem, double?, QQueryOperations> vitaminCMgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vitaminCMg');
+    });
+  }
+
+  QueryBuilder<SavedMealItem, double?, QQueryOperations> vitaminDMcgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vitaminDMcg');
+    });
+  }
+
+  QueryBuilder<SavedMealItem, double?, QQueryOperations> zincMgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'zincMg');
     });
   }
 }

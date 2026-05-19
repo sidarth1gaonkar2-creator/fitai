@@ -76,7 +76,7 @@ class _SaveMealSheetState extends ConsumerState<SaveMealSheet> {
     }
     if (!mounted) return;
     Navigator.of(context).pop();
-    showCupertinoToast(context, 'Meal saved 🔖');
+    showCupertinoToast(context, 'Meal saved');
   }
 
   @override

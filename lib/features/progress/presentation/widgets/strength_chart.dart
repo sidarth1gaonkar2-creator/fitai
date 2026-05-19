@@ -1,9 +1,11 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/utils/unit_converter.dart';
 import '../../../../core/widgets/error_card.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../providers/progress_providers.dart';
+import '../../../../providers/unit_system_provider.dart';
 
 class StrengthChart extends ConsumerWidget {
   const StrengthChart({super.key});
@@ -75,6 +77,7 @@ class _StrengthLineChart extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final historyAsync = ref.watch(strengthHistoryProvider(exerciseName));
+    final units = ref.watch(unitSystemProvider);
 
     return historyAsync.when(
       loading: () =>
@@ -140,7 +143,7 @@ class _StrengthLineChart extends ConsumerWidget {
                     getTitlesWidget: (value, meta) => Padding(
                       padding: const EdgeInsets.only(right: 4),
                       child: Text(
-                        '${value.toInt()} kg',
+                        UnitConverter.formatWeight(value, units),
                         style: textTheme.bodySmall
                             ?.copyWith(color: colorScheme.onSurfaceVariant),
                       ),
@@ -153,7 +156,7 @@ class _StrengthLineChart extends ConsumerWidget {
                 touchTooltipData: LineTouchTooltipData(
                   getTooltipItems: (spots) => spots
                       .map((s) => LineTooltipItem(
-                            '${s.y.toStringAsFixed(1)} kg',
+                            UnitConverter.formatWeight(s.y, units),
                             TextStyle(
                               color: colorScheme.onSurface,
                               fontWeight: FontWeight.w600,

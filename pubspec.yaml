@@ -49,8 +49,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/.env
-    - assets/images/body_front.svg
-    - assets/images/body_back.svg
+    - assets/images/anatomy/
+    - assets/images/anatomy/light/
   fonts:
     - family: Poppins
       fonts:

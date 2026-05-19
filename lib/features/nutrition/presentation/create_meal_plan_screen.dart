@@ -73,12 +73,24 @@ class _CreateMealPlanScreenState extends ConsumerState<CreateMealPlanScreen> {
       meals[entry.key] = entry.value
           .map((f) => PlanFood(
                 name: f.name,
-                calories: f.caloriesPer100g * (f.defaultServingSize) / 100,
-                protein: f.proteinPer100g * (f.defaultServingSize) / 100,
-                carbs: f.carbsPer100g * (f.defaultServingSize) / 100,
-                fat: f.fatPer100g * (f.defaultServingSize) / 100,
+                calories: f.caloriesFor(f.defaultServingSize),
+                protein: f.proteinFor(f.defaultServingSize),
+                carbs: f.carbsFor(f.defaultServingSize),
+                fat: f.fatFor(f.defaultServingSize),
                 servingSize: f.defaultServingSize,
                 servingUnit: f.servingDescription,
+                fibre: f.fibreFor(f.defaultServingSize),
+                sugar: f.sugarFor(f.defaultServingSize),
+                sodiumMg: f.sodiumMgFor(f.defaultServingSize),
+                vitaminDMcg: f.vitaminDMcgFor(f.defaultServingSize),
+                ironMg: f.ironMgFor(f.defaultServingSize),
+                calciumMg: f.calciumMgFor(f.defaultServingSize),
+                vitaminCMg: f.vitaminCMgFor(f.defaultServingSize),
+                magnesiumMg: f.magnesiumMgFor(f.defaultServingSize),
+                potassiumMg: f.potassiumMgFor(f.defaultServingSize),
+                zincMg: f.zincMgFor(f.defaultServingSize),
+                vitaminB12Mcg: f.vitaminB12McgFor(f.defaultServingSize),
+                folateMcg: f.folateMcgFor(f.defaultServingSize),
               ))
           .toList();
     }

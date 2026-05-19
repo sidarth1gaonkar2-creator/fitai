@@ -108,8 +108,10 @@ class _MacroBar extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           '${current.toInt()}g / ${target.toInt()}g (${target > 0 ? ((current / target) * 100).toInt() : 0}%)',
-          style: textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          style: TextStyle(
+            fontSize: 11,
+            color: AppColors.of(context).textSecondary,
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
       ],

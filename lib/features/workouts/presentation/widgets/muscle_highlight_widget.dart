@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../data/anatomy_paths.dart';
 import '../../../../data/muscle_map.dart';
 
-/// Anatomically-shaped muscle highlight. Each muscle group renders as its
-/// own closed path (chest fans, lat wings, glute curves, triceps horseshoe,
-/// …) rather than a generic oval — see [AnatomyPaths].
+/// Renders a body silhouette with the target muscle group highlighted using
+/// pre-rendered PNGs at `assets/images/anatomy/` (dark) and
+/// `assets/images/anatomy/light/` (light). Each PNG contains the full body
+/// silhouette plus its highlighted muscle baked in.
+///
+/// Names are resolved through [MuscleMap.normalize] and a thin canonical-to-
+/// filename mapping; if the supplied muscle has no PNG, we fall back to the
+/// front-chest sheet so the widget never collapses.
 ///
 /// Two display modes:
-///   * Compact (`height: 120`) — shows ONE side, picked automatically based
-///     on which side carries the most highlighted muscles. Used for inline
-///     contexts like exercise cards.
-///   * Full (`height: 280`) — shows front + back side by side. Used in the
-///     exercise detail screen and workout history detail.
-///
-/// On first build, highlights fade in over 400ms with an easeOutCubic curve
-/// so the user gets a brief "lighting up" effect.
+///   * Compact (`height: 120`) — single PNG (best primary muscle wins).
+///   * Full   (`height: 280`) — front + back side by side when both have hits.
 class MuscleHighlightWidget extends StatefulWidget {
   const MuscleHighlightWidget({
     super.key,
@@ -29,17 +26,11 @@ class MuscleHighlightWidget extends StatefulWidget {
   final List<String> targetMuscles;
   final List<String> secondaryMuscles;
   final double height;
-
-  /// When true, renders ONLY the side with the most active muscles. The
-  /// `height` should typically be ~120 in this mode.
   final bool compact;
 
-  /// Legend swatch helpers — colours that match the actual fill opacity
-  /// used by the painter so on-screen swatches read correctly.
-  static Color targetColor(Color accent) =>
-      accent.withValues(alpha: 0.75);
-  static Color secondaryColor(Color accent) =>
-      accent.withValues(alpha: 0.35);
+  /// Legend swatch helpers — used to draw the colour key next to the figure.
+  static Color targetColor(Color accent) => accent.withValues(alpha: 0.75);
+  static Color secondaryColor(Color accent) => accent.withValues(alpha: 0.35);
 
   @override
   State<MuscleHighlightWidget> createState() => _MuscleHighlightWidgetState();
@@ -64,8 +55,6 @@ class _MuscleHighlightWidgetState extends State<MuscleHighlightWidget>
   @override
   void didUpdateWidget(MuscleHighlightWidget old) {
     super.didUpdateWidget(old);
-    // Restart the fade-in any time the muscle list changes — gives the
-    // user a clear visual cue that the highlights have shifted.
     if (!_eq(old.targetMuscles, widget.targetMuscles) ||
         !_eq(old.secondaryMuscles, widget.secondaryMuscles)) {
       _controller.forward(from: 0);
@@ -89,77 +78,45 @@ class _MuscleHighlightWidgetState extends State<MuscleHighlightWidget>
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     final brightness = MediaQuery.platformBrightnessOf(context);
-    // Apple-Fitness-style silhouette: subtle fill + slightly stronger
-    // outline. Colours differ per brightness so the silhouette stays
-    // readable on both backgrounds.
-    final fillBase = brightness == Brightness.dark
-        ? const Color(0xFF2A2A35)
-        : const Color(0xFFD0D0D8);
-    final strokeBase = brightness == Brightness.dark
-        ? const Color(0xFF3A3A45)
-        : const Color(0xFFB0B0B8);
+    final dir = brightness == Brightness.light
+        ? 'assets/images/anatomy/light'
+        : 'assets/images/anatomy';
 
-    final all = [
-      ...widget.targetMuscles.map(MuscleMap.normalize),
-      ...widget.secondaryMuscles.map(MuscleMap.normalize),
-    ];
-    final hasFront =
-        all.any((m) => AnatomyPaths.frontPathFor(m, const Size(1, 1)) != null);
-    final hasBack =
-        all.any((m) => AnatomyPaths.backPathFor(m, const Size(1, 1)) != null);
+    final frontSheet = _AnatomySheets.frontFor(widget.targetMuscles);
+    final backSheet = _AnatomySheets.backFor(widget.targetMuscles);
 
     // Side selection.
-    final List<BodySide> sides;
+    final List<String> sheets;
     if (widget.compact) {
-      // Single side — pick whichever has more highlights, defaulting to
-      // front when the lists are empty or balanced.
-      if (hasBack && !hasFront) {
-        sides = [BodySide.back];
-      } else {
-        sides = [BodySide.front];
-      }
+      sheets = [backSheet ?? frontSheet ?? 'front-chest'];
+    } else if (frontSheet != null && backSheet != null) {
+      sheets = [frontSheet, backSheet];
+    } else if (backSheet != null) {
+      sheets = [backSheet];
     } else {
-      // Full view — render both sides whenever at least one has muscles
-      // to show. If nothing maps anywhere we still show the front
-      // silhouette so the widget never collapses.
-      if (hasFront && hasBack) {
-        sides = [BodySide.front, BodySide.back];
-      } else if (hasBack && !hasFront) {
-        sides = [BodySide.back];
-      } else {
-        sides = [BodySide.front];
-      }
+      sheets = [frontSheet ?? 'front-chest'];
     }
 
     return SizedBox(
       height: widget.height,
-      child: AnimatedBuilder(
-        animation: _fade,
-        builder: (context, _) => Row(
+      child: FadeTransition(
+        opacity: _fade,
+        child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            for (var i = 0; i < sides.length; i++) ...[
+            for (var i = 0; i < sheets.length; i++) ...[
               AspectRatio(
-                aspectRatio: 0.5, // body is 2× taller than wide
-                child: CustomPaint(
-                  painter: _BodyPainter(
-                    side: sides[i],
-                    targetMuscles: widget.targetMuscles
-                        .map(MuscleMap.normalize)
-                        .toList(),
-                    secondaryMuscles: widget.secondaryMuscles
-                        .map(MuscleMap.normalize)
-                        .toList(),
-                    accent: palette.accent,
-                    silhouetteFill: fillBase,
-                    silhouetteStroke: strokeBase,
-                    fadeProgress: _fade.value,
-                  ),
+                aspectRatio: 0.5,
+                child: Image.asset(
+                  '$dir/${sheets[i]}.png',
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
                 ),
               ),
-              if (i < sides.length - 1) const SizedBox(width: 16),
+              if (i < sheets.length - 1) const SizedBox(width: 16),
             ],
           ],
         ),
@@ -168,137 +125,70 @@ class _MuscleHighlightWidgetState extends State<MuscleHighlightWidget>
   }
 }
 
-class _BodyPainter extends CustomPainter {
-  _BodyPainter({
-    required this.side,
-    required this.targetMuscles,
-    required this.secondaryMuscles,
-    required this.accent,
-    required this.silhouetteFill,
-    required this.silhouetteStroke,
-    required this.fadeProgress,
-  });
+/// Maps canonical muscle names (post [MuscleMap.normalize]) onto the two
+/// anatomy PNG filenames. Front sheets cover the chest-shoulders-biceps-abs-
+/// quads bucket; back sheets cover traps+lats / lower back / triceps / glutes
+/// / calves.
+abstract final class _AnatomySheets {
+  static const Map<String, String> _front = {
+    'pectorals': 'front-chest',
+    'chest': 'front-chest',
+    'deltoids': 'front-shoulders',
+    'biceps': 'front-biceps',
+    'forearms': 'front-biceps',
+    'abs': 'front-abs',
+    'abdominals': 'front-abs',
+    'obliques': 'front-abs',
+    'serratus': 'front-abs',
+    'quadriceps': 'front-quads',
+    'quads': 'front-quads',
+    'hip flexors': 'front-quads',
+    'adductors': 'front-quads',
+  };
 
-  final BodySide side;
-  final List<String> targetMuscles;
-  final List<String> secondaryMuscles;
-  final Color accent;
-  final Color silhouetteFill;
-  final Color silhouetteStroke;
+  static const Map<String, String> _back = {
+    // upper back bundle — traps + lats share the same PNG
+    'trapezius': 'back-upper',
+    'traps': 'back-upper',
+    'lats': 'back-upper',
+    'latissimus dorsi': 'back-upper',
+    'rhomboids': 'back-upper',
+    'rear deltoids': 'back-upper',
+    // lower back
+    'lower back': 'back-lower',
+    'erector spinae': 'back-lower',
+    // arms (back view)
+    'triceps': 'back-triceps',
+    'triceps back': 'back-triceps',
+    // glutes & legs
+    'glutes': 'back-glutes',
+    'gluteus maximus': 'back-glutes',
+    'hamstrings': 'back-glutes',
+    // calves
+    'calves': 'back-calves',
+    'gastrocnemius': 'back-calves',
+    'tibialis': 'back-calves',
+  };
 
-  /// 0..1 — multiplied into every muscle's fill opacity for the fade-in.
-  final double fadeProgress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // 1. Silhouette backdrop.
-    final silhouette = AnatomyPaths.silhouette(size);
-    canvas.drawPath(
-      silhouette,
-      Paint()
-        ..color = silhouetteFill.withValues(alpha: 0.30)
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawPath(
-      silhouette,
-      Paint()
-        ..color = silhouetteStroke
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.0
-        ..strokeJoin = StrokeJoin.round
-        ..strokeCap = StrokeCap.round,
-    );
-
-    // 2. Secondary muscles (drawn below primary so a muscle marked as both
-    //    ends up reading as primary).
-    for (final raw in secondaryMuscles) {
-      final path = _pathFor(raw, size);
-      if (path == null) continue;
-      _drawMuscle(
-        canvas,
-        path,
-        opacity: 0.35,
-        glowBlur: 3,
-        outlineWidth: 0.5,
-      );
+  /// Picks the front-sheet filename for the first matching target, or null
+  /// if no target maps to a front PNG.
+  static String? frontFor(List<String> targets) {
+    for (final raw in targets) {
+      final key = MuscleMap.normalize(raw);
+      final hit = _front[key];
+      if (hit != null) return hit;
     }
+    return null;
+  }
 
-    // 3. Primary muscles on top.
-    for (final raw in targetMuscles) {
-      final path = _pathFor(raw, size);
-      if (path == null) continue;
-      _drawMuscle(
-        canvas,
-        path,
-        opacity: 0.75,
-        glowBlur: 4,
-        outlineWidth: 0.8,
-      );
+  /// Picks the back-sheet filename for the first matching target, or null
+  /// if no target maps to a back PNG.
+  static String? backFor(List<String> targets) {
+    for (final raw in targets) {
+      final key = MuscleMap.normalize(raw);
+      final hit = _back[key];
+      if (hit != null) return hit;
     }
-  }
-
-  Path? _pathFor(String name, Size size) {
-    return side == BodySide.front
-        ? AnatomyPaths.frontPathFor(name, size)
-        : AnatomyPaths.backPathFor(name, size);
-  }
-
-  /// Renders a single muscle in three layers: a subtle outer glow (blurred
-  /// stroke), the solid fill, and a slightly brighter outline. The glow is
-  /// deliberately small (blur 3–4) so the shape stays defined rather than
-  /// turning into the flashlight-through-fog look the earlier version had.
-  void _drawMuscle(
-    Canvas canvas,
-    Path path, {
-    required double opacity,
-    required double glowBlur,
-    required double outlineWidth,
-  }) {
-    final effective = opacity * fadeProgress;
-    // Glow (drawn first so the fill sits on top of it)
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = accent.withValues(alpha: effective * 0.6)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = glowBlur
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, glowBlur),
-    );
-    // Solid fill
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = accent.withValues(alpha: effective)
-        ..style = PaintingStyle.fill,
-    );
-    // Crisp outline a touch brighter than the fill — pins the shape down.
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = accent.withValues(alpha: (effective + 0.15).clamp(0.0, 1.0))
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = outlineWidth
-        ..strokeJoin = StrokeJoin.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _BodyPainter old) {
-    return old.side != side ||
-        old.accent != accent ||
-        old.silhouetteFill != silhouetteFill ||
-        old.silhouetteStroke != silhouetteStroke ||
-        old.fadeProgress != fadeProgress ||
-        !_listEq(old.targetMuscles, targetMuscles) ||
-        !_listEq(old.secondaryMuscles, secondaryMuscles);
-  }
-
-  static bool _listEq(List<String> a, List<String> b) {
-    if (identical(a, b)) return true;
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
+    return null;
   }
 }

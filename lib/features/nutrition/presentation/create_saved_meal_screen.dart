@@ -87,7 +87,16 @@ class _CreateSavedMealScreenState
       ..fat = src.fat
       ..fiber = src.fiber
       ..sugar = src.sugar
-      ..sodium = src.sodium;
+      ..sodium = src.sodium
+      ..vitaminDMcg = src.vitaminDMcg
+      ..ironMg = src.ironMg
+      ..calciumMg = src.calciumMg
+      ..vitaminCMg = src.vitaminCMg
+      ..magnesiumMg = src.magnesiumMg
+      ..potassiumMg = src.potassiumMg
+      ..zincMg = src.zincMg
+      ..vitaminB12Mcg = src.vitaminB12Mcg
+      ..folateMcg = src.folateMcg;
   }
 
   @override
@@ -201,7 +210,7 @@ class _CreateSavedMealScreenState
     if (ok) {
       showCupertinoToast(
         context,
-        _isEdit ? 'Changes saved' : 'Meal saved 🔖',
+        _isEdit ? 'Changes saved' : 'Meal saved',
       );
       Navigator.of(context).pop();
     } else {

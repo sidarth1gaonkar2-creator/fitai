@@ -8,8 +8,10 @@ import '../../domain/active_workout_state.dart';
 import 'exercise_thumb.dart';
 import 'set_row.dart';
 
-String _formatWeight(double w) =>
-    w == w.roundToDouble() ? w.toInt().toString() : w.toString();
+String _formatWeight(double w) {
+  final s = w.toStringAsFixed(1);
+  return s.endsWith('.0') ? s.substring(0, s.length - 2) : s;
+}
 
 /// Epley 1-rep-max estimate: `weight × (1 + reps/30)`. Returns 0 when either
 /// input is non-positive — caller uses that as the "no data yet" signal.

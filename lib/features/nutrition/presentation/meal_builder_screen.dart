@@ -165,8 +165,17 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
     return 1.0;
   }
 
-  ({double cal, double pro, double carb, double fat}) get _totals {
+  ({
+    double cal,
+    double pro,
+    double carb,
+    double fat,
+    double? fibre,
+    double? sodiumMg,
+  }) get _totals {
     double cal = 0, pro = 0, carb = 0, fat = 0;
+    double fibre = 0, sodium = 0;
+    bool anyFibre = false, anySodium = false;
     for (final entry in _selections.entries) {
       final catIdx = entry.key;
       if (catIdx >= _categories.length) continue;
@@ -179,9 +188,24 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
         pro += item.protein * qty;
         carb += item.carbs * qty;
         fat += item.fat * qty;
+        if (item.fiber != null) {
+          fibre += item.fiber! * qty;
+          anyFibre = true;
+        }
+        if (item.sodium != null) {
+          sodium += item.sodium! * qty;
+          anySodium = true;
+        }
       }
     }
-    return (cal: cal, pro: pro, carb: carb, fat: fat);
+    return (
+      cal: cal,
+      pro: pro,
+      carb: carb,
+      fat: fat,
+      fibre: anyFibre ? fibre : null,
+      sodiumMg: anySodium ? sodium : null,
+    );
   }
 
   /// Builds a human name for the assembled meal — used as the FoodEntry name.
@@ -265,6 +289,8 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
       fat: t.fat,
       servingSize: 1,
       servingUnit: 'meal',
+      fibre: t.fibre,
+      sodiumMg: t.sodiumMg,
     );
     if (!mounted) return;
     if (!ok) {

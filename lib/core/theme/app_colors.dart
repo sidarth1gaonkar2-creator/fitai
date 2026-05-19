@@ -80,6 +80,20 @@ abstract final class AppColors {
 
   // ─── Bottom nav ─────────────────────────────────────────────
   static const Color bottomNavBar = Color(0xFF000000);
+
+  // ─── Accent tints ────────────────────────────────────────────
+  static const Color accentPressed = Color(0xFF0050A0);
+  static const Color accentTint = Color(0x2E0A84FF);
+
+  // ─── Activity rings (Apple Fitness inspired) ────────────────
+  static const Color ringMove = Color(0xFFFA114F);
+  static const Color ringExercise = Color(0xFF92E82A);
+  static const Color ringStand = Color(0xFF00C2FF);
+
+  // ─── Macro nutrients ─────────────────────────────────────────
+  static const Color macroProtein = Color(0xFFE55B5B);
+  static const Color macroCarbs = Color(0xFFF0A830);
+  static const Color macroFat = Color(0xFF6FBF73);
 }
 
 /// Bundle of theme-aware colours. One instance per brightness, exposed via

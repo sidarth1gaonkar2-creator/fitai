@@ -57,7 +57,19 @@ Future<bool> saveCustomMealPlan(
             ..carbs = food.carbs
             ..fat = food.fat
             ..servingSize = food.servingSize
-            ..servingUnit = food.servingUnit;
+            ..servingUnit = food.servingUnit
+            ..fibre = food.fibre
+            ..sugar = food.sugar
+            ..sodiumMg = food.sodiumMg
+            ..vitaminDMcg = food.vitaminDMcg
+            ..ironMg = food.ironMg
+            ..calciumMg = food.calciumMg
+            ..vitaminCMg = food.vitaminCMg
+            ..magnesiumMg = food.magnesiumMg
+            ..potassiumMg = food.potassiumMg
+            ..zincMg = food.zincMg
+            ..vitaminB12Mcg = food.vitaminB12Mcg
+            ..folateMcg = food.folateMcg;
           await isar.customMealPlanFoods.put(f);
           meal.foods.add(f);
 
@@ -170,7 +182,19 @@ Future<bool> importCustomMealPlan(WidgetRef ref, int planId) async {
             ..carbs = food.carbs
             ..fat = food.fat
             ..servingSize = food.servingSize
-            ..servingUnit = food.servingUnit;
+            ..servingUnit = food.servingUnit
+            ..fibre = food.fibre
+            ..sugar = food.sugar
+            ..sodiumMg = food.sodiumMg
+            ..vitaminDMcg = food.vitaminDMcg
+            ..ironMg = food.ironMg
+            ..calciumMg = food.calciumMg
+            ..vitaminCMg = food.vitaminCMg
+            ..magnesiumMg = food.magnesiumMg
+            ..potassiumMg = food.potassiumMg
+            ..zincMg = food.zincMg
+            ..vitaminB12Mcg = food.vitaminB12Mcg
+            ..folateMcg = food.folateMcg;
           await isar.foodEntrys.put(entry);
           meal.foodEntries.add(entry);
           await meal.foodEntries.save();
@@ -220,6 +244,18 @@ class PlanFood {
     required this.fat,
     this.servingSize,
     this.servingUnit,
+    this.fibre,
+    this.sugar,
+    this.sodiumMg,
+    this.vitaminDMcg,
+    this.ironMg,
+    this.calciumMg,
+    this.vitaminCMg,
+    this.magnesiumMg,
+    this.potassiumMg,
+    this.zincMg,
+    this.vitaminB12Mcg,
+    this.folateMcg,
   });
 
   final String name;
@@ -229,5 +265,17 @@ class PlanFood {
   final double fat;
   final double? servingSize;
   final String? servingUnit;
+  final double? fibre;
+  final double? sugar;
+  final double? sodiumMg;
+  final double? vitaminDMcg;
+  final double? ironMg;
+  final double? calciumMg;
+  final double? vitaminCMg;
+  final double? magnesiumMg;
+  final double? potassiumMg;
+  final double? zincMg;
+  final double? vitaminB12Mcg;
+  final double? folateMcg;
 }
 

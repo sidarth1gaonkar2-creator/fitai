@@ -19,6 +19,7 @@ import 'providers/isar_provider.dart';
 import 'providers/unit_system_provider.dart';
 import 'services/notification_service.dart';
 import 'services/pr_migration_service.dart';
+import 'services/weight_migration_service.dart';
 
 void main() async {
   debugPrint('[startup] main() entered');
@@ -98,6 +99,18 @@ void main() async {
         debugPrint('[startup] PR migration complete');
       } catch (e) {
         debugPrint('[startup] PR migration failed: $e');
+      }
+    }
+
+    // One-time imperial-corruption weight fix (lbs values stored as kg).
+    final weightFixDone = prefs.getBool('weight_migration_done') ?? false;
+    if (!weightFixDone) {
+      try {
+        final fixed = await WeightMigrationService.migrate(isar);
+        await prefs.setBool('weight_migration_done', true);
+        debugPrint('[startup] Weight migration fixed $fixed sets');
+      } catch (e) {
+        debugPrint('[startup] Weight migration failed: $e');
       }
     }
   }

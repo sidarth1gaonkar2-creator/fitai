@@ -24,6 +24,18 @@ class _RecentFoodRow {
     required this.servingSize,
     required this.servingUnit,
     required this.loggedAt,
+    this.fibre,
+    this.sugar,
+    this.sodiumMg,
+    this.vitaminDMcg,
+    this.ironMg,
+    this.calciumMg,
+    this.vitaminCMg,
+    this.magnesiumMg,
+    this.potassiumMg,
+    this.zincMg,
+    this.vitaminB12Mcg,
+    this.folateMcg,
   });
 
   final String name;
@@ -34,6 +46,18 @@ class _RecentFoodRow {
   final double servingSize;
   final String servingUnit;
   final DateTime loggedAt;
+  final double? fibre;
+  final double? sugar;
+  final double? sodiumMg;
+  final double? vitaminDMcg;
+  final double? ironMg;
+  final double? calciumMg;
+  final double? vitaminCMg;
+  final double? magnesiumMg;
+  final double? potassiumMg;
+  final double? zincMg;
+  final double? vitaminB12Mcg;
+  final double? folateMcg;
 }
 
 /// Pulls every FoodEntry from the last 30 days, dedups by name (keeping the
@@ -69,6 +93,18 @@ final recentFoodsProvider =
       servingSize: e.servingSize ?? 1,
       servingUnit: e.servingUnit ?? 'serving',
       loggedAt: time,
+      fibre: e.fibre,
+      sugar: e.sugar,
+      sodiumMg: e.sodiumMg,
+      vitaminDMcg: e.vitaminDMcg,
+      ironMg: e.ironMg,
+      calciumMg: e.calciumMg,
+      vitaminCMg: e.vitaminCMg,
+      magnesiumMg: e.magnesiumMg,
+      potassiumMg: e.potassiumMg,
+      zincMg: e.zincMg,
+      vitaminB12Mcg: e.vitaminB12Mcg,
+      folateMcg: e.folateMcg,
     );
   }
 
@@ -177,6 +213,18 @@ class RecentFoodsSheet extends ConsumerWidget {
       fat: row.fat,
       servingSize: row.servingSize,
       servingUnit: row.servingUnit,
+      fibre: row.fibre,
+      sugar: row.sugar,
+      sodiumMg: row.sodiumMg,
+      vitaminDMcg: row.vitaminDMcg,
+      ironMg: row.ironMg,
+      calciumMg: row.calciumMg,
+      vitaminCMg: row.vitaminCMg,
+      magnesiumMg: row.magnesiumMg,
+      potassiumMg: row.potassiumMg,
+      zincMg: row.zincMg,
+      vitaminB12Mcg: row.vitaminB12Mcg,
+      folateMcg: row.folateMcg,
     );
     if (!context.mounted) return;
     if (ok) {

@@ -12,13 +12,13 @@ class NutrientIcons {
   static const Color caloriesColor = Color(0xFF0A84FF);
 
   static const IconData proteinIcon = Icons.lunch_dining;
-  static const Color proteinColor = Color(0xFF0A84FF);
+  static const Color proteinColor = Color(0xFFE55B5B);
 
-  static const IconData carbsIcon = Icons.breakfast_dining;
-  static const Color carbsColor = Color(0xFF32D74B);
+  static const IconData carbsIcon = Icons.grain;
+  static const Color carbsColor = Color(0xFFF0A830);
 
-  static const IconData fatIcon = Icons.opacity;
-  static const Color fatColor = Color(0xFFFF9F0A);
+  static const IconData fatIcon = Icons.egg_outlined;
+  static const Color fatColor = Color(0xFF6FBF73);
 
   // --- Micronutrients keyed by display name (matches microRdaTargets keys) ---
   static const Map<String, (IconData, Color)> _micros = {

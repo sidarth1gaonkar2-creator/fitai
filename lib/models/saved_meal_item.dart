@@ -37,4 +37,14 @@ class SavedMealItem {
   double? fiber;
   double? sugar;
   double? sodium;
+
+  double? vitaminDMcg;
+  double? ironMg;
+  double? calciumMg;
+  double? vitaminCMg;
+  double? magnesiumMg;
+  double? potassiumMg;
+  double? zincMg;
+  double? vitaminB12Mcg;
+  double? folateMcg;
 }

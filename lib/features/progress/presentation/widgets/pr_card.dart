@@ -1,16 +1,20 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Icons;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/unit_converter.dart';
 import '../../../../models/enums.dart';
 import '../../../../models/personal_record.dart';
+import '../../../../providers/unit_system_provider.dart';
 
-class PRCard extends StatelessWidget {
+class PRCard extends ConsumerWidget {
   const PRCard({super.key, required this.record});
 
   final PersonalRecord record;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final units = ref.watch(unitSystemProvider);
     final palette = AppColors.of(context);
     final dateStr =
         '${record.dateAchieved.day}/${record.dateAchieved.month}/${record.dateAchieved.year}';
@@ -59,7 +63,7 @@ class PRCard extends StatelessWidget {
                 Row(
                   children: [
                     _StatChip(
-                      label: '${record.weightKg.toStringAsFixed(1)} kg',
+                      label: UnitConverter.formatWeight(record.weightKg, units),
                       icon: CupertinoIcons.arrow_up,
                     ),
                     const SizedBox(width: 10),

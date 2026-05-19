@@ -46,8 +46,10 @@ class SetRow extends StatefulWidget {
 }
 
 class _SetRowState extends State<SetRow> {
-  static String _formatWeight(double w) =>
-      w == w.roundToDouble() ? w.toInt().toString() : w.toString();
+  static String _formatWeight(double w) {
+    final s = w.toStringAsFixed(1);
+    return s.endsWith('.0') ? s.substring(0, s.length - 2) : s;
+  }
 
   /// Imperial users see and edit lbs; metric users see and edit kg. The
   /// canonical [ActiveSet.weight] is ALWAYS kg, so we convert here on

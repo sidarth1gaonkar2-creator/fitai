@@ -122,7 +122,16 @@ class _AddFoodSheetState extends ConsumerState<AddFoodSheet> {
       ..fat = food.fatFor(g)
       ..fiber = food.fibreFor(g)
       ..sugar = food.sugarFor(g)
-      ..sodium = food.sodiumMgFor(g);
+      ..sodium = food.sodiumMgFor(g)
+      ..vitaminDMcg = food.vitaminDMcgFor(g)
+      ..ironMg = food.ironMgFor(g)
+      ..calciumMg = food.calciumMgFor(g)
+      ..vitaminCMg = food.vitaminCMgFor(g)
+      ..magnesiumMg = food.magnesiumMgFor(g)
+      ..potassiumMg = food.potassiumMgFor(g)
+      ..zincMg = food.zincMgFor(g)
+      ..vitaminB12Mcg = food.vitaminB12McgFor(g)
+      ..folateMcg = food.folateMcgFor(g);
     await saveMeal(
       ref,
       name: food.name,

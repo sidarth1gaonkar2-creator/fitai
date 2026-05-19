@@ -5,13 +5,16 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
-/// Dual-arc calorie ring:
-/// * Inner solid arc — calories consumed vs goal.
-/// * Outer dashed arc — calories burned (from Apple Health). Hidden when
-///   [burned] is 0.
+/// Three-state calorie ring:
+///   * **On pace** — blue ring, large consumed number, "kcal left" caption.
+///   * **Over budget** — red ring, large consumed number in red, "kcal over"
+///     caption.
+///   * **Health connected** — green ring once consumed >= 80%, otherwise
+///     blue; centre shows "NET REMAINING" + a goal / eaten / burned
+///     breakdown below the ring.
 ///
-/// The center text shows the NET remaining calories (`goal - consumed + burned`)
-/// by default. Tap the ring to toggle to a breakdown view (Eaten / Burned).
+/// Tap to toggle between the consumed view and the net-remaining view when
+/// Health data is present.
 class CalorieRing extends StatefulWidget {
   const CalorieRing({
     super.key,
@@ -31,16 +34,16 @@ class CalorieRing extends StatefulWidget {
 class _CalorieRingState extends State<CalorieRing>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late Animation<double> _consumedAnim;
-  late Animation<double> _burnedAnim;
-  double _previousConsumed = 0;
-  double _previousBurned = 0;
-  bool _showBreakdown = false;
+  late Animation<double> _fill;
+  double _previousFill = 0;
+  bool _showNetView = false;
 
-  double get _rawConsumed =>
-      widget.target > 0 ? widget.consumed / widget.target : 0.0;
-  double get _rawBurned =>
-      widget.target > 0 ? widget.burned / widget.target : 0.0;
+  double get _fraction =>
+      widget.target > 0 ? widget.consumed / widget.target : 0;
+
+  bool get _isOverBudget => widget.consumed > widget.target;
+  bool get _isGoodProgress => _fraction >= 0.8;
+  bool get _hasBurned => widget.burned > 0;
 
   @override
   void initState() {
@@ -49,15 +52,12 @@ class _CalorieRingState extends State<CalorieRing>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _consumedAnim = Tween<double>(
-      begin: 0,
-      end: _rawConsumed.clamp(0.0, 1.5),
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    _burnedAnim = Tween<double>(
-      begin: 0,
-      end: _rawBurned.clamp(0.0, 1.5),
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _fill = Tween<double>(begin: 0, end: _fraction.clamp(0.0, 1.5))
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _controller.forward();
+    // Default to net view when Health is connected — that's the
+    // information-dense state the spec calls for.
+    _showNetView = _hasBurned;
   }
 
   @override
@@ -66,18 +66,11 @@ class _CalorieRingState extends State<CalorieRing>
     if (oldWidget.consumed != widget.consumed ||
         oldWidget.target != widget.target ||
         oldWidget.burned != widget.burned) {
-      _previousConsumed = _consumedAnim.value;
-      _previousBurned = _burnedAnim.value;
-      _consumedAnim = Tween<double>(
-        begin: _previousConsumed,
-        end: _rawConsumed.clamp(0.0, 1.5),
-      ).animate(
-          CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-      _burnedAnim = Tween<double>(
-        begin: _previousBurned,
-        end: _rawBurned.clamp(0.0, 1.5),
-      ).animate(
-          CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+      _previousFill = _fill.value;
+      _fill = Tween<double>(
+        begin: _previousFill,
+        end: _fraction.clamp(0.0, 1.5),
+      ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
       _controller.forward(from: 0);
     }
   }
@@ -88,104 +81,119 @@ class _CalorieRingState extends State<CalorieRing>
     super.dispose();
   }
 
+  Color _ringColor(Palette palette) {
+    if (_isOverBudget) return palette.destructive;
+    if (_hasBurned && _isGoodProgress) return palette.success;
+    return palette.accent;
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-    final isOverBudget = _rawConsumed >= 1.0;
-    final isGoodProgress = _rawConsumed >= 0.8;
-    final net =
-        (widget.target - widget.consumed + widget.burned).roundToDouble();
-    final hasBurned = widget.burned > 0;
+    final ringColor = _ringColor(palette);
 
-    return Semantics(
-      label: '${widget.consumed.toInt()} of ${widget.target.toInt()} '
-          'calories consumed, '
-          '${widget.burned.toInt()} burned, '
-          '${net.toInt()} net remaining',
-      button: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: hasBurned
-            ? () {
-                HapticFeedback.selectionClick();
-                setState(() => _showBreakdown = !_showBreakdown);
-              }
-            : null,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            return SizedBox(
-              width: 220,
-              height: 220,
-              child: CustomPaint(
-                painter: _CalorieRingPainter(
-                  consumedProgress: _consumedAnim.value.clamp(0.0, 1.0),
-                  burnedProgress: _burnedAnim.value.clamp(0.0, 1.0),
-                  trackColor: palette.surfaceElevated,
-                  consumedColor: isOverBudget
-                      ? palette.destructive
-                      : isGoodProgress
-                          ? palette.success
-                          : palette.accent,
-                  burnedColor: const Color(0xFFFF9F0A),
-                ),
-                child: Center(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: _showBreakdown && hasBurned
-                        ? _Breakdown(
-                            key: const ValueKey('breakdown'),
-                            consumed: widget.consumed,
-                            burned: widget.burned,
-                            target: widget.target,
-                          )
-                        : _NetView(
-                            key: const ValueKey('net'),
-                            net: net,
-                            target: widget.target,
-                            consumed: widget.consumed,
-                            burned: widget.burned,
-                            isOverBudget: isOverBudget,
-                            showBurnedSubline: hasBurned,
-                            textTheme: textTheme,
-                            colorScheme: colorScheme,
-                            palette: palette,
-                          ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Semantics(
+          label: '${widget.consumed.toInt()} of ${widget.target.toInt()} '
+              'calories consumed'
+              '${_hasBurned ? ", ${widget.burned.toInt()} burned" : ""}',
+          button: _hasBurned,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _hasBurned
+                ? () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _showNetView = !_showNetView);
+                  }
+                : null,
+            child: AnimatedBuilder(
+              animation: _fill,
+              builder: (context, _) {
+                return SizedBox(
+                  width: 220,
+                  height: 220,
+                  child: CustomPaint(
+                    painter: _RingPainter(
+                      progress: _fill.value.clamp(0.0, 1.0),
+                      trackColor: const Color(0xFF2C2C2E),
+                      ringColor: ringColor,
+                    ),
+                    child: Center(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: _showNetView && _hasBurned
+                            ? _NetCenter(
+                                key: const ValueKey('net'),
+                                consumed: widget.consumed,
+                                burned: widget.burned,
+                                target: widget.target,
+                                palette: palette,
+                              )
+                            : _ConsumedCenter(
+                                key: const ValueKey('consumed'),
+                                consumed: widget.consumed,
+                                target: widget.target,
+                                isOver: _isOverBudget,
+                                palette: palette,
+                              ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            );
-          },
+                );
+              },
+            ),
+          ),
         ),
-      ),
+        const SizedBox(height: 12),
+        // Caption under the ring — varies by state.
+        if (_showNetView && _hasBurned)
+          _HealthBreakdown(
+            target: widget.target,
+            consumed: widget.consumed,
+            burned: widget.burned,
+            palette: palette,
+          )
+        else if (_isOverBudget)
+          Text(
+            '+${(widget.consumed - widget.target).toInt()} kcal over',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: palette.destructive,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          )
+        else
+          Text(
+            'On track · ${(widget.target - widget.consumed).toInt()} kcal left',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w500,
+              fontSize: 13,
+              color: palette.textSecondary,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+      ],
     );
   }
 }
 
-class _NetView extends StatelessWidget {
-  const _NetView({
+class _ConsumedCenter extends StatelessWidget {
+  const _ConsumedCenter({
     super.key,
-    required this.net,
-    required this.target,
     required this.consumed,
-    required this.burned,
-    required this.isOverBudget,
-    required this.showBurnedSubline,
-    required this.textTheme,
-    required this.colorScheme,
+    required this.target,
+    required this.isOver,
     required this.palette,
   });
 
-  final double net;
-  final double target;
   final double consumed;
-  final double burned;
-  final bool isOverBudget;
-  final bool showBurnedSubline;
-  final TextTheme textTheme;
-  final ColorScheme colorScheme;
+  final double target;
+  final bool isOver;
   final Palette palette;
 
   @override
@@ -194,101 +202,114 @@ class _NetView extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          net.toInt().toString(),
-          style: textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: isOverBudget && net < 0
-                ? palette.destructive
-                : colorScheme.onSurface,
-          ),
-        ),
-        Text(
-          showBurnedSubline ? 'Net Remaining' : '/ ${target.toInt()} kcal',
-          style: textTheme.bodyMedium?.copyWith(
-            color: colorScheme.onSurfaceVariant,
+          consumed.toInt().toString(),
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w700,
+            fontSize: 32,
+            color: isOver ? palette.destructive : palette.text,
+            fontFeatures: const [FontFeature.tabularFigures()],
+            height: 1.05,
           ),
         ),
         const SizedBox(height: 2),
-        if (showBurnedSubline)
-          Text(
-            'Eaten ${consumed.toInt()} · Burned ${burned.toInt()}',
-            style: textTheme.labelSmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          )
-        else
-          Text(
-            isOverBudget
-                ? '+${(consumed - target).toInt()} kcal over'
-                : '${(target - consumed).toInt()} kcal left',
-            style: textTheme.labelSmall?.copyWith(
-              color: isOverBudget
-                  ? palette.destructive
-                  : colorScheme.onSurfaceVariant,
-            ),
+        Text(
+          'of ${target.toInt()} kcal',
+          style: TextStyle(
+            fontSize: 11,
+            color: palette.textSecondary,
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
+        ),
       ],
     );
   }
 }
 
-class _Breakdown extends StatelessWidget {
-  const _Breakdown({
+class _NetCenter extends StatelessWidget {
+  const _NetCenter({
     super.key,
     required this.consumed,
     required this.burned,
     required this.target,
+    required this.palette,
   });
 
   final double consumed;
   final double burned;
   final double target;
+  final Palette palette;
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-    final textTheme = Theme.of(context).textTheme;
-    final remaining = target - consumed;
-
+    final net = (target - consumed + burned).round();
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          'NET REMAINING',
+          style: TextStyle(
+            fontSize: 10,
+            letterSpacing: 1.1,
+            color: palette.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          net.toString(),
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w700,
+            fontSize: 32,
+            color: net < 0 ? palette.destructive : palette.text,
+            fontFeatures: const [FontFeature.tabularFigures()],
+            height: 1.05,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HealthBreakdown extends StatelessWidget {
+  const _HealthBreakdown({
+    required this.target,
+    required this.consumed,
+    required this.burned,
+    required this.palette,
+  });
+
+  final double target;
+  final double consumed;
+  final double burned;
+  final Palette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _BreakdownRow(
           label: 'Goal',
-          value: target.toInt(),
-          color: palette.textSecondary,
-          textTheme: textTheme,
+          value: target.toInt().toString(),
+          valueColor: palette.text,
+          palette: palette,
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         _BreakdownRow(
           label: 'Eaten',
-          value: consumed.toInt(),
-          color: palette.accent,
-          textTheme: textTheme,
-          prefix: '−',
+          value: '− ${consumed.toInt()}',
+          valueColor: palette.accent,
+          palette: palette,
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         _BreakdownRow(
           label: 'Burned',
-          value: burned.toInt(),
-          color: const Color(0xFFFF9F0A),
-          textTheme: textTheme,
-          prefix: '+',
-        ),
-        const SizedBox(height: 4),
-        Container(
-          width: 110,
-          height: 1,
-          color: palette.border,
-        ),
-        const SizedBox(height: 4),
-        _BreakdownRow(
-          label: 'Left',
-          value: (remaining + burned).toInt(),
-          color: palette.text,
-          textTheme: textTheme,
-          bold: true,
+          value: '+ ${burned.toInt()}',
+          valueColor: palette.warning,
+          palette: palette,
         ),
       ],
     );
@@ -299,18 +320,14 @@ class _BreakdownRow extends StatelessWidget {
   const _BreakdownRow({
     required this.label,
     required this.value,
-    required this.color,
-    required this.textTheme,
-    this.prefix = '',
-    this.bold = false,
+    required this.valueColor,
+    required this.palette,
   });
 
   final String label;
-  final int value;
-  final Color color;
-  final TextTheme textTheme;
-  final String prefix;
-  final bool bold;
+  final String value;
+  final Color valueColor;
+  final Palette palette;
 
   @override
   Widget build(BuildContext context) {
@@ -318,22 +335,27 @@ class _BreakdownRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          width: 56,
+          width: 60,
           child: Text(
             label,
-            style: textTheme.labelSmall?.copyWith(
-              color: AppColors.of(context).textSecondary,
+            style: TextStyle(
+              fontSize: 12,
+              color: palette.textSecondary,
             ),
           ),
         ),
+        const SizedBox(width: 12),
         SizedBox(
-          width: 60,
+          width: 72,
           child: Text(
-            '$prefix$value',
+            value,
             textAlign: TextAlign.right,
-            style: textTheme.bodyMedium?.copyWith(
-              color: color,
-              fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              color: valueColor,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         ),
@@ -342,86 +364,48 @@ class _BreakdownRow extends StatelessWidget {
   }
 }
 
-class _CalorieRingPainter extends CustomPainter {
-  _CalorieRingPainter({
-    required this.consumedProgress,
-    required this.burnedProgress,
+class _RingPainter extends CustomPainter {
+  _RingPainter({
+    required this.progress,
     required this.trackColor,
-    required this.consumedColor,
-    required this.burnedColor,
+    required this.ringColor,
   });
 
-  final double consumedProgress;
-  final double burnedProgress;
+  final double progress;
   final Color trackColor;
-  final Color consumedColor;
-  final Color burnedColor;
+  final Color ringColor;
 
-  static const _consumedStroke = 14.0;
-  static const _burnedStroke = 6.0;
-  static const _gap = 6.0;
-  static const _dashWidth = 6.0;
-  static const _dashGap = 4.0;
+  static const _stroke = 14.0;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    // Inner consumed ring
-    final consumedRadius =
-        (min(size.width, size.height) - _consumedStroke) / 2 - 12;
-    final consumedRect =
-        Rect.fromCircle(center: center, radius: consumedRadius);
+    final radius = (min(size.width, size.height) - _stroke) / 2 - 4;
+    final rect = Rect.fromCircle(center: center, radius: radius);
 
-    final trackPaint = Paint()
+    // Track
+    final track = Paint()
       ..color = trackColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = _consumedStroke
+      ..strokeWidth = _stroke
       ..strokeCap = StrokeCap.round;
-    canvas.drawCircle(center, consumedRadius, trackPaint);
+    canvas.drawCircle(center, radius, track);
 
-    if (consumedProgress > 0) {
-      final sweep = 2 * pi * consumedProgress.clamp(0.0, 0.999);
-      final paint = Paint()
-        ..color = consumedColor
+    // Fill
+    if (progress > 0) {
+      final sweep = 2 * pi * progress.clamp(0.0, 0.9999);
+      final fill = Paint()
+        ..color = ringColor
         ..style = PaintingStyle.stroke
-        ..strokeWidth = _consumedStroke
+        ..strokeWidth = _stroke
         ..strokeCap = StrokeCap.round;
-      canvas.drawArc(consumedRect, -pi / 2, sweep, false, paint);
-    }
-
-    if (burnedProgress > 0) {
-      final burnedRadius =
-          consumedRadius + _consumedStroke / 2 + _gap + _burnedStroke / 2;
-      final sweep = 2 * pi * burnedProgress.clamp(0.0, 0.999);
-      final path = Path()
-        ..addArc(
-          Rect.fromCircle(center: center, radius: burnedRadius),
-          -pi / 2,
-          sweep,
-        );
-      final dashed = Path();
-      for (final metric in path.computeMetrics()) {
-        var distance = 0.0;
-        while (distance < metric.length) {
-          final end = min(distance + _dashWidth, metric.length);
-          dashed.addPath(metric.extractPath(distance, end), Offset.zero);
-          distance += _dashWidth + _dashGap;
-        }
-      }
-      final paint = Paint()
-        ..color = burnedColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = _burnedStroke
-        ..strokeCap = StrokeCap.round;
-      canvas.drawPath(dashed, paint);
+      canvas.drawArc(rect, -pi / 2, sweep, false, fill);
     }
   }
 
   @override
-  bool shouldRepaint(_CalorieRingPainter old) =>
-      consumedProgress != old.consumedProgress ||
-      burnedProgress != old.burnedProgress ||
+  bool shouldRepaint(_RingPainter old) =>
+      progress != old.progress ||
       trackColor != old.trackColor ||
-      consumedColor != old.consumedColor ||
-      burnedColor != old.burnedColor;
+      ringColor != old.ringColor;
 }

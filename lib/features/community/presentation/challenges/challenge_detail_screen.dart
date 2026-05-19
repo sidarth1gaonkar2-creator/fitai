@@ -541,7 +541,7 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
     showCupertinoDialog<void>(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Oops'),
+        title: const Text('Could not complete action'),
         content: Text(msg),
         actions: [
           CupertinoDialogAction(

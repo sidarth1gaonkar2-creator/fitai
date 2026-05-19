@@ -31,13 +31,29 @@ class UsdaService {
     final json = jsonDecode(body) as Map<String, dynamic>;
     final foods = json['foods'] as List<dynamic>? ?? [];
 
-    // Debug: log raw nutrients for first result
+    // Debug: dump every non-zero nutrient on the first hit so we can see
+    // exactly which IDs USDA returned for this query. Helps diagnose
+    // missing-micros bugs (e.g. iron/calcium showing as 0 in totals).
     if (foods.isNotEmpty) {
       final first = foods[0] as Map<String, dynamic>;
       final nutrients = first['foodNutrients'] as List<dynamic>? ?? [];
+      final lines = <String>[];
+      for (final raw in nutrients) {
+        final n = raw as Map<String, dynamic>;
+        final id = n['nutrientId'] ??
+            (n['nutrient'] is Map ? (n['nutrient'] as Map)['id'] : null);
+        final number = n['nutrientNumber'] ??
+            (n['nutrient'] is Map ? (n['nutrient'] as Map)['number'] : null);
+        final name = n['nutrientName'] ??
+            (n['nutrient'] is Map ? (n['nutrient'] as Map)['name'] : null);
+        final value = n['value'] ?? n['amount'];
+        if (value is num && value > 0) {
+          lines.add('  $name (id=$id, num=$number) = $value');
+        }
+      }
       dev.log(
-        '[USDA] "${first['description']}" has ${nutrients.length} nutrients. '
-        'Sample keys: ${nutrients.take(3).map((n) => (n as Map).keys.toList())}',
+        '[USDA] "${first['description']}" — ${nutrients.length} nutrients '
+        '(${lines.length} non-zero):\n${lines.join('\n')}',
         name: 'FitAI.USDA',
       );
     }

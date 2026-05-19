@@ -138,7 +138,16 @@ SavedMealItem savedMealItemFromFoodEntry(FoodEntry e) {
     ..fat = e.fat
     ..fiber = e.fibre
     ..sugar = e.sugar
-    ..sodium = e.sodiumMg;
+    ..sodium = e.sodiumMg
+    ..vitaminDMcg = e.vitaminDMcg
+    ..ironMg = e.ironMg
+    ..calciumMg = e.calciumMg
+    ..vitaminCMg = e.vitaminCMg
+    ..magnesiumMg = e.magnesiumMg
+    ..potassiumMg = e.potassiumMg
+    ..zincMg = e.zincMg
+    ..vitaminB12Mcg = e.vitaminB12Mcg
+    ..folateMcg = e.folateMcg;
 }
 
 /// Logs a saved meal into today's nutrition log under [mealType]. Scales
@@ -182,6 +191,7 @@ Future<bool> logSavedMeal(
         await log.meals.save();
       }
 
+      double? scale(double? v) => v == null ? null : v * portionMultiplier;
       for (final item in items) {
         final scaledQty = item.quantity * portionMultiplier;
         final entry = FoodEntry()
@@ -192,9 +202,18 @@ Future<bool> logSavedMeal(
           ..fat = item.fat * scaledQty
           ..servingSize = item.servingSize
           ..servingUnit = item.servingUnit
-          ..fibre = item.fiber == null ? null : item.fiber! * scaledQty
-          ..sugar = item.sugar == null ? null : item.sugar! * scaledQty
-          ..sodiumMg = item.sodium == null ? null : item.sodium! * scaledQty;
+          ..fibre = scale(item.fiber)
+          ..sugar = scale(item.sugar)
+          ..sodiumMg = scale(item.sodium)
+          ..vitaminDMcg = scale(item.vitaminDMcg)
+          ..ironMg = scale(item.ironMg)
+          ..calciumMg = scale(item.calciumMg)
+          ..vitaminCMg = scale(item.vitaminCMg)
+          ..magnesiumMg = scale(item.magnesiumMg)
+          ..potassiumMg = scale(item.potassiumMg)
+          ..zincMg = scale(item.zincMg)
+          ..vitaminB12Mcg = scale(item.vitaminB12Mcg)
+          ..folateMcg = scale(item.folateMcg);
         await isar.foodEntrys.put(entry);
         mealSection.foodEntries.add(entry);
       }
@@ -313,7 +332,16 @@ SavedMealItem cloneSavedMealItem(SavedMealItem src) {
     ..fat = src.fat
     ..fiber = src.fiber
     ..sugar = src.sugar
-    ..sodium = src.sodium;
+    ..sodium = src.sodium
+    ..vitaminDMcg = src.vitaminDMcg
+    ..ironMg = src.ironMg
+    ..calciumMg = src.calciumMg
+    ..vitaminCMg = src.vitaminCMg
+    ..magnesiumMg = src.magnesiumMg
+    ..potassiumMg = src.potassiumMg
+    ..zincMg = src.zincMg
+    ..vitaminB12Mcg = src.vitaminB12Mcg
+    ..folateMcg = src.folateMcg;
 }
 
 /// Builds a `SavedMealItem` from a [FoodSearchResult] using a chosen
@@ -335,7 +363,16 @@ SavedMealItem savedMealItemFromSearchResult(
     ..fat = food.fatFor(servingGrams)
     ..fiber = food.fibreFor(servingGrams)
     ..sugar = food.sugarFor(servingGrams)
-    ..sodium = food.sodiumMgFor(servingGrams);
+    ..sodium = food.sodiumMgFor(servingGrams)
+    ..vitaminDMcg = food.vitaminDMcgFor(servingGrams)
+    ..ironMg = food.ironMgFor(servingGrams)
+    ..calciumMg = food.calciumMgFor(servingGrams)
+    ..vitaminCMg = food.vitaminCMgFor(servingGrams)
+    ..magnesiumMg = food.magnesiumMgFor(servingGrams)
+    ..potassiumMg = food.potassiumMgFor(servingGrams)
+    ..zincMg = food.zincMgFor(servingGrams)
+    ..vitaminB12Mcg = food.vitaminB12McgFor(servingGrams)
+    ..folateMcg = food.folateMcgFor(servingGrams);
 }
 
 /// Deletes a saved meal and all its items. Used by the swipe-to-delete and

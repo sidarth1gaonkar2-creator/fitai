@@ -22,18 +22,19 @@ class UnitConverter {
     return (feet * 12 + inches) * 2.54;
   }
 
+  /// One-decimal, ".0" stripped. Includes unit suffix.
+  /// e.g. `kg = 70`, metric → "70 kg"; `kg = 70.5`, imperial → "155.4 lbs".
   static String formatWeight(double kg, UnitSystem units) {
-    if (units == UnitSystem.imperial) {
-      return '${kgToLbs(kg).round()} lbs';
-    }
-    return '${kg.round()} kg';
+    final unit = units == UnitSystem.imperial ? 'lbs' : 'kg';
+    return '${formatWeightValue(kg, units)} $unit';
   }
 
+  /// Numeric portion only — one decimal place, with a trailing ".0" stripped
+  /// so "70 kg" reads cleanly while "72.5 kg" keeps its decimal.
   static String formatWeightValue(double kg, UnitSystem units) {
-    if (units == UnitSystem.imperial) {
-      return kgToLbs(kg).toStringAsFixed(1);
-    }
-    return kg.toStringAsFixed(1);
+    final val = units == UnitSystem.imperial ? kgToLbs(kg) : kg;
+    final s = val.toStringAsFixed(1);
+    return s.endsWith('.0') ? s.substring(0, s.length - 2) : s;
   }
 
   static String weightUnit(UnitSystem units) =>

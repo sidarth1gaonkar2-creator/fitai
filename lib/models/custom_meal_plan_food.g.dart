@@ -18,40 +18,100 @@ const CustomMealPlanFoodSchema = CollectionSchema(
   name: r'CustomMealPlanFood',
   id: 6056657830367134574,
   properties: {
-    r'calories': PropertySchema(
+    r'calciumMg': PropertySchema(
       id: 0,
+      name: r'calciumMg',
+      type: IsarType.double,
+    ),
+    r'calories': PropertySchema(
+      id: 1,
       name: r'calories',
       type: IsarType.double,
     ),
     r'carbs': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'carbs',
       type: IsarType.double,
     ),
     r'fat': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'fat',
       type: IsarType.double,
     ),
+    r'fibre': PropertySchema(
+      id: 4,
+      name: r'fibre',
+      type: IsarType.double,
+    ),
+    r'folateMcg': PropertySchema(
+      id: 5,
+      name: r'folateMcg',
+      type: IsarType.double,
+    ),
+    r'ironMg': PropertySchema(
+      id: 6,
+      name: r'ironMg',
+      type: IsarType.double,
+    ),
+    r'magnesiumMg': PropertySchema(
+      id: 7,
+      name: r'magnesiumMg',
+      type: IsarType.double,
+    ),
     r'name': PropertySchema(
-      id: 3,
+      id: 8,
       name: r'name',
       type: IsarType.string,
     ),
+    r'potassiumMg': PropertySchema(
+      id: 9,
+      name: r'potassiumMg',
+      type: IsarType.double,
+    ),
     r'protein': PropertySchema(
-      id: 4,
+      id: 10,
       name: r'protein',
       type: IsarType.double,
     ),
     r'servingSize': PropertySchema(
-      id: 5,
+      id: 11,
       name: r'servingSize',
       type: IsarType.double,
     ),
     r'servingUnit': PropertySchema(
-      id: 6,
+      id: 12,
       name: r'servingUnit',
       type: IsarType.string,
+    ),
+    r'sodiumMg': PropertySchema(
+      id: 13,
+      name: r'sodiumMg',
+      type: IsarType.double,
+    ),
+    r'sugar': PropertySchema(
+      id: 14,
+      name: r'sugar',
+      type: IsarType.double,
+    ),
+    r'vitaminB12Mcg': PropertySchema(
+      id: 15,
+      name: r'vitaminB12Mcg',
+      type: IsarType.double,
+    ),
+    r'vitaminCMg': PropertySchema(
+      id: 16,
+      name: r'vitaminCMg',
+      type: IsarType.double,
+    ),
+    r'vitaminDMcg': PropertySchema(
+      id: 17,
+      name: r'vitaminDMcg',
+      type: IsarType.double,
+    ),
+    r'zincMg': PropertySchema(
+      id: 18,
+      name: r'zincMg',
+      type: IsarType.double,
     )
   },
   estimateSize: _customMealPlanFoodEstimateSize,
@@ -98,13 +158,25 @@ void _customMealPlanFoodSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDouble(offsets[0], object.calories);
-  writer.writeDouble(offsets[1], object.carbs);
-  writer.writeDouble(offsets[2], object.fat);
-  writer.writeString(offsets[3], object.name);
-  writer.writeDouble(offsets[4], object.protein);
-  writer.writeDouble(offsets[5], object.servingSize);
-  writer.writeString(offsets[6], object.servingUnit);
+  writer.writeDouble(offsets[0], object.calciumMg);
+  writer.writeDouble(offsets[1], object.calories);
+  writer.writeDouble(offsets[2], object.carbs);
+  writer.writeDouble(offsets[3], object.fat);
+  writer.writeDouble(offsets[4], object.fibre);
+  writer.writeDouble(offsets[5], object.folateMcg);
+  writer.writeDouble(offsets[6], object.ironMg);
+  writer.writeDouble(offsets[7], object.magnesiumMg);
+  writer.writeString(offsets[8], object.name);
+  writer.writeDouble(offsets[9], object.potassiumMg);
+  writer.writeDouble(offsets[10], object.protein);
+  writer.writeDouble(offsets[11], object.servingSize);
+  writer.writeString(offsets[12], object.servingUnit);
+  writer.writeDouble(offsets[13], object.sodiumMg);
+  writer.writeDouble(offsets[14], object.sugar);
+  writer.writeDouble(offsets[15], object.vitaminB12Mcg);
+  writer.writeDouble(offsets[16], object.vitaminCMg);
+  writer.writeDouble(offsets[17], object.vitaminDMcg);
+  writer.writeDouble(offsets[18], object.zincMg);
 }
 
 CustomMealPlanFood _customMealPlanFoodDeserialize(
@@ -114,14 +186,26 @@ CustomMealPlanFood _customMealPlanFoodDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = CustomMealPlanFood();
-  object.calories = reader.readDouble(offsets[0]);
-  object.carbs = reader.readDouble(offsets[1]);
-  object.fat = reader.readDouble(offsets[2]);
+  object.calciumMg = reader.readDoubleOrNull(offsets[0]);
+  object.calories = reader.readDouble(offsets[1]);
+  object.carbs = reader.readDouble(offsets[2]);
+  object.fat = reader.readDouble(offsets[3]);
+  object.fibre = reader.readDoubleOrNull(offsets[4]);
+  object.folateMcg = reader.readDoubleOrNull(offsets[5]);
   object.id = id;
-  object.name = reader.readString(offsets[3]);
-  object.protein = reader.readDouble(offsets[4]);
-  object.servingSize = reader.readDoubleOrNull(offsets[5]);
-  object.servingUnit = reader.readStringOrNull(offsets[6]);
+  object.ironMg = reader.readDoubleOrNull(offsets[6]);
+  object.magnesiumMg = reader.readDoubleOrNull(offsets[7]);
+  object.name = reader.readString(offsets[8]);
+  object.potassiumMg = reader.readDoubleOrNull(offsets[9]);
+  object.protein = reader.readDouble(offsets[10]);
+  object.servingSize = reader.readDoubleOrNull(offsets[11]);
+  object.servingUnit = reader.readStringOrNull(offsets[12]);
+  object.sodiumMg = reader.readDoubleOrNull(offsets[13]);
+  object.sugar = reader.readDoubleOrNull(offsets[14]);
+  object.vitaminB12Mcg = reader.readDoubleOrNull(offsets[15]);
+  object.vitaminCMg = reader.readDoubleOrNull(offsets[16]);
+  object.vitaminDMcg = reader.readDoubleOrNull(offsets[17]);
+  object.zincMg = reader.readDoubleOrNull(offsets[18]);
   return object;
 }
 
@@ -133,19 +217,43 @@ P _customMealPlanFoodDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 1:
       return (reader.readDouble(offset)) as P;
     case 2:
       return (reader.readDouble(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
-    case 4:
       return (reader.readDouble(offset)) as P;
+    case 4:
+      return (reader.readDoubleOrNull(offset)) as P;
     case 5:
       return (reader.readDoubleOrNull(offset)) as P;
     case 6:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 7:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 8:
+      return (reader.readString(offset)) as P;
+    case 9:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 10:
+      return (reader.readDouble(offset)) as P;
+    case 11:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 12:
       return (reader.readStringOrNull(offset)) as P;
+    case 13:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 14:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 15:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 16:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 17:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 18:
+      return (reader.readDoubleOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -249,6 +357,90 @@ extension CustomMealPlanFoodQueryWhere
 
 extension CustomMealPlanFoodQueryFilter
     on QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QFilterCondition> {
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      calciumMgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'calciumMg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      calciumMgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'calciumMg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      calciumMgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'calciumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      calciumMgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'calciumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      calciumMgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'calciumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      calciumMgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'calciumMg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
   QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
       caloriesEqualTo(
     double value, {
@@ -448,6 +640,174 @@ extension CustomMealPlanFoodQueryFilter
   }
 
   QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      fibreIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'fibre',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      fibreIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'fibre',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      fibreEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'fibre',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      fibreGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'fibre',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      fibreLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'fibre',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      fibreBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'fibre',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      folateMcgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'folateMcg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      folateMcgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'folateMcg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      folateMcgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'folateMcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      folateMcgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'folateMcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      folateMcgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'folateMcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      folateMcgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'folateMcg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
       idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -499,6 +859,174 @@ extension CustomMealPlanFoodQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      ironMgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'ironMg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      ironMgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'ironMg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      ironMgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'ironMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      ironMgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'ironMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      ironMgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'ironMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      ironMgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'ironMg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      magnesiumMgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'magnesiumMg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      magnesiumMgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'magnesiumMg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      magnesiumMgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'magnesiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      magnesiumMgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'magnesiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      magnesiumMgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'magnesiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      magnesiumMgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'magnesiumMg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
       ));
     });
   }
@@ -635,6 +1163,90 @@ extension CustomMealPlanFoodQueryFilter
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'name',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      potassiumMgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'potassiumMg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      potassiumMgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'potassiumMg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      potassiumMgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'potassiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      potassiumMgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'potassiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      potassiumMgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'potassiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      potassiumMgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'potassiumMg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
       ));
     });
   }
@@ -942,6 +1554,510 @@ extension CustomMealPlanFoodQueryFilter
       ));
     });
   }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      sodiumMgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'sodiumMg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      sodiumMgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'sodiumMg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      sodiumMgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sodiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      sodiumMgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'sodiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      sodiumMgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'sodiumMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      sodiumMgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'sodiumMg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      sugarIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'sugar',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      sugarIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'sugar',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      sugarEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sugar',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      sugarGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'sugar',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      sugarLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'sugar',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      sugarBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'sugar',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminB12McgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vitaminB12Mcg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminB12McgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vitaminB12Mcg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminB12McgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vitaminB12Mcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminB12McgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vitaminB12Mcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminB12McgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vitaminB12Mcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminB12McgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vitaminB12Mcg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminCMgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vitaminCMg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminCMgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vitaminCMg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminCMgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vitaminCMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminCMgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vitaminCMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminCMgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vitaminCMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminCMgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vitaminCMg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminDMcgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'vitaminDMcg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminDMcgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'vitaminDMcg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminDMcgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'vitaminDMcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminDMcgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'vitaminDMcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminDMcgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'vitaminDMcg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      vitaminDMcgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'vitaminDMcg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      zincMgIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'zincMg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      zincMgIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'zincMg',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      zincMgEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'zincMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      zincMgGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'zincMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      zincMgLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'zincMg',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterFilterCondition>
+      zincMgBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'zincMg',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
 }
 
 extension CustomMealPlanFoodQueryObject
@@ -1014,6 +2130,20 @@ extension CustomMealPlanFoodQueryLinks
 extension CustomMealPlanFoodQuerySortBy
     on QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QSortBy> {
   QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByCalciumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calciumMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByCalciumMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calciumMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
       sortByCalories() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'calories', Sort.asc);
@@ -1056,6 +2186,62 @@ extension CustomMealPlanFoodQuerySortBy
   }
 
   QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByFibre() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fibre', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByFibreDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fibre', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByFolateMcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'folateMcg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByFolateMcgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'folateMcg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByIronMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ironMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByIronMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ironMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByMagnesiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'magnesiumMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByMagnesiumMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'magnesiumMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
       sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1066,6 +2252,20 @@ extension CustomMealPlanFoodQuerySortBy
       sortByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByPotassiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'potassiumMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByPotassiumMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'potassiumMg', Sort.desc);
     });
   }
 
@@ -1110,10 +2310,108 @@ extension CustomMealPlanFoodQuerySortBy
       return query.addSortBy(r'servingUnit', Sort.desc);
     });
   }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortBySodiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sodiumMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortBySodiumMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sodiumMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortBySugar() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sugar', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortBySugarDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sugar', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByVitaminB12Mcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminB12Mcg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByVitaminB12McgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminB12Mcg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByVitaminCMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminCMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByVitaminCMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminCMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByVitaminDMcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminDMcg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByVitaminDMcgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminDMcg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByZincMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'zincMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      sortByZincMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'zincMg', Sort.desc);
+    });
+  }
 }
 
 extension CustomMealPlanFoodQuerySortThenBy
     on QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QSortThenBy> {
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByCalciumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calciumMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByCalciumMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calciumMg', Sort.desc);
+    });
+  }
+
   QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
       thenByCalories() {
     return QueryBuilder.apply(this, (query) {
@@ -1157,6 +2455,34 @@ extension CustomMealPlanFoodQuerySortThenBy
   }
 
   QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByFibre() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fibre', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByFibreDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fibre', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByFolateMcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'folateMcg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByFolateMcgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'folateMcg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
       thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -1171,6 +2497,34 @@ extension CustomMealPlanFoodQuerySortThenBy
   }
 
   QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByIronMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ironMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByIronMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ironMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByMagnesiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'magnesiumMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByMagnesiumMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'magnesiumMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
       thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1181,6 +2535,20 @@ extension CustomMealPlanFoodQuerySortThenBy
       thenByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByPotassiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'potassiumMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByPotassiumMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'potassiumMg', Sort.desc);
     });
   }
 
@@ -1225,10 +2593,101 @@ extension CustomMealPlanFoodQuerySortThenBy
       return query.addSortBy(r'servingUnit', Sort.desc);
     });
   }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenBySodiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sodiumMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenBySodiumMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sodiumMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenBySugar() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sugar', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenBySugarDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sugar', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByVitaminB12Mcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminB12Mcg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByVitaminB12McgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminB12Mcg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByVitaminCMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminCMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByVitaminCMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminCMg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByVitaminDMcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminDMcg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByVitaminDMcgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'vitaminDMcg', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByZincMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'zincMg', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QAfterSortBy>
+      thenByZincMgDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'zincMg', Sort.desc);
+    });
+  }
 }
 
 extension CustomMealPlanFoodQueryWhereDistinct
     on QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct> {
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct>
+      distinctByCalciumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'calciumMg');
+    });
+  }
+
   QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct>
       distinctByCalories() {
     return QueryBuilder.apply(this, (query) {
@@ -1251,9 +2710,44 @@ extension CustomMealPlanFoodQueryWhereDistinct
   }
 
   QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct>
+      distinctByFibre() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'fibre');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct>
+      distinctByFolateMcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'folateMcg');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct>
+      distinctByIronMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'ironMg');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct>
+      distinctByMagnesiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'magnesiumMg');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct>
       distinctByName({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'name', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct>
+      distinctByPotassiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'potassiumMg');
     });
   }
 
@@ -1277,6 +2771,48 @@ extension CustomMealPlanFoodQueryWhereDistinct
       return query.addDistinctBy(r'servingUnit', caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct>
+      distinctBySodiumMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'sodiumMg');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct>
+      distinctBySugar() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'sugar');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct>
+      distinctByVitaminB12Mcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vitaminB12Mcg');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct>
+      distinctByVitaminCMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vitaminCMg');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct>
+      distinctByVitaminDMcg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'vitaminDMcg');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, CustomMealPlanFood, QDistinct>
+      distinctByZincMg() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'zincMg');
+    });
+  }
 }
 
 extension CustomMealPlanFoodQueryProperty
@@ -1284,6 +2820,13 @@ extension CustomMealPlanFoodQueryProperty
   QueryBuilder<CustomMealPlanFood, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, double?, QQueryOperations>
+      calciumMgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'calciumMg');
     });
   }
 
@@ -1306,9 +2849,42 @@ extension CustomMealPlanFoodQueryProperty
     });
   }
 
+  QueryBuilder<CustomMealPlanFood, double?, QQueryOperations> fibreProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'fibre');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, double?, QQueryOperations>
+      folateMcgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'folateMcg');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, double?, QQueryOperations> ironMgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'ironMg');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, double?, QQueryOperations>
+      magnesiumMgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'magnesiumMg');
+    });
+  }
+
   QueryBuilder<CustomMealPlanFood, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, double?, QQueryOperations>
+      potassiumMgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'potassiumMg');
     });
   }
 
@@ -1329,6 +2905,46 @@ extension CustomMealPlanFoodQueryProperty
       servingUnitProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'servingUnit');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, double?, QQueryOperations>
+      sodiumMgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sodiumMg');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, double?, QQueryOperations> sugarProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sugar');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, double?, QQueryOperations>
+      vitaminB12McgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vitaminB12Mcg');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, double?, QQueryOperations>
+      vitaminCMgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vitaminCMg');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, double?, QQueryOperations>
+      vitaminDMcgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'vitaminDMcg');
+    });
+  }
+
+  QueryBuilder<CustomMealPlanFood, double?, QQueryOperations> zincMgProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'zincMg');
     });
   }
 }
