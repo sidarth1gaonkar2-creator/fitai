@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/unit_converter.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../data/exercise_library.dart';
 import '../../../models/enums.dart';
+import '../../../providers/unit_system_provider.dart';
 import '../../../providers/workout_providers.dart';
 import 'widgets/exercise_thumb.dart';
 import 'widgets/muscle_highlight_widget.dart';
@@ -55,6 +57,7 @@ class WorkoutDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final workoutAsync = ref.watch(workoutByIdProvider(workoutId));
+    final units = ref.watch(unitSystemProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -301,7 +304,9 @@ class WorkoutDetailScreen extends ConsumerWidget {
                                           child: Text('${set.reps}',
                                               style: textTheme.bodyMedium)),
                                       Expanded(
-                                          child: Text('${set.weight} kg',
+                                          child: Text(
+                                              UnitConverter.formatWeight(
+                                                  set.weight, units),
                                               style: textTheme.bodyMedium)),
                                     ],
                                   ),

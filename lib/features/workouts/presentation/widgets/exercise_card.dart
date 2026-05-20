@@ -8,11 +8,6 @@ import '../../domain/active_workout_state.dart';
 import 'exercise_thumb.dart';
 import 'set_row.dart';
 
-String _formatWeight(double w) {
-  final s = w.toStringAsFixed(1);
-  return s.endsWith('.0') ? s.substring(0, s.length - 2) : s;
-}
-
 /// Epley 1-rep-max estimate: `weight × (1 + reps/30)`. Returns 0 when either
 /// input is non-positive — caller uses that as the "no data yet" signal.
 double estimatedOneRepMax(double weight, int reps) {
@@ -63,9 +58,6 @@ class ExerciseCard extends ConsumerWidget {
     final bestOrmKg = bestOneRepMaxFor(
       exercise.sets.map((s) => (reps: s.reps, weight: s.weight)),
     );
-    final ormDisplay =
-        UnitConverter.kgToDisplayWeight(bestOrmKg, units);
-    final ormUnit = UnitConverter.weightUnit(units);
 
     return Card.filled(
       child: Padding(
@@ -102,7 +94,7 @@ class ExerciseCard extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      'Est. 1RM ${_formatWeight(ormDisplay)} $ormUnit',
+                      'Est. 1RM ${UnitConverter.formatWeight(bestOrmKg, units)}',
                       style: TextStyle(
                         fontFamily: 'LeagueSpartan',
                         fontWeight: FontWeight.w600,
@@ -153,8 +145,9 @@ class ExerciseCard extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
-                  'Last time: ${_formatWeight(units == UnitSystem.imperial ? UnitConverter.kgToLbs(exercise.sets.first.previousWeight!) : exercise.sets.first.previousWeight!)} ${UnitConverter.weightUnit(units)} '
-                  '\u00d7 ${exercise.sets.first.previousReps}',
+                  'Last time: '
+                  '${UnitConverter.formatWeight(exercise.sets.first.previousWeight!, units)}'
+                  ' \u00d7 ${exercise.sets.first.previousReps}',
                   style: textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     fontStyle: FontStyle.italic,

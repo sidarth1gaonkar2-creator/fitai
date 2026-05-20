@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/unit_converter.dart';
 import '../../../providers/dashboard_providers.dart';
 import '../../../providers/progress_providers.dart';
+import '../../../providers/unit_system_provider.dart';
 import '../../../providers/user_profile_provider.dart';
 import '../../../providers/workout_providers.dart';
 
@@ -10,6 +12,10 @@ import '../../../providers/workout_providers.dart';
 class CoachContextBuilder {
   static Future<String> build(Ref ref) async {
     final parts = <String>[];
+    // Read the user's unit preference once so every weight reported to the
+    // coach uses the same scale the user sees in the UI — otherwise an
+    // Imperial user gets advice referencing kg numbers they don't recognise.
+    final units = ref.read(unitSystemProvider);
 
     // --- User profile ---
     final profile = await ref.read(userProfileProvider.future);
@@ -18,7 +24,7 @@ class CoachContextBuilder {
         'User: ${profile.name}, '
         'Goal: ${profile.goal.name}, '
         'TDEE: ${profile.tdee.toInt()} kcal, '
-        'Weight: ${profile.weight} kg',
+        'Weight: ${UnitConverter.formatWeight(profile.weight, units)}',
       );
     }
 
@@ -57,7 +63,7 @@ class CoachContextBuilder {
       final prs = await ref.read(personalRecordsProvider.future);
       if (prs.isNotEmpty) {
         final topPrs = prs.entries.take(5).map(
-            (e) => '${e.key}: ${e.value.toStringAsFixed(1)} kg');
+            (e) => '${e.key}: ${UnitConverter.formatWeight(e.value, units)}');
         parts.add('Personal records: ${topPrs.join(", ")}');
       }
     } catch (_) {}

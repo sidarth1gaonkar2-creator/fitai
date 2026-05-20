@@ -7,8 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/utils/relative_time.dart';
+import '../../../../../core/utils/unit_converter.dart';
 import '../../../../../providers/auth_provider.dart';
 import '../../../../../providers/community_providers.dart';
+import '../../../../../providers/unit_system_provider.dart';
 import '../../../data/post_repository.dart';
 import '../../../domain/post.dart';
 
@@ -459,17 +461,24 @@ class _PostAvatar extends StatelessWidget {
 
 // ─── Workout attachment card ───────────────────────────────────────────────
 
-class _WorkoutAttachment extends StatelessWidget {
+class _WorkoutAttachment extends ConsumerWidget {
   const _WorkoutAttachment({required this.post, required this.palette});
 
   final Post post;
   final Palette palette;
 
   @override
-  Widget build(BuildContext context) {
-    final volumeStr = post.totalVolume >= 1000
-        ? '${(post.totalVolume / 1000).toStringAsFixed(1)}t'
-        : '${post.totalVolume.toStringAsFixed(0)}kg';
+  Widget build(BuildContext context, WidgetRef ref) {
+    // `totalVolume` is persisted in kg. Render it in the viewer's unit so
+    // an Imperial user doesn't see their own workouts in kg in the feed.
+    final units = ref.watch(unitSystemProvider);
+    final converted = units == UnitSystem.imperial
+        ? UnitConverter.kgToLbs(post.totalVolume)
+        : post.totalVolume;
+    final unitLabel = UnitConverter.weightUnit(units);
+    final volumeStr = converted >= 1000
+        ? '${(converted / 1000).toStringAsFixed(1)}k $unitLabel'
+        : '${converted.toStringAsFixed(0)} $unitLabel';
     final date = formatRelativeTime(post.createdAt);
     final exerciseCount = post.exercises.length;
 

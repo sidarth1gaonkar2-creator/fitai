@@ -1,12 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show CircleAvatar;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/unit_converter.dart';
+import '../../../../../providers/unit_system_provider.dart';
 import '../../../domain/leaderboard_entry.dart';
 
-class LeaderboardTile extends StatelessWidget {
+class LeaderboardTile extends ConsumerWidget {
   const LeaderboardTile({
     super.key,
     required this.rank,
@@ -22,21 +25,33 @@ class LeaderboardTile extends StatelessWidget {
 
   static const _medals = ['\u{1F947}', '\u{1F948}', '\u{1F949}'];
 
-  String get _metricValue {
+  /// `totalVolume` is stored in kg server-side. Render it in the viewer's
+  /// preferred unit. We collapse to tons (or "k lbs") past 1000 to keep
+  /// long-haul lifters' rows from blowing out the layout.
+  String _metricValue(UnitSystem units) {
     return switch (metricField) {
       'currentStreak' => '${entry.currentStreak}',
-      'totalVolume' =>
-        entry.totalVolume >= 1000
-            ? '${(entry.totalVolume / 1000).toStringAsFixed(1)}t'
-            : '${entry.totalVolume.toStringAsFixed(0)} kg',
+      'totalVolume' => _formatVolume(entry.totalVolume, units),
       'totalWorkouts' => '${entry.totalWorkouts}',
       _ => '',
     };
   }
 
+  static String _formatVolume(double kg, UnitSystem units) {
+    final value = units == UnitSystem.imperial
+        ? UnitConverter.kgToLbs(kg)
+        : kg;
+    final unitLabel = UnitConverter.weightUnit(units);
+    if (value >= 1000) {
+      return '${(value / 1000).toStringAsFixed(1)}k $unitLabel';
+    }
+    return '${value.toStringAsFixed(0)} $unitLabel';
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = AppColors.of(context);
+    final units = ref.watch(unitSystemProvider);
     final bg = isCurrentUser ? palette.accent : palette.surface;
     final textColor = isCurrentUser ? CupertinoColors.white : palette.text;
     final secondaryTextColor =
@@ -112,7 +127,7 @@ class LeaderboardTile extends StatelessWidget {
 
           // ---- Metric value ----
           Text(
-            _metricValue,
+            _metricValue(units),
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.bold,

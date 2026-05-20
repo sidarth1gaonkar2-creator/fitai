@@ -7,12 +7,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/relative_time.dart';
+import '../../../../core/utils/unit_converter.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../models/personal_record.dart';
 import '../../../../models/workout.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
 import '../../../../providers/personal_records_hall_providers.dart';
+import '../../../../providers/unit_system_provider.dart';
 import '../../../../providers/workout_providers.dart';
 import '../../data/follow_repository.dart';
 import '../../data/post_repository.dart';
@@ -759,14 +761,15 @@ class _PRsTab extends ConsumerWidget {
   }
 }
 
-class _PRTile extends StatelessWidget {
+class _PRTile extends ConsumerWidget {
   const _PRTile({required this.pr});
 
   final PersonalRecord pr;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = AppColors.of(context);
+    final units = ref.watch(unitSystemProvider);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
@@ -817,7 +820,7 @@ class _PRTile extends StatelessWidget {
             ),
           ),
           Text(
-            '${pr.weightKg.toStringAsFixed(pr.weightKg.truncateToDouble() == pr.weightKg ? 0 : 1)} kg',
+            UnitConverter.formatWeight(pr.weightKg, units),
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w700,

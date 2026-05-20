@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/tdee_calculator.dart';
+import '../../../../core/utils/unit_converter.dart';
 import '../../../../models/enums.dart';
+import '../../../../providers/unit_system_provider.dart';
 import '../../domain/onboarding_state.dart';
 import '../onboarding_controller.dart';
 import 'onboarding_illustration.dart';
@@ -13,6 +15,7 @@ class SummaryStep extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(onboardingControllerProvider);
+    final units = ref.watch(unitSystemProvider);
     final textTheme = Theme.of(context).textTheme;
 
     final breakdown = (state.weight != null &&
@@ -83,8 +86,18 @@ class SummaryStep extends ConsumerWidget {
                 _SummaryRow(label: 'Name', value: state.name),
                 _SummaryRow(label: 'Age', value: '${state.age}'),
                 _SummaryRow(label: 'Sex', value: state.sex?.label ?? ''),
-                _SummaryRow(label: 'Weight', value: '${state.weight} kg'),
-                _SummaryRow(label: 'Height', value: '${state.height} cm'),
+                _SummaryRow(
+                  label: 'Weight',
+                  value: state.weight == null
+                      ? '—'
+                      : UnitConverter.formatWeight(state.weight!, units),
+                ),
+                _SummaryRow(
+                  label: 'Height',
+                  value: state.height == null
+                      ? '—'
+                      : UnitConverter.formatHeight(state.height!, units),
+                ),
                 _SummaryRow(label: 'Goal', value: state.goal?.label ?? ''),
                 _SummaryRow(
                   label: 'Activity',
