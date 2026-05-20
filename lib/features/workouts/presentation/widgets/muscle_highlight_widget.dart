@@ -104,47 +104,51 @@ class _MuscleHighlightWidgetState extends State<MuscleHighlightWidget>
     const nativeHeight = 470.0;
     final renderHeight =
         widget.height > nativeHeight ? nativeHeight : widget.height;
+
+    // Two-panel layout: each figure gets exactly half the card via
+    // `Expanded`, then `Center` puts it in the middle of its half. That
+    // makes the front/back panels horizontally symmetrical regardless of
+    // the card's outer width. Single-panel layout: just centre the figure.
+    final Widget content = sheets.length == 1
+        ? Center(
+            child: _AnatomyPanel(
+              path: '$dir/${sheets.first}.png',
+              height: renderHeight,
+            ),
+          )
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              for (final sheet in sheets)
+                Expanded(
+                  child: Center(
+                    child: _AnatomyPanel(
+                      path: '$dir/$sheet.png',
+                      height: renderHeight,
+                    ),
+                  ),
+                ),
+            ],
+          );
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SizedBox(
         height: widget.height,
+        width: double.infinity,
         child: FadeTransition(
           opacity: _fade,
-          child: Center(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                const gap = 24.0;
-                if (sheets.length == 1) {
-                  return _AnatomyPanel(
-                    path: '$dir/${sheets.first}.png',
-                    height: renderHeight,
-                  );
-                }
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    for (var i = 0; i < sheets.length; i++) ...[
-                      _AnatomyPanel(
-                        path: '$dir/${sheets[i]}.png',
-                        height: renderHeight,
-                      ),
-                      if (i < sheets.length - 1) const SizedBox(width: gap),
-                    ],
-                  ],
-                );
-              },
-            ),
-          ),
+          child: content,
         ),
       ),
     );
   }
 }
 
-/// One anatomy figure, vertically centred and width-clamped to the PNG's
-/// 223 × 470 aspect ratio so each panel renders the same way regardless of
-/// whether it lives on its own or beside a sibling.
+/// One anatomy figure, width-clamped to the PNG's 223 × 470 aspect ratio
+/// so each panel renders at the same natural size regardless of how much
+/// horizontal space its parent gives it. Centring is the parent's job —
+/// this widget just sizes itself.
 class _AnatomyPanel extends StatelessWidget {
   const _AnatomyPanel({required this.path, required this.height});
 
@@ -155,18 +159,15 @@ class _AnatomyPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     // 223 / 470 ≈ 0.474 — derive width from height so both panels match.
     final width = height * (223 / 470);
-    return Align(
-      alignment: Alignment.center,
-      child: SizedBox(
-        width: width,
-        height: height,
-        child: Image.asset(
-          path,
-          fit: BoxFit.contain,
-          alignment: Alignment.center,
-          filterQuality: FilterQuality.high,
-          errorBuilder: (_, _, _) => const SizedBox.shrink(),
-        ),
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Image.asset(
+        path,
+        fit: BoxFit.contain,
+        alignment: Alignment.center,
+        filterQuality: FilterQuality.high,
+        errorBuilder: (_, _, _) => const SizedBox.shrink(),
       ),
     );
   }
