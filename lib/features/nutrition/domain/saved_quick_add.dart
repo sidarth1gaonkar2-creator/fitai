@@ -13,6 +13,7 @@ class SavedQuickAdd {
     required this.fat,
     required this.lastUsedAt,
     this.useCount = 0,
+    this.emoji,
   });
 
   final String id;
@@ -23,6 +24,7 @@ class SavedQuickAdd {
   final double fat;
   final DateTime lastUsedAt;
   final int useCount;
+  final String? emoji;
 
   SavedQuickAdd copyWith({
     String? name,
@@ -32,6 +34,8 @@ class SavedQuickAdd {
     double? fat,
     DateTime? lastUsedAt,
     int? useCount,
+    String? emoji,
+    bool clearEmoji = false,
   }) {
     return SavedQuickAdd(
       id: id,
@@ -42,6 +46,7 @@ class SavedQuickAdd {
       fat: fat ?? this.fat,
       lastUsedAt: lastUsedAt ?? this.lastUsedAt,
       useCount: useCount ?? this.useCount,
+      emoji: clearEmoji ? null : (emoji ?? this.emoji),
     );
   }
 
@@ -54,6 +59,7 @@ class SavedQuickAdd {
         'fat': fat,
         'lastUsedAt': lastUsedAt.millisecondsSinceEpoch,
         'useCount': useCount,
+        if (emoji != null) 'emoji': emoji,
       };
 
   factory SavedQuickAdd.fromJson(Map<String, dynamic> json) {
@@ -68,6 +74,7 @@ class SavedQuickAdd {
           (json['lastUsedAt'] as num?)?.toInt() ??
               DateTime.now().millisecondsSinceEpoch),
       useCount: (json['useCount'] as num?)?.toInt() ?? 0,
+      emoji: json['emoji'] as String?,
     );
   }
 

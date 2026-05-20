@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
+import '../../../../data/food_emojis.dart';
 import '../../../../models/enums.dart';
 import '../../../../models/saved_meal.dart';
 import '../../../../providers/saved_meal_providers.dart';
@@ -95,13 +96,11 @@ class _UseSavedMealSheetState extends ConsumerState<UseSavedMealSheet> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    if (widget.meal.emoji != null) ...[
-                      Text(
-                        widget.meal.emoji!,
-                        style: const TextStyle(fontSize: 28),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
+                    Text(
+                      widget.meal.emoji ?? FoodEmojis.defaultEmoji,
+                      style: const TextStyle(fontSize: 32),
+                    ),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         widget.meal.name,

@@ -52,7 +52,8 @@ class NutritionSummaryCard extends StatelessWidget {
                 children: [
                   _MacroProgressBar(
                     label: 'Protein',
-                    icon: NutrientIcons.proteinIcon,
+                    icon: const Icon(NutrientIcons.proteinIcon,
+                        size: 13, color: NutrientIcons.proteinColor),
                     consumed: protein,
                     target: proteinTarget,
                     baseColor: NutrientIcons.proteinColor,
@@ -61,7 +62,8 @@ class NutritionSummaryCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   _MacroProgressBar(
                     label: 'Carbs',
-                    icon: NutrientIcons.carbsIcon,
+                    icon: const Icon(NutrientIcons.carbsIcon,
+                        size: 13, color: NutrientIcons.carbsColor),
                     consumed: carbs,
                     target: carbsTarget,
                     baseColor: NutrientIcons.carbsColor,
@@ -70,7 +72,7 @@ class NutritionSummaryCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   _MacroProgressBar(
                     label: 'Fat',
-                    icon: NutrientIcons.fatIcon,
+                    icon: NutrientIcons.fatIconWidget(size: 13),
                     consumed: fat,
                     target: fatTarget,
                     baseColor: NutrientIcons.fatColor,
@@ -97,7 +99,7 @@ class _MacroProgressBar extends StatelessWidget {
   });
 
   final String label;
-  final IconData icon;
+  final Widget icon;
   final double consumed;
   final double target;
   final Color baseColor;
@@ -131,7 +133,7 @@ class _MacroProgressBar extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, size: 13, color: baseColor),
+            icon,
             const SizedBox(width: 4),
             Text(
               label,

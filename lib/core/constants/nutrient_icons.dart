@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../models/enums.dart';
 
 /// Centralised icon + colour definitions for macros, micronutrients,
@@ -17,8 +18,21 @@ class NutrientIcons {
   static const IconData carbsIcon = Icons.grain;
   static const Color carbsColor = Color(0xFFF0A830);
 
-  static const IconData fatIcon = Icons.egg_outlined;
+  /// Material Icons has no avocado, so the fat macro uses a custom SVG.
+  /// Callers must consume [fatIconWidget] (returns a tinted SvgPicture)
+  /// rather than the legacy [IconData] field that no longer makes sense.
   static const Color fatColor = Color(0xFF6FBF73);
+
+  /// Returns a sized, currentColor-tinted avocado glyph for the fat macro.
+  /// Use this anywhere you'd otherwise pass an `Icon(NutrientIcons.fatIcon, …)`.
+  static Widget fatIconWidget({double size = 16, Color color = fatColor}) {
+    return SvgPicture.asset(
+      'assets/icons/avocado.svg',
+      width: size,
+      height: size,
+      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+    );
+  }
 
   // --- Micronutrients keyed by display name (matches microRdaTargets keys) ---
   static const Map<String, (IconData, Color)> _micros = {

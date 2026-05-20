@@ -31,7 +31,8 @@ class MacroRow extends StatelessWidget {
         Expanded(
           child: _MacroBar(
             label: 'Protein',
-            icon: NutrientIcons.proteinIcon,
+            icon: const Icon(NutrientIcons.proteinIcon,
+                size: 14, color: NutrientIcons.proteinColor),
             current: proteinGrams,
             target: targets.protein,
             color: NutrientIcons.proteinColor,
@@ -41,7 +42,8 @@ class MacroRow extends StatelessWidget {
         Expanded(
           child: _MacroBar(
             label: 'Carbs',
-            icon: NutrientIcons.carbsIcon,
+            icon: const Icon(NutrientIcons.carbsIcon,
+                size: 14, color: NutrientIcons.carbsColor),
             current: carbsGrams,
             target: targets.carbs,
             color: NutrientIcons.carbsColor,
@@ -51,7 +53,7 @@ class MacroRow extends StatelessWidget {
         Expanded(
           child: _MacroBar(
             label: 'Fat',
-            icon: NutrientIcons.fatIcon,
+            icon: NutrientIcons.fatIconWidget(size: 14),
             current: fatGrams,
             target: targets.fat,
             color: NutrientIcons.fatColor,
@@ -72,7 +74,7 @@ class _MacroBar extends StatelessWidget {
   });
 
   final String label;
-  final IconData icon;
+  final Widget icon;
   final double current;
   final double target;
   final Color color;
@@ -87,7 +89,7 @@ class _MacroBar extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, size: 14, color: color),
+            icon,
             const SizedBox(width: 4),
             Text(
               label,

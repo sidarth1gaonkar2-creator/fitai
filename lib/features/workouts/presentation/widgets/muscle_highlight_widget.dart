@@ -98,54 +98,75 @@ class _MuscleHighlightWidgetState extends State<MuscleHighlightWidget>
       sheets = [frontSheet ?? 'front-chest'];
     }
 
+    // Both PNG sets (dark + light) are exported at 223 × 470. Clamp the
+    // rendered height so we never up-scale past native resolution — that's
+    // what produced the grainy look on 3x retina screens.
+    const nativeHeight = 470.0;
+    final renderHeight =
+        widget.height > nativeHeight ? nativeHeight : widget.height;
     return SizedBox(
       height: widget.height,
       child: FadeTransition(
         opacity: _fade,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            // Single image: centre and clamp width so a tall PNG doesn't
-            // try to fill the row. Two images: spread them with a fixed
-            // gap so the front/back panels never overlap or look cramped.
-            if (sheets.length == 1) {
-              return Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: widget.height,
-                    maxWidth: widget.height * 0.5,
-                  ),
-                  child: Image.asset(
-                    '$dir/${sheets.first}.png',
-                    fit: BoxFit.contain,
-                    filterQuality: FilterQuality.high,
-                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                  ),
-                ),
-              );
-            }
-            const gap = 24.0;
-            final panelWidth =
-                ((constraints.maxWidth - gap) / 2).clamp(0.0, widget.height * 0.55);
-            return Row(
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                for (var i = 0; i < sheets.length; i++) ...[
-                  SizedBox(
-                    width: panelWidth,
-                    height: widget.height,
-                    child: Image.asset(
-                      '$dir/${sheets[i]}.png',
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.high,
-                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+        child: Center(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              const gap = 24.0;
+              // Two panels: spread them with a fixed gap; single panel:
+              // center the lone figure. Either way each sheet is wrapped in
+              // an Align(Alignment.center) with the same maxHeight so the
+              // two body PNGs share a baseline.
+              if (sheets.length == 1) {
+                return _AnatomyPanel(
+                  path: '$dir/${sheets.first}.png',
+                  height: renderHeight,
+                );
+              }
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  for (var i = 0; i < sheets.length; i++) ...[
+                    _AnatomyPanel(
+                      path: '$dir/${sheets[i]}.png',
+                      height: renderHeight,
                     ),
-                  ),
-                  if (i < sheets.length - 1) const SizedBox(width: gap),
+                    if (i < sheets.length - 1) const SizedBox(width: gap),
+                  ],
                 ],
-              ],
-            );
-          },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One anatomy figure, vertically centred and width-clamped to the PNG's
+/// 223 × 470 aspect ratio so each panel renders the same way regardless of
+/// whether it lives on its own or beside a sibling.
+class _AnatomyPanel extends StatelessWidget {
+  const _AnatomyPanel({required this.path, required this.height});
+
+  final String path;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    // 223 / 470 ≈ 0.474 — derive width from height so both panels match.
+    final width = height * (223 / 470);
+    return Align(
+      alignment: Alignment.center,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: Image.asset(
+          path,
+          fit: BoxFit.contain,
+          alignment: Alignment.center,
+          filterQuality: FilterQuality.high,
+          errorBuilder: (_, _, _) => const SizedBox.shrink(),
         ),
       ),
     );

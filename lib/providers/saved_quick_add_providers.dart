@@ -30,6 +30,7 @@ Future<SavedQuickAdd> upsertQuickAdd(
   required double protein,
   required double carbs,
   required double fat,
+  String? emoji,
 }) async {
   final prefs = await SharedPreferences.getInstance();
   final existing = SavedQuickAdd.decodeAll(prefs.getString(_prefsKey));
@@ -46,6 +47,8 @@ Future<SavedQuickAdd> upsertQuickAdd(
       fat: fat,
       lastUsedAt: now,
       useCount: existing[idx].useCount + 1,
+      emoji: emoji,
+      clearEmoji: emoji == null,
     );
     existing[idx] = row;
   } else {
@@ -58,6 +61,7 @@ Future<SavedQuickAdd> upsertQuickAdd(
       fat: fat,
       lastUsedAt: now,
       useCount: 1,
+      emoji: emoji,
     );
     existing.add(row);
   }

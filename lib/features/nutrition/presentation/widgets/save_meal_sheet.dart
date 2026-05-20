@@ -1,12 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Icons, Theme;
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../models/food_entry.dart';
 import '../../../../providers/saved_meal_providers.dart';
+import 'food_emoji_picker.dart';
 
 /// Bottom sheet shown when the user taps "Save as Meal" on a populated meal
 /// section. Pre-fills the name with `weekday + meal type` (e.g. "Monday
@@ -34,10 +34,6 @@ class SaveMealSheet extends ConsumerStatefulWidget {
 }
 
 class _SaveMealSheetState extends ConsumerState<SaveMealSheet> {
-  static const List<String> _quickEmoji = [
-    '🥗', '🍳', '🥑', '🍗', '🥩', '🍜', '🥤', '🍎'
-  ];
-
   late final TextEditingController _nameController;
   late String? _emoji;
   bool _saving = false;
@@ -142,46 +138,9 @@ class _SaveMealSheetState extends ConsumerState<SaveMealSheet> {
                 ),
               ),
               const SizedBox(height: 12),
-              // Emoji picker
-              SizedBox(
-                height: 44,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _quickEmoji.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 8),
-                  itemBuilder: (context, i) {
-                    final candidate = _quickEmoji[i];
-                    final selected = candidate == _emoji;
-                    return GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        setState(() =>
-                            _emoji = selected ? null : candidate);
-                      },
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? palette.accent.withValues(alpha: 0.2)
-                              : palette.surfaceElevated,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: selected
-                                ? palette.accent
-                                : palette.border,
-                          ),
-                        ),
-                        child: Text(
-                          candidate,
-                          style: const TextStyle(fontSize: 22),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+              FoodEmojiSelector(
+                emoji: _emoji,
+                onChanged: (e) => setState(() => _emoji = e),
               ),
               const SizedBox(height: 16),
               // Items preview

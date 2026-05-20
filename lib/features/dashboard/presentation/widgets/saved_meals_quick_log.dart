@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../data/food_emojis.dart';
 import '../../../../models/saved_meal.dart';
 import '../../../../providers/saved_meal_providers.dart';
 import '../../../nutrition/presentation/widgets/use_saved_meal_sheet.dart';
@@ -116,8 +117,8 @@ class _QuickLogCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(meal.emoji ?? '🍽️',
-                    style: const TextStyle(fontSize: 18)),
+                Text(meal.emoji ?? FoodEmojis.defaultEmoji,
+                    style: const TextStyle(fontSize: 22)),
                 const Spacer(),
                 Icon(Icons.add_circle,
                     size: 18, color: palette.accent),

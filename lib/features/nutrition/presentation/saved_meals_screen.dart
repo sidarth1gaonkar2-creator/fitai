@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
+import '../../../data/food_emojis.dart';
 import '../../../models/saved_meal.dart';
 import '../../../providers/saved_meal_providers.dart';
 import 'widgets/use_saved_meal_sheet.dart';
@@ -321,10 +322,11 @@ class _FrequentCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                if (meal.emoji != null) ...[
-                  Text(meal.emoji!, style: const TextStyle(fontSize: 20)),
-                  const SizedBox(width: 6),
-                ],
+                Text(
+                  meal.emoji ?? FoodEmojis.defaultEmoji,
+                  style: const TextStyle(fontSize: 24),
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     meal.name,
@@ -421,7 +423,7 @@ class _SavedMealRow extends ConsumerWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Text(
-                  meal.emoji ?? '🍽️',
+                  meal.emoji ?? FoodEmojis.defaultEmoji,
                   style: const TextStyle(fontSize: 20),
                 ),
               ),

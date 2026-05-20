@@ -5,10 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
+import '../../../../data/food_emojis.dart';
 import '../../../../models/enums.dart';
 import '../../../../providers/nutrition_providers.dart';
 import '../../../../providers/saved_quick_add_providers.dart';
 import '../../domain/saved_quick_add.dart';
+import 'food_emoji_picker.dart';
 
 /// Manual calorie/macro entry — used when the user knows what they ate but
 /// doesn't want to search for it (e.g. home-cooked, restaurant without a
@@ -39,6 +41,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   // When the user tapped a saved preset we keep its id so re-saving with
   // edits updates the existing row instead of creating a duplicate.
   String? _editingPresetId;
+  String? _emoji;
 
   @override
   void initState() {
@@ -66,6 +69,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       _carbsController.text = p.carbs > 0 ? p.carbs.toInt().toString() : '';
       _fatController.text = p.fat > 0 ? p.fat.toInt().toString() : '';
       _expandMacros = p.protein > 0 || p.carbs > 0 || p.fat > 0;
+      _emoji = p.emoji;
     });
   }
 
@@ -115,6 +119,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
         protein: pro,
         carbs: carbs,
         fat: fat,
+        emoji: _emoji,
       );
     }
     if (!mounted) return;
@@ -289,6 +294,16 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                     ],
                   ),
                 ],
+                // Emoji picker — only surfaced when the user opts into
+                // saving (or is editing an existing preset). Keeps the
+                // one-shot quick-add flow as minimal as possible.
+                if (_saveForLater || _editingPresetId != null) ...[
+                  const SizedBox(height: 14),
+                  FoodEmojiSelector(
+                    emoji: _emoji,
+                    onChanged: (e) => setState(() => _emoji = e),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 // Save-for-later toggle
                 _SaveToggle(
@@ -458,8 +473,8 @@ class _PresetChip extends StatelessWidget {
       onLongPress: onDelete,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        constraints: const BoxConstraints(maxWidth: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: palette.surfaceElevated,
           borderRadius: BorderRadius.circular(12),
@@ -468,6 +483,11 @@ class _PresetChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Text(
+              row.emoji ?? FoodEmojis.defaultEmoji,
+              style: const TextStyle(fontSize: 22),
+            ),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

@@ -12,6 +12,7 @@ import '../../../models/saved_meal_item.dart';
 import '../../../providers/saved_meal_providers.dart';
 import '../domain/food_search_result.dart';
 import 'food_search_screen.dart';
+import 'widgets/food_emoji_picker.dart';
 
 /// Build-a-saved-meal-from-scratch screen. When [savedMealId] is non-null
 /// the screen pre-loads that meal and switches to edit mode.
@@ -28,10 +29,6 @@ class CreateSavedMealScreen extends ConsumerStatefulWidget {
 
 class _CreateSavedMealScreenState
     extends ConsumerState<CreateSavedMealScreen> {
-  static const List<String> _quickEmoji = [
-    '🥗', '🍳', '🥑', '🍗', '🥩', '🍜', '🥤', '🍎'
-  ];
-
   final TextEditingController _nameController = TextEditingController();
   String? _emoji;
   final List<SavedMealItem> _items = [];
@@ -286,45 +283,9 @@ class _CreateSavedMealScreenState
                     ),
                   ),
                   const SizedBox(height: 12),
-                  SizedBox(
-                    height: 44,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _quickEmoji.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 8),
-                      itemBuilder: (context, i) {
-                        final candidate = _quickEmoji[i];
-                        final selected = candidate == _emoji;
-                        return GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            setState(() =>
-                                _emoji = selected ? null : candidate);
-                          },
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? palette.accent.withValues(alpha: 0.2)
-                                  : palette.surface,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: selected
-                                    ? palette.accent
-                                    : palette.border,
-                              ),
-                            ),
-                            child: Text(
-                              candidate,
-                              style: const TextStyle(fontSize: 22),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                  FoodEmojiSelector(
+                    emoji: _emoji,
+                    onChanged: (e) => setState(() => _emoji = e),
                   ),
                   const SizedBox(height: 18),
                   Row(
