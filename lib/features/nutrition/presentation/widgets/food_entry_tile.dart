@@ -267,6 +267,9 @@ class _SwipeTileState extends State<_SwipeTile> {
       ..vitaminB12Mcg = e.vitaminB12Mcg
       ..folateMcg = e.folateMcg
       ..fibre = e.fibre
-      ..sugar = e.sugar;
+      ..sugar = e.sugar
+      ..mealGroupId = e.mealGroupId
+      ..mealGroupName = e.mealGroupName
+      ..mealGroupEmoji = e.mealGroupEmoji;
   }
 }

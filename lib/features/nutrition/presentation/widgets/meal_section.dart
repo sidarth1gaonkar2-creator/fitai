@@ -6,6 +6,7 @@ import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../models/enums.dart';
 import '../../../../models/food_entry.dart';
 import 'food_entry_tile.dart';
+import 'meal_group_tile.dart';
 import 'save_meal_sheet.dart';
 
 class MealSection extends StatelessWidget {
@@ -15,6 +16,7 @@ class MealSection extends StatelessWidget {
     required this.entries,
     required this.onAddFood,
     required this.onDeleteEntry,
+    this.onDeleteGroup,
     this.onRestoreEntry,
     this.isLocked = false,
   });
@@ -23,6 +25,10 @@ class MealSection extends StatelessWidget {
   final List<FoodEntry> entries;
   final VoidCallback onAddFood;
   final void Function(int entryId) onDeleteEntry;
+
+  /// Removes every entry that shares a [FoodEntry.mealGroupId]. Wired in
+  /// the parent so this widget stays presentation-only.
+  final void Function(String groupId)? onDeleteGroup;
   final void Function(MealType mealType, FoodEntry entry)? onRestoreEntry;
 
   /// When true, hides the "Add Food" button and disables swipe-to-delete.
@@ -77,6 +83,50 @@ class MealSection extends StatelessWidget {
 
   double get _totalProtein =>
       entries.fold(0, (sum, e) => sum + e.protein);
+
+  /// Walks [entries] in order, emitting either a [MealGroupTile] for each
+  /// run of entries sharing a `mealGroupId` or a [FoodEntryTile] for solo
+  /// rows. Preserves insertion order so the user sees items in the order
+  /// they were logged.
+  List<Widget> _renderRows() {
+    final rows = <Widget>[];
+    final seenGroups = <String>{};
+    for (final entry in entries) {
+      final gid = entry.mealGroupId;
+      if (gid == null || gid.isEmpty) {
+        rows.add(FoodEntryTile(
+          entry: entry,
+          onDelete: () => onDeleteEntry(entry.id),
+          onRestore: onRestoreEntry == null
+              ? null
+              : (e) => onRestoreEntry!(mealType, e),
+          isLocked: isLocked,
+        ));
+        continue;
+      }
+      if (seenGroups.contains(gid)) continue;
+      seenGroups.add(gid);
+      final members = entries.where((e) => e.mealGroupId == gid).toList();
+      rows.add(MealGroupTile(
+        entries: members,
+        onDeleteGroup: () {
+          final cb = onDeleteGroup;
+          // Fall back to per-entry deletes when the parent didn't wire the
+          // group callback. Keeps the widget usable in tests/dashboards
+          // that haven't been updated.
+          if (cb != null) {
+            cb(gid);
+          } else {
+            for (final e in members) {
+              onDeleteEntry(e.id);
+            }
+          }
+        },
+        isLocked: isLocked,
+      ));
+    }
+    return rows;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -170,14 +220,7 @@ class MealSection extends StatelessWidget {
             if (entries.isNotEmpty) ...[
               const SizedBox(height: 8),
               const Divider(height: 1),
-              ...entries.map((entry) => FoodEntryTile(
-                    entry: entry,
-                    onDelete: () => onDeleteEntry(entry.id),
-                    onRestore: onRestoreEntry == null
-                        ? null
-                        : (e) => onRestoreEntry!(mealType, e),
-                    isLocked: isLocked,
-                  )),
+              ..._renderRows(),
               if (!isLocked && entries.length >= 2)
                 // Gentle nudge — visible only when there are multiple
                 // items in the section (saving a 1-item meal isn't useful).

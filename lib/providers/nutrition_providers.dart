@@ -413,6 +413,9 @@ Future<bool> addFoodEntry(
   double? zincMg,
   double? vitaminB12Mcg,
   double? folateMcg,
+  String? mealGroupId,
+  String? mealGroupName,
+  String? mealGroupEmoji,
 }) async {
   final isar = ref.read(isarProvider);
 
@@ -464,7 +467,10 @@ Future<bool> addFoodEntry(
         ..potassiumMg = potassiumMg
         ..zincMg = zincMg
         ..vitaminB12Mcg = vitaminB12Mcg
-        ..folateMcg = folateMcg;
+        ..folateMcg = folateMcg
+        ..mealGroupId = mealGroupId
+        ..mealGroupName = mealGroupName
+        ..mealGroupEmoji = mealGroupEmoji;
       await isar.foodEntrys.put(entry);
 
       meal.foodEntries.add(entry);
@@ -535,6 +541,59 @@ Future<bool> deleteFoodEntry(WidgetRef ref, int entryId) async {
       }
     });
 
+    ref.invalidate(todayNutritionProvider);
+    ref.invalidate(todayMealsProvider);
+    ref.invalidate(streakProvider);
+    ref.invalidate(todayMicronutrientsProvider);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Deletes every entry that shares a [mealGroupId] (i.e. every ingredient
+/// logged together from a single saved meal). Recomputes the day totals
+/// the same way [deleteFoodEntry] does for solo rows.
+Future<bool> deleteMealGroup(WidgetRef ref, String mealGroupId) async {
+  final isar = ref.read(isarProvider);
+  try {
+    await isar.writeTxn(() async {
+      final matches = await isar.foodEntrys
+          .filter()
+          .mealGroupIdEqualTo(mealGroupId)
+          .findAll();
+      for (final e in matches) {
+        await isar.foodEntrys.delete(e.id);
+      }
+
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+
+      final log = await isar.nutritionLogs
+          .where()
+          .dateBetween(startOfDay, endOfDay, includeUpper: false)
+          .findFirst();
+
+      if (log != null) {
+        await log.meals.load();
+        double totalCal = 0, totalPro = 0, totalCarb = 0, totalFat = 0;
+        for (final m in log.meals) {
+          await m.foodEntries.load();
+          for (final e in m.foodEntries) {
+            totalCal += e.calories;
+            totalPro += e.protein;
+            totalCarb += e.carbs;
+            totalFat += e.fat;
+          }
+        }
+        log.totalCalories = totalCal;
+        log.totalProtein = totalPro;
+        log.totalCarbs = totalCarb;
+        log.totalFat = totalFat;
+        await isar.nutritionLogs.put(log);
+      }
+    });
     ref.invalidate(todayNutritionProvider);
     ref.invalidate(todayMealsProvider);
     ref.invalidate(streakProvider);

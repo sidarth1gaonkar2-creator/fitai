@@ -104,38 +104,39 @@ class _MuscleHighlightWidgetState extends State<MuscleHighlightWidget>
     const nativeHeight = 470.0;
     final renderHeight =
         widget.height > nativeHeight ? nativeHeight : widget.height;
-    return SizedBox(
-      height: widget.height,
-      child: FadeTransition(
-        opacity: _fade,
-        child: Center(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              const gap = 24.0;
-              // Two panels: spread them with a fixed gap; single panel:
-              // center the lone figure. Either way each sheet is wrapped in
-              // an Align(Alignment.center) with the same maxHeight so the
-              // two body PNGs share a baseline.
-              if (sheets.length == 1) {
-                return _AnatomyPanel(
-                  path: '$dir/${sheets.first}.png',
-                  height: renderHeight,
-                );
-              }
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  for (var i = 0; i < sheets.length; i++) ...[
-                    _AnatomyPanel(
-                      path: '$dir/${sheets[i]}.png',
-                      height: renderHeight,
-                    ),
-                    if (i < sheets.length - 1) const SizedBox(width: gap),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: SizedBox(
+        height: widget.height,
+        child: FadeTransition(
+          opacity: _fade,
+          child: Center(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                const gap = 24.0;
+                if (sheets.length == 1) {
+                  return _AnatomyPanel(
+                    path: '$dir/${sheets.first}.png',
+                    height: renderHeight,
+                    isBack: sheets.first.startsWith('back-'),
+                  );
+                }
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    for (var i = 0; i < sheets.length; i++) ...[
+                      _AnatomyPanel(
+                        path: '$dir/${sheets[i]}.png',
+                        height: renderHeight,
+                        isBack: sheets[i].startsWith('back-'),
+                      ),
+                      if (i < sheets.length - 1) const SizedBox(width: gap),
+                    ],
                   ],
-                ],
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -146,27 +147,51 @@ class _MuscleHighlightWidgetState extends State<MuscleHighlightWidget>
 /// One anatomy figure, vertically centred and width-clamped to the PNG's
 /// 223 × 470 aspect ratio so each panel renders the same way regardless of
 /// whether it lives on its own or beside a sibling.
+///
+/// The source PNGs aren't perfectly registered: front silhouettes occupy
+/// canvas-y [52, 451] (body center y ≈ 230) while back silhouettes occupy
+/// [18, 417] (body center y ≈ 198). Rendered side-by-side that 32-pixel
+/// gap is visible — the back figure floats up relative to the front. We
+/// compensate by translating each panel toward the shared midpoint (214),
+/// so front shifts up ~16px and back shifts down ~16px (scaled to render
+/// height). Once the asset team re-exports the PNGs with matching body
+/// positions these offsets should drop to zero.
 class _AnatomyPanel extends StatelessWidget {
-  const _AnatomyPanel({required this.path, required this.height});
+  const _AnatomyPanel({
+    required this.path,
+    required this.height,
+    required this.isBack,
+  });
 
   final String path;
   final double height;
+  final bool isBack;
+
+  // Pixel offsets measured against the 470-tall source canvas, then mapped
+  // to render-height when used. Front bodies sit slightly low (so we lift
+  // them); back bodies sit high (so we drop them).
+  static const double _frontShiftSrc = -16; // px in 470 canvas, negative = up
+  static const double _backShiftSrc = 16;   // px in 470 canvas, positive = down
 
   @override
   Widget build(BuildContext context) {
     // 223 / 470 ≈ 0.474 — derive width from height so both panels match.
     final width = height * (223 / 470);
+    final shiftPx = (isBack ? _backShiftSrc : _frontShiftSrc) * (height / 470);
     return Align(
       alignment: Alignment.center,
       child: SizedBox(
         width: width,
         height: height,
-        child: Image.asset(
-          path,
-          fit: BoxFit.contain,
-          alignment: Alignment.center,
-          filterQuality: FilterQuality.high,
-          errorBuilder: (_, _, _) => const SizedBox.shrink(),
+        child: Transform.translate(
+          offset: Offset(0, shiftPx),
+          child: Image.asset(
+            path,
+            fit: BoxFit.contain,
+            alignment: Alignment.center,
+            filterQuality: FilterQuality.high,
+            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          ),
         ),
       ),
     );

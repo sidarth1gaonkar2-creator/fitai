@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
+import 'package:uuid/uuid.dart';
 
 import '../core/utils/logger.dart';
 import '../features/nutrition/domain/food_search_result.dart';
@@ -191,6 +192,10 @@ Future<bool> logSavedMeal(
         await log.meals.save();
       }
 
+      // Group id ties every entry from this saved-meal log together so the
+      // nutrition screen can collapse them into a single expandable row.
+      final groupId = const Uuid().v4();
+
       double? scale(double? v) => v == null ? null : v * portionMultiplier;
       for (final item in items) {
         final scaledQty = item.quantity * portionMultiplier;
@@ -213,7 +218,10 @@ Future<bool> logSavedMeal(
           ..potassiumMg = scale(item.potassiumMg)
           ..zincMg = scale(item.zincMg)
           ..vitaminB12Mcg = scale(item.vitaminB12Mcg)
-          ..folateMcg = scale(item.folateMcg);
+          ..folateMcg = scale(item.folateMcg)
+          ..mealGroupId = groupId
+          ..mealGroupName = meal.name
+          ..mealGroupEmoji = meal.emoji;
         await isar.foodEntrys.put(entry);
         mealSection.foodEntries.add(entry);
       }

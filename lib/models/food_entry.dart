@@ -31,6 +31,14 @@ class FoodEntry {
   double? fibre;
   double? sugar;
 
+  // Grouping — set when this entry was logged as part of a saved meal or a
+  // restaurant builder. Entries that share a [mealGroupId] render as a
+  // single collapsible row in the nutrition log. Existing entries without
+  // a group id continue to display as standalone rows.
+  String? mealGroupId;
+  String? mealGroupName;
+  String? mealGroupEmoji;
+
   @Backlink(to: 'foodEntries')
   final meal = IsarLinks<Meal>();
 }

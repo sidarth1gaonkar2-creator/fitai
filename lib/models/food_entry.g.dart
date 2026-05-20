@@ -57,58 +57,73 @@ const FoodEntrySchema = CollectionSchema(
       name: r'magnesiumMg',
       type: IsarType.double,
     ),
-    r'name': PropertySchema(
+    r'mealGroupEmoji': PropertySchema(
       id: 8,
+      name: r'mealGroupEmoji',
+      type: IsarType.string,
+    ),
+    r'mealGroupId': PropertySchema(
+      id: 9,
+      name: r'mealGroupId',
+      type: IsarType.string,
+    ),
+    r'mealGroupName': PropertySchema(
+      id: 10,
+      name: r'mealGroupName',
+      type: IsarType.string,
+    ),
+    r'name': PropertySchema(
+      id: 11,
       name: r'name',
       type: IsarType.string,
     ),
     r'potassiumMg': PropertySchema(
-      id: 9,
+      id: 12,
       name: r'potassiumMg',
       type: IsarType.double,
     ),
     r'protein': PropertySchema(
-      id: 10,
+      id: 13,
       name: r'protein',
       type: IsarType.double,
     ),
     r'servingSize': PropertySchema(
-      id: 11,
+      id: 14,
       name: r'servingSize',
       type: IsarType.double,
     ),
     r'servingUnit': PropertySchema(
-      id: 12,
+      id: 15,
       name: r'servingUnit',
       type: IsarType.string,
     ),
     r'sodiumMg': PropertySchema(
-      id: 13,
+      id: 16,
       name: r'sodiumMg',
       type: IsarType.double,
     ),
     r'sugar': PropertySchema(
-      id: 14,
+      id: 17,
       name: r'sugar',
       type: IsarType.double,
     ),
     r'vitaminB12Mcg': PropertySchema(
-      id: 15,
+      id: 18,
       name: r'vitaminB12Mcg',
       type: IsarType.double,
     ),
     r'vitaminCMg': PropertySchema(
-      id: 16,
+      id: 19,
       name: r'vitaminCMg',
       type: IsarType.double,
     ),
     r'vitaminDMcg': PropertySchema(
-      id: 17,
+      id: 20,
       name: r'vitaminDMcg',
       type: IsarType.double,
     ),
     r'zincMg': PropertySchema(
-      id: 18,
+      id: 21,
       name: r'zincMg',
       type: IsarType.double,
     )
@@ -141,6 +156,24 @@ int _foodEntryEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.mealGroupEmoji;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.mealGroupId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.mealGroupName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.name.length * 3;
   {
     final value = object.servingUnit;
@@ -165,17 +198,20 @@ void _foodEntrySerialize(
   writer.writeDouble(offsets[5], object.folateMcg);
   writer.writeDouble(offsets[6], object.ironMg);
   writer.writeDouble(offsets[7], object.magnesiumMg);
-  writer.writeString(offsets[8], object.name);
-  writer.writeDouble(offsets[9], object.potassiumMg);
-  writer.writeDouble(offsets[10], object.protein);
-  writer.writeDouble(offsets[11], object.servingSize);
-  writer.writeString(offsets[12], object.servingUnit);
-  writer.writeDouble(offsets[13], object.sodiumMg);
-  writer.writeDouble(offsets[14], object.sugar);
-  writer.writeDouble(offsets[15], object.vitaminB12Mcg);
-  writer.writeDouble(offsets[16], object.vitaminCMg);
-  writer.writeDouble(offsets[17], object.vitaminDMcg);
-  writer.writeDouble(offsets[18], object.zincMg);
+  writer.writeString(offsets[8], object.mealGroupEmoji);
+  writer.writeString(offsets[9], object.mealGroupId);
+  writer.writeString(offsets[10], object.mealGroupName);
+  writer.writeString(offsets[11], object.name);
+  writer.writeDouble(offsets[12], object.potassiumMg);
+  writer.writeDouble(offsets[13], object.protein);
+  writer.writeDouble(offsets[14], object.servingSize);
+  writer.writeString(offsets[15], object.servingUnit);
+  writer.writeDouble(offsets[16], object.sodiumMg);
+  writer.writeDouble(offsets[17], object.sugar);
+  writer.writeDouble(offsets[18], object.vitaminB12Mcg);
+  writer.writeDouble(offsets[19], object.vitaminCMg);
+  writer.writeDouble(offsets[20], object.vitaminDMcg);
+  writer.writeDouble(offsets[21], object.zincMg);
 }
 
 FoodEntry _foodEntryDeserialize(
@@ -194,17 +230,20 @@ FoodEntry _foodEntryDeserialize(
   object.id = id;
   object.ironMg = reader.readDoubleOrNull(offsets[6]);
   object.magnesiumMg = reader.readDoubleOrNull(offsets[7]);
-  object.name = reader.readString(offsets[8]);
-  object.potassiumMg = reader.readDoubleOrNull(offsets[9]);
-  object.protein = reader.readDouble(offsets[10]);
-  object.servingSize = reader.readDoubleOrNull(offsets[11]);
-  object.servingUnit = reader.readStringOrNull(offsets[12]);
-  object.sodiumMg = reader.readDoubleOrNull(offsets[13]);
-  object.sugar = reader.readDoubleOrNull(offsets[14]);
-  object.vitaminB12Mcg = reader.readDoubleOrNull(offsets[15]);
-  object.vitaminCMg = reader.readDoubleOrNull(offsets[16]);
-  object.vitaminDMcg = reader.readDoubleOrNull(offsets[17]);
-  object.zincMg = reader.readDoubleOrNull(offsets[18]);
+  object.mealGroupEmoji = reader.readStringOrNull(offsets[8]);
+  object.mealGroupId = reader.readStringOrNull(offsets[9]);
+  object.mealGroupName = reader.readStringOrNull(offsets[10]);
+  object.name = reader.readString(offsets[11]);
+  object.potassiumMg = reader.readDoubleOrNull(offsets[12]);
+  object.protein = reader.readDouble(offsets[13]);
+  object.servingSize = reader.readDoubleOrNull(offsets[14]);
+  object.servingUnit = reader.readStringOrNull(offsets[15]);
+  object.sodiumMg = reader.readDoubleOrNull(offsets[16]);
+  object.sugar = reader.readDoubleOrNull(offsets[17]);
+  object.vitaminB12Mcg = reader.readDoubleOrNull(offsets[18]);
+  object.vitaminCMg = reader.readDoubleOrNull(offsets[19]);
+  object.vitaminDMcg = reader.readDoubleOrNull(offsets[20]);
+  object.zincMg = reader.readDoubleOrNull(offsets[21]);
   return object;
 }
 
@@ -232,26 +271,32 @@ P _foodEntryDeserializeProp<P>(
     case 7:
       return (reader.readDoubleOrNull(offset)) as P;
     case 8:
-      return (reader.readString(offset)) as P;
-    case 9:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 10:
-      return (reader.readDouble(offset)) as P;
-    case 11:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 12:
       return (reader.readStringOrNull(offset)) as P;
-    case 13:
+    case 9:
+      return (reader.readStringOrNull(offset)) as P;
+    case 10:
+      return (reader.readStringOrNull(offset)) as P;
+    case 11:
+      return (reader.readString(offset)) as P;
+    case 12:
       return (reader.readDoubleOrNull(offset)) as P;
+    case 13:
+      return (reader.readDouble(offset)) as P;
     case 14:
       return (reader.readDoubleOrNull(offset)) as P;
     case 15:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 16:
       return (reader.readDoubleOrNull(offset)) as P;
     case 17:
       return (reader.readDoubleOrNull(offset)) as P;
     case 18:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 19:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 20:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 21:
       return (reader.readDoubleOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -982,6 +1027,466 @@ extension FoodEntryQueryFilter
         upper: upper,
         includeUpper: includeUpper,
         epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupEmojiIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'mealGroupEmoji',
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupEmojiIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'mealGroupEmoji',
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupEmojiEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mealGroupEmoji',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupEmojiGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'mealGroupEmoji',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupEmojiLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'mealGroupEmoji',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupEmojiBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'mealGroupEmoji',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupEmojiStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'mealGroupEmoji',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupEmojiEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'mealGroupEmoji',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupEmojiContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'mealGroupEmoji',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupEmojiMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'mealGroupEmoji',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupEmojiIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mealGroupEmoji',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupEmojiIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'mealGroupEmoji',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'mealGroupId',
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'mealGroupId',
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition> mealGroupIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mealGroupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'mealGroupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition> mealGroupIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'mealGroupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition> mealGroupIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'mealGroupId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'mealGroupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition> mealGroupIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'mealGroupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition> mealGroupIdContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'mealGroupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition> mealGroupIdMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'mealGroupId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mealGroupId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'mealGroupId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'mealGroupName',
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'mealGroupName',
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mealGroupName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'mealGroupName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'mealGroupName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'mealGroupName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'mealGroupName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'mealGroupName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'mealGroupName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'mealGroupName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mealGroupName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterFilterCondition>
+      mealGroupNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'mealGroupName',
+        value: '',
       ));
     });
   }
@@ -2133,6 +2638,42 @@ extension FoodEntryQuerySortBy on QueryBuilder<FoodEntry, FoodEntry, QSortBy> {
     });
   }
 
+  QueryBuilder<FoodEntry, FoodEntry, QAfterSortBy> sortByMealGroupEmoji() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mealGroupEmoji', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterSortBy> sortByMealGroupEmojiDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mealGroupEmoji', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterSortBy> sortByMealGroupId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mealGroupId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterSortBy> sortByMealGroupIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mealGroupId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterSortBy> sortByMealGroupName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mealGroupName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterSortBy> sortByMealGroupNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mealGroupName', Sort.desc);
+    });
+  }
+
   QueryBuilder<FoodEntry, FoodEntry, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -2376,6 +2917,42 @@ extension FoodEntryQuerySortThenBy
     });
   }
 
+  QueryBuilder<FoodEntry, FoodEntry, QAfterSortBy> thenByMealGroupEmoji() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mealGroupEmoji', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterSortBy> thenByMealGroupEmojiDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mealGroupEmoji', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterSortBy> thenByMealGroupId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mealGroupId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterSortBy> thenByMealGroupIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mealGroupId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterSortBy> thenByMealGroupName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mealGroupName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QAfterSortBy> thenByMealGroupNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mealGroupName', Sort.desc);
+    });
+  }
+
   QueryBuilder<FoodEntry, FoodEntry, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -2559,6 +3136,29 @@ extension FoodEntryQueryWhereDistinct
     });
   }
 
+  QueryBuilder<FoodEntry, FoodEntry, QDistinct> distinctByMealGroupEmoji(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'mealGroupEmoji',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QDistinct> distinctByMealGroupId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'mealGroupId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<FoodEntry, FoodEntry, QDistinct> distinctByMealGroupName(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'mealGroupName',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<FoodEntry, FoodEntry, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2681,6 +3281,24 @@ extension FoodEntryQueryProperty
   QueryBuilder<FoodEntry, double?, QQueryOperations> magnesiumMgProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'magnesiumMg');
+    });
+  }
+
+  QueryBuilder<FoodEntry, String?, QQueryOperations> mealGroupEmojiProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'mealGroupEmoji');
+    });
+  }
+
+  QueryBuilder<FoodEntry, String?, QQueryOperations> mealGroupIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'mealGroupId');
+    });
+  }
+
+  QueryBuilder<FoodEntry, String?, QQueryOperations> mealGroupNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'mealGroupName');
     });
   }
 

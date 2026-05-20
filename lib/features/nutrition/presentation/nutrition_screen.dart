@@ -166,6 +166,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
                     onAddFood: () =>
                         context.go('/nutrition/search/${type.name}'),
                     onDeleteEntry: (id) => deleteFoodEntry(ref, id),
+                    onDeleteGroup: (gid) => deleteMealGroup(ref, gid),
                     onRestoreEntry: (mealType, entry) => addFoodEntry(
                       ref,
                       mealType: mealType,
@@ -188,6 +189,9 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
                       zincMg: entry.zincMg,
                       vitaminB12Mcg: entry.vitaminB12Mcg,
                       folateMcg: entry.folateMcg,
+                      mealGroupId: entry.mealGroupId,
+                      mealGroupName: entry.mealGroupName,
+                      mealGroupEmoji: entry.mealGroupEmoji,
                     ),
                     isLocked: isLocked,
                   ),
