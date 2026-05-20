@@ -1,5 +1,3 @@
-import 'dart:developer' as dev;
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -51,17 +49,11 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
         final service = ref.read(usdaServiceProvider);
         final detail = await service.getFoodDetail(_food.fdcId!);
         if (detail != null && mounted) {
-          dev.log(
-            '[FoodDetail] Enriched "${_food.name}" with micros: '
-            'iron=${detail.ironMgPer100g} calcium=${detail.calciumMgPer100g} '
-            'vitC=${detail.vitaminCMgPer100g} vitD=${detail.vitaminDMcgPer100g}',
-            name: 'FitAI.Nutrition',
-          );
           setState(() => _food = detail);
         }
-      } catch (e) {
-        dev.log('[FoodDetail] Failed to fetch detail: $e',
-            name: 'FitAI.Nutrition');
+      } catch (_) {
+        // Network failure leaves _food with only search-endpoint nutrients
+        // — better than blocking the user from saving the entry.
       } finally {
         if (mounted) setState(() => _loadingDetail = false);
       }
@@ -330,17 +322,20 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
             ],
             const SizedBox(height: 24),
 
-            // Add button
+            // Add button — disabled while fetching USDA detail so the
+            // micronutrient fields are populated before the entry is saved.
             FilledButton.icon(
-              onPressed: _isSaving ? null : _addFood,
-              icon: _isSaving
+              onPressed: (_isSaving || _loadingDetail) ? null : _addFood,
+              icon: (_isSaving || _loadingDetail)
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.add),
-              label: Text('Add to ${widget.mealType.label}'),
+              label: Text(_loadingDetail
+                  ? 'Loading nutrients…'
+                  : 'Add to ${widget.mealType.label}'),
             ),
           ],
         ),

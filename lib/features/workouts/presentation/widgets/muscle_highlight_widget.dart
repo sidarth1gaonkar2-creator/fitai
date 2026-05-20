@@ -102,23 +102,50 @@ class _MuscleHighlightWidgetState extends State<MuscleHighlightWidget>
       height: widget.height,
       child: FadeTransition(
         opacity: _fade,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            for (var i = 0; i < sheets.length; i++) ...[
-              AspectRatio(
-                aspectRatio: 0.5,
-                child: Image.asset(
-                  '$dir/${sheets[i]}.png',
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
-                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Single image: centre and clamp width so a tall PNG doesn't
+            // try to fill the row. Two images: spread them with a fixed
+            // gap so the front/back panels never overlap or look cramped.
+            if (sheets.length == 1) {
+              return Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: widget.height,
+                    maxWidth: widget.height * 0.5,
+                  ),
+                  child: Image.asset(
+                    '$dir/${sheets.first}.png',
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                  ),
                 ),
-              ),
-              if (i < sheets.length - 1) const SizedBox(width: 16),
-            ],
-          ],
+              );
+            }
+            const gap = 24.0;
+            final panelWidth =
+                ((constraints.maxWidth - gap) / 2).clamp(0.0, widget.height * 0.55);
+            return Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                for (var i = 0; i < sheets.length; i++) ...[
+                  SizedBox(
+                    width: panelWidth,
+                    height: widget.height,
+                    child: Image.asset(
+                      '$dir/${sheets[i]}.png',
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                    ),
+                  ),
+                  if (i < sheets.length - 1) const SizedBox(width: gap),
+                ],
+              ],
+            );
+          },
         ),
       ),
     );

@@ -21,11 +21,17 @@ class CalorieRing extends StatefulWidget {
     required this.consumed,
     required this.target,
     this.burned = 0,
+    this.compact = false,
   });
 
   final double consumed;
   final double target;
   final double burned;
+
+  /// Compact mode shrinks the ring to fit a smaller card slot (e.g. the
+  /// Nutrition screen summary) and hides the caption row below the ring so
+  /// the parent layout doesn't need to reserve vertical space for it.
+  final bool compact;
 
   @override
   State<CalorieRing> createState() => _CalorieRingState();
@@ -111,9 +117,10 @@ class _CalorieRingState extends State<CalorieRing>
             child: AnimatedBuilder(
               animation: _fill,
               builder: (context, _) {
+                final ringSize = widget.compact ? 120.0 : 220.0;
                 return SizedBox(
-                  width: 220,
-                  height: 220,
+                  width: ringSize,
+                  height: ringSize,
                   child: CustomPaint(
                     painter: _RingPainter(
                       progress: _fill.value.clamp(0.0, 1.0),
@@ -137,6 +144,7 @@ class _CalorieRingState extends State<CalorieRing>
                                 target: widget.target,
                                 isOver: _isOverBudget,
                                 palette: palette,
+                                compact: widget.compact,
                               ),
                       ),
                     ),
@@ -146,37 +154,41 @@ class _CalorieRingState extends State<CalorieRing>
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        // Caption under the ring — varies by state.
-        if (_showNetView && _hasBurned)
-          _HealthBreakdown(
-            target: widget.target,
-            consumed: widget.consumed,
-            burned: widget.burned,
-            palette: palette,
-          )
-        else if (_isOverBudget)
-          Text(
-            '+${(widget.consumed - widget.target).toInt()} kcal over',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: palette.destructive,
-              fontFeatures: const [FontFeature.tabularFigures()],
+        // Caption under the ring — full mode only. Compact mode skips the
+        // caption so the ring fits inside the smaller container slot used
+        // on the Nutrition screen summary card.
+        if (!widget.compact) ...[
+          const SizedBox(height: 12),
+          if (_showNetView && _hasBurned)
+            _HealthBreakdown(
+              target: widget.target,
+              consumed: widget.consumed,
+              burned: widget.burned,
+              palette: palette,
+            )
+          else if (_isOverBudget)
+            Text(
+              '+${(widget.consumed - widget.target).toInt()} kcal over',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: palette.destructive,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            )
+          else
+            Text(
+              'On track · ${(widget.target - widget.consumed).toInt()} kcal left',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w500,
+                fontSize: 13,
+                color: palette.textSecondary,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
-          )
-        else
-          Text(
-            'On track · ${(widget.target - widget.consumed).toInt()} kcal left',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w500,
-              fontSize: 13,
-              color: palette.textSecondary,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
+        ],
       ],
     );
   }
@@ -189,12 +201,14 @@ class _ConsumedCenter extends StatelessWidget {
     required this.target,
     required this.isOver,
     required this.palette,
+    this.compact = false,
   });
 
   final double consumed;
   final double target;
   final bool isOver;
   final Palette palette;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -206,7 +220,7 @@ class _ConsumedCenter extends StatelessWidget {
           style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w700,
-            fontSize: 32,
+            fontSize: compact ? 22 : 32,
             color: isOver ? palette.destructive : palette.text,
             fontFeatures: const [FontFeature.tabularFigures()],
             height: 1.05,
@@ -214,9 +228,11 @@ class _ConsumedCenter extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          'of ${target.toInt()} kcal',
+          compact
+              ? '/ ${target.toInt()}'
+              : 'of ${target.toInt()} kcal',
           style: TextStyle(
-            fontSize: 11,
+            fontSize: compact ? 10 : 11,
             color: palette.textSecondary,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),

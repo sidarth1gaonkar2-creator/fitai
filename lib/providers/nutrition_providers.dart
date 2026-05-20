@@ -1,5 +1,3 @@
-import 'dart:developer' as dev;
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
@@ -468,18 +466,6 @@ Future<bool> addFoodEntry(
         ..vitaminB12Mcg = vitaminB12Mcg
         ..folateMcg = folateMcg;
       await isar.foodEntrys.put(entry);
-
-      // Debug: verify micronutrients were saved
-      final saved = await isar.foodEntrys.get(entry.id);
-      dev.log(
-        '[addFoodEntry] "$name" id=${entry.id} '
-        'iron=${saved?.ironMg} calcium=${saved?.calciumMg} '
-        'vitC=${saved?.vitaminCMg} vitD=${saved?.vitaminDMcg} '
-        'mag=${saved?.magnesiumMg} potassium=${saved?.potassiumMg} '
-        'zinc=${saved?.zincMg} b12=${saved?.vitaminB12Mcg} '
-        'folate=${saved?.folateMcg} sodium=${saved?.sodiumMg}',
-        name: 'FitAI.Nutrition',
-      );
 
       meal.foodEntries.add(entry);
       await meal.foodEntries.save();

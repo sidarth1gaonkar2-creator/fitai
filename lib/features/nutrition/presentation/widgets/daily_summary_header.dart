@@ -42,6 +42,7 @@ class NutritionSummaryCard extends StatelessWidget {
               child: CalorieRing(
                 consumed: calories,
                 target: calorieTarget,
+                compact: true,
               ),
             ),
             const SizedBox(width: 16),

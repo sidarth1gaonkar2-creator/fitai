@@ -93,6 +93,20 @@ class FoodSearchResult {
   factory FoodSearchResult.fromUsda(Map<String, dynamic> food) {
     final nutrients = food['foodNutrients'] as List<dynamic>? ?? [];
 
+    // Branded foods report nutrients per `servingSize` (in `servingSizeUnit`),
+    // every other data type reports per 100 g. We detect Branded and rescale
+    // so the rest of the parser can assume per-100g uniformly.
+    final dataType = (food['dataType'] as String?)?.toLowerCase() ?? '';
+    final isBranded = dataType.contains('branded');
+    final servingSize = (food['servingSize'] as num?)?.toDouble() ?? 0;
+    final servingUnit =
+        (food['servingSizeUnit'] as String?)?.toLowerCase() ?? '';
+    final brandedScale = (isBranded &&
+            servingSize > 0 &&
+            (servingUnit == 'g' || servingUnit == 'ml'))
+        ? 100.0 / servingSize
+        : 1.0;
+
     // USDA uses different formats depending on endpoint/food type:
     //   Search: { nutrientId: 1003, value: 25.0 }
     //   Detail: { nutrient: { id: 1003, number: "203" }, amount: 25.0 }
@@ -102,9 +116,10 @@ class FoodSearchResult {
     for (final raw in nutrients) {
       final n = raw as Map<String, dynamic>;
       // Try "value" (search) then "amount" (detail)
-      final value = (n['value'] as num?)?.toDouble() ??
-          (n['amount'] as num?)?.toDouble() ??
-          0;
+      final value = ((n['value'] as num?)?.toDouble() ??
+              (n['amount'] as num?)?.toDouble() ??
+              0) *
+          brandedScale;
       // Try flat nutrientId (search)
       if (n.containsKey('nutrientId')) {
         byId[(n['nutrientId'] as num).toInt()] = value;
@@ -136,11 +151,28 @@ class FoodSearchResult {
 
     final desc = food['description'] as String? ?? 'Unknown Food';
 
+    // Energy is reported under different IDs depending on data type:
+    //   * 1008 / "208": Energy (kcal) — Atwater General  (SR Legacy, Branded)
+    //   * 2047 / "957": Energy (Atwater General Factors) — Foundation
+    //   * 2048 / "958": Energy (Atwater Specific Factors) — Foundation, dairy/eggs/fungi
+    //   * 1062 / "268": Energy (kJ) — convert to kcal as last resort
+    double resolveEnergy() {
+      final kcal = nutrient(1008, '208');
+      if (kcal > 0) return kcal;
+      final atwaterGeneral = nutrient(2047, '957');
+      if (atwaterGeneral > 0) return atwaterGeneral;
+      final atwaterSpecific = nutrient(2048, '958');
+      if (atwaterSpecific > 0) return atwaterSpecific;
+      final kj = nutrient(1062, '268');
+      if (kj > 0) return kj / 4.184; // kJ → kcal
+      return 0;
+    }
+
     return FoodSearchResult(
       name: desc.length > 80 ? '${desc.substring(0, 80)}…' : desc,
       brand: food['brandOwner'] as String?,
       fdcId: (food['fdcId'] as num?)?.toInt(),
-      caloriesPer100g: nutrient(1008, '208'),
+      caloriesPer100g: resolveEnergy(),
       proteinPer100g: nutrient(1003, '203'),
       carbsPer100g: nutrient(1005, '205'),
       fatPer100g: nutrient(1004, '204'),

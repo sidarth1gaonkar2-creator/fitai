@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/constants/nutrient_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../models/food_entry.dart';
@@ -66,8 +67,8 @@ class FoodEntryTile extends StatelessWidget {
                     _MacroTag(
                       label: 'F',
                       grams: entry.fat,
-                      bgColor: AppColors.of(context).success.withValues(alpha: 0.12),
-                      textColor: AppColors.of(context).success,
+                      bgColor: NutrientIcons.fatColor.withValues(alpha: 0.14),
+                      textColor: NutrientIcons.fatColor,
                     ),
                     if (entry.servingSize != null)
                       _ServingTag(

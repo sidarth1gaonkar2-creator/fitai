@@ -5,14 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
-import '../../../core/widgets/muscle_group_diagram.dart';
 import '../../../data/exercise_library.dart';
 import '../../../data/workout_templates.dart';
 import '../../../models/enums.dart';
+import 'widgets/muscle_highlight_widget.dart';
 
 /// Previews a [WorkoutTemplate] with:
 /// - Description + difficulty badge
-/// - Aggregated [MuscleGroupDiagram]
+/// - Aggregated muscle highlight diagram
 /// - Swipe-to-remove exercise list
 /// - "Start This Workout" button that loads the template and navigates to /workouts/new
 class TemplatePreviewScreen extends ConsumerStatefulWidget {
@@ -64,6 +64,42 @@ class _TemplatePreviewScreenState
       }
     }
     return muscles.toList();
+  }
+
+  /// Maps the local enum onto the muscle-name strings the highlight widget's
+  /// PNG lookup understands. Most enum names match the canonical keys in
+  /// [MuscleMap] directly; the camelCase cases get explicit aliases.
+  static String _muscleName(MuscleGroup m) {
+    switch (m) {
+      case MuscleGroup.upperBack:
+        return 'upper back';
+      case MuscleGroup.chest:
+        return 'chest';
+      case MuscleGroup.shoulders:
+        return 'shoulders';
+      case MuscleGroup.lats:
+        return 'lats';
+      case MuscleGroup.biceps:
+        return 'biceps';
+      case MuscleGroup.triceps:
+        return 'triceps';
+      case MuscleGroup.forearms:
+        return 'forearms';
+      case MuscleGroup.quads:
+        return 'quads';
+      case MuscleGroup.hamstrings:
+        return 'hamstrings';
+      case MuscleGroup.glutes:
+        return 'glutes';
+      case MuscleGroup.calves:
+        return 'calves';
+      case MuscleGroup.abs:
+        return 'abs';
+      case MuscleGroup.obliques:
+        return 'obliques';
+      case MuscleGroup.cardio:
+        return '';
+    }
   }
 
   void _removeExercise(int index) {
@@ -197,15 +233,22 @@ class _TemplatePreviewScreenState
                   ),
                   const SizedBox(height: 16),
 
-                  // Muscle diagram
+                  // Muscle diagram — uses local PNG assets so it renders
+                  // instantly even when the ExerciseDB lookup is offline.
                   if (_primaryMuscles.isNotEmpty)
                     Card.filled(
                       child: Padding(
                         padding: const EdgeInsets.all(12),
-                        child: MuscleGroupDiagram(
-                          primaryMuscles: _primaryMuscles,
-                          secondaryMuscles: _secondaryMuscles,
-                          height: 180,
+                        child: MuscleHighlightWidget(
+                          targetMuscles: _primaryMuscles
+                              .map(_muscleName)
+                              .where((s) => s.isNotEmpty)
+                              .toList(),
+                          secondaryMuscles: _secondaryMuscles
+                              .map(_muscleName)
+                              .where((s) => s.isNotEmpty)
+                              .toList(),
+                          height: 220,
                         ),
                       ),
                     ),

@@ -64,7 +64,6 @@ class ExerciseDetailScreen extends ConsumerWidget {
           children: [
             const SizedBox(height: 12),
             _HeroImage(asyncEx: asyncEx),
-            const SizedBox(height: 16),
 
             // ── Muscle diagram ──────────────────────────────────────
             // Prefer ExerciseDB's muscle names (more granular). When the
@@ -130,51 +129,71 @@ class ExerciseDetailScreen extends ConsumerWidget {
 
 // ─── Hero image ────────────────────────────────────────────────────────────
 
-class _HeroImage extends StatelessWidget {
+class _HeroImage extends StatefulWidget {
   const _HeroImage({required this.asyncEx});
 
   final AsyncValue<ExerciseDBExercise?> asyncEx;
 
   @override
+  State<_HeroImage> createState() => _HeroImageState();
+}
+
+class _HeroImageState extends State<_HeroImage> {
+  bool _failed = false;
+
+  @override
+  void didUpdateWidget(_HeroImage old) {
+    super.didUpdateWidget(old);
+    if (old.asyncEx.valueOrNull?.fullImageUrl !=
+        widget.asyncEx.valueOrNull?.fullImageUrl) {
+      _failed = false;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-    return AspectRatio(
-      aspectRatio: 16 / 11,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Builder(builder: (context) {
-          if (asyncEx.isLoading && !asyncEx.hasValue) {
-            return const ShimmerBox(
-                width: double.infinity, height: double.infinity);
-          }
-          final url = asyncEx.valueOrNull?.fullImageUrl;
-          if (url == null) {
-            return Container(
-              color: palette.surface,
-              alignment: Alignment.center,
-              child: Icon(
-                CupertinoIcons.photo,
-                size: 48,
-                color: palette.textSecondary,
-              ),
-            );
-          }
-          return CachedNetworkImage(
+    // Show a shimmer while the ExerciseDB lookup is in flight so the screen
+    // doesn't reflow once the URL arrives.
+    if (widget.asyncEx.isLoading && !widget.asyncEx.hasValue) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: AspectRatio(
+          aspectRatio: 16 / 11,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: const ShimmerBox(
+                width: double.infinity, height: double.infinity),
+          ),
+        ),
+      );
+    }
+    final url = widget.asyncEx.valueOrNull?.fullImageUrl;
+    if (url == null || url.isEmpty || _failed) {
+      // No image available — collapse instead of showing a huge gray
+      // placeholder card. The muscle diagram below carries the visual.
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: AspectRatio(
+        aspectRatio: 16 / 11,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: CachedNetworkImage(
             imageUrl: url,
             fit: BoxFit.cover,
             placeholder: (_, _) => const ShimmerBox(
                 width: double.infinity, height: double.infinity),
-            errorWidget: (_, _, _) => Container(
-              color: palette.surface,
-              alignment: Alignment.center,
-              child: Icon(
-                CupertinoIcons.exclamationmark_triangle,
-                size: 36,
-                color: palette.textSecondary,
-              ),
-            ),
-          );
-        }),
+            errorWidget: (_, _, _) {
+              // Schedule the rebuild so the empty space disappears entirely
+              // instead of leaving the user staring at a broken-image card.
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && !_failed) setState(() => _failed = true);
+              });
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
       ),
     );
   }
