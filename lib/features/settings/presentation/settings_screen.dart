@@ -17,7 +17,7 @@ import '../../../providers/drill_sergeant_providers.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/settings_providers.dart';
-import '../../../providers/theme_store_providers.dart';
+import '../../themes/providers/theme_providers.dart';
 import '../../../providers/unit_system_provider.dart';
 import '../../../providers/user_profile_provider.dart';
 import '../../../providers/workout_providers.dart';
@@ -83,15 +83,24 @@ class SettingsScreen extends ConsumerWidget {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              activeTheme.backgroundColor,
-                              activeTheme.primaryColor,
+                              activeTheme.darkBackground,
+                              activeTheme.accent,
                             ],
                           ),
                           shape: BoxShape.circle,
+                          border: Border.all(
+                            color: activeTheme.accentLight
+                                .withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: const Icon(
+                          CupertinoIcons.paintbrush,
+                          color: CupertinoColors.white,
+                          size: 18,
                         ),
                       ),
                       title: Text(
-                        'Themes',
+                        'Theme Store',
                         style: textTheme.bodyLarge?.copyWith(
                           color: palette.text,
                           fontWeight: FontWeight.w500,
@@ -108,7 +117,7 @@ class SettingsScreen extends ConsumerWidget {
                         color: palette.text,
                         size: 18,
                       ),
-                      onTap: () => context.push('/settings/themes'),
+                      onTap: () => context.push('/theme-store'),
                     );
                   }),
                 ),

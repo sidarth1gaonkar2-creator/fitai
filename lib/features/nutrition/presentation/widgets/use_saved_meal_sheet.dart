@@ -9,7 +9,7 @@ import '../../../../data/food_emojis.dart';
 import '../../../../models/enums.dart';
 import '../../../../models/saved_meal.dart';
 import '../../../../providers/saved_meal_providers.dart';
-import '../../../../providers/theme_store_providers.dart';
+import '../../../../features/themes/providers/theme_providers.dart';
 
 /// Bottom sheet shown when the user taps a saved-meal card. Lets them pick
 /// a target meal section, scale the portion, then logs it into today's
@@ -42,9 +42,7 @@ class _UseSavedMealSheetState extends ConsumerState<UseSavedMealSheet> {
     if (ok) {
       // Reward: small coin grant for re-using a saved meal.
       try {
-        await ref
-            .read(coinBalanceProvider.notifier)
-            .award(2, 'saved_meal_used');
+        await ref.read(userThemeStateProvider.notifier).awardCoins(2);
       } catch (_) {/* coin grant must never break the log */}
     }
     if (!mounted) return;

@@ -18,7 +18,7 @@ import '../../../providers/drill_sergeant_providers.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/personal_records_hall_providers.dart';
-import '../../../providers/theme_store_providers.dart';
+import '../../themes/providers/theme_providers.dart';
 import '../../../providers/unit_system_provider.dart';
 import '../../../providers/workout_providers.dart';
 import '../../../services/currency_service.dart';
@@ -428,25 +428,22 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
   /// streak. Streak milestone state is debounced via SharedPreferences so we
   /// don't double-pay on the same streak day.
   Future<void> _awardCoinsForWorkout({required int prCount}) async {
-    final coins = _ref.read(coinBalanceProvider.notifier);
+    final coins = _ref.read(userThemeStateProvider.notifier);
     try {
-      await coins.award(CurrencyService.coinsPerWorkout, 'workout_completed');
+      await coins.awardCoins(CurrencyService.coinsPerWorkout);
       if (prCount > 0) {
-        await coins.award(
-          CurrencyService.coinsPerPR * prCount,
-          'pr_set',
-        );
+        await coins.awardCoins(CurrencyService.coinsPerPR * prCount);
       }
       final streak = await _ref.read(streakProvider.future);
       final prefs = _ref.read(sharedPreferencesProvider);
       const k7 = 'currency_streak7_awarded';
       const k30 = 'currency_streak30_awarded';
       if (streak >= 7 && !(prefs.getBool(k7) ?? false)) {
-        await coins.award(CurrencyService.coinsPerStreak7, 'streak_7_days');
+        await coins.awardCoins(CurrencyService.coinsPerStreak7);
         await prefs.setBool(k7, true);
       }
       if (streak >= 30 && !(prefs.getBool(k30) ?? false)) {
-        await coins.award(CurrencyService.coinsPerStreak30, 'streak_30_days');
+        await coins.awardCoins(CurrencyService.coinsPerStreak30);
         await prefs.setBool(k30, true);
       }
     } catch (e, st) {

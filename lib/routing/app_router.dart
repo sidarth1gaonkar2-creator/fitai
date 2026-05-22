@@ -31,8 +31,8 @@ import '../features/settings/presentation/edit_profile_screen.dart';
 import '../features/settings/presentation/notification_settings_screen.dart';
 import '../features/nutrition/presentation/create_saved_meal_screen.dart';
 import '../features/nutrition/presentation/saved_meals_screen.dart';
-import '../features/settings/presentation/theme_store_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/themes/presentation/theme_store_screen.dart';
 import '../features/supplements/presentation/supplements_screen.dart';
 import '../features/shell/presentation/shell_screen.dart';
 import '../data/workout_templates.dart';
@@ -459,14 +459,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               child: const NotificationSettingsScreen(),
             ),
           ),
-          GoRoute(
-            path: 'themes',
-            pageBuilder: (context, state) => slideUpTransitionPage(
-              key: state.pageKey,
-              child: const ThemeStoreScreen(),
-            ),
-          ),
         ],
+      ),
+      GoRoute(
+        path: '/theme-store',
+        pageBuilder: (context, state) => slideUpTransitionPage(
+          key: state.pageKey,
+          child: const ThemeStoreScreen(),
+        ),
       ),
       GoRoute(
         path: '/supplements',

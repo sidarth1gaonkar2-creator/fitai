@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'features/themes/providers/theme_providers.dart';
 import 'features/tutorial/presentation/tutorial_overlay.dart';
 import 'providers/settings_providers.dart';
 import 'routing/app_router.dart';
@@ -15,9 +16,16 @@ class FitAIApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final themeMode = ref.watch(themeModeProvider);
+    // Watch the equipped theme so the entire app rebuilds when the user
+    // equips a new pack — that's what propagates the new accent / surface
+    // colours through `AppColors.of(context)` everywhere downstream.
+    final activeTheme = ref.watch(activeThemeProvider);
     final isLight = themeMode == ThemeMode.light;
-    final palette = isLight ? AppColors.light : AppColors.dark;
     final brightness = isLight ? Brightness.light : Brightness.dark;
+    // Derive the palette directly from the active theme, since this widget
+    // sits above the ProviderScope's CupertinoApp and can't go through
+    // `AppColors.of(context)` for itself.
+    final palette = AppColors.resolve(theme: activeTheme, brightness: brightness);
     final textColor =
         isLight ? CupertinoColors.black : CupertinoColors.white;
 
