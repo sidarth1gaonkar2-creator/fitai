@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'features/tutorial/presentation/tutorial_overlay.dart';
 import 'providers/settings_providers.dart';
 import 'routing/app_router.dart';
 
@@ -78,7 +79,15 @@ class FitAIApp extends ConsumerWidget {
           data: isLight ? AppTheme.light : AppTheme.dark,
           child: Material(
             type: MaterialType.transparency,
-            child: child ?? const SizedBox.shrink(),
+            // Tutorial overlay floats above all routes — including modals and
+            // sheets pushed via the router — because it's a sibling of the
+            // entire navigation tree. Self-gates on `tutorialActiveProvider`.
+            child: Stack(
+              children: [
+                child ?? const SizedBox.shrink(),
+                const Positioned.fill(child: TutorialOverlayHost()),
+              ],
+            ),
           ),
         );
       },

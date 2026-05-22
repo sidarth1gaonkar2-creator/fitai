@@ -4,6 +4,7 @@ import 'package:flutter/material.dart' show Icons, Scaffold;
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../tutorial/presentation/tutorial_anchor.dart';
 
 class ShellScreen extends StatelessWidget {
   const ShellScreen({super.key, required this.navigationShell});
@@ -92,14 +93,27 @@ class _CupertinoTabBar extends StatelessWidget {
               child: Row(
                 children: List.generate(icons.length, (index) {
                   final isSelected = index == selectedIndex;
+                  // Tabs 1-4 host the tutorial spotlights for their feature
+                  // step. Tab 0 (Home) doesn't get one — its features are
+                  // highlighted on the dashboard itself.
+                  final tutorialId = switch (index) {
+                    1 => 'workouts_tab',
+                    2 => 'nutrition_tab',
+                    3 => 'progress_tab',
+                    4 => 'community_tab',
+                    _ => null,
+                  };
+                  final item = _NavItem(
+                    icon: icons[index],
+                    activeIcon: activeIcons[index],
+                    label: labels[index],
+                    isSelected: isSelected,
+                    onTap: () => onTap(index),
+                  );
                   return Expanded(
-                    child: _NavItem(
-                      icon: icons[index],
-                      activeIcon: activeIcons[index],
-                      label: labels[index],
-                      isSelected: isSelected,
-                      onTap: () => onTap(index),
-                    ),
+                    child: tutorialId == null
+                        ? item
+                        : TutorialAnchor(id: tutorialId, child: item),
                   );
                 }),
               ),

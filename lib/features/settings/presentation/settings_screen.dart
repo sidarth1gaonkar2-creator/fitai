@@ -23,6 +23,7 @@ import '../../../providers/user_profile_provider.dart';
 import '../../../providers/workout_providers.dart';
 import '../../../services/health_service.dart';
 import '../../../services/notification_service.dart';
+import '../../tutorial/providers/tutorial_providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -365,6 +366,52 @@ class SettingsScreen extends ConsumerWidget {
                       size: 18,
                     ),
                     onTap: () => _confirmReset(context, ref),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Help section
+                _SectionLabel(label: 'Help', textTheme: textTheme),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  child: CupertinoListTile(
+                    leading: _SettingsIconBadge(
+                      icon: CupertinoIcons.question_circle,
+                      color: palette.accent,
+                    ),
+                    title: Text(
+                      'App Tour',
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: palette.text,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Replay the feature walkthrough',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      color: palette.text,
+                      size: 18,
+                    ),
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      // Jump to the dashboard first — the tutorial's first
+                      // step highlights the calorie ring, which only exists
+                      // there. The controller's `start()` then handles the
+                      // route for subsequent steps.
+                      context.go('/dashboard');
+                      // Give the dashboard a beat to mount before the
+                      // spotlight tries to measure its target.
+                      Future.delayed(
+                        const Duration(milliseconds: 400),
+                        () =>
+                            ref.read(tutorialControllerProvider).start(),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 24),

@@ -25,9 +25,34 @@ import 'widgets/streak_counter.dart';
 import 'widgets/today_workout_card.dart';
 import 'widgets/water_tracker.dart';
 import '../../supplements/presentation/widgets/supplement_checklist_card.dart';
+import '../../tutorial/presentation/tutorial_anchor.dart';
+import '../../tutorial/providers/tutorial_providers.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // First-launch tutorial trigger. We delay 800ms so the dashboard's
+    // shimmer/load states settle before the spotlight measures the calorie
+    // ring — otherwise the spotlight wraps the shimmer placeholder instead
+    // of the real widget. `shouldShowTutorialProvider` reads SharedPreferences
+    // synchronously, so we can decide without an async hop.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final shouldShow = ref.read(shouldShowTutorialProvider);
+      if (!shouldShow) return;
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
+      ref.read(tutorialControllerProvider).start();
+    });
+  }
 
   String _greeting() {
     final hour = DateTime.now().hour;
@@ -37,7 +62,7 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final profileAsync = ref.watch(userProfileProvider);
     final nutritionAsync = ref.watch(todayNutritionProvider);
     final workoutAsync = ref.watch(todayWorkoutProvider);
@@ -121,10 +146,13 @@ class DashboardScreen extends ConsumerWidget {
                   onPressed: () => context.push('/ai-coach'),
                   child: const Icon(CupertinoIcons.chat_bubble_fill, size: 22),
                 ),
-                CupertinoButton(
-                  padding: const EdgeInsets.all(8),
-                  onPressed: () => context.push('/settings'),
-                  child: const Icon(CupertinoIcons.gear, size: 22),
+                TutorialAnchor(
+                  id: 'settings_gear',
+                  child: CupertinoButton(
+                    padding: const EdgeInsets.all(8),
+                    onPressed: () => context.push('/settings'),
+                    child: const Icon(CupertinoIcons.gear, size: 22),
+                  ),
                 ),
               ],
             ),
@@ -136,21 +164,24 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 // --- Calorie Ring ---
                 Center(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: isNutritionLoading
-                        ? const ShimmerBox(
-                            key: ValueKey('ring-loading'),
-                            width: 200,
-                            height: 200,
-                            borderRadius: 100,
-                          )
-                        : CalorieRing(
-                            key: const ValueKey('ring-loaded'),
-                            consumed: calories.toDouble(),
-                            target: tdee,
-                            burned: burned,
-                          ),
+                  child: TutorialAnchor(
+                    id: 'calorie_ring',
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: isNutritionLoading
+                          ? const ShimmerBox(
+                              key: ValueKey('ring-loading'),
+                              width: 200,
+                              height: 200,
+                              borderRadius: 100,
+                            )
+                          : CalorieRing(
+                              key: const ValueKey('ring-loaded'),
+                              consumed: calories.toDouble(),
+                              target: tdee,
+                              burned: burned,
+                            ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -163,30 +194,33 @@ class DashboardScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
 
                 // --- Macro Row ---
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: isNutritionLoading
-                      ? const Row(
-                          key: ValueKey('macro-loading'),
-                          children: [
-                            Expanded(
-                                child: ShimmerBox(width: 100, height: 50)),
-                            SizedBox(width: 12),
-                            Expanded(
-                                child: ShimmerBox(width: 100, height: 50)),
-                            SizedBox(width: 12),
-                            Expanded(
-                                child: ShimmerBox(width: 100, height: 50)),
-                          ],
-                        )
-                      : MacroRow(
-                          key: const ValueKey('macro-loaded'),
-                          proteinGrams: protein.toDouble(),
-                          carbsGrams: carbs.toDouble(),
-                          fatGrams: fat.toDouble(),
-                          tdee: tdee,
-                          goal: profile.goal,
-                        ),
+                TutorialAnchor(
+                  id: 'macro_row',
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: isNutritionLoading
+                        ? const Row(
+                            key: ValueKey('macro-loading'),
+                            children: [
+                              Expanded(
+                                  child: ShimmerBox(width: 100, height: 50)),
+                              SizedBox(width: 12),
+                              Expanded(
+                                  child: ShimmerBox(width: 100, height: 50)),
+                              SizedBox(width: 12),
+                              Expanded(
+                                  child: ShimmerBox(width: 100, height: 50)),
+                            ],
+                          )
+                        : MacroRow(
+                            key: const ValueKey('macro-loaded'),
+                            proteinGrams: protein.toDouble(),
+                            carbsGrams: carbs.toDouble(),
+                            fatGrams: fat.toDouble(),
+                            tdee: tdee,
+                            goal: profile.goal,
+                          ),
+                  ),
                 ),
                 const SizedBox(height: 20),
 

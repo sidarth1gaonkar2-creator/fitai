@@ -16,6 +16,7 @@ import 'widgets/micronutrient_section.dart';
 import 'widgets/quick_add_sheet.dart';
 import 'widgets/recent_foods_sheet.dart';
 import 'meal_plans_screen.dart';
+import '../../tutorial/presentation/tutorial_anchor.dart';
 
 class NutritionScreen extends ConsumerStatefulWidget {
   const NutritionScreen({super.key});
@@ -369,10 +370,13 @@ class _QuickActionChips extends ConsumerWidget {
             onTap: () =>
                 context.go('/nutrition/scan/${MealType.lunch.name}'),
           ),
-          _Chip(
-            emoji: '🍔',
-            label: 'Restaurants',
-            onTap: () => context.push('/nutrition/restaurants'),
+          TutorialAnchor(
+            id: 'restaurants_chip',
+            child: _Chip(
+              emoji: '🍔',
+              label: 'Restaurants',
+              onTap: () => context.push('/nutrition/restaurants'),
+            ),
           ),
           _Chip(
             icon: Icons.bookmark_outline,
