@@ -44,13 +44,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // ring — otherwise the spotlight wraps the shimmer placeholder instead
     // of the real widget. `shouldShowTutorialProvider` reads SharedPreferences
     // synchronously, so we can decide without an async hop.
+    //
+    // Guard against a Settings replay: if the controller is already active
+    // (someone navigated us here via tutorial start()), don't kick off our
+    // own start() — that would reset the user back to step 0.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      final shouldShow = ref.read(shouldShowTutorialProvider);
-      if (!shouldShow) return;
+      final controller = ref.read(tutorialControllerProvider);
+      if (controller.isActive) return;
+      if (!ref.read(shouldShowTutorialProvider)) return;
       await Future.delayed(const Duration(milliseconds: 800));
       if (!mounted) return;
-      ref.read(tutorialControllerProvider).start();
+      if (controller.isActive) return;
+      controller.start();
     });
   }
 

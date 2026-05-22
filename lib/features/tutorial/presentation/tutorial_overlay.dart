@@ -474,9 +474,10 @@ class _StepDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Cap the rendered dots for very long tutorials — 9 fits comfortably; if
-    // we ever exceed that we'll switch to a "3 / 12" counter.
-    const maxDots = 12;
+    // Cap the rendered dots for very long tutorials. 13+ still fits in the
+    // 320px-wide tooltip; if we ever exceed ~16 we'll switch to a "3 / N"
+    // counter to keep the row from wrapping.
+    const maxDots = 16;
     final shown = math.min(total, maxDots);
     return Row(
       children: List.generate(shown, (i) {

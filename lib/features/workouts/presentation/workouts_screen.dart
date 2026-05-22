@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../providers/workout_providers.dart';
+import '../../tutorial/presentation/tutorial_anchor.dart';
 import 'template_picker_sheet.dart';
 import 'widgets/workout_calendar.dart';
 import 'widgets/workout_list_tile.dart';
@@ -145,45 +146,51 @@ class _PillTabBarState extends State<_PillTabBar> {
       child: Row(
         children: List.generate(tabs.length, (index) {
           final isActive = widget.controller.index == index;
-          return Expanded(
-            child: Semantics(
-              label: tabs[index],
-              button: true,
-              selected: isActive,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  widget.controller.animateTo(index);
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  margin: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: isActive ? palette.accent : Colors.transparent,
-                    borderRadius: BorderRadius.circular(21),
-                    border: isActive
-                        ? null
-                        : Border.all(
-                            color: palette.border,
-                            width: 1,
-                          ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      tabs[index],
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        color: isActive ? Colors.white : palette.text,
-                      ),
+          // The "Templates" tab (index 1) hosts the workout_templates tutorial
+          // spotlight. Wrap the GestureDetector — not the outer Expanded —
+          // so Expanded keeps its Row as a direct parent.
+          final inner = Semantics(
+            label: tabs[index],
+            button: true,
+            selected: isActive,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                HapticFeedback.selectionClick();
+                widget.controller.animateTo(index);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                margin: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: isActive ? palette.accent : Colors.transparent,
+                  borderRadius: BorderRadius.circular(21),
+                  border: isActive
+                      ? null
+                      : Border.all(
+                          color: palette.border,
+                          width: 1,
+                        ),
+                ),
+                child: Center(
+                  child: Text(
+                    tabs[index],
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: isActive ? Colors.white : palette.text,
                     ),
                   ),
                 ),
               ),
             ),
+          );
+          return Expanded(
+            child: index == 1
+                ? TutorialAnchor(id: 'workout_templates', child: inner)
+                : inner,
           );
         }),
       ),

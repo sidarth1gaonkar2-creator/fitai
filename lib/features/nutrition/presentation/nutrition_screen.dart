@@ -145,9 +145,12 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
               const SizedBox(height: 12),
               // ── Quick search bar (taps into unified search) ──
               if (!isLocked) ...[
-                _SearchTrigger(
-                  onTap: () => context.go(
-                      '/nutrition/search/${MealType.lunch.name}'),
+                TutorialAnchor(
+                  id: 'add_food_button',
+                  child: _SearchTrigger(
+                    onTap: () => context.go(
+                        '/nutrition/search/${MealType.lunch.name}'),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 _QuickActionChips(isLocked: isLocked),
@@ -245,6 +248,7 @@ class _TabToggle extends StatelessWidget {
             label: 'Meal Plans',
             isActive: selectedIndex == 0,
             onTap: () => onTabChanged(0),
+            tutorialId: 'meal_plans_section',
           ),
           _TabPill(
             label: 'Food Log',
@@ -262,45 +266,54 @@ class _TabPill extends StatelessWidget {
     required this.label,
     required this.isActive,
     required this.onTap,
+    this.tutorialId,
   });
 
   final String label;
   final bool isActive;
   final VoidCallback onTap;
 
+  /// Optional anchor for the tutorial overlay. The TutorialAnchor wraps the
+  /// inner GestureDetector (not the outer Expanded) so Expanded keeps its
+  /// direct Row parent — ParentDataWidget contract intact.
+  final String? tutorialId;
+
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          decoration: BoxDecoration(
-            color: isActive ? AppColors.of(context).accent : Colors.transparent,
-            borderRadius: BorderRadius.circular(19),
-            border: isActive
-                ? null
-                : Border.all(
-                    color: AppColors.of(context).border,
-                    width: 1,
-                  ),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: isActive ? Colors.white : AppColors.of(context).text,
-            ),
+    final inner = GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.of(context).accent : Colors.transparent,
+          borderRadius: BorderRadius.circular(19),
+          border: isActive
+              ? null
+              : Border.all(
+                  color: AppColors.of(context).border,
+                  width: 1,
+                ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+            color: isActive ? Colors.white : AppColors.of(context).text,
           ),
         ),
       ),
+    );
+    return Expanded(
+      child: tutorialId == null
+          ? inner
+          : TutorialAnchor(id: tutorialId!, child: inner),
     );
   }
 }
@@ -364,11 +377,14 @@ class _QuickActionChips extends ConsumerWidget {
             onTap: () =>
                 context.go('/nutrition/search/${MealType.lunch.name}'),
           ),
-          _Chip(
-            icon: CupertinoIcons.qrcode_viewfinder,
-            label: 'Scan',
-            onTap: () =>
-                context.go('/nutrition/scan/${MealType.lunch.name}'),
+          TutorialAnchor(
+            id: 'barcode_scanner',
+            child: _Chip(
+              icon: CupertinoIcons.qrcode_viewfinder,
+              label: 'Scan',
+              onTap: () =>
+                  context.go('/nutrition/scan/${MealType.lunch.name}'),
+            ),
           ),
           TutorialAnchor(
             id: 'restaurants_chip',

@@ -399,18 +399,18 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     onTap: () {
                       HapticFeedback.selectionClick();
-                      // Jump to the dashboard first — the tutorial's first
-                      // step highlights the calorie ring, which only exists
-                      // there. The controller's `start()` then handles the
-                      // route for subsequent steps.
-                      context.go('/dashboard');
-                      // Give the dashboard a beat to mount before the
-                      // spotlight tries to measure its target.
-                      Future.delayed(
-                        const Duration(milliseconds: 400),
-                        () =>
-                            ref.read(tutorialControllerProvider).start(),
-                      );
+                      // Replay path: bypass the `tutorial_completed` pref
+                      // check entirely (that's first-launch gating only).
+                      // Call start() synchronously while this widget is
+                      // still mounted — `ref` would be invalid by the time
+                      // a Future.delayed fires, because going to /dashboard
+                      // pops Settings and tears down its WidgetRef.
+                      //
+                      // start() itself calls onNavigate('/dashboard') for
+                      // step 1, so we don't issue our own context.go. The
+                      // overlay host's retry loop waits for the dashboard
+                      // to mount before measuring the calorie ring.
+                      ref.read(tutorialControllerProvider).start();
                     },
                   ),
                 ),

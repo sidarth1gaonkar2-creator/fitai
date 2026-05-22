@@ -9,8 +9,12 @@ final Map<String, GlobalKey> tutorialKeys = {
   'calorie_ring': GlobalKey(debugLabel: 'tutorial:calorie_ring'),
   'macro_row': GlobalKey(debugLabel: 'tutorial:macro_row'),
   'workouts_tab': GlobalKey(debugLabel: 'tutorial:workouts_tab'),
+  'workout_templates': GlobalKey(debugLabel: 'tutorial:workout_templates'),
   'nutrition_tab': GlobalKey(debugLabel: 'tutorial:nutrition_tab'),
+  'add_food_button': GlobalKey(debugLabel: 'tutorial:add_food_button'),
+  'barcode_scanner': GlobalKey(debugLabel: 'tutorial:barcode_scanner'),
   'restaurants_chip': GlobalKey(debugLabel: 'tutorial:restaurants_chip'),
+  'meal_plans_section': GlobalKey(debugLabel: 'tutorial:meal_plans_section'),
   'progress_tab': GlobalKey(debugLabel: 'tutorial:progress_tab'),
   'community_tab': GlobalKey(debugLabel: 'tutorial:community_tab'),
   'settings_gear': GlobalKey(debugLabel: 'tutorial:settings_gear'),
@@ -48,24 +52,53 @@ final List<TutorialStep> tutorialSteps = [
     id: 'workouts',
     title: 'Log Workouts',
     description:
-        'Tap here to start a workout. Pick a template or build your own — SwoleCoach tracks sets, reps, weight, and personal records automatically.',
+        "Tap the Workouts tab to start lifting. SwoleCoach tracks sets, reps, weight, and PRs automatically as you go.",
     targetKey: tutorialKeys['workouts_tab']!,
+    route: '/workouts',
+  ),
+  TutorialStep(
+    id: 'workout_templates',
+    title: 'Workout Templates',
+    description:
+        'Switch to the Templates tab for 20+ pre-built routines — push/pull/legs, full body, programs like 5/3/1. Or roll your own.',
+    targetKey: tutorialKeys['workout_templates']!,
     route: '/workouts',
   ),
   TutorialStep(
     id: 'nutrition',
     title: 'Track Your Nutrition',
     description:
-        'Search foods, scan barcodes, or build meals from popular restaurants. Save meals you eat often for one-tap logging.',
+        "Head to Nutrition to log meals. Several ways to add food — we'll show you each one next.",
     targetKey: tutorialKeys['nutrition_tab']!,
     route: '/nutrition',
+  ),
+  TutorialStep(
+    id: 'add_food',
+    title: 'Search & Add Food',
+    description:
+        'Tap the search bar to look up any food from our 800,000+ database. Pick a serving size and it lands in your log.',
+    targetKey: tutorialKeys['add_food_button']!,
+  ),
+  TutorialStep(
+    id: 'barcode_scanner',
+    title: 'Scan Barcodes',
+    description:
+        "Snap a barcode to log packaged foods in seconds — no typing. Works on most products you'll find in a supermarket.",
+    targetKey: tutorialKeys['barcode_scanner']!,
   ),
   TutorialStep(
     id: 'restaurants',
     title: 'Restaurant Meal Builder',
     description:
-        'Build your exact Chipotle bowl, Subway sandwich, or Starbucks drink ingredient by ingredient. Nutrition is calculated automatically.',
+        'Build your exact Chipotle bowl, Subway sandwich, or Starbucks drink ingredient by ingredient. Nutrition calculated automatically.',
     targetKey: tutorialKeys['restaurants_chip']!,
+  ),
+  TutorialStep(
+    id: 'meal_plans',
+    title: 'Custom Meal Plans',
+    description:
+        'Switch to Meal Plans to follow ready-made plans or design your own. Hit your targets without thinking about it day-to-day.',
+    targetKey: tutorialKeys['meal_plans_section']!,
   ),
   TutorialStep(
     id: 'progress',
