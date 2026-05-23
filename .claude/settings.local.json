@@ -46,7 +46,9 @@
       "Bash(git -C /c/Users/sidar/fitai log --all --oneline -- \"ios/Runner/GoogleService-Info.plist\")",
       "Bash(git -C /c/Users/sidar/fitai check-ignore -v ios/Runner/GoogleService-Info.plist)",
       "Bash(cmd *)",
-      "PowerShell(flutter analyze *)"
+      "PowerShell(flutter analyze *)",
+      "Bash(rm ios/Runner/Assets.xcassets/AppIcon.appiconset/*)",
+      "Bash(cp AppIcon-1024.png ios/Runner/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png)"
     ]
   }
 }

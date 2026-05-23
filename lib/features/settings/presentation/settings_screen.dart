@@ -1,6 +1,11 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/cupertino.dart';
+// Kept while the Developer section's kDebugMode guard is temporarily
+// removed for the TestFlight screenshot build (see the TODO around the
+// "Seed Community" tile). Restore the guard and this import becomes used.
+// ignore: unused_import
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,8 +26,10 @@ import '../../themes/providers/theme_providers.dart';
 import '../../../providers/unit_system_provider.dart';
 import '../../../providers/user_profile_provider.dart';
 import '../../../providers/workout_providers.dart';
+import '../../../providers/firestore_provider.dart';
 import '../../../services/health_service.dart';
 import '../../../services/notification_service.dart';
+import '../../../utils/seed_community.dart';
 import '../../tutorial/providers/tutorial_providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -425,6 +432,42 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
+                // TEMPORARY (2026-05-23): kDebugMode guard removed so the
+                // Seed Community button ships in the next TestFlight build
+                // for App Store screenshot seeding. RESTORE the
+                // `if (kDebugMode) ...[ ... ]` wrapper around this block
+                // before the next production release.
+                _SectionLabel(label: 'Developer', textTheme: textTheme),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  child: CupertinoListTile(
+                    leading: _SettingsIconBadge(
+                      icon: CupertinoIcons.wand_stars,
+                      color: palette.accent,
+                    ),
+                    title: Text(
+                      'Seed Community',
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: palette.text,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Write 10 demo posts + reactions + comments to Firestore',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      color: palette.text,
+                      size: 18,
+                    ),
+                    onTap: () => _runSeed(context, ref),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
                 // About section
                 _SectionLabel(label: 'About', textTheme: textTheme),
                 const SizedBox(height: 8),
@@ -493,6 +536,87 @@ class SettingsScreen extends ConsumerWidget {
       await ref.read(authServiceProvider).signOut();
       if (context.mounted) context.go('/welcome');
     }
+  }
+
+  /// Debug-only — kicks off the community-feed seeder and surfaces the
+  /// result (or any error) in a CupertinoAlertDialog. Bails out gracefully
+  /// if the user isn't signed in (we need their UID to wire up follow rows).
+  Future<void> _runSeed(BuildContext context, WidgetRef ref) async {
+    HapticFeedback.selectionClick();
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) {
+      await _showInfoDialog(
+        context,
+        title: 'Sign in first',
+        message:
+            'The seeder needs a current Firebase user to wire up follow '
+            'rows. Sign in and try again.',
+      );
+      return;
+    }
+    final firestore = ref.read(firestoreProvider);
+    final progress = showCupertinoDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const CupertinoAlertDialog(
+        title: Text('Seeding…'),
+        content: Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: CupertinoActivityIndicator(),
+        ),
+      ),
+    );
+    try {
+      final result = await seedCommunityFeed(
+        firestore: firestore,
+        currentUserId: userId,
+      );
+      // Dismiss the progress dialog.
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (!context.mounted) return;
+      await _showInfoDialog(
+        context,
+        title: 'Community seeded',
+        message:
+            'Added ${result.posts} posts from ${result.users} users, '
+            '${result.reactions} reactions, and ${result.comments} comments. '
+            'Pull-to-refresh the feed to see them.',
+      );
+    } catch (e) {
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (!context.mounted) return;
+      await _showInfoDialog(
+        context,
+        title: 'Seeding failed',
+        message: '$e',
+      );
+    }
+    // Silence the unawaited-future lint — the dialog is awaited above via
+    // the explicit Navigator.pop call.
+    await progress;
+  }
+
+  Future<void> _showInfoDialog(
+    BuildContext context, {
+    required String title,
+    required String message,
+  }) {
+    return showCupertinoDialog<void>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Text(title),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(message),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
