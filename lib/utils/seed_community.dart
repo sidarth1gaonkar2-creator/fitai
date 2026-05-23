@@ -384,3 +384,361 @@ Future<SeedCommunityResult> seedCommunityFeed({
     comments: totalComments,
   );
 }
+
+// ─── Leaderboard seeder ─────────────────────────────────────────────────────
+
+/// Per-author leaderboard stats. Hand-picked so the sort by `totalVolume`
+/// puts the current user at position 4 once their entry is inserted at the
+/// configured volume (48k). Tweak the bot volumes if you want to shift the
+/// user's slot.
+class _LeaderboardSeed {
+  const _LeaderboardSeed({
+    required this.authorIndex,
+    required this.totalVolume,
+    required this.totalWorkouts,
+    required this.currentStreak,
+  });
+  final int authorIndex;
+  final double totalVolume;
+  final int totalWorkouts;
+  final int currentStreak;
+}
+
+const _leaderboardSeeds = <_LeaderboardSeed>[
+  _LeaderboardSeed(
+      authorIndex: 0, totalVolume: 78000, totalWorkouts: 7, currentStreak: 32),
+  _LeaderboardSeed(
+      authorIndex: 3, totalVolume: 67000, totalWorkouts: 6, currentStreak: 28),
+  _LeaderboardSeed(
+      authorIndex: 1, totalVolume: 55000, totalWorkouts: 6, currentStreak: 22),
+  // ← current user lands here at ~48k
+  _LeaderboardSeed(
+      authorIndex: 8, totalVolume: 42000, totalWorkouts: 5, currentStreak: 18),
+  _LeaderboardSeed(
+      authorIndex: 6, totalVolume: 38000, totalWorkouts: 5, currentStreak: 14),
+  _LeaderboardSeed(
+      authorIndex: 7, totalVolume: 31000, totalWorkouts: 4, currentStreak: 12),
+  _LeaderboardSeed(
+      authorIndex: 2, totalVolume: 25000, totalWorkouts: 4, currentStreak: 9),
+  _LeaderboardSeed(
+      authorIndex: 4, totalVolume: 22000, totalWorkouts: 3, currentStreak: 6),
+  _LeaderboardSeed(
+      authorIndex: 5, totalVolume: 18000, totalWorkouts: 3, currentStreak: 5),
+];
+
+/// Volume to slot the current user at — sits between seeds #3 (55k) and
+/// #4 (42k), giving them rank 4 of 10. Workouts/streak chosen to look
+/// believable for a mid-tier user.
+const double _currentUserVolume = 48000;
+const int _currentUserWorkouts = 5;
+const int _currentUserStreak = 20;
+
+class SeedLeaderboardResult {
+  const SeedLeaderboardResult({required this.entries});
+  final int entries;
+}
+
+/// Writes 10 leaderboard rows (9 bots + the current user) to the
+/// `leaderboard_entries` collection. Bot stats are deterministic; the
+/// current user is inserted at the 4th highest volume so they appear
+/// mid-pack on the leaderboard screen.
+///
+/// [currentUsername] is the username shown for the current user. If
+/// unknown (e.g. profile not loaded yet) we fall back to 'you' so the
+/// row still renders something readable.
+Future<SeedLeaderboardResult> seedLeaderboard({
+  required FirebaseFirestore firestore,
+  required String currentUserId,
+  String currentUsername = 'you',
+}) async {
+  final now = DateTime.now();
+
+  // Ensure the fake user docs exist — the leaderboard list often resolves
+  // avatars by re-fetching `users/{userId}`, so we want the link to work
+  // even if the community seeder hasn't been run.
+  for (final a in _authors) {
+    await firestore.collection('users').doc(a.uid).set({
+      'userId': a.uid,
+      'username': a.username,
+      'displayName': a.displayName,
+      'bio': a.bio,
+      'profilePictureUrl': null,
+      'isPublic': true,
+    }, SetOptions(merge: true));
+  }
+
+  // Bot rows.
+  for (final seed in _leaderboardSeeds) {
+    final author = _authors[seed.authorIndex];
+    await firestore
+        .collection('leaderboard_entries')
+        .doc(author.uid)
+        .set({
+      'userId': author.uid,
+      'username': author.username,
+      'avatarUrl': null,
+      'currentStreak': seed.currentStreak,
+      'totalWorkouts': seed.totalWorkouts,
+      'totalVolume': seed.totalVolume,
+      'updatedAt': Timestamp.fromDate(
+        now.subtract(Duration(hours: seed.authorIndex)),
+      ),
+    });
+  }
+
+  // Current user row.
+  await firestore
+      .collection('leaderboard_entries')
+      .doc(currentUserId)
+      .set({
+    'userId': currentUserId,
+    'username': currentUsername,
+    'avatarUrl': null,
+    'currentStreak': _currentUserStreak,
+    'totalWorkouts': _currentUserWorkouts,
+    'totalVolume': _currentUserVolume,
+    'updatedAt': Timestamp.fromDate(now),
+  }, SetOptions(merge: true));
+
+  if (kDebugMode) {
+    debugPrint(
+        '[seed] wrote ${_leaderboardSeeds.length + 1} leaderboard entries '
+        '(current user at volume=$_currentUserVolume)');
+  }
+
+  return SeedLeaderboardResult(entries: _leaderboardSeeds.length + 1);
+}
+
+// ─── Challenges seeder ──────────────────────────────────────────────────────
+
+/// One challenge with its participant roster pre-baked. `participantSeeds`
+/// lists `(authorIndex, completedDays)` pairs — the seeder writes one
+/// `challenge_participants` doc per pair plus, optionally, a doc for the
+/// current user.
+class _ChallengeSeed {
+  const _ChallengeSeed({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.durationDays,
+    required this.icon,
+    required this.difficulty,
+    required this.participantSeeds,
+    this.currentUserCompletedDays,
+  });
+
+  final String id;
+  final String title;
+  final String description;
+  final int durationDays;
+  final String icon;
+  final String difficulty;
+
+  /// `(authorIndex, completedDays)` per bot participant.
+  final List<(int, int)> participantSeeds;
+
+  /// If set, also enroll the current user with this completed-days value
+  /// and put them in the participant list.
+  final int? currentUserCompletedDays;
+}
+
+const _challengeSeeds = <_ChallengeSeed>[
+  _ChallengeSeed(
+    id: 'seed_challenge_30_day_streak',
+    title: '30 Day Streak',
+    description:
+        'Train every day for 30 days. Rest days count as long as you log a walk, stretch, or mobility session.',
+    durationDays: 30,
+    icon: '🔥',
+    difficulty: 'medium',
+    participantSeeds: [
+      (0, 28), // mike_t — nearly done
+      (3, 24),
+      (1, 22),
+      (8, 21),
+      (6, 18),
+      (7, 15),
+      (2, 12),
+      (4, 10),
+      (5, 8),
+      (9, 7),
+      (0, 6), // double-up — re-using mike_t's index for a synthetic 12th
+      (3, 5),
+    ],
+    currentUserCompletedDays: 14, // mid-range
+  ),
+  _ChallengeSeed(
+    id: 'seed_challenge_5x_workouts_week',
+    title: '5x Workouts This Week',
+    description:
+        'Hit five workouts in seven days. Cardio, lifting, or sport practice all count.',
+    durationDays: 7,
+    icon: '💪',
+    difficulty: 'easy',
+    participantSeeds: [
+      (0, 5),
+      (1, 5),
+      (3, 4),
+      (8, 4),
+      (2, 3),
+      (6, 3),
+      (4, 2),
+      (5, 1),
+    ],
+    currentUserCompletedDays: 3,
+  ),
+  _ChallengeSeed(
+    id: 'seed_challenge_1000_lb_club',
+    title: '1000 lb Total Club',
+    description:
+        'Combined 1RM across squat, bench, and deadlift. Track progress and post your big-3 video to qualify.',
+    // We use durationDays as the target lb total so the existing progress UI
+    // ("X / 1000") reads naturally as pounds. Not a duration in the usual
+    // sense — see comment in the seeder docstring.
+    durationDays: 1000,
+    icon: '🏋️',
+    difficulty: 'hard',
+    participantSeeds: [
+      (0, 950),
+      (3, 880),
+      (1, 810),
+      (8, 760),
+      (6, 620),
+      (7, 470),
+    ],
+    currentUserCompletedDays: 720,
+  ),
+];
+
+class SeedChallengesResult {
+  const SeedChallengesResult({
+    required this.challenges,
+    required this.participants,
+  });
+  final int challenges;
+  final int participants;
+}
+
+/// Writes challenge docs + participant rosters to Firestore. The current
+/// user is auto-enrolled in every challenge that has a
+/// `currentUserCompletedDays` value (currently all three) so they appear
+/// in "My Challenges" without manual joining.
+///
+/// Note on `1000 lb Total Club`: its `durationDays` field is repurposed as
+/// a pounds-total target so the existing progress UI reads as "X / 1000".
+/// The community feature has no separate "goal value" field; if you add
+/// one later, swap that re-purpose for the real field.
+Future<SeedChallengesResult> seedChallenges({
+  required FirebaseFirestore firestore,
+  required String currentUserId,
+  String currentUsername = 'you',
+}) async {
+  final now = DateTime.now();
+  var participantCount = 0;
+
+  // Make sure the bot user docs exist so participant avatar lookups don't
+  // 404. Same pattern as `seedLeaderboard`.
+  for (final a in _authors) {
+    await firestore.collection('users').doc(a.uid).set({
+      'userId': a.uid,
+      'username': a.username,
+      'displayName': a.displayName,
+      'bio': a.bio,
+      'profilePictureUrl': null,
+      'isPublic': true,
+    }, SetOptions(merge: true));
+  }
+
+  for (final c in _challengeSeeds) {
+    // Total participants = bot count + (1 if current user is enrolled).
+    final totalParticipants = c.participantSeeds.length +
+        (c.currentUserCompletedDays != null ? 1 : 0);
+    final startDate = now.subtract(Duration(days: c.durationDays ~/ 2));
+    final endDate = now.add(Duration(days: c.durationDays ~/ 2));
+
+    await firestore.collection('challenges').doc(c.id).set({
+      'challengeId': c.id,
+      'title': c.title,
+      'description': c.description,
+      'creatorId': 'system',
+      'creatorUsername': 'SwoleCoach',
+      'type': 'workout',
+      'durationDays': c.durationDays,
+      'startDate': Timestamp.fromDate(startDate),
+      'endDate': Timestamp.fromDate(endDate),
+      'participantCount': totalParticipants,
+      'isPublic': true,
+      'requiresPhotoProof': false,
+      'icon': c.icon,
+      'difficulty': c.difficulty,
+      'createdAt': Timestamp.fromDate(startDate),
+      'trackingMode': 'manual',
+    });
+
+    // Bot participants. Stagger joinedAt so the sort by `joinedAt desc` (in
+    // ChallengeRepository.getParticipants) doesn't produce a degenerate
+    // tie-break order.
+    for (var i = 0; i < c.participantSeeds.length; i++) {
+      final (authorIdx, completedDays) = c.participantSeeds[i];
+      final author = _authors[authorIdx];
+      // Re-using the same author across two slots needs distinct doc IDs.
+      final docId =
+          '${c.id}_${author.uid}${i >= 10 ? '_dup$i' : ''}';
+      await firestore
+          .collection('challenge_participants')
+          .doc(docId)
+          .set({
+        'challengeId': c.id,
+        'userId': author.uid,
+        'username': author.username,
+        'profilePictureUrl': null,
+        'joinedAt': Timestamp.fromDate(
+          startDate.add(Duration(hours: i * 4)),
+        ),
+        'completedDays': completedDays,
+        'currentStreak':
+            completedDays >= 3 ? (completedDays / 3).floor() : completedDays,
+        'proofPhotos': const <String>[],
+        'isCompleted': completedDays >= c.durationDays,
+        'lastCheckInDate': Timestamp.fromDate(
+          now.subtract(const Duration(hours: 6)),
+        ),
+      });
+      participantCount++;
+    }
+
+    // Current user participant — uses the canonical doc ID format
+    // (`{challengeId}_{userId}`) so the app's `isParticipant` lookup hits.
+    final userProgress = c.currentUserCompletedDays;
+    if (userProgress != null) {
+      await firestore
+          .collection('challenge_participants')
+          .doc('${c.id}_$currentUserId')
+          .set({
+        'challengeId': c.id,
+        'userId': currentUserId,
+        'username': currentUsername,
+        'profilePictureUrl': null,
+        'joinedAt': Timestamp.fromDate(
+          startDate.add(const Duration(days: 1)),
+        ),
+        'completedDays': userProgress,
+        'currentStreak': userProgress >= 3 ? (userProgress / 3).floor() : userProgress,
+        'proofPhotos': const <String>[],
+        'isCompleted': userProgress >= c.durationDays,
+        'lastCheckInDate': Timestamp.fromDate(now),
+      }, SetOptions(merge: true));
+      participantCount++;
+    }
+  }
+
+  if (kDebugMode) {
+    debugPrint('[seed] wrote ${_challengeSeeds.length} challenges with '
+        '$participantCount participants');
+  }
+
+  return SeedChallengesResult(
+    challenges: _challengeSeeds.length,
+    participants: participantCount,
+  );
+}

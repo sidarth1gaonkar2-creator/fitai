@@ -1,4 +1,5 @@
 import 'package:fl_chart/fl_chart.dart';
+import 'chart_axis.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -209,10 +210,13 @@ class _CurveChart extends ConsumerWidget {
         }
 
         final values = spots.map((s) => s.y).toList();
-        final minY = values.reduce((a, b) => a < b ? a : b);
-        final maxY = values.reduce((a, b) => a > b ? a : b);
-        final pad = (maxY - minY) * 0.1;
-        final lowerY = (minY - (pad == 0 ? 5 : pad)).clamp(0, double.infinity);
+        final rawMin = values.reduce((a, b) => a < b ? a : b);
+        final rawMax = values.reduce((a, b) => a > b ? a : b);
+        final range = niceRange(
+          rawMin,
+          rawMax == rawMin ? rawMax + 5 : rawMax,
+          minHeadroomFactor: 1.10,
+        );
 
         final color = switch (metric) {
           StrengthMetric.oneRepMax => colorScheme.primary,
@@ -224,11 +228,12 @@ class _CurveChart extends ConsumerWidget {
           height: 200,
           child: LineChart(
             LineChartData(
-              minY: lowerY.toDouble(),
-              maxY: maxY + (pad == 0 ? 5 : pad),
+              minY: range.minY,
+              maxY: range.maxY,
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
+                horizontalInterval: range.interval,
                 getDrawingHorizontalLine: (value) => FlLine(
                   color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                   strokeWidth: 1,
@@ -245,17 +250,23 @@ class _CurveChart extends ConsumerWidget {
                   sideTitles: SideTitles(
                     showTitles: true,
                     reservedSize: 52,
-                    getTitlesWidget: (value, meta) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: Text(
-                        metric == StrengthMetric.volume
-                            ? _formatVolume(value, unitLabel)
-                            : '${value.toStringAsFixed(0)} $unitLabel',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                    interval: range.interval,
+                    getTitlesWidget: (value, meta) {
+                      if (value > range.maxY - range.interval * 0.01) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Text(
+                          metric == StrengthMetric.volume
+                              ? _formatVolume(value, unitLabel)
+                              : '${value.toStringAsFixed(0)} $unitLabel',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ),
               ),

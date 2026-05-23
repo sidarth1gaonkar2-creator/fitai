@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../providers/health_providers.dart';
+import 'chart_axis.dart';
 
 /// Weekly activity charts powered by Apple Health.
 ///
@@ -116,15 +117,17 @@ class _StepsBarChart extends StatelessWidget {
     final maxValue = steps.isEmpty
         ? 1000.0
         : (steps.reduce((a, b) => a > b ? a : b)).toDouble();
-    final maxY = (maxValue == 0 ? 1000.0 : maxValue * 1.2).clamp(1000, 60000);
+    // Round the axis to the next clean step (5k / 10k / 25k) so labels
+    // don't end up as ugly multiples like "21k" stacked next to "20k".
+    final axis = niceAxis(maxValue, minHeadroomFactor: 1.15);
 
     return BarChart(
       BarChartData(
-        maxY: maxY.toDouble(),
+        maxY: axis.maxY,
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          horizontalInterval: maxY / 4,
+          horizontalInterval: axis.interval,
           getDrawingHorizontalLine: (_) => FlLine(
             color: palette.border,
             strokeWidth: 1,
@@ -139,11 +142,19 @@ class _StepsBarChart extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 44,
-              getTitlesWidget: (value, _) => Text(
-                _short(value.toInt()),
-                style: textTheme.bodySmall
-                    ?.copyWith(color: palette.textSecondary),
-              ),
+              interval: axis.interval,
+              getTitlesWidget: (value, _) {
+                // Hide the duplicate top label that fl_chart sometimes
+                // draws when the bar reaches maxY exactly.
+                if (value > axis.maxY - axis.interval * 0.01) {
+                  return const SizedBox.shrink();
+                }
+                return Text(
+                  shortenAxisLabel(value.toInt()),
+                  style: textTheme.bodySmall
+                      ?.copyWith(color: palette.textSecondary),
+                );
+              },
             ),
           ),
           bottomTitles: AxisTitles(
@@ -197,10 +208,6 @@ class _StepsBarChart extends StatelessWidget {
     );
   }
 
-  static String _short(int n) {
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(0)}k';
-    return n.toString();
-  }
 }
 
 class _CaloriesLineChart extends StatelessWidget {
@@ -220,7 +227,7 @@ class _CaloriesLineChart extends StatelessWidget {
     final maxValue = calories.isEmpty
         ? 500.0
         : calories.reduce((a, b) => a > b ? a : b);
-    final maxY = (maxValue == 0 ? 500.0 : maxValue * 1.2).clamp(200.0, 5000.0);
+    final axis = niceAxis(maxValue, minHeadroomFactor: 1.15);
 
     final spots = <FlSpot>[
       for (int i = 0; i < calories.length; i++)
@@ -230,11 +237,11 @@ class _CaloriesLineChart extends StatelessWidget {
     return LineChart(
       LineChartData(
         minY: 0,
-        maxY: maxY.toDouble(),
+        maxY: axis.maxY,
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          horizontalInterval: maxY / 4,
+          horizontalInterval: axis.interval,
           getDrawingHorizontalLine: (_) => FlLine(
             color: palette.border,
             strokeWidth: 1,
@@ -249,11 +256,17 @@ class _CaloriesLineChart extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 44,
-              getTitlesWidget: (value, _) => Text(
-                value.toInt().toString(),
-                style: textTheme.bodySmall
-                    ?.copyWith(color: palette.textSecondary),
-              ),
+              interval: axis.interval,
+              getTitlesWidget: (value, _) {
+                if (value > axis.maxY - axis.interval * 0.01) {
+                  return const SizedBox.shrink();
+                }
+                return Text(
+                  shortenAxisLabel(value.toInt()),
+                  style: textTheme.bodySmall
+                      ?.copyWith(color: palette.textSecondary),
+                );
+              },
             ),
           ),
           bottomTitles: AxisTitles(

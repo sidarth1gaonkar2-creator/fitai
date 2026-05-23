@@ -17,6 +17,7 @@ import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../models/enums.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/community_providers.dart';
 import '../../../providers/dashboard_providers.dart';
 import '../../../providers/drill_sergeant_providers.dart';
 import '../../../providers/health_providers.dart';
@@ -466,6 +467,62 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () => _runSeed(context, ref),
                   ),
                 ),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  child: CupertinoListTile(
+                    leading: _SettingsIconBadge(
+                      icon: CupertinoIcons.chart_bar_alt_fill,
+                      color: palette.accent,
+                    ),
+                    title: Text(
+                      'Seed Leaderboard',
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: palette.text,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Write 10 weekly leaderboard entries — you land 4th',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      color: palette.text,
+                      size: 18,
+                    ),
+                    onTap: () => _runSeedLeaderboard(context, ref),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  child: CupertinoListTile(
+                    leading: _SettingsIconBadge(
+                      icon: CupertinoIcons.flag_fill,
+                      color: palette.accent,
+                    ),
+                    title: Text(
+                      'Seed Challenges',
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: palette.text,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Write 3 active challenges + bot participants; you join 2',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      color: palette.text,
+                      size: 18,
+                    ),
+                    onTap: () => _runSeedChallenges(context, ref),
+                  ),
+                ),
                 const SizedBox(height: 24),
 
                 // About section
@@ -593,6 +650,111 @@ class SettingsScreen extends ConsumerWidget {
     }
     // Silence the unawaited-future lint — the dialog is awaited above via
     // the explicit Navigator.pop call.
+    await progress;
+  }
+
+  /// Debug-only — populates the leaderboard collection with 10 entries
+  /// (current user at rank 4) for App Store screenshots.
+  Future<void> _runSeedLeaderboard(BuildContext context, WidgetRef ref) async {
+    HapticFeedback.selectionClick();
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) {
+      await _showInfoDialog(
+        context,
+        title: 'Sign in first',
+        message: 'Need a Firebase user to seed.',
+      );
+      return;
+    }
+    final firestore = ref.read(firestoreProvider);
+    final username = ref.read(firestoreUserProvider).valueOrNull?.username;
+    final progress = showCupertinoDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const CupertinoAlertDialog(
+        title: Text('Seeding…'),
+        content: Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: CupertinoActivityIndicator(),
+        ),
+      ),
+    );
+    try {
+      final result = await seedLeaderboard(
+        firestore: firestore,
+        currentUserId: userId,
+        currentUsername: username ?? 'you',
+      );
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (!context.mounted) return;
+      await _showInfoDialog(
+        context,
+        title: 'Leaderboard seeded',
+        message:
+            'Wrote ${result.entries} entries. Pull-to-refresh the leaderboard.',
+      );
+    } catch (e) {
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (!context.mounted) return;
+      await _showInfoDialog(
+        context,
+        title: 'Seeding failed',
+        message: '$e',
+      );
+    }
+    await progress;
+  }
+
+  /// Debug-only — seeds 3 active challenges with bot participants and
+  /// enrolls the current user in all three at mid-range progress.
+  Future<void> _runSeedChallenges(BuildContext context, WidgetRef ref) async {
+    HapticFeedback.selectionClick();
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) {
+      await _showInfoDialog(
+        context,
+        title: 'Sign in first',
+        message: 'Need a Firebase user to seed.',
+      );
+      return;
+    }
+    final firestore = ref.read(firestoreProvider);
+    final username = ref.read(firestoreUserProvider).valueOrNull?.username;
+    final progress = showCupertinoDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const CupertinoAlertDialog(
+        title: Text('Seeding…'),
+        content: Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: CupertinoActivityIndicator(),
+        ),
+      ),
+    );
+    try {
+      final result = await seedChallenges(
+        firestore: firestore,
+        currentUserId: userId,
+        currentUsername: username ?? 'you',
+      );
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (!context.mounted) return;
+      await _showInfoDialog(
+        context,
+        title: 'Challenges seeded',
+        message:
+            'Added ${result.challenges} challenges with ${result.participants} participants. '
+            'You\'re enrolled in all three.',
+      );
+    } catch (e) {
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (!context.mounted) return;
+      await _showInfoDialog(
+        context,
+        title: 'Seeding failed',
+        message: '$e',
+      );
+    }
     await progress;
   }
 

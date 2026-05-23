@@ -6,6 +6,7 @@ import 'package:health/health.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../providers/health_providers.dart';
+import 'chart_axis.dart';
 
 /// "Fitness Trends" section on the Progress screen.
 ///
@@ -141,15 +142,15 @@ class _Bars extends StatelessWidget {
     final maxValue = values.isEmpty
         ? 100.0
         : values.reduce((a, b) => a > b ? a : b);
-    final maxY = (maxValue == 0 ? 100.0 : maxValue * 1.2).clamp(50.0, 5000.0);
+    final axis = niceAxis(maxValue, minHeadroomFactor: 1.15);
 
     return BarChart(
       BarChartData(
-        maxY: maxY.toDouble(),
+        maxY: axis.maxY,
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          horizontalInterval: maxY / 4,
+          horizontalInterval: axis.interval,
           getDrawingHorizontalLine: (_) =>
               FlLine(color: palette.border, strokeWidth: 1),
         ),
@@ -162,11 +163,17 @@ class _Bars extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 38,
-              getTitlesWidget: (value, _) => Text(
-                value.toInt().toString(),
-                style: textTheme.bodySmall
-                    ?.copyWith(color: palette.textSecondary),
-              ),
+              interval: axis.interval,
+              getTitlesWidget: (value, _) {
+                if (value > axis.maxY - axis.interval * 0.01) {
+                  return const SizedBox.shrink();
+                }
+                return Text(
+                  shortenAxisLabel(value.toInt()),
+                  style: textTheme.bodySmall
+                      ?.copyWith(color: palette.textSecondary),
+                );
+              },
             ),
           ),
           bottomTitles: AxisTitles(

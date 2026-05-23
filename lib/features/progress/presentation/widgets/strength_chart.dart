@@ -6,6 +6,7 @@ import '../../../../core/widgets/error_card.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../providers/progress_providers.dart';
 import '../../../../providers/unit_system_provider.dart';
+import 'chart_axis.dart';
 
 class StrengthChart extends ConsumerWidget {
   const StrengthChart({super.key});
@@ -108,22 +109,25 @@ class _StrengthLineChart extends ConsumerWidget {
                 ))
             .toList();
 
-        final minY = points.map((p) => p.weight).reduce(
-                (a, b) => a < b ? a : b) -
-            5;
-        final maxY = points.map((p) => p.weight).reduce(
-                (a, b) => a > b ? a : b) +
-            5;
+        final weights = points.map((p) => p.weight).toList();
+        final rawMin = weights.reduce((a, b) => a < b ? a : b);
+        final rawMax = weights.reduce((a, b) => a > b ? a : b);
+        final range = niceRange(
+          rawMin,
+          rawMax == rawMin ? rawMax + 5 : rawMax,
+          minHeadroomFactor: 1.10,
+        );
 
         return SizedBox(
           height: 200,
           child: LineChart(
             LineChartData(
-              minY: minY < 0 ? 0 : minY,
-              maxY: maxY,
+              minY: range.minY,
+              maxY: range.maxY,
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
+                horizontalInterval: range.interval,
                 getDrawingHorizontalLine: (value) => FlLine(
                   color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                   strokeWidth: 1,
@@ -140,14 +144,20 @@ class _StrengthLineChart extends ConsumerWidget {
                   sideTitles: SideTitles(
                     showTitles: true,
                     reservedSize: 44,
-                    getTitlesWidget: (value, meta) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: Text(
-                        UnitConverter.formatWeight(value, units),
-                        style: textTheme.bodySmall
-                            ?.copyWith(color: colorScheme.onSurfaceVariant),
-                      ),
-                    ),
+                    interval: range.interval,
+                    getTitlesWidget: (value, meta) {
+                      if (value > range.maxY - range.interval * 0.01) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Text(
+                          UnitConverter.formatWeight(value, units),
+                          style: textTheme.bodySmall
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
