@@ -4,24 +4,22 @@ import '../../../../data/muscle_map.dart';
 
 /// Composited anatomy diagram.
 ///
-/// Built from pre-extracted assets in `assets/images/anatomy/masks/`:
-///   * `base_front.png` / `base_back.png` — un-highlighted body silhouette
-///   * one transparent-background PNG per muscle group with only the
-///     highlight pixels surviving
+/// For each body side we render:
+///   1. ONE original full-body PNG (silhouette + first highlight baked in)
+///      as the base layer — these PNGs already look clean, so using one of
+///      them as the canvas avoids the synthetic-base artifacts we saw when
+///      compositing a min-brightness "base body" from all the sheets.
+///   2. The remaining primary muscle MASKS on top at full opacity. Masks
+///      are transparent everywhere except the highlight zone, so stacking
+///      them adds the extra highlights without re-drawing the body.
+///   3. Every secondary muscle's MASK on top at 50% opacity.
 ///
-/// At render time we draw the base body, then overlay every requested
-/// primary mask at full opacity, then every secondary mask at 50% opacity.
-/// Standard `BlendMode.srcOver` compositing — no fancy blending — because
-/// the masks are already transparent everywhere except the highlight zone.
-/// That kills the body-pixel ghosting the previous lighten-based overlay
-/// produced for multi-muscle workouts.
-///
-/// Names are resolved through [MuscleMap.normalize] and a thin canonical-to-
-/// filename mapping; if the supplied muscle has no PNG, the side simply
-/// shows the base body so the widget never collapses.
+/// Mask PNGs come from `…/anatomy/masks/`; originals come from the parent
+/// `…/anatomy/` folder. Light mode swaps the root dir; the masks layout
+/// mirrors it under `…/anatomy/light/`.
 ///
 /// Two display modes:
-///   * Compact (`height: 120`) — single PNG side (whichever has more hits).
+///   * Compact (`height: 120`) — single panel (whichever side has more hits).
 ///   * Full   (`height: 280`) — front + back side by side when both have hits.
 class MuscleHighlightWidget extends StatelessWidget {
   const MuscleHighlightWidget({
@@ -37,8 +35,7 @@ class MuscleHighlightWidget extends StatelessWidget {
   final double height;
   final bool compact;
 
-  // PNG masks were exported at 669×1410 native; aspect ratio determines the
-  // per-panel width given a fixed render height.
+  // Native dimensions of every anatomy PNG.
   static const double _nativeWidth = 669;
   static const double _nativeHeight = 1410;
 
@@ -49,16 +46,21 @@ class MuscleHighlightWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final brightness = MediaQuery.platformBrightnessOf(context);
-    final dir = brightness == Brightness.light
-        ? 'assets/images/anatomy/light/masks'
-        : 'assets/images/anatomy/masks';
+    final origDir = brightness == Brightness.light
+        ? 'assets/images/anatomy/light'
+        : 'assets/images/anatomy';
+    final maskDir = '$origDir/masks';
 
-    final primaryFront = _AnatomySheets.frontSheetsFor(targetMuscles).toList();
+    // Resolve sheet-name sets per side. `Set` dedupes when one muscle name
+    // and a synonym both map to the same PNG.
+    final primaryFront =
+        _AnatomySheets.frontSheetsFor(targetMuscles).toList();
     final primaryBack = _AnatomySheets.backSheetsFor(targetMuscles).toList();
     final secFrontAll = _AnatomySheets.frontSheetsFor(secondaryMuscles);
     final secBackAll = _AnatomySheets.backSheetsFor(secondaryMuscles);
-    // Drop secondary sheets that are already drawn as primary so we don't
-    // stack a half-opacity layer over an already-fully-painted highlight.
+    // A muscle counted primary by one exercise shouldn't render again as a
+    // half-opacity secondary just because another exercise listed it that
+    // way — drop duplicates here.
     final secondaryFront =
         secFrontAll.where((s) => !primaryFront.contains(s)).toList();
     final secondaryBack =
@@ -67,24 +69,23 @@ class MuscleHighlightWidget extends StatelessWidget {
     final hasFront = primaryFront.isNotEmpty || secondaryFront.isNotEmpty;
     final hasBack = primaryBack.isNotEmpty || secondaryBack.isNotEmpty;
 
-    // Pick which body sides to render.
+    // Pick which sides to render. Compact mode picks the heavier side.
+    final showBoth = !compact && hasFront && hasBack;
     final showFront = compact
         ? (hasFront && primaryFront.length >= primaryBack.length)
-        : (hasFront || !hasBack);
-    final showBack = compact
-        ? (!showFront && hasBack)
-        : (hasBack || (!hasFront && !showFront));
+        : hasFront;
+    final showBack = compact ? !showFront && hasBack : hasBack;
 
-    // If nothing matched at all, still show a single empty front body so
-    // the section never collapses to zero height (matches the old behaviour).
+    // Nothing matched at all — render a single neutral front body so the
+    // section never collapses to zero height.
     if (!showFront && !showBack) {
       return _layout(
         height: height,
         children: [
           _BodyPanel(
-            basePath: '$dir/base_front.png',
-            primaryMasks: const [],
-            secondaryMasks: const [],
+            baseOriginalPath: '$origDir/front-chest.png',
+            primaryMaskPaths: const [],
+            secondaryMaskPaths: const [],
             aspectRatio: _nativeWidth / _nativeHeight,
           ),
         ],
@@ -93,23 +94,76 @@ class MuscleHighlightWidget extends StatelessWidget {
 
     final panels = <Widget>[];
     if (showFront) {
-      panels.add(_BodyPanel(
-        basePath: '$dir/base_front.png',
-        primaryMasks: primaryFront.map((s) => '$dir/$s.png').toList(),
-        secondaryMasks: secondaryFront.map((s) => '$dir/$s.png').toList(),
-        aspectRatio: _nativeWidth / _nativeHeight,
+      panels.add(_buildPanel(
+        origDir: origDir,
+        maskDir: maskDir,
+        primary: primaryFront,
+        secondary: secondaryFront,
       ));
     }
-    if (showBack) {
-      panels.add(_BodyPanel(
-        basePath: '$dir/base_back.png',
-        primaryMasks: primaryBack.map((s) => '$dir/$s.png').toList(),
-        secondaryMasks: secondaryBack.map((s) => '$dir/$s.png').toList(),
-        aspectRatio: _nativeWidth / _nativeHeight,
+    if (showBack || (showBoth && hasBack)) {
+      panels.add(_buildPanel(
+        origDir: origDir,
+        maskDir: maskDir,
+        primary: primaryBack,
+        secondary: secondaryBack,
       ));
     }
 
     return _layout(height: height, children: panels);
+  }
+
+  /// Composes one side. The first primary sheet (if any) becomes the
+  /// ORIGINAL base layer — its highlight is already baked in, so we don't
+  /// add a mask for it. The remaining primaries layer as masks at full
+  /// opacity, secondaries at half.
+  ///
+  /// Fallbacks for the base layer when no primary hits this side:
+  ///   * Use the first SECONDARY's original (its highlight will read at
+  ///     full opacity, which is "wrong" but acceptable — better than no
+  ///     silhouette at all).
+  ///   * Last resort: front-chest, just to show *something*.
+  Widget _buildPanel({
+    required String origDir,
+    required String maskDir,
+    required List<String> primary,
+    required List<String> secondary,
+  }) {
+    // Pick the base sheet — primary first, then secondary, then a hardcoded
+    // fallback that exists in both light and dark folders.
+    final String baseSheet;
+    final List<String> remainingPrimaryAsMasks;
+    final List<String> secondaryAsMasks;
+    if (primary.isNotEmpty) {
+      baseSheet = primary.first;
+      remainingPrimaryAsMasks = primary.skip(1).toList();
+      secondaryAsMasks = secondary;
+    } else if (secondary.isNotEmpty) {
+      // No primary on this side — borrow a secondary's original for the
+      // silhouette. Its highlight will appear at full opacity (not 50%)
+      // because there's no separate "base body" PNG anymore. Acceptable
+      // trade-off: most workouts have at least one primary per active side,
+      // so this branch rarely fires.
+      baseSheet = secondary.first;
+      remainingPrimaryAsMasks = const [];
+      secondaryAsMasks = secondary.skip(1).toList();
+    } else {
+      // Shouldn't reach here — `build` short-circuits when a side has
+      // nothing — but be defensive in case the call site ever asks us
+      // to render an empty side.
+      baseSheet = 'front-chest';
+      remainingPrimaryAsMasks = const [];
+      secondaryAsMasks = const [];
+    }
+
+    return _BodyPanel(
+      baseOriginalPath: '$origDir/$baseSheet.png',
+      primaryMaskPaths:
+          remainingPrimaryAsMasks.map((s) => '$maskDir/$s.png').toList(),
+      secondaryMaskPaths:
+          secondaryAsMasks.map((s) => '$maskDir/$s.png').toList(),
+      aspectRatio: _nativeWidth / _nativeHeight,
+    );
   }
 
   Widget _layout({required double height, required List<Widget> children}) {
@@ -130,21 +184,21 @@ class MuscleHighlightWidget extends StatelessWidget {
   }
 }
 
-/// One body side — base + primary masks (full opacity) + secondary masks
-/// (50% opacity). Uses `Stack` of `Image.asset` widgets because the masks
-/// are already transparent everywhere except the highlight zone, so plain
-/// srcOver compositing produces the correct visual without any custom paint.
+/// One body side. Renders the base original PNG, then any additional
+/// primary masks at full opacity, then secondary masks at 50% opacity.
+/// All composited with normal `srcOver` since masks are transparent
+/// outside their highlight zone.
 class _BodyPanel extends StatelessWidget {
   const _BodyPanel({
-    required this.basePath,
-    required this.primaryMasks,
-    required this.secondaryMasks,
+    required this.baseOriginalPath,
+    required this.primaryMaskPaths,
+    required this.secondaryMaskPaths,
     required this.aspectRatio,
   });
 
-  final String basePath;
-  final List<String> primaryMasks;
-  final List<String> secondaryMasks;
+  final String baseOriginalPath;
+  final List<String> primaryMaskPaths;
+  final List<String> secondaryMaskPaths;
   final double aspectRatio;
 
   @override
@@ -154,17 +208,17 @@ class _BodyPanel extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. Un-highlighted body silhouette.
+          // 1. Original PNG — silhouette + first highlight baked in.
           Image.asset(
-            basePath,
+            baseOriginalPath,
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
             errorBuilder: (_, _, _) => const SizedBox.shrink(),
           ),
-          // 2. Secondary highlights — half opacity, drawn before primary so
-          //    a stray pixel overlap reads as "secondary tinted under primary"
-          //    rather than the other way around.
-          for (final path in secondaryMasks)
+          // 2. Secondary masks at half opacity — drawn before remaining
+          //    primaries so a stray pixel overlap reads as "secondary
+          //    tinted under primary" rather than the other way around.
+          for (final path in secondaryMaskPaths)
             Opacity(
               opacity: 0.5,
               child: Image.asset(
@@ -174,8 +228,8 @@ class _BodyPanel extends StatelessWidget {
                 errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
             ),
-          // 3. Primary highlights at full opacity.
-          for (final path in primaryMasks)
+          // 3. Remaining primary masks at full opacity.
+          for (final path in primaryMaskPaths)
             Image.asset(
               path,
               fit: BoxFit.contain,
