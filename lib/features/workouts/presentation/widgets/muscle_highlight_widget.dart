@@ -167,6 +167,13 @@ class MuscleHighlightWidget extends StatelessWidget {
   }
 
   Widget _layout({required double height, required List<Widget> children}) {
+    // Symmetric 16px horizontal padding on the card, two equal-flex columns
+    // separated by a 10px gutter. Each column centers its panel within its
+    // own half so the front/back bodies sit mirrored across the centerline.
+    //
+    // The PNGs themselves are pre-recentered (every body's bbox is at the
+    // exact same canvas position), so we don't need any per-panel
+    // Transform.translate compensation here.
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SizedBox(
@@ -175,9 +182,12 @@ class MuscleHighlightWidget extends StatelessWidget {
         child: children.length == 1
             ? Center(child: children.first)
             : Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.center,
-                children: children,
+                children: [
+                  Expanded(child: Center(child: children[0])),
+                  const SizedBox(width: 10),
+                  Expanded(child: Center(child: children[1])),
+                ],
               ),
       ),
     );
@@ -206,6 +216,7 @@ class _BodyPanel extends StatelessWidget {
     return AspectRatio(
       aspectRatio: aspectRatio,
       child: Stack(
+        alignment: Alignment.center,
         fit: StackFit.expand,
         children: [
           // 1. Original PNG — silhouette + first highlight baked in.
