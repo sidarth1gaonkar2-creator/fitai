@@ -29,6 +29,16 @@ import 'package:flutter/foundation.dart';
 /// changes, mirror it here.
 const _reactionEmojis = ['💪', '🔥', '🏆', '👏', '😤'];
 
+/// Builds a DiceBear avataaars URL for [username]. The seed is the username
+/// itself, so each bot gets a deterministic, unique cartoon avatar.
+///
+/// `size=200` matches the typical post-card / leaderboard avatar diameter
+/// at 3x retina — large enough to look crisp, small enough to keep the PNG
+/// well under 30 KB. The app already uses `CachedNetworkImage` for these
+/// URLs so the per-bot PNG is fetched once per install.
+String _avatarUrlFor(String username) =>
+    'https://api.dicebear.com/9.x/avataaars/png?seed=$username&size=200';
+
 /// Fake authors. The userId is what gets written into `userId` on each post
 /// and into the `follows` doc. Keep the IDs prefixed with `seed_` so they're
 /// easy to spot (and wipe) in the Firestore console.
@@ -252,7 +262,7 @@ Future<SeedCommunityResult> seedCommunityFeed({
       'username': a.username,
       'displayName': a.displayName,
       'bio': a.bio,
-      'profilePictureUrl': null,
+      'profilePictureUrl': _avatarUrlFor(a.username),
       'isPublic': true,
       'followersCount': 1, // we're about to follow them
       'followingCount': 0,
@@ -301,7 +311,7 @@ Future<SeedCommunityResult> seedCommunityFeed({
       'postId': postId,
       'userId': author.uid,
       'username': author.username,
-      'userProfilePic': null,
+      'userProfilePic': _avatarUrlFor(author.username),
       // Caption-only posts — leave workout fields empty so the post card
       // doesn't render the "workout attachment" block (it self-gates on
       // `workoutId != null || workoutName.isNotEmpty`).
@@ -362,7 +372,7 @@ Future<SeedCommunityResult> seedCommunityFeed({
         'commentId': commentId,
         'userId': commenter.uid,
         'username': commenter.username,
-        'userProfilePic': null,
+        'userProfilePic': _avatarUrlFor(commenter.username),
         'text': commentText,
         'createdAt': Timestamp.fromDate(
           createdAt.add(Duration(minutes: 5 + c * 7)),
@@ -462,7 +472,7 @@ Future<SeedLeaderboardResult> seedLeaderboard({
       'username': a.username,
       'displayName': a.displayName,
       'bio': a.bio,
-      'profilePictureUrl': null,
+      'profilePictureUrl': _avatarUrlFor(a.username),
       'isPublic': true,
     }, SetOptions(merge: true));
   }
@@ -476,7 +486,7 @@ Future<SeedLeaderboardResult> seedLeaderboard({
         .set({
       'userId': author.uid,
       'username': author.username,
-      'avatarUrl': null,
+      'avatarUrl': _avatarUrlFor(author.username),
       'currentStreak': seed.currentStreak,
       'totalWorkouts': seed.totalWorkouts,
       'totalVolume': seed.totalVolume,
@@ -644,7 +654,7 @@ Future<SeedChallengesResult> seedChallenges({
       'username': a.username,
       'displayName': a.displayName,
       'bio': a.bio,
-      'profilePictureUrl': null,
+      'profilePictureUrl': _avatarUrlFor(a.username),
       'isPublic': true,
     }, SetOptions(merge: true));
   }
@@ -691,7 +701,7 @@ Future<SeedChallengesResult> seedChallenges({
         'challengeId': c.id,
         'userId': author.uid,
         'username': author.username,
-        'profilePictureUrl': null,
+        'profilePictureUrl': _avatarUrlFor(author.username),
         'joinedAt': Timestamp.fromDate(
           startDate.add(Duration(hours: i * 4)),
         ),

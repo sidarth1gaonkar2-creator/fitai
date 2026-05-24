@@ -48,6 +48,42 @@ class HealthService {
     return ok;
   }
 
+  /// Reads today's Move / Exercise / Stand goals from `HKActivitySummary`
+  /// via the native bridge. The Flutter `health` package doesn't surface
+  /// this API, so we route through `AppDelegate.fetchActivityGoals`.
+  ///
+  /// Returns null on non-iOS, when HealthKit is unavailable, or when the
+  /// native side errored. Returns an empty map when HealthKit is reachable
+  /// but there's no summary for today (e.g. no Apple Watch paired and the
+  /// user hasn't opened the Fitness app yet). Otherwise returns the goal
+  /// triple — each value rounded to int.
+  Future<({int? moveCalories, int? exerciseMinutes, int? standHours})?>
+      getAppleActivityGoals() async {
+    if (!Platform.isIOS) return null;
+    if (!await canUseHealthKit()) return null;
+    try {
+      final raw = await _healthCheckChannel
+          .invokeMethod<Map<Object?, Object?>>('getActivityGoals');
+      if (raw == null) return null;
+      int? readInt(String key) {
+        final v = raw[key];
+        if (v is int) return v;
+        if (v is num) return v.round();
+        return null;
+      }
+
+      return (
+        moveCalories: readInt('moveCalories'),
+        exerciseMinutes: readInt('exerciseMinutes'),
+        standHours: readInt('standHours'),
+      );
+    } catch (e, st) {
+      debugPrint('[HealthService] getAppleActivityGoals threw: $e');
+      AppLogger.error('getAppleActivityGoals threw', error: e, stack: st);
+      return null;
+    }
+  }
+
   // Simple in-memory cache to avoid repeatedly hitting HealthKit while the user
   // pulls-to-refresh or navigates between tabs.
   static const _cacheTtl = Duration(minutes: 5);

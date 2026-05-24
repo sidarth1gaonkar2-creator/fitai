@@ -30,7 +30,11 @@ class ActivityRings extends ConsumerWidget {
     final moveAsync = ref.watch(todayActiveCaloriesProvider);
     final exerciseAsync = ref.watch(todayActiveMinutesProvider);
     final standAsync = ref.watch(todayStandHoursProvider);
-    final goals = ref.watch(activityGoalsProvider);
+    // Effective goals = Apple Health (if set) → TDEE-derived → manual override.
+    // The old `activityGoalsProvider` only knew about manual overrides + the
+    // baked-in 500/30/12 defaults, which is why everyone saw "500 kcal" even
+    // with a real 860-kcal Move goal in HealthKit.
+    final goals = ref.watch(effectiveActivityGoalsProvider);
 
     final move = moveAsync.valueOrNull ?? 0.0;
     final exercise = exerciseAsync.valueOrNull ?? 0;

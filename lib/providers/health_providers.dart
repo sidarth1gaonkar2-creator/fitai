@@ -10,6 +10,7 @@ import '../services/health_service.dart';
 import '../services/health_sync_service.dart';
 import 'isar_provider.dart';
 import 'unit_system_provider.dart';
+import 'user_profile_provider.dart';
 
 // ───────────────────────────────────────────────────────────────────────────
 // Service
@@ -517,6 +518,50 @@ final activityGoalsProvider =
     StateNotifierProvider<ActivityGoalsNotifier, ActivityGoals>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return ActivityGoalsNotifier(prefs);
+});
+
+/// Live Move/Exercise/Stand goals read straight from Apple Health via the
+/// native bridge. Re-runs whenever the Health connection flips on/off so a
+/// just-connected user sees their real goals on the next frame. Returns
+/// null on Android or when the bridge isn't usable.
+final appleHealthActivityGoalsProvider = FutureProvider<
+    ({int? moveCalories, int? exerciseMinutes, int? standHours})?>((ref) async {
+  if (!Platform.isIOS) return null;
+  if (!ref.watch(healthConnectedProvider)) return null;
+  return ref.read(healthServiceProvider).getAppleActivityGoals();
+});
+
+/// The activity goals the dashboard should actually display.
+///
+/// Priority per field:
+///   1. The Apple Health goal (when readable + non-null).
+///   2. A profile-derived estimate (Move only: ~25% of TDEE, rounded to 50).
+///   3. The user's manual override from `activityGoalsProvider` (which itself
+///      falls back to the baked-in defaults when no override exists).
+///
+/// The Move-from-TDEE fallback exists because a Watch-less user with no
+/// Fitness app set-up has no HKActivitySummary at all — showing "500" in
+/// that case is misleading. 25% of TDEE matches Apple's rough rule of
+/// thumb for the active-energy portion of maintenance.
+final effectiveActivityGoalsProvider = Provider<ActivityGoals>((ref) {
+  final manual = ref.watch(activityGoalsProvider);
+  final apple = ref.watch(appleHealthActivityGoalsProvider).valueOrNull;
+  final profile = ref.watch(userProfileProvider).valueOrNull;
+
+  int profileMove() {
+    final tdee = profile?.tdee;
+    if (tdee == null || tdee <= 0) return manual.moveCalories;
+    // Round to nearest 50 kcal so the displayed denominator reads as a
+    // human-set number rather than a fractional estimate.
+    final raw = (tdee * 0.25).round();
+    return (raw / 50).round() * 50;
+  }
+
+  return ActivityGoals(
+    moveCalories: apple?.moveCalories ?? profileMove(),
+    exerciseMinutes: apple?.exerciseMinutes ?? manual.exerciseMinutes,
+    standHours: apple?.standHours ?? manual.standHours,
+  );
 });
 
 // ───────────────────────────────────────────────────────────────────────────
