@@ -51,7 +51,9 @@ flutter:
     - assets/.env
     - assets/icons/
     - assets/images/anatomy/
+    - assets/images/anatomy/masks/
     - assets/images/anatomy/light/
+    - assets/images/anatomy/light/masks/
   fonts:
     - family: Poppins
       fonts:
