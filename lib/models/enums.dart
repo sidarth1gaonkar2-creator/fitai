@@ -32,6 +32,10 @@ enum MuscleGroup {
   abs,
   obliques,
   cardio,
+  // New values MUST be appended — `PersonalRecord` stores this enum as an
+  // Isar ordinal (`EnumType.ordinal`), so reordering or inserting earlier
+  // would shift existing records' muscle-group references.
+  lowerBack,
 }
 
 enum ExerciseEquipment {
@@ -160,6 +164,7 @@ extension MuscleGroupLabel on MuscleGroup {
   String get label => switch (this) {
         MuscleGroup.chest => 'Chest',
         MuscleGroup.upperBack => 'Upper Back',
+        MuscleGroup.lowerBack => 'Lower Back',
         MuscleGroup.lats => 'Lats',
         MuscleGroup.shoulders => 'Shoulders',
         MuscleGroup.biceps => 'Biceps',

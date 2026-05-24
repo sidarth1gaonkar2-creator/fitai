@@ -193,8 +193,11 @@ const List<ExerciseDefinition> exerciseLibrary = [
   ExerciseDefinition(
     id: 'conventional_deadlift',
     name: 'Conventional Deadlift',
-    primaryMuscles: [MuscleGroup.upperBack, MuscleGroup.hamstrings, MuscleGroup.glutes],
-    secondaryMuscles: [MuscleGroup.forearms, MuscleGroup.lats, MuscleGroup.quads],
+    // Deadlift is a posterior-chain lift driven by the lower back / spinal
+    // erectors plus hamstrings and glutes. Lats / upper back are stabilisers,
+    // not prime movers — they belong in secondary.
+    primaryMuscles: [MuscleGroup.lowerBack, MuscleGroup.hamstrings, MuscleGroup.glutes],
+    secondaryMuscles: [MuscleGroup.upperBack, MuscleGroup.lats, MuscleGroup.quads, MuscleGroup.forearms],
     equipment: ExerciseEquipment.barbell,
     instructions: [
       'Stand with feet hip-width apart and the bar over your mid-foot.',
@@ -455,8 +458,10 @@ const List<ExerciseDefinition> exerciseLibrary = [
   ExerciseDefinition(
     id: 'barbell_back_squat',
     name: 'Barbell Back Squat',
-    primaryMuscles: [MuscleGroup.quads, MuscleGroup.glutes],
-    secondaryMuscles: [MuscleGroup.hamstrings, MuscleGroup.abs],
+    // Squat is quad-dominant; glutes, hams, and lower-back erectors are
+    // significant assistors but not the prime mover.
+    primaryMuscles: [MuscleGroup.quads],
+    secondaryMuscles: [MuscleGroup.glutes, MuscleGroup.hamstrings, MuscleGroup.lowerBack, MuscleGroup.abs],
     equipment: ExerciseEquipment.barbell,
     instructions: [
       'Position the bar on your upper traps and step back from the rack.',
@@ -498,7 +503,9 @@ const List<ExerciseDefinition> exerciseLibrary = [
   ExerciseDefinition(
     id: 'romanian_deadlift',
     name: 'Romanian Deadlift',
-    primaryMuscles: [MuscleGroup.hamstrings, MuscleGroup.glutes],
+    // RDL hits the full posterior chain — hams, glutes, AND the lower-back
+    // erectors holding the hinged position. Lats / upper back stabilise.
+    primaryMuscles: [MuscleGroup.hamstrings, MuscleGroup.glutes, MuscleGroup.lowerBack],
     secondaryMuscles: [MuscleGroup.upperBack, MuscleGroup.forearms],
     equipment: ExerciseEquipment.barbell,
     instructions: [
@@ -611,8 +618,10 @@ const List<ExerciseDefinition> exerciseLibrary = [
   ExerciseDefinition(
     id: 'goblet_squat',
     name: 'Goblet Squat',
-    primaryMuscles: [MuscleGroup.quads, MuscleGroup.glutes],
-    secondaryMuscles: [MuscleGroup.abs],
+    // Quad-dominant squat variant — glutes assist but the loading pattern
+    // (front-loaded, upright torso) emphasises the quads.
+    primaryMuscles: [MuscleGroup.quads],
+    secondaryMuscles: [MuscleGroup.glutes, MuscleGroup.abs],
     equipment: ExerciseEquipment.dumbbell,
     instructions: [
       'Hold a dumbbell vertically at your chest with both hands.',
@@ -1083,7 +1092,9 @@ const List<ExerciseDefinition> exerciseLibrary = [
   ExerciseDefinition(
     id: 'sumo_deadlift',
     name: 'Sumo Deadlift',
-    primaryMuscles: [MuscleGroup.glutes, MuscleGroup.quads, MuscleGroup.hamstrings],
+    // Sumo shifts emphasis to glutes + quads vs conventional, but the
+    // lower-back erectors still hold the spine — keep them in primary.
+    primaryMuscles: [MuscleGroup.glutes, MuscleGroup.quads, MuscleGroup.hamstrings, MuscleGroup.lowerBack],
     secondaryMuscles: [MuscleGroup.upperBack, MuscleGroup.forearms],
     equipment: ExerciseEquipment.barbell,
     instructions: [
@@ -1317,8 +1328,8 @@ const List<ExerciseDefinition> exerciseLibrary = [
   ExerciseDefinition(
     id: 'kettlebell_goblet_squat',
     name: 'Kettlebell Goblet Squat',
-    primaryMuscles: [MuscleGroup.quads, MuscleGroup.glutes],
-    secondaryMuscles: [MuscleGroup.abs],
+    primaryMuscles: [MuscleGroup.quads],
+    secondaryMuscles: [MuscleGroup.glutes, MuscleGroup.abs],
     equipment: ExerciseEquipment.kettlebell,
     instructions: [
       'Hold a kettlebell by the horns at chest height.',

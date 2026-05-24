@@ -22,6 +22,8 @@ String? _muscleGroupToZoneName(MuscleGroup g) {
       return 'chest';
     case MuscleGroup.upperBack:
       return 'traps';
+    case MuscleGroup.lowerBack:
+      return 'lower back';
     case MuscleGroup.lats:
       return 'lats';
     case MuscleGroup.shoulders:

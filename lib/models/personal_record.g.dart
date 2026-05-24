@@ -152,6 +152,7 @@ const _PersonalRecordmuscleGroupEnumValueMap = {
   'abs': 11,
   'obliques': 12,
   'cardio': 13,
+  'lowerBack': 14,
 };
 const _PersonalRecordmuscleGroupValueEnumMap = {
   0: MuscleGroup.chest,
@@ -168,6 +169,7 @@ const _PersonalRecordmuscleGroupValueEnumMap = {
   11: MuscleGroup.abs,
   12: MuscleGroup.obliques,
   13: MuscleGroup.cardio,
+  14: MuscleGroup.lowerBack,
 };
 
 Id _personalRecordGetId(PersonalRecord object) {

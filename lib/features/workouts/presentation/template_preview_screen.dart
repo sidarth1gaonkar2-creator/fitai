@@ -73,6 +73,8 @@ class _TemplatePreviewScreenState
     switch (m) {
       case MuscleGroup.upperBack:
         return 'upper back';
+      case MuscleGroup.lowerBack:
+        return 'lower back';
       case MuscleGroup.chest:
         return 'chest';
       case MuscleGroup.shoulders:

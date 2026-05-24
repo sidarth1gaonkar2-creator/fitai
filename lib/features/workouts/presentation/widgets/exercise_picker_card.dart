@@ -89,6 +89,7 @@ class ExercisePickerCard extends StatelessWidget {
   static IconData _muscleIcon(MuscleGroup muscle) => switch (muscle) {
         MuscleGroup.chest => Icons.fitness_center,
         MuscleGroup.upperBack => Icons.accessibility_new,
+        MuscleGroup.lowerBack => Icons.accessibility_new,
         MuscleGroup.lats => Icons.expand,
         MuscleGroup.shoulders => Icons.sports_gymnastics,
         MuscleGroup.biceps => Icons.sports_handball,
