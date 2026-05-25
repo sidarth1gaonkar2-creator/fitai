@@ -8,6 +8,17 @@ import '../core/utils/logger.dart';
 import '../features/nutrition/domain/food_search_result.dart';
 import '../models/enums.dart';
 
+/// Thrown when Spoonacular returns 402 (payment required / daily quota
+/// exhausted). Surfaced as a typed error so callers can show a graceful
+/// "limit reached" message instead of an empty result list that looks
+/// indistinguishable from a genuine miss.
+class SpoonacularQuotaException implements Exception {
+  const SpoonacularQuotaException(this.message);
+  final String message;
+  @override
+  String toString() => 'SpoonacularQuotaException: $message';
+}
+
 /// Secondary nutrition lookup service. Used for:
 ///   * Branded packaged products (`/food/products/...`)
 ///   * Barcode fallback when OpenFoodFacts has no record
@@ -31,6 +42,12 @@ class SpoonacularService {
   /// `GET /food/menuItems/search` — restaurant menu items (e.g.
   /// "chipotle burrito"). Returns a list of result rows; detail nutrition
   /// is fetched via [getMenuItem] using each row's id.
+  ///
+  /// Throws [SpoonacularQuotaException] on HTTP 402 / 429 (daily quota
+  /// exceeded or rate-limited at provider) so callers in the dedicated
+  /// menu-item search UI can show a friendly limit message. Other
+  /// callers (e.g. the merged USDA+Spoonacular food search) still wrap
+  /// the call in `catchError` and will see an empty list as before.
   Future<List<FoodSearchResult>> searchMenuItems(String query) async {
     if (!_hasKey || query.trim().isEmpty) return const [];
     final uri = Uri.https(_host, '/food/menuItems/search', {
@@ -44,6 +61,7 @@ class SpoonacularService {
       key: 'menuItems',
       parser: FoodSearchResult.fromSpoonacularMenuItem,
       logTag: 'menuItems',
+      throwOnQuota: true,
     );
   }
 
@@ -134,14 +152,23 @@ class SpoonacularService {
     required String key,
     required FoodSearchResult Function(Map<String, dynamic>) parser,
     required String logTag,
+    bool throwOnQuota = false,
   }) async {
     try {
       final request = await _client.getUrl(uri);
       request.headers.set('User-Agent', 'FitAI/1.0 (Flutter)');
       final response = await request.close();
-      if (response.statusCode == 401 || response.statusCode == 402) {
+      if (response.statusCode == 402 || response.statusCode == 429) {
         debugPrint('[Spoonacular] $logTag: '
-            'auth/quota error ${response.statusCode}');
+            'quota/rate-limit error ${response.statusCode}');
+        if (throwOnQuota) {
+          throw SpoonacularQuotaException(
+              'Daily quota exceeded (HTTP ${response.statusCode}).');
+        }
+        return const [];
+      }
+      if (response.statusCode == 401) {
+        debugPrint('[Spoonacular] $logTag: auth error 401');
         return const [];
       }
       if (response.statusCode != 200) {
@@ -157,6 +184,8 @@ class SpoonacularService {
           .map(parser)
           .where((r) => r.name != 'Unknown Item' && r.name != 'Unknown Product')
           .toList();
+    } on SpoonacularQuotaException {
+      rethrow;
     } catch (e, st) {
       AppLogger.error('Spoonacular $logTag threw', error: e, stack: st);
       return const [];

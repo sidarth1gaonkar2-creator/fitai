@@ -9,6 +9,7 @@ import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../data/exercise_library.dart';
 import '../../../data/workout_templates.dart';
 import '../../../models/enums.dart';
+import 'widgets/muscle_diagram_diagnostic.dart';
 import 'widgets/muscle_highlight_widget.dart';
 
 /// Previews a [WorkoutTemplate] with:
@@ -29,6 +30,10 @@ class TemplatePreviewScreen extends ConsumerStatefulWidget {
 class _TemplatePreviewScreenState
     extends ConsumerState<TemplatePreviewScreen> {
   late List<TemplateExercise> _exercises;
+  /// Mirrors the toggle on the diagnostic dialog. When true the muscle
+  /// diagram paints the muscle-name labels over the figure so TestFlight
+  /// testers can verify the widget is being told the right muscles.
+  bool _diagramDebugOverlay = false;
 
   @override
   void initState() {
@@ -123,6 +128,67 @@ class _TemplatePreviewScreenState
     }
   }
 
+  /// Builds a one-page text report showing every step of the
+  /// muscle-name resolution for the current exercise list, then opens
+  /// it as a scrollable CupertinoAlertDialog. Also offers a "Toggle
+  /// overlay" action that flips the labels-on-figure mode.
+  void _showDiagramDiagnostic() {
+    final entries = _exercises.map((te) {
+      final def = lookupExercise(id: te.exerciseId);
+      return MuscleDiagramDiagnosticEntry(
+        id: te.exerciseId,
+        name: def?.name,
+        primary: def?.primaryMuscles ?? const [],
+        secondary: def?.secondaryMuscles ?? const [],
+      );
+    }).toList();
+    final report = buildMuscleDiagramDiagnostic(
+      contextLabel: 'TEMPLATE: ${widget.template.name}',
+      extraIdLine: 'template.id: ${widget.template.id}',
+      entries: entries,
+      computedPrimary: _primaryMuscles.toSet(),
+      computedSecondary: _secondaryMuscles.toSet(),
+      muscleStringFn: _muscleName,
+    );
+    showCupertinoDialog<void>(
+      context: context,
+      builder: (dialogCtx) => CupertinoAlertDialog(
+        title: const Text('Muscle Diagram Diagnostic'),
+        content: SizedBox(
+          width: 320,
+          height: 360,
+          child: SingleChildScrollView(
+            child: Text(
+              report,
+              style: const TextStyle(
+                fontFamily: 'Menlo',
+                fontSize: 11,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              setState(
+                  () => _diagramDebugOverlay = !_diagramDebugOverlay);
+            },
+            child: Text(_diagramDebugOverlay
+                ? 'Hide overlay'
+                : 'Show overlay on figure'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _removeExercise(int index) {
     setState(() => _exercises.removeAt(index));
   }
@@ -170,6 +236,14 @@ class _TemplatePreviewScreenState
         middle: Text(widget.template.name),
         backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
         border: null,
+        // 🔍 = open on-screen muscle-diagram diagnostic. Visible in
+        // release/TestFlight builds (no kDebugMode guard) while we
+        // investigate the template-diagram-wrong-muscles bug.
+        trailing: CupertinoButton(
+          padding: const EdgeInsets.all(8),
+          onPressed: _showDiagramDiagnostic,
+          child: const Icon(CupertinoIcons.search, size: 22),
+        ),
       ),
       body: _exercises.isEmpty
           ? Center(
@@ -269,6 +343,7 @@ class _TemplatePreviewScreenState
                               .where((s) => s.isNotEmpty)
                               .toList(),
                           height: 220,
+                          debugOverlay: _diagramDebugOverlay,
                         ),
                       ),
                     ),

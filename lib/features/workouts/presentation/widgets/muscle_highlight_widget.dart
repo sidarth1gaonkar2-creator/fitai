@@ -28,12 +28,31 @@ class MuscleHighlightWidget extends StatelessWidget {
     this.secondaryMuscles = const [],
     this.height = 280,
     this.compact = false,
+    this.debugOverlay = false,
   });
 
   final List<String> targetMuscles;
   final List<String> secondaryMuscles;
   final double height;
   final bool compact;
+
+  /// When true, paints the muscle-name strings (with their resolved PNG
+  /// sheet stem in parens) on top of the figure so a TestFlight tester
+  /// can verify what the widget *thinks* it's drawing without needing a
+  /// debugger. No `kDebugMode` guard — intentionally visible in
+  /// release builds while the diagram bug is under investigation.
+  final bool debugOverlay;
+
+  /// Returns the front-sheet PNG stem (e.g. `front-chest`) that the
+  /// given muscle name resolves to, or null if unmapped. Exposed so the
+  /// in-app diagnostic dialog can show the full per-muscle mapping
+  /// without duplicating the lookup table.
+  static String? frontSheetFor(String muscle) =>
+      _AnatomySheets._front[MuscleMap.normalize(muscle)];
+
+  /// Returns the back-sheet PNG stem, or null if unmapped.
+  static String? backSheetFor(String muscle) =>
+      _AnatomySheets._back[MuscleMap.normalize(muscle)];
 
   // Native dimensions of every anatomy PNG.
   static const double _nativeWidth = 669;
@@ -79,7 +98,7 @@ class MuscleHighlightWidget extends StatelessWidget {
     // Nothing matched at all — render a single neutral front body so the
     // section never collapses to zero height.
     if (!showFront && !showBack) {
-      return _layout(
+      return _maybeWithOverlay(_layout(
         height: height,
         children: [
           _BodyPanel(
@@ -89,7 +108,7 @@ class MuscleHighlightWidget extends StatelessWidget {
             aspectRatio: _nativeWidth / _nativeHeight,
           ),
         ],
-      );
+      ));
     }
 
     final panels = <Widget>[];
@@ -110,7 +129,56 @@ class MuscleHighlightWidget extends StatelessWidget {
       ));
     }
 
-    return _layout(height: height, children: panels);
+    return _maybeWithOverlay(_layout(height: height, children: panels));
+  }
+
+  /// Wraps [child] in a Stack with a "what muscles am I drawing" label
+  /// pile when [debugOverlay] is true; otherwise returns [child] as-is.
+  Widget _maybeWithOverlay(Widget child) {
+    if (!debugOverlay) return child;
+    return Stack(
+      children: [
+        child,
+        Positioned(
+          left: 4,
+          right: 4,
+          top: 4,
+          child: IgnorePointer(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'TARGETS: ${targetMuscles.isEmpty ? "(none)" : targetMuscles.join(", ")}',
+                    style: const TextStyle(
+                      color: Color(0xFFFFD54F),
+                      fontSize: 10,
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (secondaryMuscles.isNotEmpty)
+                    Text(
+                      'SECONDARY: ${secondaryMuscles.join(", ")}',
+                      style: const TextStyle(
+                        color: Color(0xFFB0BEC5),
+                        fontSize: 10,
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   /// Composes one side. The first primary sheet (if any) becomes the

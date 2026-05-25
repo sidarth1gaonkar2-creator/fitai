@@ -12,6 +12,7 @@ import '../models/enums.dart';
 import '../models/food_entry.dart';
 import '../models/meal.dart';
 import '../models/nutrition_log.dart';
+import '../services/menu_item_cache_service.dart';
 import '../services/open_food_facts_service.dart';
 import '../services/spoonacular_service.dart';
 import '../services/usda_service.dart';
@@ -39,6 +40,14 @@ final usdaServiceProvider = Provider<UsdaService>((ref) {
 final spoonacularServiceProvider = Provider<SpoonacularService>((ref) {
   final apiKey = dotenv.env['SPOONACULAR_API_KEY'] ?? '';
   return SpoonacularService(apiKey);
+});
+
+/// Persistent menu-item cache + rate limiter. One instance per Isar
+/// session — keeping the rate-limiter state alive across screens means
+/// rapid back-and-forth navigation doesn't blow through the burst limit.
+final menuItemCacheServiceProvider = Provider<MenuItemCacheService>((ref) {
+  final isar = ref.watch(isarProvider);
+  return MenuItemCacheService(isar);
 });
 
 /// Which tab is selected on the Nutrition screen (0 = Meal Plans, 1 = Food Log).

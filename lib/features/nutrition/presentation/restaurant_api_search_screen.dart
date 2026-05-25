@@ -9,8 +9,11 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/nutrient_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/shimmer_loading.dart';
+import '../../../data/restaurant_preseed_items.dart';
 import '../../../models/enums.dart';
 import '../../../providers/nutrition_providers.dart';
+import '../../../services/menu_item_cache_service.dart';
+import '../../../services/spoonacular_service.dart';
 import '../domain/food_search_result.dart';
 
 /// Spoonacular-backed menu-item search for restaurants we don't hand-model
@@ -50,8 +53,13 @@ class _RestaurantApiSearchScreenState
   String _currentQuery = '';
   bool _loading = false;
   Object? _error;
+  /// True when this session has been told by Spoonacular that the
+  /// daily quota is gone. We stop hitting the API for the remainder of
+  /// the screen lifetime and surface the curated/cached data only.
+  bool _quotaExhausted = false;
   List<FoodSearchResult> _results = const [];
-  // Session-scoped cache so repeat searches don't burn quota.
+  // Session-scoped memoisation so re-typing the same query (which is
+  // common as a user backspaces and retypes) doesn't re-query Isar.
   final Map<String, List<FoodSearchResult>> _cache = {};
 
   @override
@@ -93,6 +101,9 @@ class _RestaurantApiSearchScreenState
     });
   }
 
+  /// Pulls results from (1) session memo, (2) Isar cache, (3) curated
+  /// pre-seed for the chain, then optionally (4) Spoonacular if we
+  /// don't have enough rows and the rate limiter / daily-quota permit.
   Future<void> _runSearch() async {
     final q = _currentQuery;
     if (q.isEmpty) {
@@ -115,20 +126,99 @@ class _RestaurantApiSearchScreenState
       _loading = true;
       _error = null;
     });
+
+    final cacheSvc = ref.read(menuItemCacheServiceProvider);
+    final restaurant = widget.restaurantName.trim();
+    // The user typed everything to the right of the restaurant name —
+    // we use that as the secondary search filter against pre-seed and
+    // cache keys.
+    final userPart = q.startsWith(restaurant)
+        ? q.substring(restaurant.length).trim()
+        : q;
+    final cacheKey = MenuItemCacheService.buildKey(restaurant, userPart);
+
+    // 1. Isar cache (≤ 7 days old).
+    List<FoodSearchResult> combined;
+    try {
+      combined = await cacheSvc.readCache(cacheKey);
+    } catch (_) {
+      combined = const [];
+    }
+
+    // 2. Pre-seed curated list. Merge by item name (case-insensitive)
+    //    so the cache wins when the same item exists in both — cache
+    //    has the real Spoonacular nutrition, pre-seed is a fallback.
+    final seen = combined
+        .map((r) => r.name.toLowerCase().trim())
+        .toSet();
+    final preSeed = preSeedResultsFor(
+        restaurantName: restaurant, query: userPart);
+    for (final item in preSeed) {
+      if (seen.add(item.name.toLowerCase().trim())) combined.add(item);
+    }
+
+    // 3. If we already have a healthy result count OR we've already
+    //    been told quota is gone, skip the network call.
+    if (combined.length >= 8 || _quotaExhausted) {
+      if (!mounted) return;
+      _cache[q] = combined;
+      setState(() {
+        _results = combined;
+        _loading = false;
+      });
+      return;
+    }
+
+    // 4. Rate-limited API call. tryAcquireSlot returns false if we've
+    //    already burned the 5 calls-per-minute budget; in that case we
+    //    return whatever cache + pre-seed gave us without surfacing an
+    //    error (degraded but not broken).
+    if (!cacheSvc.tryAcquireSlot()) {
+      if (!mounted) return;
+      _cache[q] = combined;
+      setState(() {
+        _results = combined;
+        _loading = false;
+      });
+      return;
+    }
+
     try {
       final spoon = ref.read(spoonacularServiceProvider);
-      final results = await spoon.searchMenuItems(q);
+      final apiResults = await spoon.searchMenuItems(q);
       if (!mounted) return;
-      _cache[q] = results;
+      // Persist the API batch under this cache key so the next 7 days
+      // of identical searches cost nothing.
+      await cacheSvc.persistResults(cacheKey, restaurant, apiResults);
+      for (final item in apiResults) {
+        if (seen.add(item.name.toLowerCase().trim())) combined.add(item);
+      }
+      if (!mounted) return;
+      _cache[q] = combined;
       setState(() {
-        _results = results;
+        _results = combined;
         _loading = false;
+      });
+    } on SpoonacularQuotaException {
+      if (!mounted) return;
+      _cache[q] = combined;
+      setState(() {
+        _quotaExhausted = true;
+        _results = combined;
+        _loading = false;
+        // Empty cache + empty pre-seed → show the friendly limit
+        // message. If we have *some* results, just show them silently
+        // (a banner could distract from a usable list).
+        _error = combined.isEmpty
+            ? const _QuotaExhaustedError()
+            : null;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e;
+        _results = combined;
         _loading = false;
+        _error = combined.isEmpty ? e : null;
       });
     }
   }
@@ -204,6 +294,7 @@ class _RestaurantApiSearchScreenState
     }
     if (_error != null) {
       final isOffline = _error is SocketException;
+      final isQuota = _error is _QuotaExhaustedError;
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -211,24 +302,38 @@ class _RestaurantApiSearchScreenState
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                isOffline ? Icons.wifi_off : Icons.cloud_off_outlined,
+                isQuota
+                    ? Icons.timer_outlined
+                    : isOffline
+                        ? Icons.wifi_off
+                        : Icons.cloud_off_outlined,
                 size: 48,
                 color: palette.textSecondary,
               ),
               const SizedBox(height: 8),
               Text(
-                isOffline
-                    ? 'No internet connection.'
-                    : 'Could not load menu items.',
+                isQuota
+                    ? 'Daily search limit reached.\nTry again tomorrow or browse our '
+                        'built-in restaurant menus.'
+                    : isOffline
+                        ? 'No internet connection.'
+                        : 'Could not load menu items.',
                 style: TextStyle(color: palette.text),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: _runSearch,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-              ),
+              if (!isQuota)
+                OutlinedButton.icon(
+                  onPressed: _runSearch,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              if (isQuota)
+                OutlinedButton.icon(
+                  onPressed: () => context.go('/nutrition/restaurants'),
+                  icon: const Icon(Icons.menu_book_outlined),
+                  label: const Text('Browse built-in menus'),
+                ),
             ],
           ),
         ),
@@ -331,6 +436,13 @@ class _ResultTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Marker error used when Spoonacular tells us the daily quota has been
+/// exhausted. Lets [_buildBody] swap to a friendly "limit reached" panel
+/// without coupling the UI to the typed [SpoonacularQuotaException].
+class _QuotaExhaustedError implements Exception {
+  const _QuotaExhaustedError();
 }
 
 class _Fallback extends StatelessWidget {
