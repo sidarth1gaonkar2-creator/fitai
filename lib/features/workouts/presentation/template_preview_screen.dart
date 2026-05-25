@@ -127,7 +127,6 @@ class _TemplatePreviewScreenState
       name: widget.template.name,
       description: widget.template.description,
       category: widget.template.category,
-      muscleGroups: widget.template.muscleGroups,
       difficulty: widget.template.difficulty,
       estimatedMinutes: widget.template.estimatedMinutes,
       exercises: List<TemplateExercise>.from(_exercises),

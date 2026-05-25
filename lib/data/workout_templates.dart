@@ -1,4 +1,5 @@
 import '../models/enums.dart';
+import 'exercise_library.dart';
 
 enum WorkoutTemplateCategory {
   splits,
@@ -38,7 +39,6 @@ class WorkoutTemplate {
     required this.name,
     required this.description,
     required this.category,
-    required this.muscleGroups,
     required this.difficulty,
     required this.estimatedMinutes,
     required this.exercises,
@@ -48,10 +48,35 @@ class WorkoutTemplate {
   final String name;
   final String description;
   final WorkoutTemplateCategory category;
-  final List<MuscleGroup> muscleGroups;
   final ExerciseDifficulty difficulty;
   final int estimatedMinutes;
   final List<TemplateExercise> exercises;
+
+  /// Aggregated primary + secondary muscle groups for this template,
+  /// derived live from [exerciseLibrary] via each [TemplateExercise]'s id.
+  ///
+  /// Previously this was a hand-maintained list stored on every template
+  /// definition. That copy went stale every time an exercise's muscle data
+  /// was corrected (e.g., when Deadlift moved from `upperBack` to
+  /// `lowerBack`). Computing it on read means template chips, summaries,
+  /// and any other consumer always reflect the current library — no
+  /// per-template babysitting required.
+  ///
+  /// Preserves insertion order via [LinkedHashSet] semantics so callers
+  /// that show the first N muscles get the most prominent groups first
+  /// (the order matches the order exercises appear in the template).
+  List<MuscleGroup> get muscleGroups {
+    final out = <MuscleGroup>{};
+    for (final te in exercises) {
+      final def = exerciseLibrary
+          .where((d) => d.id == te.exerciseId)
+          .firstOrNull;
+      if (def == null) continue;
+      out.addAll(def.primaryMuscles);
+      out.addAll(def.secondaryMuscles);
+    }
+    return out.toList();
+  }
 }
 
 const List<WorkoutTemplate> workoutTemplates = [
@@ -66,7 +91,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Chest, shoulders, and triceps focused push workout with compound and isolation movements.',
     category: WorkoutTemplateCategory.splits,
-    muscleGroups: [MuscleGroup.chest, MuscleGroup.shoulders, MuscleGroup.triceps],
     difficulty: ExerciseDifficulty.intermediate,
     estimatedMinutes: 55,
     exercises: [
@@ -86,11 +110,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Back and biceps focused pull workout hitting lats, upper back, and arms.',
     category: WorkoutTemplateCategory.splits,
-    muscleGroups: [
-      MuscleGroup.lats,
-      MuscleGroup.upperBack,
-      MuscleGroup.biceps,
-    ],
     difficulty: ExerciseDifficulty.intermediate,
     estimatedMinutes: 50,
     exercises: [
@@ -110,12 +129,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Complete lower body workout targeting quads, hamstrings, glutes, and calves.',
     category: WorkoutTemplateCategory.splits,
-    muscleGroups: [
-      MuscleGroup.quads,
-      MuscleGroup.hamstrings,
-      MuscleGroup.glutes,
-      MuscleGroup.calves,
-    ],
     difficulty: ExerciseDifficulty.intermediate,
     estimatedMinutes: 60,
     exercises: [
@@ -135,14 +148,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Balanced upper body session hitting chest, back, shoulders, and arms.',
     category: WorkoutTemplateCategory.splits,
-    muscleGroups: [
-      MuscleGroup.chest,
-      MuscleGroup.lats,
-      MuscleGroup.upperBack,
-      MuscleGroup.shoulders,
-      MuscleGroup.biceps,
-      MuscleGroup.triceps,
-    ],
     difficulty: ExerciseDifficulty.intermediate,
     estimatedMinutes: 60,
     exercises: [
@@ -163,12 +168,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Lower body workout with compound lifts and accessory work for quads, hamstrings, glutes, and calves.',
     category: WorkoutTemplateCategory.splits,
-    muscleGroups: [
-      MuscleGroup.quads,
-      MuscleGroup.hamstrings,
-      MuscleGroup.glutes,
-      MuscleGroup.calves,
-    ],
     difficulty: ExerciseDifficulty.intermediate,
     estimatedMinutes: 55,
     exercises: [
@@ -188,7 +187,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Push day variant for a Push/Pull/Legs rotation with an added chest dip.',
     category: WorkoutTemplateCategory.splits,
-    muscleGroups: [MuscleGroup.chest, MuscleGroup.shoulders, MuscleGroup.triceps],
     difficulty: ExerciseDifficulty.intermediate,
     estimatedMinutes: 60,
     exercises: [
@@ -209,11 +207,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Pull day variant for a Push/Pull/Legs rotation with an added chin up.',
     category: WorkoutTemplateCategory.splits,
-    muscleGroups: [
-      MuscleGroup.lats,
-      MuscleGroup.upperBack,
-      MuscleGroup.biceps,
-    ],
     difficulty: ExerciseDifficulty.intermediate,
     estimatedMinutes: 55,
     exercises: [
@@ -234,12 +227,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Legs day variant for a Push/Pull/Legs rotation with an added hip thrust.',
     category: WorkoutTemplateCategory.splits,
-    muscleGroups: [
-      MuscleGroup.quads,
-      MuscleGroup.hamstrings,
-      MuscleGroup.glutes,
-      MuscleGroup.calves,
-    ],
     difficulty: ExerciseDifficulty.intermediate,
     estimatedMinutes: 65,
     exercises: [
@@ -264,11 +251,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Arnold-style superset workout pairing chest and back movements for maximum pump.',
     category: WorkoutTemplateCategory.splits,
-    muscleGroups: [
-      MuscleGroup.chest,
-      MuscleGroup.lats,
-      MuscleGroup.upperBack,
-    ],
     difficulty: ExerciseDifficulty.advanced,
     estimatedMinutes: 60,
     exercises: [
@@ -288,11 +270,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Arnold-style shoulder and arm workout with presses, raises, curls, and extensions.',
     category: WorkoutTemplateCategory.splits,
-    muscleGroups: [
-      MuscleGroup.shoulders,
-      MuscleGroup.biceps,
-      MuscleGroup.triceps,
-    ],
     difficulty: ExerciseDifficulty.advanced,
     estimatedMinutes: 55,
     exercises: [
@@ -313,12 +290,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Arnold-style leg workout with front squats, back squats, and full accessory work.',
     category: WorkoutTemplateCategory.splits,
-    muscleGroups: [
-      MuscleGroup.quads,
-      MuscleGroup.hamstrings,
-      MuscleGroup.glutes,
-      MuscleGroup.calves,
-    ],
     difficulty: ExerciseDifficulty.advanced,
     estimatedMinutes: 60,
     exercises: [
@@ -342,12 +313,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Classic 5x5 strength program Day A: squat, bench, and row with heavy loads and long rest.',
     category: WorkoutTemplateCategory.strength,
-    muscleGroups: [
-      MuscleGroup.quads,
-      MuscleGroup.glutes,
-      MuscleGroup.chest,
-      MuscleGroup.upperBack,
-    ],
     difficulty: ExerciseDifficulty.intermediate,
     estimatedMinutes: 45,
     exercises: [
@@ -379,12 +344,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Classic 5x5 strength program Day B: squat, overhead press, and deadlift with heavy loads and long rest.',
     category: WorkoutTemplateCategory.strength,
-    muscleGroups: [
-      MuscleGroup.quads,
-      MuscleGroup.glutes,
-      MuscleGroup.shoulders,
-      MuscleGroup.hamstrings,
-    ],
     difficulty: ExerciseDifficulty.intermediate,
     estimatedMinutes: 40,
     exercises: [
@@ -420,7 +379,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'High intensity interval training with burpees, jump rope, and mountain climbers in a Tabata-style format.',
     category: WorkoutTemplateCategory.cardio,
-    muscleGroups: [MuscleGroup.cardio],
     difficulty: ExerciseDifficulty.intermediate,
     estimatedMinutes: 20,
     exercises: [
@@ -455,7 +413,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Low-impact steady state cardio session with treadmill running and optional stationary cycling cooldown.',
     category: WorkoutTemplateCategory.cardio,
-    muscleGroups: [MuscleGroup.cardio],
     difficulty: ExerciseDifficulty.beginner,
     estimatedMinutes: 45,
     exercises: [
@@ -483,7 +440,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Treadmill interval run alternating between fast 400m efforts and walking recovery.',
     category: WorkoutTemplateCategory.cardio,
-    muscleGroups: [MuscleGroup.cardio],
     difficulty: ExerciseDifficulty.intermediate,
     estimatedMinutes: 30,
     exercises: [
@@ -508,14 +464,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Beginner-friendly full body workout with core barbell compound movements.',
     category: WorkoutTemplateCategory.beginner,
-    muscleGroups: [
-      MuscleGroup.quads,
-      MuscleGroup.glutes,
-      MuscleGroup.chest,
-      MuscleGroup.upperBack,
-      MuscleGroup.shoulders,
-      MuscleGroup.biceps,
-    ],
     difficulty: ExerciseDifficulty.beginner,
     estimatedMinutes: 40,
     exercises: [
@@ -559,14 +507,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Beginner-friendly full body workout alternating with Full Body A for balanced weekly programming.',
     category: WorkoutTemplateCategory.beginner,
-    muscleGroups: [
-      MuscleGroup.quads,
-      MuscleGroup.glutes,
-      MuscleGroup.shoulders,
-      MuscleGroup.hamstrings,
-      MuscleGroup.lats,
-      MuscleGroup.biceps,
-    ],
     difficulty: ExerciseDifficulty.beginner,
     estimatedMinutes: 40,
     exercises: [
@@ -610,15 +550,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'Dumbbell-only full body workout ideal for home gyms or beginners without barbell access.',
     category: WorkoutTemplateCategory.beginner,
-    muscleGroups: [
-      MuscleGroup.quads,
-      MuscleGroup.glutes,
-      MuscleGroup.chest,
-      MuscleGroup.upperBack,
-      MuscleGroup.shoulders,
-      MuscleGroup.biceps,
-      MuscleGroup.triceps,
-    ],
     difficulty: ExerciseDifficulty.beginner,
     estimatedMinutes: 35,
     exercises: [
@@ -668,14 +599,6 @@ const List<WorkoutTemplate> workoutTemplates = [
     description:
         'No-equipment bodyweight workout covering push, pull, legs, and core for absolute beginners.',
     category: WorkoutTemplateCategory.beginner,
-    muscleGroups: [
-      MuscleGroup.chest,
-      MuscleGroup.lats,
-      MuscleGroup.quads,
-      MuscleGroup.glutes,
-      MuscleGroup.abs,
-      MuscleGroup.cardio,
-    ],
     difficulty: ExerciseDifficulty.beginner,
     estimatedMinutes: 25,
     exercises: [
