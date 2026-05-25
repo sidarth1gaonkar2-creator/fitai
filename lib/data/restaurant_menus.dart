@@ -67,14 +67,22 @@ class MenuCategory {
 /// One restaurant. Holds shared branding (emoji, accent color) and a map of
 /// meal-type → category list. Meal types are the high-level "what am I
 /// building" choice (Burrito vs Bowl vs Tacos at Chipotle).
+///
+/// Sit-down / large-menu chains that aren't worth hand-modelling
+/// (Cheesecake Factory's 250+ items, etc.) set [searchOnly] = true.
+/// Tapping those routes to the Spoonacular-backed menu-item search instead
+/// of the builder. [searchSeed] pre-fills the query; pass `''` for a
+/// blank-start catch-all like "Other Restaurant".
 class RestaurantMenu {
   const RestaurantMenu({
     required this.id,
     required this.name,
     required this.emoji,
     required this.accentColor,
-    required this.mealTypes,
-    required this.builders,
+    this.mealTypes = const [],
+    this.builders = const {},
+    this.searchOnly = false,
+    this.searchSeed,
   });
 
   final String id;
@@ -83,6 +91,8 @@ class RestaurantMenu {
   final Color accentColor;
   final List<String> mealTypes;
   final Map<String, List<MenuCategory>> builders;
+  final bool searchOnly;
+  final String? searchSeed;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -1115,10 +1125,13 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Spicy Broccoli + Greens', calories: 100, protein: 7, carbs: 16, fat: 3),
           ],
         ),
+        // Sweetgreen lets you stack proteins (Chicken + Steak, Salmon +
+        // Tofu, etc.). Cap at 3 to match the in-store add-on limit.
         MenuCategory(
           name: 'Protein',
-          mode: SelectionMode.single,
+          mode: SelectionMode.multiple,
           optional: true,
+          maxSelections: 3,
           allowDouble: true,
           items: [
             MenuItem(name: 'Roasted Chicken', calories: 220, protein: 36, carbs: 1, fat: 7),
@@ -1180,7 +1193,8 @@ final List<RestaurantMenu> restaurantMenus = [
         ),
         MenuCategory(
           name: 'Protein',
-          mode: SelectionMode.single,
+          mode: SelectionMode.multiple,
+          maxSelections: 3,
           allowDouble: true,
           items: [
             MenuItem(name: 'Roasted Chicken', calories: 220, protein: 36, carbs: 1, fat: 7),
@@ -1254,9 +1268,14 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Splendid Greens & Grains', calories: 200, protein: 9, carbs: 32, fat: 4),
           ],
         ),
+        // CAVA lets guests stack up to three proteins on one bowl (the
+        // "Mediterranean Trio" — Grilled Chicken + Falafel + Meatballs is
+        // a popular combo). Multi-select with maxSelections: 3 enforces
+        // the in-store cap; the running "(N of 3 max)" hint drives the UX.
         MenuCategory(
           name: 'Protein',
-          mode: SelectionMode.single,
+          mode: SelectionMode.multiple,
+          maxSelections: 3,
           allowDouble: true,
           items: [
             MenuItem(name: 'Grilled Chicken', calories: 250, protein: 36, carbs: 1, fat: 11),
@@ -1319,7 +1338,9 @@ final List<RestaurantMenu> restaurantMenus = [
         ),
         MenuCategory(
           name: 'Protein',
-          mode: SelectionMode.single,
+          mode: SelectionMode.multiple,
+          maxSelections: 3,
+          allowDouble: true,
           items: [
             MenuItem(name: 'Grilled Chicken', calories: 250, protein: 36, carbs: 1, fat: 11),
             MenuItem(name: 'Falafel (4 pcs)', calories: 240, protein: 11, carbs: 25, fat: 11),
@@ -1350,7 +1371,9 @@ final List<RestaurantMenu> restaurantMenus = [
         ),
         MenuCategory(
           name: 'Protein',
-          mode: SelectionMode.single,
+          mode: SelectionMode.multiple,
+          maxSelections: 3,
+          allowDouble: true,
           items: [
             MenuItem(name: 'Grilled Chicken', calories: 250, protein: 36, carbs: 1, fat: 11),
             MenuItem(name: 'Harissa Honey Chicken', calories: 310, protein: 35, carbs: 17, fat: 11),
@@ -1380,6 +1403,2260 @@ final List<RestaurantMenu> restaurantMenus = [
         ),
       ],
     },
+  ),
+
+  // 11. BURGER KING — bk.com nutrition explorer.
+  RestaurantMenu(
+    id: 'burgerking',
+    name: 'Burger King',
+    emoji: '🍔',
+    accentColor: const Color(0xFFDA291C),
+    mealTypes: const ['Burgers', 'Chicken & Fish', 'Nuggets', 'Sides', 'Breakfast', 'Drinks'],
+    builders: {
+      'Burgers': const [
+        MenuCategory(
+          name: 'Burger',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Whopper', calories: 670, protein: 28, carbs: 51, fat: 40),
+            MenuItem(name: 'Whopper Jr', calories: 310, protein: 13, carbs: 27, fat: 17),
+            MenuItem(name: 'Double Whopper', calories: 900, protein: 49, carbs: 51, fat: 56),
+            MenuItem(name: 'Bacon King', calories: 1150, protein: 61, carbs: 50, fat: 79),
+            MenuItem(name: 'Hamburger', calories: 240, protein: 12, carbs: 27, fat: 10),
+            MenuItem(name: 'Cheeseburger', calories: 290, protein: 15, carbs: 28, fat: 13),
+          ],
+        ),
+        MenuCategory(
+          name: 'Add-ons',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Extra Cheese (slice)', calories: 50, protein: 3, carbs: 1, fat: 4),
+            MenuItem(name: 'Extra Bacon (2 strips)', calories: 70, protein: 5, carbs: 0, fat: 6),
+            MenuItem(name: 'Extra Patty', calories: 230, protein: 14, carbs: 0, fat: 19),
+          ],
+        ),
+        MenuCategory(
+          name: 'Toppings',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Tomato', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Onion', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Pickles', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Ketchup', calories: 10, protein: 0, carbs: 2, fat: 0),
+            MenuItem(name: 'Mustard', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Mayo', calories: 90, protein: 0, carbs: 1, fat: 10),
+          ],
+        ),
+        MenuCategory(
+          name: 'Side',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'Small Fries', calories: 230, protein: 3, carbs: 32, fat: 11),
+            MenuItem(name: 'Medium Fries', calories: 320, protein: 4, carbs: 44, fat: 15),
+            MenuItem(name: 'Large Fries', calories: 430, protein: 5, carbs: 60, fat: 20),
+            MenuItem(name: 'Onion Rings (S)', calories: 150, protein: 2, carbs: 17, fat: 8),
+            MenuItem(name: 'Onion Rings (M)', calories: 320, protein: 4, carbs: 36, fat: 18),
+            MenuItem(name: 'Mozzarella Sticks (4)', calories: 280, protein: 12, carbs: 24, fat: 14),
+            MenuItem(name: 'Side Salad', calories: 60, protein: 4, carbs: 7, fat: 2),
+          ],
+        ),
+      ],
+      'Chicken & Fish': const [
+        MenuCategory(
+          name: 'Entree',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Original Chicken Sandwich', calories: 660, protein: 24, carbs: 49, fat: 40),
+            MenuItem(name: "Ch'King", calories: 880, protein: 36, carbs: 62, fat: 51),
+            MenuItem(name: "Spicy Ch'King", calories: 880, protein: 36, carbs: 62, fat: 51),
+            MenuItem(name: 'Chicken Fries (9 pc)', calories: 280, protein: 13, carbs: 19, fat: 17),
+            MenuItem(name: 'Big Fish Sandwich', calories: 480, protein: 18, carbs: 46, fat: 25),
+          ],
+        ),
+        MenuCategory(
+          name: 'Sauce',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'BBQ', calories: 40, protein: 0, carbs: 11, fat: 0),
+            MenuItem(name: 'Ranch', calories: 140, protein: 0, carbs: 2, fat: 15),
+            MenuItem(name: 'Buffalo', calories: 70, protein: 0, carbs: 2, fat: 7),
+            MenuItem(name: 'Honey Mustard', calories: 90, protein: 0, carbs: 10, fat: 6),
+            MenuItem(name: 'Sweet & Sour', calories: 45, protein: 0, carbs: 11, fat: 0),
+            MenuItem(name: 'Zesty Sauce', calories: 150, protein: 0, carbs: 4, fat: 14),
+          ],
+        ),
+      ],
+      'Nuggets': const [
+        MenuCategory(
+          name: 'Nuggets',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Nuggets (4 pc)', calories: 170, protein: 9, carbs: 11, fat: 11),
+            MenuItem(name: 'Nuggets (8 pc)', calories: 340, protein: 18, carbs: 22, fat: 22),
+            MenuItem(name: 'Nuggets (10 pc)', calories: 420, protein: 22, carbs: 27, fat: 27),
+          ],
+        ),
+        MenuCategory(
+          name: 'Sauce',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'BBQ', calories: 40, protein: 0, carbs: 11, fat: 0),
+            MenuItem(name: 'Ranch', calories: 140, protein: 0, carbs: 2, fat: 15),
+            MenuItem(name: 'Buffalo', calories: 70, protein: 0, carbs: 2, fat: 7),
+            MenuItem(name: 'Honey Mustard', calories: 90, protein: 0, carbs: 10, fat: 6),
+            MenuItem(name: 'Sweet & Sour', calories: 45, protein: 0, carbs: 11, fat: 0),
+          ],
+        ),
+      ],
+      'Sides': const [
+        MenuCategory(
+          name: 'Side',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Small Fries', calories: 230, protein: 3, carbs: 32, fat: 11),
+            MenuItem(name: 'Medium Fries', calories: 320, protein: 4, carbs: 44, fat: 15),
+            MenuItem(name: 'Large Fries', calories: 430, protein: 5, carbs: 60, fat: 20),
+            MenuItem(name: 'Onion Rings (S)', calories: 150, protein: 2, carbs: 17, fat: 8),
+            MenuItem(name: 'Onion Rings (M)', calories: 320, protein: 4, carbs: 36, fat: 18),
+            MenuItem(name: 'Onion Rings (L)', calories: 470, protein: 6, carbs: 53, fat: 26),
+            MenuItem(name: 'Mozzarella Sticks (4)', calories: 280, protein: 12, carbs: 24, fat: 14),
+            MenuItem(name: 'Side Salad', calories: 60, protein: 4, carbs: 7, fat: 2),
+          ],
+        ),
+      ],
+      'Breakfast': const [
+        MenuCategory(
+          name: 'Entree',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: "Croissan'wich (Sausage, Egg, Cheese)", calories: 500, protein: 18, carbs: 28, fat: 33),
+            MenuItem(name: "Croissan'wich (Bacon, Egg, Cheese)", calories: 360, protein: 14, carbs: 28, fat: 21),
+            MenuItem(name: "Croissan'wich (Ham, Egg, Cheese)", calories: 370, protein: 19, carbs: 28, fat: 19),
+            MenuItem(name: 'Pancakes (3 pc + syrup)', calories: 470, protein: 7, carbs: 73, fat: 14),
+            MenuItem(name: 'French Toast Sticks (5 pc)', calories: 380, protein: 5, carbs: 46, fat: 20),
+            MenuItem(name: 'Hash Browns (Small)', calories: 240, protein: 2, carbs: 25, fat: 15),
+          ],
+        ),
+      ],
+      'Drinks': const [
+        MenuCategory(
+          name: 'Drink',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Small Coke', calories: 220, protein: 0, carbs: 60, fat: 0),
+            MenuItem(name: 'Medium Coke', calories: 290, protein: 0, carbs: 78, fat: 0),
+            MenuItem(name: 'Large Coke', calories: 390, protein: 0, carbs: 106, fat: 0),
+            MenuItem(name: 'Diet Coke', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Sprite (M)', calories: 280, protein: 0, carbs: 77, fat: 0),
+            MenuItem(name: 'Iced Tea (Unsweet)', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Water', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Coffee (S)', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Chocolate Shake (M)', calories: 730, protein: 13, carbs: 110, fat: 26),
+            MenuItem(name: 'Vanilla Shake (M)', calories: 680, protein: 13, carbs: 99, fat: 26),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // 12. DUNKIN' — dunkindonuts.com nutrition guide (medium-size drinks).
+  RestaurantMenu(
+    id: 'dunkin',
+    name: "Dunkin'",
+    emoji: '🍩',
+    accentColor: const Color(0xFFF37121),
+    mealTypes: const ['Hot Coffee', 'Iced Coffee', 'Espresso', 'Donuts', 'Bagels', 'Sandwiches', 'Wraps', 'Munchkins'],
+    builders: {
+      'Hot Coffee': const [
+        MenuCategory(
+          name: 'Drink (Medium / 14oz)',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Original Blend Coffee', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Decaf Coffee', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Hot Latte (whole milk)', calories: 140, protein: 8, carbs: 13, fat: 7),
+            MenuItem(name: 'Hot Cappuccino', calories: 80, protein: 5, carbs: 8, fat: 4),
+            MenuItem(name: 'Hot Macchiato', calories: 100, protein: 5, carbs: 11, fat: 4),
+            MenuItem(name: 'Hot Americano', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Mocha Latte', calories: 270, protein: 9, carbs: 40, fat: 9),
+            MenuItem(name: 'Caramel Latte', calories: 260, protein: 8, carbs: 38, fat: 9),
+            MenuItem(name: 'Hot Chocolate', calories: 280, protein: 5, carbs: 56, fat: 5),
+          ],
+        ),
+        MenuCategory(
+          name: 'Milk Swap',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'Whole Milk (default)', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Skim Milk (–30 cal)', calories: -30, protein: 0, carbs: 0, fat: -5),
+            MenuItem(name: 'Oat Milk', calories: 60, protein: -2, carbs: 11, fat: 3),
+            MenuItem(name: 'Almond Milk (–50 cal)', calories: -50, protein: -7, carbs: -5, fat: -3),
+            MenuItem(name: 'Coconut Milk (–40 cal)', calories: -40, protein: -8, carbs: -6, fat: 0),
+          ],
+        ),
+        MenuCategory(
+          name: 'Sweetener',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Sugar (1 pkt)', calories: 20, protein: 0, carbs: 5, fat: 0),
+            MenuItem(name: 'Liquid Sugar (1 pump)', calories: 25, protein: 0, carbs: 6, fat: 0),
+            MenuItem(name: 'Splenda', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Equal', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+        MenuCategory(
+          name: 'Flavor Shots & Swirls',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Caramel Shot', calories: 10, protein: 0, carbs: 3, fat: 0),
+            MenuItem(name: 'Mocha Shot', calories: 10, protein: 0, carbs: 3, fat: 0),
+            MenuItem(name: 'Vanilla Shot', calories: 10, protein: 0, carbs: 3, fat: 0),
+            MenuItem(name: 'Hazelnut Shot', calories: 10, protein: 0, carbs: 3, fat: 0),
+            MenuItem(name: 'French Vanilla Shot', calories: 10, protein: 0, carbs: 3, fat: 0),
+            MenuItem(name: 'Caramel Swirl', calories: 60, protein: 0, carbs: 14, fat: 0),
+            MenuItem(name: 'Mocha Swirl', calories: 60, protein: 0, carbs: 12, fat: 1),
+            MenuItem(name: 'Vanilla Swirl', calories: 60, protein: 0, carbs: 14, fat: 0),
+            MenuItem(name: 'Hazelnut Swirl', calories: 60, protein: 0, carbs: 14, fat: 0),
+          ],
+        ),
+      ],
+      'Iced Coffee': const [
+        MenuCategory(
+          name: 'Drink (Medium / 24oz)',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Iced Coffee (black)', calories: 10, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Iced Latte', calories: 180, protein: 9, carbs: 18, fat: 9),
+            MenuItem(name: 'Iced Cappuccino', calories: 110, protein: 7, carbs: 11, fat: 5),
+            MenuItem(name: 'Iced Macchiato', calories: 140, protein: 7, carbs: 17, fat: 6),
+            MenuItem(name: 'Iced Americano', calories: 10, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Iced Mocha Latte', calories: 290, protein: 9, carbs: 45, fat: 9),
+            MenuItem(name: 'Iced Caramel Latte', calories: 280, protein: 8, carbs: 43, fat: 9),
+            MenuItem(name: 'Cold Brew', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Refresher (Strawberry Dragonfruit)', calories: 130, protein: 0, carbs: 35, fat: 0),
+            MenuItem(name: 'Iced Chai Latte', calories: 290, protein: 7, carbs: 56, fat: 4),
+          ],
+        ),
+        MenuCategory(
+          name: 'Milk Swap',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'Whole Milk (default)', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Skim Milk (–30 cal)', calories: -30, protein: 0, carbs: 0, fat: -5),
+            MenuItem(name: 'Oat Milk', calories: 60, protein: -2, carbs: 11, fat: 3),
+            MenuItem(name: 'Almond Milk (–50 cal)', calories: -50, protein: -7, carbs: -5, fat: -3),
+          ],
+        ),
+        MenuCategory(
+          name: 'Flavor Shots & Swirls',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Caramel Shot', calories: 10, protein: 0, carbs: 3, fat: 0),
+            MenuItem(name: 'Mocha Shot', calories: 10, protein: 0, carbs: 3, fat: 0),
+            MenuItem(name: 'Vanilla Shot', calories: 10, protein: 0, carbs: 3, fat: 0),
+            MenuItem(name: 'Hazelnut Shot', calories: 10, protein: 0, carbs: 3, fat: 0),
+            MenuItem(name: 'Caramel Swirl', calories: 60, protein: 0, carbs: 14, fat: 0),
+            MenuItem(name: 'Mocha Swirl', calories: 60, protein: 0, carbs: 12, fat: 1),
+            MenuItem(name: 'Vanilla Swirl', calories: 60, protein: 0, carbs: 14, fat: 0),
+          ],
+        ),
+      ],
+      'Espresso': const [
+        MenuCategory(
+          name: 'Shot',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Single Espresso', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Double Espresso', calories: 10, protein: 1, carbs: 2, fat: 0),
+            MenuItem(name: 'Cortado', calories: 50, protein: 3, carbs: 5, fat: 2),
+          ],
+        ),
+      ],
+      'Donuts': const [
+        MenuCategory(
+          name: 'Donut',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Glazed', calories: 240, protein: 4, carbs: 28, fat: 12),
+            MenuItem(name: 'Chocolate Frosted', calories: 280, protein: 4, carbs: 35, fat: 14),
+            MenuItem(name: 'Boston Kreme', calories: 300, protein: 4, carbs: 42, fat: 13),
+            MenuItem(name: 'Jelly', calories: 280, protein: 4, carbs: 41, fat: 12),
+            MenuItem(name: 'Old Fashioned', calories: 320, protein: 4, carbs: 36, fat: 18),
+            MenuItem(name: 'Strawberry Frosted', calories: 280, protein: 4, carbs: 35, fat: 14),
+            MenuItem(name: 'Powdered Sugar', calories: 280, protein: 4, carbs: 32, fat: 15),
+            MenuItem(name: 'Chocolate Glazed', calories: 280, protein: 4, carbs: 33, fat: 14),
+          ],
+        ),
+      ],
+      'Bagels': const [
+        MenuCategory(
+          name: 'Bagel',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Plain Bagel', calories: 320, protein: 12, carbs: 64, fat: 2),
+            MenuItem(name: 'Everything Bagel', calories: 340, protein: 13, carbs: 64, fat: 4),
+            MenuItem(name: 'Cinnamon Raisin', calories: 330, protein: 11, carbs: 70, fat: 1),
+            MenuItem(name: 'Sesame', calories: 340, protein: 12, carbs: 65, fat: 4),
+          ],
+        ),
+        MenuCategory(
+          name: 'Cream Cheese',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'Plain CC', calories: 140, protein: 3, carbs: 4, fat: 12),
+            MenuItem(name: 'Veggie CC', calories: 130, protein: 2, carbs: 4, fat: 12),
+            MenuItem(name: 'Strawberry CC', calories: 150, protein: 2, carbs: 8, fat: 11),
+          ],
+        ),
+      ],
+      'Sandwiches': const [
+        MenuCategory(
+          name: 'Bread',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'English Muffin', calories: 130, protein: 5, carbs: 25, fat: 2),
+            MenuItem(name: 'Croissant', calories: 320, protein: 6, carbs: 33, fat: 18),
+            MenuItem(name: 'Bagel (Plain)', calories: 320, protein: 12, carbs: 64, fat: 2),
+            MenuItem(name: 'Sourdough', calories: 230, protein: 9, carbs: 35, fat: 5),
+          ],
+        ),
+        MenuCategory(
+          name: 'Protein',
+          mode: SelectionMode.multiple,
+          maxSelections: 2,
+          items: [
+            MenuItem(name: 'Egg', calories: 80, protein: 6, carbs: 1, fat: 6),
+            MenuItem(name: 'Egg White', calories: 25, protein: 5, carbs: 1, fat: 0),
+            MenuItem(name: 'Bacon (2 strips)', calories: 60, protein: 4, carbs: 0, fat: 5),
+            MenuItem(name: 'Sausage', calories: 200, protein: 8, carbs: 1, fat: 18),
+            MenuItem(name: 'Turkey Sausage', calories: 90, protein: 9, carbs: 1, fat: 6),
+            MenuItem(name: 'Ham', calories: 50, protein: 8, carbs: 0, fat: 1),
+          ],
+        ),
+        MenuCategory(
+          name: 'Cheese',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'American', calories: 50, protein: 3, carbs: 1, fat: 4),
+            MenuItem(name: 'Cheddar', calories: 60, protein: 4, carbs: 0, fat: 5),
+            MenuItem(name: 'Pepper Jack', calories: 50, protein: 3, carbs: 0, fat: 4),
+          ],
+        ),
+      ],
+      'Wraps': const [
+        MenuCategory(
+          name: 'Wake-Up Wrap',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Turkey Sausage Wake-Up Wrap', calories: 180, protein: 11, carbs: 12, fat: 10),
+            MenuItem(name: 'Bacon Wake-Up Wrap', calories: 200, protein: 9, carbs: 13, fat: 12),
+            MenuItem(name: 'Sausage Wake-Up Wrap', calories: 260, protein: 10, carbs: 13, fat: 18),
+            MenuItem(name: 'Ham Wake-Up Wrap', calories: 170, protein: 11, carbs: 13, fat: 8),
+          ],
+        ),
+      ],
+      'Munchkins': const [
+        MenuCategory(
+          name: 'Munchkins',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Glazed (5)', calories: 200, protein: 2, carbs: 30, fat: 8),
+            MenuItem(name: 'Glazed (10)', calories: 410, protein: 5, carbs: 60, fat: 17),
+            MenuItem(name: 'Chocolate Glazed (5)', calories: 230, protein: 2, carbs: 33, fat: 9),
+            MenuItem(name: 'Chocolate Glazed (10)', calories: 460, protein: 5, carbs: 65, fat: 19),
+            MenuItem(name: 'Cinnamon (5)', calories: 265, protein: 3, carbs: 32, fat: 13),
+            MenuItem(name: 'Cinnamon (10)', calories: 530, protein: 6, carbs: 64, fat: 27),
+            MenuItem(name: 'Jelly (5)', calories: 235, protein: 2, carbs: 38, fat: 8),
+            MenuItem(name: 'Jelly (10)', calories: 470, protein: 4, carbs: 76, fat: 16),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // 13. RAISING CANE'S — raisingcanes.com nutrition page.
+  RestaurantMenu(
+    id: 'canes',
+    name: "Raising Cane's",
+    emoji: '🐔',
+    accentColor: const Color(0xFFDB0032),
+    mealTypes: const ['Combos', 'A La Carte', 'Sides', 'Drinks'],
+    builders: {
+      'Combos': const [
+        MenuCategory(
+          name: 'Combo',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'The Box Combo (4 fingers, fries, slaw, toast, sauce, reg drink)', calories: 1330, protein: 53, carbs: 113, fat: 73),
+            MenuItem(name: 'The 3 Finger Combo (3 fingers, fries, toast, sauce, reg drink)', calories: 1060, protein: 41, carbs: 95, fat: 56),
+            MenuItem(name: 'The Caniac Combo (6 fingers, fries, slaw, 2 toast, 2 sauces, lrg drink)', calories: 1700, protein: 69, carbs: 132, fat: 102),
+            MenuItem(name: 'Sandwich Combo (sandwich, fries, sauce, reg drink)', calories: 1290, protein: 34, carbs: 121, fat: 76),
+            MenuItem(name: 'Kids Combo (2 fingers, fries, kids drink, sauce)', calories: 720, protein: 28, carbs: 71, fat: 40),
+          ],
+        ),
+      ],
+      'A La Carte': const [
+        MenuCategory(
+          name: 'Item',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Chicken Finger (each)', calories: 130, protein: 11, carbs: 8, fat: 6),
+            MenuItem(name: 'Chicken Sandwich', calories: 670, protein: 28, carbs: 39, fat: 41),
+            MenuItem(name: "Extra Cane's Sauce", calories: 180, protein: 1, carbs: 4, fat: 19),
+          ],
+        ),
+      ],
+      'Sides': const [
+        MenuCategory(
+          name: 'Side',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Crinkle-Cut Fries (reg)', calories: 480, protein: 6, carbs: 65, fat: 22),
+            MenuItem(name: 'Coleslaw', calories: 200, protein: 1, carbs: 19, fat: 14),
+            MenuItem(name: 'Texas Toast', calories: 180, protein: 4, carbs: 21, fat: 9),
+            MenuItem(name: 'Extra Dipping Sauce', calories: 180, protein: 1, carbs: 4, fat: 19),
+          ],
+        ),
+      ],
+      'Drinks': const [
+        MenuCategory(
+          name: 'Drink',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Sweet Tea (Reg)', calories: 230, protein: 0, carbs: 59, fat: 0),
+            MenuItem(name: 'Lemonade (Reg)', calories: 220, protein: 0, carbs: 56, fat: 0),
+            MenuItem(name: 'Sweet Tea (Lrg)', calories: 340, protein: 0, carbs: 88, fat: 0),
+            MenuItem(name: 'Lemonade (Lrg)', calories: 330, protein: 0, carbs: 84, fat: 0),
+            MenuItem(name: 'Coca-Cola (Reg)', calories: 220, protein: 0, carbs: 60, fat: 0),
+            MenuItem(name: 'Diet Coke', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Dr Pepper (Reg)', calories: 220, protein: 0, carbs: 59, fat: 0),
+            MenuItem(name: 'Water', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // 14. POPEYES — popeyes.com nutrition guide.
+  RestaurantMenu(
+    id: 'popeyes',
+    name: 'Popeyes',
+    emoji: '🍗',
+    accentColor: const Color(0xFFFF7E03),
+    mealTypes: const ['Chicken', 'Tenders', 'Sandwiches', 'Seafood', 'Sides', 'Desserts'],
+    builders: {
+      'Chicken': const [
+        MenuCategory(
+          name: 'Piece',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Breast (Mild)', calories: 380, protein: 25, carbs: 16, fat: 23),
+            MenuItem(name: 'Breast (Spicy)', calories: 390, protein: 25, carbs: 16, fat: 24),
+            MenuItem(name: 'Thigh (Mild)', calories: 280, protein: 13, carbs: 8, fat: 21),
+            MenuItem(name: 'Thigh (Spicy)', calories: 290, protein: 13, carbs: 9, fat: 22),
+            MenuItem(name: 'Leg (Mild)', calories: 160, protein: 12, carbs: 5, fat: 10),
+            MenuItem(name: 'Leg (Spicy)', calories: 170, protein: 12, carbs: 6, fat: 11),
+            MenuItem(name: 'Wing (Mild)', calories: 180, protein: 9, carbs: 8, fat: 12),
+            MenuItem(name: 'Wing (Spicy)', calories: 190, protein: 9, carbs: 9, fat: 13),
+          ],
+        ),
+      ],
+      'Tenders': const [
+        MenuCategory(
+          name: 'Tenders',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Tenders (3 pc, Mild)', calories: 350, protein: 28, carbs: 16, fat: 18),
+            MenuItem(name: 'Tenders (3 pc, Spicy)', calories: 360, protein: 28, carbs: 17, fat: 19),
+            MenuItem(name: 'Tenders (5 pc, Mild)', calories: 580, protein: 47, carbs: 27, fat: 30),
+            MenuItem(name: 'Tenders (5 pc, Spicy)', calories: 600, protein: 47, carbs: 29, fat: 32),
+          ],
+        ),
+        MenuCategory(
+          name: 'Sauce',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Blackened Ranch', calories: 130, protein: 1, carbs: 1, fat: 14),
+            MenuItem(name: 'BoldBQ', calories: 70, protein: 0, carbs: 16, fat: 0),
+            MenuItem(name: 'Sweet Heat', calories: 80, protein: 0, carbs: 20, fat: 0),
+            MenuItem(name: 'Buttermilk Ranch', calories: 140, protein: 1, carbs: 1, fat: 14),
+            MenuItem(name: 'Mardi Gras Mustard', calories: 90, protein: 0, carbs: 5, fat: 8),
+          ],
+        ),
+      ],
+      'Sandwiches': const [
+        MenuCategory(
+          name: 'Sandwich',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Classic Chicken Sandwich', calories: 700, protein: 28, carbs: 50, fat: 42),
+            MenuItem(name: 'Spicy Chicken Sandwich', calories: 700, protein: 28, carbs: 50, fat: 42),
+            MenuItem(name: 'Bacon & Cheese Chicken Sandwich', calories: 810, protein: 33, carbs: 50, fat: 50),
+          ],
+        ),
+      ],
+      'Seafood': const [
+        MenuCategory(
+          name: 'Seafood',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Popcorn Shrimp (Reg)', calories: 410, protein: 13, carbs: 32, fat: 25),
+            MenuItem(name: 'Butterfly Shrimp (8 pc)', calories: 350, protein: 14, carbs: 28, fat: 19),
+          ],
+        ),
+      ],
+      'Sides': const [
+        MenuCategory(
+          name: 'Side',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Red Beans & Rice (Reg)', calories: 250, protein: 7, carbs: 30, fat: 11),
+            MenuItem(name: 'Cajun Fries (Reg)', calories: 330, protein: 4, carbs: 41, fat: 16),
+            MenuItem(name: 'Cajun Fries (Lrg)', calories: 700, protein: 8, carbs: 86, fat: 35),
+            MenuItem(name: 'Mashed Potatoes w/ Cajun Gravy', calories: 110, protein: 3, carbs: 18, fat: 4),
+            MenuItem(name: 'Mac & Cheese', calories: 220, protein: 7, carbs: 19, fat: 12),
+            MenuItem(name: 'Coleslaw', calories: 220, protein: 1, carbs: 14, fat: 18),
+            MenuItem(name: 'Biscuit', calories: 240, protein: 3, carbs: 26, fat: 13),
+            MenuItem(name: 'Cajun Rice', calories: 170, protein: 4, carbs: 22, fat: 6),
+            MenuItem(name: 'Corn on the Cob', calories: 190, protein: 5, carbs: 38, fat: 4),
+            MenuItem(name: 'Green Beans', calories: 50, protein: 2, carbs: 7, fat: 1),
+          ],
+        ),
+      ],
+      'Desserts': const [
+        MenuCategory(
+          name: 'Dessert',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Cinnamon Apple Pie', calories: 200, protein: 1, carbs: 31, fat: 8),
+            MenuItem(name: 'Hot Cinnamon Roll', calories: 330, protein: 4, carbs: 47, fat: 14),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // 15. WENDY'S — wendys.com nutrition explorer.
+  RestaurantMenu(
+    id: 'wendys',
+    name: "Wendy's",
+    emoji: '🟥',
+    accentColor: const Color(0xFFC8102E),
+    mealTypes: const ['Burgers', 'Chicken', 'Nuggets', 'Sides', 'Frosty', 'Breakfast', 'Drinks'],
+    builders: {
+      'Burgers': const [
+        MenuCategory(
+          name: 'Burger',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: "Dave's Single", calories: 590, protein: 30, carbs: 39, fat: 34),
+            MenuItem(name: "Dave's Double", calories: 830, protein: 56, carbs: 41, fat: 51),
+            MenuItem(name: "Dave's Triple", calories: 1080, protein: 81, carbs: 41, fat: 68),
+            MenuItem(name: 'Jr Bacon Cheeseburger', calories: 380, protein: 19, carbs: 26, fat: 22),
+            MenuItem(name: 'Jr Hamburger', calories: 240, protein: 12, carbs: 26, fat: 11),
+            MenuItem(name: 'Jr Cheeseburger', calories: 290, protein: 15, carbs: 26, fat: 13),
+            MenuItem(name: 'Baconator', calories: 950, protein: 57, carbs: 39, fat: 62),
+            MenuItem(name: 'Son of Baconator', calories: 580, protein: 31, carbs: 25, fat: 38),
+          ],
+        ),
+        MenuCategory(
+          name: 'Toppings',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Tomato', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Onion', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Pickles', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Ketchup', calories: 10, protein: 0, carbs: 2, fat: 0),
+            MenuItem(name: 'Mustard', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Mayo', calories: 90, protein: 0, carbs: 1, fat: 10),
+          ],
+        ),
+        MenuCategory(
+          name: 'Add-ons',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Extra Bacon', calories: 60, protein: 4, carbs: 0, fat: 5),
+            MenuItem(name: 'Extra Cheese', calories: 60, protein: 4, carbs: 1, fat: 5),
+          ],
+        ),
+      ],
+      'Chicken': const [
+        MenuCategory(
+          name: 'Chicken',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Classic Chicken Sandwich', calories: 510, protein: 27, carbs: 51, fat: 22),
+            MenuItem(name: 'Spicy Chicken Sandwich', calories: 510, protein: 27, carbs: 51, fat: 22),
+            MenuItem(name: 'Grilled Chicken Sandwich', calories: 360, protein: 31, carbs: 35, fat: 10),
+            MenuItem(name: 'Spicy Chicken Nuggets (6 pc)', calories: 290, protein: 15, carbs: 16, fat: 19),
+          ],
+        ),
+      ],
+      'Nuggets': const [
+        MenuCategory(
+          name: 'Nuggets',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Nuggets (4 pc)', calories: 170, protein: 9, carbs: 10, fat: 11),
+            MenuItem(name: 'Nuggets (6 pc)', calories: 250, protein: 13, carbs: 14, fat: 16),
+            MenuItem(name: 'Nuggets (10 pc)', calories: 420, protein: 22, carbs: 24, fat: 27),
+          ],
+        ),
+        MenuCategory(
+          name: 'Sauce',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'BBQ', calories: 45, protein: 0, carbs: 10, fat: 0),
+            MenuItem(name: 'Ranch', calories: 100, protein: 0, carbs: 2, fat: 11),
+            MenuItem(name: 'Sweet & Sour', calories: 50, protein: 0, carbs: 12, fat: 0),
+            MenuItem(name: 'Honey Mustard', calories: 100, protein: 0, carbs: 10, fat: 7),
+            MenuItem(name: 'Buttermilk Ranch', calories: 100, protein: 0, carbs: 2, fat: 11),
+            MenuItem(name: "S'Awesome", calories: 100, protein: 0, carbs: 5, fat: 8),
+            MenuItem(name: 'Creamy Sriracha', calories: 90, protein: 0, carbs: 1, fat: 10),
+          ],
+        ),
+      ],
+      'Sides': const [
+        MenuCategory(
+          name: 'Side',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Natural Cut Fries (S)', calories: 320, protein: 4, carbs: 41, fat: 15),
+            MenuItem(name: 'Natural Cut Fries (M)', calories: 420, protein: 5, carbs: 54, fat: 19),
+            MenuItem(name: 'Natural Cut Fries (L)', calories: 580, protein: 7, carbs: 75, fat: 27),
+            MenuItem(name: 'Baked Potato (plain)', calories: 270, protein: 7, carbs: 61, fat: 0),
+            MenuItem(name: 'Baked Potato (sour cream & chive)', calories: 320, protein: 8, carbs: 64, fat: 4),
+            MenuItem(name: 'Baked Potato (bacon cheese)', calories: 470, protein: 16, carbs: 67, fat: 15),
+            MenuItem(name: 'Chili (S)', calories: 240, protein: 17, carbs: 26, fat: 7),
+            MenuItem(name: 'Chili (L)', calories: 350, protein: 25, carbs: 38, fat: 10),
+            MenuItem(name: 'Side Salad', calories: 70, protein: 4, carbs: 11, fat: 0),
+            MenuItem(name: 'Apple Bites', calories: 35, protein: 0, carbs: 9, fat: 0),
+          ],
+        ),
+      ],
+      'Frosty': const [
+        MenuCategory(
+          name: 'Frosty',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Chocolate Frosty (Jr)', calories: 200, protein: 5, carbs: 32, fat: 5),
+            MenuItem(name: 'Chocolate Frosty (S)', calories: 320, protein: 8, carbs: 51, fat: 8),
+            MenuItem(name: 'Chocolate Frosty (M)', calories: 460, protein: 11, carbs: 73, fat: 11),
+            MenuItem(name: 'Chocolate Frosty (L)', calories: 580, protein: 14, carbs: 92, fat: 14),
+            MenuItem(name: 'Vanilla Frosty (Jr)', calories: 200, protein: 5, carbs: 32, fat: 5),
+            MenuItem(name: 'Vanilla Frosty (S)', calories: 320, protein: 8, carbs: 51, fat: 8),
+            MenuItem(name: 'Vanilla Frosty (M)', calories: 460, protein: 11, carbs: 73, fat: 11),
+            MenuItem(name: 'Vanilla Frosty (L)', calories: 580, protein: 14, carbs: 92, fat: 14),
+          ],
+        ),
+      ],
+      'Breakfast': const [
+        MenuCategory(
+          name: 'Entree',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Breakfast Baconator', calories: 730, protein: 36, carbs: 35, fat: 49),
+            MenuItem(name: 'Honey Butter Chicken Biscuit', calories: 510, protein: 18, carbs: 51, fat: 27),
+            MenuItem(name: 'Sausage Egg & Cheese Biscuit', calories: 690, protein: 22, carbs: 36, fat: 51),
+            MenuItem(name: 'Maple Bacon Chicken Croissant', calories: 570, protein: 24, carbs: 47, fat: 32),
+            MenuItem(name: 'Bacon, Egg & Swiss Croissant', calories: 460, protein: 19, carbs: 31, fat: 28),
+            MenuItem(name: 'Seasoned Potatoes', calories: 290, protein: 4, carbs: 35, fat: 15),
+          ],
+        ),
+      ],
+      'Drinks': const [
+        MenuCategory(
+          name: 'Drink',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Coca-Cola (S)', calories: 200, protein: 0, carbs: 55, fat: 0),
+            MenuItem(name: 'Coca-Cola (M)', calories: 280, protein: 0, carbs: 78, fat: 0),
+            MenuItem(name: 'Coca-Cola (L)', calories: 380, protein: 0, carbs: 100, fat: 0),
+            MenuItem(name: 'Diet Coke', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Sprite (M)', calories: 270, protein: 0, carbs: 73, fat: 0),
+            MenuItem(name: 'Dr Pepper (M)', calories: 280, protein: 0, carbs: 77, fat: 0),
+            MenuItem(name: 'Lemonade (M)', calories: 220, protein: 0, carbs: 56, fat: 0),
+            MenuItem(name: 'Chocolate Milk', calories: 170, protein: 8, carbs: 25, fat: 4),
+            MenuItem(name: 'Apple Juice', calories: 90, protein: 0, carbs: 21, fat: 0),
+            MenuItem(name: 'Water', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // 16. WINGSTOP — wingstop.com nutrition; per-piece values for wings.
+  RestaurantMenu(
+    id: 'wingstop',
+    name: 'Wingstop',
+    emoji: '🍗',
+    accentColor: const Color(0xFFED1C24),
+    mealTypes: const ['Wings (Bone-In)', 'Wings (Boneless)', 'Tenders', 'Sides', 'Dips', 'Drinks'],
+    builders: {
+      'Wings (Bone-In)': const [
+        MenuCategory(
+          name: 'Wing Count (plain, per wing ≈ 100 cal)',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Classic Wings (6 pc)', calories: 600, protein: 54, carbs: 0, fat: 42),
+            MenuItem(name: 'Classic Wings (8 pc)', calories: 800, protein: 72, carbs: 0, fat: 56),
+            MenuItem(name: 'Classic Wings (10 pc)', calories: 1000, protein: 90, carbs: 0, fat: 70),
+            MenuItem(name: 'Classic Wings (12 pc)', calories: 1200, protein: 108, carbs: 0, fat: 84),
+            MenuItem(name: 'Classic Wings (15 pc)', calories: 1500, protein: 135, carbs: 0, fat: 105),
+            MenuItem(name: 'Classic Wings (20 pc)', calories: 2000, protein: 180, carbs: 0, fat: 140),
+          ],
+        ),
+        MenuCategory(
+          name: 'Flavor (adds per 10-piece order)',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Plain', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Atomic', calories: 110, protein: 1, carbs: 3, fat: 11),
+            MenuItem(name: 'Mango Habanero', calories: 200, protein: 1, carbs: 32, fat: 8),
+            MenuItem(name: 'Cajun', calories: 50, protein: 0, carbs: 4, fat: 5),
+            MenuItem(name: 'Original Hot', calories: 120, protein: 1, carbs: 2, fat: 12),
+            MenuItem(name: 'Mild', calories: 130, protein: 1, carbs: 3, fat: 13),
+            MenuItem(name: 'Lemon Pepper', calories: 220, protein: 0, carbs: 1, fat: 24),
+            MenuItem(name: 'Garlic Parmesan', calories: 250, protein: 3, carbs: 3, fat: 25),
+            MenuItem(name: 'Hickory Smoked BBQ', calories: 180, protein: 1, carbs: 36, fat: 4),
+            MenuItem(name: 'Louisiana Rub', calories: 30, protein: 1, carbs: 4, fat: 1),
+          ],
+        ),
+      ],
+      'Wings (Boneless)': const [
+        MenuCategory(
+          name: 'Wing Count (plain, per wing ≈ 60 cal)',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Boneless Wings (6 pc)', calories: 360, protein: 24, carbs: 18, fat: 18),
+            MenuItem(name: 'Boneless Wings (8 pc)', calories: 480, protein: 32, carbs: 24, fat: 24),
+            MenuItem(name: 'Boneless Wings (10 pc)', calories: 600, protein: 40, carbs: 30, fat: 30),
+            MenuItem(name: 'Boneless Wings (12 pc)', calories: 720, protein: 48, carbs: 36, fat: 36),
+            MenuItem(name: 'Boneless Wings (15 pc)', calories: 900, protein: 60, carbs: 45, fat: 45),
+            MenuItem(name: 'Boneless Wings (20 pc)', calories: 1200, protein: 80, carbs: 60, fat: 60),
+          ],
+        ),
+        MenuCategory(
+          name: 'Flavor',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Plain', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Atomic', calories: 110, protein: 1, carbs: 3, fat: 11),
+            MenuItem(name: 'Mango Habanero', calories: 200, protein: 1, carbs: 32, fat: 8),
+            MenuItem(name: 'Cajun', calories: 50, protein: 0, carbs: 4, fat: 5),
+            MenuItem(name: 'Original Hot', calories: 120, protein: 1, carbs: 2, fat: 12),
+            MenuItem(name: 'Mild', calories: 130, protein: 1, carbs: 3, fat: 13),
+            MenuItem(name: 'Lemon Pepper', calories: 220, protein: 0, carbs: 1, fat: 24),
+            MenuItem(name: 'Garlic Parmesan', calories: 250, protein: 3, carbs: 3, fat: 25),
+            MenuItem(name: 'Hickory Smoked BBQ', calories: 180, protein: 1, carbs: 36, fat: 4),
+            MenuItem(name: 'Louisiana Rub', calories: 30, protein: 1, carbs: 4, fat: 1),
+          ],
+        ),
+      ],
+      'Tenders': const [
+        MenuCategory(
+          name: 'Tenders',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Chicken Tenders (3 pc, plain)', calories: 300, protein: 24, carbs: 6, fat: 18),
+            MenuItem(name: 'Chicken Tenders (5 pc, plain)', calories: 500, protein: 40, carbs: 10, fat: 30),
+          ],
+        ),
+        MenuCategory(
+          name: 'Flavor',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Plain', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Lemon Pepper', calories: 100, protein: 0, carbs: 1, fat: 10),
+            MenuItem(name: 'Garlic Parmesan', calories: 120, protein: 2, carbs: 2, fat: 12),
+            MenuItem(name: 'Mango Habanero', calories: 100, protein: 0, carbs: 16, fat: 4),
+            MenuItem(name: 'Hickory BBQ', calories: 90, protein: 0, carbs: 18, fat: 2),
+            MenuItem(name: 'Original Hot', calories: 60, protein: 0, carbs: 1, fat: 6),
+            MenuItem(name: 'Louisiana Rub', calories: 15, protein: 0, carbs: 2, fat: 1),
+          ],
+        ),
+      ],
+      'Sides': const [
+        MenuCategory(
+          name: 'Side',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Cajun Fried Corn (2 cobs)', calories: 290, protein: 5, carbs: 36, fat: 14),
+            MenuItem(name: 'Coleslaw', calories: 320, protein: 1, carbs: 25, fat: 25),
+            MenuItem(name: 'Veggie Sticks (carrots/celery)', calories: 30, protein: 1, carbs: 7, fat: 0),
+            MenuItem(name: 'Seasoned Fries (Reg)', calories: 530, protein: 6, carbs: 73, fat: 24),
+            MenuItem(name: 'Seasoned Fries (Lrg)', calories: 770, protein: 9, carbs: 105, fat: 35),
+            MenuItem(name: 'Cheese Fries', calories: 720, protein: 14, carbs: 76, fat: 39),
+            MenuItem(name: 'Louisiana Voodoo Fries', calories: 890, protein: 19, carbs: 80, fat: 56),
+          ],
+        ),
+      ],
+      'Dips': const [
+        MenuCategory(
+          name: 'Dip',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Ranch', calories: 160, protein: 1, carbs: 2, fat: 17),
+            MenuItem(name: 'Blue Cheese', calories: 160, protein: 1, carbs: 1, fat: 17),
+            MenuItem(name: 'Honey Mustard', calories: 160, protein: 0, carbs: 8, fat: 14),
+            MenuItem(name: 'Henny BBQ', calories: 90, protein: 0, carbs: 19, fat: 1),
+          ],
+        ),
+      ],
+      'Drinks': const [
+        MenuCategory(
+          name: 'Drink',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Coca-Cola (M)', calories: 260, protein: 0, carbs: 70, fat: 0),
+            MenuItem(name: 'Diet Coke', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Sprite (M)', calories: 250, protein: 0, carbs: 68, fat: 0),
+            MenuItem(name: 'Sweet Tea (M)', calories: 180, protein: 0, carbs: 46, fat: 0),
+            MenuItem(name: 'Lemonade (M)', calories: 160, protein: 0, carbs: 42, fat: 0),
+            MenuItem(name: 'Water', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // 17. JERSEY MIKE'S — jerseymikes.com nutrition info; regular size = 7".
+  RestaurantMenu(
+    id: 'jerseymikes',
+    name: "Jersey Mike's",
+    emoji: '🥖',
+    accentColor: const Color(0xFF003B73),
+    mealTypes: const ['Cold Subs', 'Hot Subs', 'Wraps', 'Sides', 'Drinks'],
+    builders: {
+      'Cold Subs': const [
+        MenuCategory(
+          name: 'Size',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Mini (5")', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Regular (7")', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Giant (15")', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+        MenuCategory(
+          name: 'Bread',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'White (Regular)', calories: 320, protein: 11, carbs: 60, fat: 4),
+            MenuItem(name: 'Wheat (Regular)', calories: 290, protein: 11, carbs: 56, fat: 4),
+            MenuItem(name: 'Rosemary Parmesan (Regular)', calories: 360, protein: 12, carbs: 62, fat: 7),
+          ],
+        ),
+        MenuCategory(
+          name: 'Sub (Regular, fillings)',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Turkey & Provolone (#7)', calories: 470, protein: 30, carbs: 60, fat: 11),
+            MenuItem(name: 'Ham & Provolone (#5)', calories: 590, protein: 27, carbs: 60, fat: 26),
+            MenuItem(name: 'Roast Beef & Provolone (#6)', calories: 540, protein: 32, carbs: 60, fat: 17),
+            MenuItem(name: 'Original Italian (#13)', calories: 770, protein: 36, carbs: 60, fat: 41),
+            MenuItem(name: "Club Sub (#9)", calories: 700, protein: 38, carbs: 60, fat: 32),
+            MenuItem(name: 'Tuna (#3)', calories: 660, protein: 24, carbs: 60, fat: 33),
+            MenuItem(name: 'BLT (#2)', calories: 530, protein: 17, carbs: 60, fat: 25),
+            MenuItem(name: 'Veggie (#14)', calories: 490, protein: 19, carbs: 60, fat: 19),
+          ],
+        ),
+        MenuCategory(
+          name: 'Cheese (extra)',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'Provolone', calories: 50, protein: 4, carbs: 0, fat: 4),
+            MenuItem(name: 'American', calories: 50, protein: 3, carbs: 1, fat: 4),
+            MenuItem(name: 'Swiss', calories: 50, protein: 4, carbs: 0, fat: 4),
+          ],
+        ),
+        MenuCategory(
+          name: 'Toppings',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Tomato', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Onion', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Cherry Pepper Relish', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Sweet Pepper', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Mushroom', calories: 5, protein: 1, carbs: 1, fat: 0),
+            MenuItem(name: 'Jalapeño', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Banana Pepper', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+        MenuCategory(
+          name: 'Condiments',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: "Mike's Way (oil/vinegar + oregano + S/P)", calories: 90, protein: 0, carbs: 0, fat: 10),
+            MenuItem(name: 'Mayo', calories: 90, protein: 0, carbs: 0, fat: 10),
+            MenuItem(name: 'Mustard', calories: 5, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Hot Peppers', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Oregano', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+      ],
+      'Hot Subs': const [
+        MenuCategory(
+          name: 'Size',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Mini (5")', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Regular (7")', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Giant (15")', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+        MenuCategory(
+          name: 'Hot Sub',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Philly Cheesesteak (#17)', calories: 810, protein: 41, carbs: 65, fat: 39),
+            MenuItem(name: 'Chicken Philly (#43)', calories: 770, protein: 47, carbs: 65, fat: 32),
+            MenuItem(name: 'Grilled Chicken', calories: 600, protein: 41, carbs: 60, fat: 18),
+            MenuItem(name: 'Meatball & Cheese (#26)', calories: 770, protein: 32, carbs: 65, fat: 41),
+            MenuItem(name: 'Big Kahuna Cheesesteak', calories: 1060, protein: 47, carbs: 70, fat: 60),
+          ],
+        ),
+        MenuCategory(
+          name: 'Toppings',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Grilled Onion', calories: 30, protein: 0, carbs: 3, fat: 2),
+            MenuItem(name: 'Grilled Pepper', calories: 25, protein: 0, carbs: 2, fat: 2),
+            MenuItem(name: 'Grilled Mushroom', calories: 25, protein: 1, carbs: 2, fat: 2),
+            MenuItem(name: 'Jalapeño', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+      ],
+      'Wraps': const [
+        MenuCategory(
+          name: 'Wrap',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Wheat Tortilla Wrap', calories: 290, protein: 9, carbs: 49, fat: 7),
+          ],
+        ),
+        MenuCategory(
+          name: 'Filling',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Turkey & Provolone', calories: 420, protein: 28, carbs: 0, fat: 18),
+            MenuItem(name: 'Chicken Caesar', calories: 380, protein: 30, carbs: 4, fat: 18),
+            MenuItem(name: 'Ham & Provolone', calories: 450, protein: 24, carbs: 0, fat: 25),
+            MenuItem(name: 'Veggie', calories: 250, protein: 11, carbs: 8, fat: 15),
+          ],
+        ),
+      ],
+      'Sides': const [
+        MenuCategory(
+          name: 'Side',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: "Chips (Cape Cod)", calories: 150, protein: 2, carbs: 18, fat: 8),
+            MenuItem(name: "Pickle Spear", calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: "Cookie (Chocolate Chunk)", calories: 350, protein: 4, carbs: 47, fat: 16),
+            MenuItem(name: "Brownie", calories: 410, protein: 5, carbs: 53, fat: 21),
+          ],
+        ),
+      ],
+      'Drinks': const [
+        MenuCategory(
+          name: 'Drink',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Bottled Water', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Coca-Cola (M)', calories: 280, protein: 0, carbs: 78, fat: 0),
+            MenuItem(name: 'Diet Coke', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Lemonade (M)', calories: 250, protein: 0, carbs: 60, fat: 0),
+            MenuItem(name: 'Iced Tea (Unsweet)', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // 18. PANERA BREAD — panerabread.com nutrition explorer.
+  RestaurantMenu(
+    id: 'panera',
+    name: 'Panera Bread',
+    emoji: '🥖',
+    accentColor: const Color(0xFF6D7E1C),
+    mealTypes: const ['Soups', 'Salads', 'Sandwiches', 'Mac & Cheese', 'Flatbreads', 'Bakery', 'Coffee', 'Smoothies'],
+    builders: {
+      'Soups': const [
+        MenuCategory(
+          name: 'Soup',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Broccoli Cheddar (Cup)', calories: 230, protein: 9, carbs: 17, fat: 14),
+            MenuItem(name: 'Broccoli Cheddar (Bowl)', calories: 360, protein: 14, carbs: 27, fat: 22),
+            MenuItem(name: 'Broccoli Cheddar (Bread Bowl)', calories: 940, protein: 33, carbs: 119, fat: 38),
+            MenuItem(name: 'Creamy Tomato (Cup)', calories: 230, protein: 5, carbs: 27, fat: 12),
+            MenuItem(name: 'Creamy Tomato (Bowl)', calories: 360, protein: 8, carbs: 42, fat: 19),
+            MenuItem(name: 'Chicken Noodle (Cup)', calories: 100, protein: 7, carbs: 14, fat: 2),
+            MenuItem(name: 'Chicken Noodle (Bowl)', calories: 160, protein: 11, carbs: 22, fat: 3),
+            MenuItem(name: 'Baked Potato (Cup)', calories: 230, protein: 5, carbs: 22, fat: 13),
+            MenuItem(name: 'Baked Potato (Bowl)', calories: 360, protein: 8, carbs: 34, fat: 21),
+            MenuItem(name: 'Ten Vegetable (Cup)', calories: 90, protein: 4, carbs: 17, fat: 1),
+            MenuItem(name: 'Ten Vegetable (Bowl)', calories: 150, protein: 6, carbs: 27, fat: 2),
+          ],
+        ),
+      ],
+      'Salads': const [
+        MenuCategory(
+          name: 'Salad',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Caesar (Whole)', calories: 470, protein: 13, carbs: 25, fat: 35),
+            MenuItem(name: 'Caesar (Half)', calories: 240, protein: 7, carbs: 13, fat: 18),
+            MenuItem(name: 'Greek (Whole)', calories: 400, protein: 8, carbs: 14, fat: 36),
+            MenuItem(name: 'Greek (Half)', calories: 200, protein: 4, carbs: 7, fat: 18),
+            MenuItem(name: 'Fuji Apple (Whole)', calories: 580, protein: 29, carbs: 47, fat: 30),
+            MenuItem(name: 'Fuji Apple (Half)', calories: 290, protein: 15, carbs: 24, fat: 15),
+            MenuItem(name: 'Asian Sesame Chicken (Whole)', calories: 410, protein: 30, carbs: 34, fat: 19),
+            MenuItem(name: 'Asian Sesame Chicken (Half)', calories: 210, protein: 15, carbs: 17, fat: 10),
+            MenuItem(name: 'BBQ Chicken (Whole)', calories: 580, protein: 33, carbs: 53, fat: 26),
+            MenuItem(name: 'BBQ Chicken (Half)', calories: 290, protein: 17, carbs: 27, fat: 13),
+          ],
+        ),
+      ],
+      'Sandwiches': const [
+        MenuCategory(
+          name: 'Bread',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Sourdough (Whole)', calories: 270, protein: 11, carbs: 53, fat: 2),
+            MenuItem(name: 'Country White (Whole)', calories: 260, protein: 10, carbs: 52, fat: 2),
+            MenuItem(name: 'Whole Grain (Whole)', calories: 250, protein: 10, carbs: 47, fat: 4),
+            MenuItem(name: 'Ciabatta (Whole)', calories: 280, protein: 11, carbs: 53, fat: 3),
+            MenuItem(name: 'French Baguette (Whole)', calories: 290, protein: 11, carbs: 56, fat: 2),
+          ],
+        ),
+        MenuCategory(
+          name: 'Sandwich (filling)',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Turkey Bravo (Whole)', calories: 770, protein: 39, carbs: 87, fat: 28),
+            MenuItem(name: 'Napa Almond Chicken (Whole)', calories: 740, protein: 32, carbs: 91, fat: 27),
+            MenuItem(name: 'Bacon Turkey Bravo (Whole)', calories: 920, protein: 47, carbs: 89, fat: 38),
+            MenuItem(name: 'Chipotle Chicken Avocado (Whole)', calories: 820, protein: 41, carbs: 67, fat: 41),
+            MenuItem(name: 'Italian (Whole)', calories: 990, protein: 43, carbs: 90, fat: 47),
+            MenuItem(name: 'Tuna (Whole)', calories: 600, protein: 30, carbs: 65, fat: 23),
+          ],
+        ),
+      ],
+      'Mac & Cheese': const [
+        MenuCategory(
+          name: 'Mac',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Mac & Cheese (Cup)', calories: 480, protein: 21, carbs: 47, fat: 23),
+            MenuItem(name: 'Mac & Cheese (Bowl)', calories: 970, protein: 42, carbs: 95, fat: 47),
+            MenuItem(name: 'Broccoli Cheddar Mac (Cup)', calories: 510, protein: 22, carbs: 48, fat: 26),
+            MenuItem(name: 'Broccoli Cheddar Mac (Bowl)', calories: 1020, protein: 44, carbs: 96, fat: 52),
+          ],
+        ),
+      ],
+      'Flatbreads': const [
+        MenuCategory(
+          name: 'Flatbread',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Chipotle Chicken & Bacon Flatbread', calories: 840, protein: 46, carbs: 88, fat: 36),
+            MenuItem(name: 'Margherita Flatbread', calories: 700, protein: 28, carbs: 86, fat: 28),
+            MenuItem(name: 'Mediterranean Veggie Flatbread', calories: 730, protein: 28, carbs: 100, fat: 26),
+          ],
+        ),
+      ],
+      'Bakery': const [
+        MenuCategory(
+          name: 'Item',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Cinnamon Crunch Bagel', calories: 420, protein: 9, carbs: 78, fat: 8),
+            MenuItem(name: 'Everything Bagel', calories: 290, protein: 11, carbs: 56, fat: 3),
+            MenuItem(name: 'Plain Bagel', calories: 280, protein: 11, carbs: 56, fat: 1),
+            MenuItem(name: 'Kitchen Sink Cookie', calories: 800, protein: 8, carbs: 109, fat: 38),
+            MenuItem(name: 'Chocolate Chipper Cookie', calories: 400, protein: 4, carbs: 60, fat: 18),
+            MenuItem(name: 'Pumpkin Muffin', calories: 470, protein: 5, carbs: 64, fat: 22),
+            MenuItem(name: 'Cinnamon Roll', calories: 620, protein: 9, carbs: 84, fat: 28),
+          ],
+        ),
+      ],
+      'Coffee': const [
+        MenuCategory(
+          name: 'Drink (Medium)',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Hot Coffee', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Iced Coffee', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Latte', calories: 140, protein: 9, carbs: 14, fat: 5),
+            MenuItem(name: 'Mocha', calories: 320, protein: 11, carbs: 47, fat: 11),
+            MenuItem(name: 'Caramel Latte', calories: 290, protein: 9, carbs: 41, fat: 9),
+            MenuItem(name: 'Cold Brew', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Unlimited Sip Club Iced Tea', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+      ],
+      'Smoothies': const [
+        MenuCategory(
+          name: 'Smoothie',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Strawberry Banana Smoothie', calories: 340, protein: 9, carbs: 70, fat: 3),
+            MenuItem(name: 'Mango Smoothie', calories: 340, protein: 9, carbs: 70, fat: 3),
+            MenuItem(name: 'Green Passion Smoothie', calories: 270, protein: 4, carbs: 64, fat: 2),
+            MenuItem(name: 'Peach & Blueberry Smoothie', calories: 320, protein: 9, carbs: 67, fat: 2),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // 19. IN-N-OUT — in-n-out.com nutrition page; secret menu items included.
+  RestaurantMenu(
+    id: 'innout',
+    name: 'In-N-Out',
+    emoji: '🌴',
+    accentColor: const Color(0xFFFE001C),
+    mealTypes: const ['Burgers', 'Fries', 'Shakes', 'Drinks'],
+    builders: {
+      'Burgers': const [
+        MenuCategory(
+          name: 'Burger',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Hamburger (w/ spread)', calories: 390, protein: 16, carbs: 39, fat: 19),
+            MenuItem(name: 'Cheeseburger (w/ spread)', calories: 480, protein: 22, carbs: 39, fat: 27),
+            MenuItem(name: 'Double-Double (w/ spread)', calories: 670, protein: 37, carbs: 39, fat: 41),
+            MenuItem(name: '3x3 (Secret)', calories: 860, protein: 53, carbs: 40, fat: 56),
+            MenuItem(name: '4x4 (Secret)', calories: 1050, protein: 68, carbs: 41, fat: 70),
+            MenuItem(name: 'Flying Dutchman (Secret — 2 patties + 2 cheese, no bun)', calories: 380, protein: 33, carbs: 1, fat: 27),
+            MenuItem(name: 'Grilled Cheese (no patty)', calories: 380, protein: 13, carbs: 41, fat: 18),
+            MenuItem(name: 'Veggie Burger (Secret)', calories: 260, protein: 7, carbs: 38, fat: 10),
+          ],
+        ),
+        MenuCategory(
+          name: 'Style',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'Animal Style (mustard-grill, extra spread, pickle, grilled onion)', calories: 110, protein: 1, carbs: 5, fat: 9),
+            MenuItem(name: 'Protein Style (lettuce wrap, no bun) — subtracts bun', calories: -130, protein: -4, carbs: -27, fat: -2),
+          ],
+        ),
+        MenuCategory(
+          name: 'Add-ons',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Extra Spread', calories: 80, protein: 0, carbs: 2, fat: 9),
+            MenuItem(name: 'Grilled Onions', calories: 25, protein: 0, carbs: 2, fat: 2),
+            MenuItem(name: 'Chopped Chilis', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Extra Toast', calories: 30, protein: 1, carbs: 6, fat: 0),
+            MenuItem(name: 'Extra Patty', calories: 130, protein: 13, carbs: 0, fat: 8),
+          ],
+        ),
+        MenuCategory(
+          name: 'Toppings',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Tomato', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Onion (raw)', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Pickles', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Ketchup', calories: 10, protein: 0, carbs: 2, fat: 0),
+            MenuItem(name: 'Mustard', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Extra Salt', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+      ],
+      'Fries': const [
+        MenuCategory(
+          name: 'Fries',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Fries', calories: 370, protein: 7, carbs: 54, fat: 17),
+            MenuItem(name: 'Well-Done Fries', calories: 410, protein: 7, carbs: 54, fat: 21),
+            MenuItem(name: 'Light Fries', calories: 330, protein: 6, carbs: 50, fat: 14),
+            MenuItem(name: 'Animal Style Fries (w/ cheese, spread, grilled onion)', calories: 750, protein: 18, carbs: 60, fat: 49),
+            MenuItem(name: 'Cheese Fries', calories: 550, protein: 13, carbs: 55, fat: 30),
+          ],
+        ),
+      ],
+      'Shakes': const [
+        MenuCategory(
+          name: 'Shake (Regular 15oz)',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Chocolate Shake', calories: 590, protein: 9, carbs: 83, fat: 25),
+            MenuItem(name: 'Vanilla Shake', calories: 590, protein: 9, carbs: 78, fat: 27),
+            MenuItem(name: 'Strawberry Shake', calories: 590, protein: 8, carbs: 90, fat: 25),
+            MenuItem(name: 'Neapolitan (Secret — all 3)', calories: 590, protein: 9, carbs: 84, fat: 26),
+            MenuItem(name: 'Black & White (Secret — choc + vanilla)', calories: 590, protein: 9, carbs: 81, fat: 26),
+          ],
+        ),
+      ],
+      'Drinks': const [
+        MenuCategory(
+          name: 'Drink',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Coca-Cola (M)', calories: 240, protein: 0, carbs: 64, fat: 0),
+            MenuItem(name: 'Diet Coke', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Dr Pepper (M)', calories: 240, protein: 0, carbs: 62, fat: 0),
+            MenuItem(name: 'Sprite (M)', calories: 240, protein: 0, carbs: 60, fat: 0),
+            MenuItem(name: 'Lemonade (M)', calories: 180, protein: 0, carbs: 49, fat: 0),
+            MenuItem(name: 'Iced Tea (M)', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Milk', calories: 180, protein: 13, carbs: 17, fat: 7),
+            MenuItem(name: 'Coffee', calories: 5, protein: 0, carbs: 1, fat: 0),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // 20. SHAKE SHACK — shakeshack.com nutrition guide.
+  RestaurantMenu(
+    id: 'shakeshack',
+    name: 'Shake Shack',
+    emoji: '🍔',
+    accentColor: const Color(0xFF38A057),
+    mealTypes: const ['Burgers', 'Chicken', 'Flat-Top Dogs', 'Fries', 'Shakes & Frozen', 'Drinks'],
+    builders: {
+      'Burgers': const [
+        MenuCategory(
+          name: 'Burger',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'ShackBurger (single)', calories: 530, protein: 27, carbs: 26, fat: 33),
+            MenuItem(name: 'ShackBurger (double)', calories: 770, protein: 47, carbs: 27, fat: 51),
+            MenuItem(name: 'SmokeShack (single)', calories: 600, protein: 30, carbs: 27, fat: 37),
+            MenuItem(name: 'SmokeShack (double)', calories: 840, protein: 50, carbs: 28, fat: 55),
+            MenuItem(name: 'Shack Stack (cheeseburger + Shroom)', calories: 870, protein: 42, carbs: 43, fat: 54),
+            MenuItem(name: 'Hamburger (single)', calories: 440, protein: 24, carbs: 25, fat: 25),
+            MenuItem(name: 'Cheeseburger (single)', calories: 500, protein: 26, carbs: 26, fat: 30),
+            MenuItem(name: "'Shroom Burger (Veggie)", calories: 530, protein: 17, carbs: 51, fat: 31),
+          ],
+        ),
+        MenuCategory(
+          name: 'Toppings',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Tomato', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'ShackSauce', calories: 50, protein: 0, carbs: 1, fat: 5),
+            MenuItem(name: 'Pickles', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Onion', calories: 5, protein: 0, carbs: 1, fat: 0),
+          ],
+        ),
+        MenuCategory(
+          name: 'Add-ons',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Add Bacon', calories: 80, protein: 4, carbs: 0, fat: 7),
+            MenuItem(name: 'Add Cherry Peppers', calories: 10, protein: 0, carbs: 2, fat: 0),
+            MenuItem(name: 'Extra Cheese', calories: 60, protein: 3, carbs: 1, fat: 5),
+          ],
+        ),
+      ],
+      'Chicken': const [
+        MenuCategory(
+          name: 'Item',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Chicken Shack (crispy)', calories: 550, protein: 35, carbs: 50, fat: 24),
+            MenuItem(name: 'Chicken Shack (grilled)', calories: 360, protein: 33, carbs: 32, fat: 11),
+            MenuItem(name: 'Chicken Bites (6 pc)', calories: 290, protein: 24, carbs: 16, fat: 14),
+            MenuItem(name: 'Chicken Bites (10 pc)', calories: 480, protein: 40, carbs: 27, fat: 23),
+          ],
+        ),
+        MenuCategory(
+          name: 'Sauce',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'BBQ', calories: 35, protein: 0, carbs: 8, fat: 0),
+            MenuItem(name: 'Honey Mustard', calories: 80, protein: 0, carbs: 10, fat: 5),
+            MenuItem(name: 'Buttermilk Herb Mayo', calories: 120, protein: 0, carbs: 1, fat: 13),
+            MenuItem(name: 'Chipotle BBQ', calories: 50, protein: 0, carbs: 12, fat: 0),
+          ],
+        ),
+      ],
+      'Flat-Top Dogs': const [
+        MenuCategory(
+          name: 'Dog',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Shack Dog', calories: 230, protein: 11, carbs: 19, fat: 12),
+            MenuItem(name: 'Smoke Dog', calories: 280, protein: 14, carbs: 21, fat: 16),
+          ],
+        ),
+      ],
+      'Fries': const [
+        MenuCategory(
+          name: 'Fries',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Fries', calories: 420, protein: 5, carbs: 53, fat: 22),
+            MenuItem(name: 'Cheese Fries', calories: 600, protein: 12, carbs: 56, fat: 36),
+            MenuItem(name: 'Bacon Cheese Fries', calories: 700, protein: 17, carbs: 56, fat: 44),
+          ],
+        ),
+      ],
+      'Shakes & Frozen': const [
+        MenuCategory(
+          name: 'Shake / Custard',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Vanilla Shake', calories: 690, protein: 11, carbs: 75, fat: 37),
+            MenuItem(name: 'Chocolate Shake', calories: 730, protein: 12, carbs: 84, fat: 38),
+            MenuItem(name: 'Strawberry Shake', calories: 660, protein: 11, carbs: 70, fat: 36),
+            MenuItem(name: 'Peanut Butter Shake', calories: 780, protein: 17, carbs: 71, fat: 47),
+            MenuItem(name: 'Cookies & Cream Shake', calories: 770, protein: 13, carbs: 84, fat: 42),
+            MenuItem(name: 'Black & White Shake', calories: 710, protein: 12, carbs: 80, fat: 37),
+            MenuItem(name: 'Vanilla Custard (Cup)', calories: 290, protein: 5, carbs: 28, fat: 17),
+            MenuItem(name: 'Chocolate Custard (Cup)', calories: 320, protein: 5, carbs: 32, fat: 19),
+            MenuItem(name: 'Vanilla Custard (Cone)', calories: 320, protein: 6, carbs: 34, fat: 17),
+            MenuItem(name: 'Chocolate Custard (Cone)', calories: 360, protein: 6, carbs: 38, fat: 19),
+          ],
+        ),
+      ],
+      'Drinks': const [
+        MenuCategory(
+          name: 'Drink',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Lemonade', calories: 290, protein: 0, carbs: 73, fat: 0),
+            MenuItem(name: 'Fifty/Fifty (Lemonade + Iced Tea)', calories: 140, protein: 0, carbs: 36, fat: 0),
+            MenuItem(name: 'Iced Tea (Unsweet)', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Fresh Brewed Coffee', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Bottled Water', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Fountain Soda (M)', calories: 220, protein: 0, carbs: 58, fat: 0),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // 21. SONIC — sonicdrivein.com nutrition guide.
+  RestaurantMenu(
+    id: 'sonic',
+    name: 'Sonic',
+    emoji: '🥤',
+    accentColor: const Color(0xFF1A3683),
+    mealTypes: const ['Burgers', 'Chicken', 'Hot Dogs', 'Tots & Fries', 'Shakes & Slushes', 'Breakfast', 'Drinks'],
+    builders: {
+      'Burgers': const [
+        MenuCategory(
+          name: 'Burger',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Sonic Cheeseburger (single)', calories: 640, protein: 26, carbs: 53, fat: 36),
+            MenuItem(name: 'Sonic Cheeseburger (double)', calories: 940, protein: 49, carbs: 54, fat: 57),
+            MenuItem(name: 'SuperSONIC Bacon Double Cheeseburger', calories: 1070, protein: 56, carbs: 55, fat: 67),
+            MenuItem(name: 'Jr Burger', calories: 320, protein: 13, carbs: 31, fat: 16),
+            MenuItem(name: 'Quarter Pound Double Cheeseburger', calories: 760, protein: 37, carbs: 53, fat: 44),
+          ],
+        ),
+        MenuCategory(
+          name: 'Toppings',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Tomato', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Pickles', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Onion', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Mayo', calories: 90, protein: 0, carbs: 1, fat: 10),
+            MenuItem(name: 'Mustard', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Ketchup', calories: 10, protein: 0, carbs: 2, fat: 0),
+          ],
+        ),
+      ],
+      'Chicken': const [
+        MenuCategory(
+          name: 'Item',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Classic Crispy Chicken Sandwich', calories: 620, protein: 28, carbs: 60, fat: 32),
+            MenuItem(name: 'Jumbo Popcorn Chicken (Reg)', calories: 510, protein: 26, carbs: 30, fat: 32),
+            MenuItem(name: 'Jumbo Popcorn Chicken (Lrg)', calories: 770, protein: 39, carbs: 46, fat: 48),
+            MenuItem(name: 'Chicken Strips (3 pc)', calories: 380, protein: 20, carbs: 19, fat: 25),
+            MenuItem(name: 'Chicken Strips (5 pc)', calories: 640, protein: 33, carbs: 32, fat: 41),
+          ],
+        ),
+      ],
+      'Hot Dogs': const [
+        MenuCategory(
+          name: 'Dog',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'All-American Dog', calories: 350, protein: 11, carbs: 31, fat: 20),
+            MenuItem(name: 'Chili Cheese Coney', calories: 460, protein: 16, carbs: 34, fat: 29),
+            MenuItem(name: 'New York Dog', calories: 450, protein: 13, carbs: 35, fat: 27),
+            MenuItem(name: 'Chicago Dog', calories: 480, protein: 14, carbs: 41, fat: 28),
+          ],
+        ),
+      ],
+      'Tots & Fries': const [
+        MenuCategory(
+          name: 'Item',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Tots (Reg)', calories: 280, protein: 3, carbs: 35, fat: 14),
+            MenuItem(name: 'Tots (Lrg)', calories: 470, protein: 5, carbs: 58, fat: 23),
+            MenuItem(name: 'Cheese Tots (Reg)', calories: 390, protein: 8, carbs: 38, fat: 23),
+            MenuItem(name: 'Chili Cheese Tots (Reg)', calories: 460, protein: 13, carbs: 41, fat: 27),
+            MenuItem(name: 'Fries (Reg)', calories: 320, protein: 4, carbs: 44, fat: 14),
+            MenuItem(name: 'Fries (Lrg)', calories: 540, protein: 6, carbs: 73, fat: 24),
+            MenuItem(name: 'Mozzarella Sticks (4)', calories: 440, protein: 17, carbs: 40, fat: 22),
+            MenuItem(name: 'Onion Rings (Reg)', calories: 330, protein: 5, carbs: 47, fat: 13),
+          ],
+        ),
+      ],
+      'Shakes & Slushes': const [
+        MenuCategory(
+          name: 'Shake or Slush',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Vanilla Shake (Reg)', calories: 540, protein: 9, carbs: 75, fat: 23),
+            MenuItem(name: 'Chocolate Shake (Reg)', calories: 590, protein: 9, carbs: 89, fat: 22),
+            MenuItem(name: 'Strawberry Shake (Reg)', calories: 550, protein: 9, carbs: 81, fat: 22),
+            MenuItem(name: 'Peanut Butter Shake (Reg)', calories: 720, protein: 16, carbs: 75, fat: 41),
+            MenuItem(name: 'Oreo Shake (Reg)', calories: 690, protein: 11, carbs: 90, fat: 31),
+            MenuItem(name: "Reese's Shake (Reg)", calories: 750, protein: 14, carbs: 88, fat: 39),
+            MenuItem(name: 'Cherry Slush (Reg)', calories: 220, protein: 0, carbs: 60, fat: 0),
+            MenuItem(name: 'Blue Raspberry Slush (Reg)', calories: 230, protein: 0, carbs: 63, fat: 0),
+            MenuItem(name: 'Grape Slush (Reg)', calories: 230, protein: 0, carbs: 62, fat: 0),
+            MenuItem(name: 'Lemon-Berry Slush (Reg)', calories: 230, protein: 0, carbs: 64, fat: 0),
+            MenuItem(name: 'Orange Slush (Reg)', calories: 230, protein: 0, carbs: 62, fat: 0),
+            MenuItem(name: 'Slush (RT44 / 44oz)', calories: 460, protein: 0, carbs: 125, fat: 0),
+          ],
+        ),
+      ],
+      'Breakfast': const [
+        MenuCategory(
+          name: 'Entree',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Breakfast Burrito', calories: 580, protein: 18, carbs: 49, fat: 35),
+            MenuItem(name: 'Breakfast Toaster (Sausage)', calories: 670, protein: 23, carbs: 47, fat: 43),
+            MenuItem(name: 'Breakfast Toaster (Bacon)', calories: 560, protein: 21, carbs: 47, fat: 32),
+            MenuItem(name: 'CinnaSnacks (5 pc)', calories: 530, protein: 7, carbs: 81, fat: 20),
+            MenuItem(name: 'French Toast Sticks (4 pc)', calories: 480, protein: 6, carbs: 64, fat: 22),
+          ],
+        ),
+      ],
+      'Drinks': const [
+        MenuCategory(
+          name: 'Drink',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Coca-Cola (Reg)', calories: 220, protein: 0, carbs: 61, fat: 0),
+            MenuItem(name: 'Diet Coke', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Cherry Limeade (Reg)', calories: 220, protein: 0, carbs: 60, fat: 0),
+            MenuItem(name: 'Limeade (Reg)', calories: 200, protein: 0, carbs: 55, fat: 0),
+            MenuItem(name: 'Iced Tea (Sweet, Reg)', calories: 140, protein: 0, carbs: 36, fat: 0),
+            MenuItem(name: 'Iced Tea (Unsweet, Reg)', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Water', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // 22. QDOBA — qdoba.com nutrition (queso/guac are FREE add-ons on entrees).
+  RestaurantMenu(
+    id: 'qdoba',
+    name: 'Qdoba',
+    emoji: '🌯',
+    accentColor: const Color(0xFF94081E),
+    mealTypes: const ['Burrito', 'Bowl', 'Tacos', 'Quesadilla', 'Nachos', 'Salad'],
+    builders: {
+      'Burrito': const [
+        MenuCategory(
+          name: 'Tortilla',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Flour Tortilla', calories: 300, protein: 8, carbs: 50, fat: 8),
+            MenuItem(name: 'Whole Wheat Tortilla', calories: 290, protein: 9, carbs: 48, fat: 8),
+          ],
+        ),
+        MenuCategory(
+          name: 'Rice',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'Cilantro Lime Rice', calories: 170, protein: 4, carbs: 36, fat: 2),
+            MenuItem(name: 'Brown Rice', calories: 180, protein: 4, carbs: 35, fat: 2),
+          ],
+        ),
+        MenuCategory(
+          name: 'Beans',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'Black Beans', calories: 110, protein: 7, carbs: 22, fat: 1),
+            MenuItem(name: 'Pinto Beans', calories: 120, protein: 7, carbs: 22, fat: 1),
+          ],
+        ),
+        MenuCategory(
+          name: 'Protein',
+          mode: SelectionMode.single,
+          allowDouble: true,
+          allowHalfHalf: true,
+          items: [
+            MenuItem(name: 'Grilled Chicken', calories: 190, protein: 32, carbs: 1, fat: 7),
+            MenuItem(name: 'Steak', calories: 220, protein: 26, carbs: 1, fat: 12),
+            MenuItem(name: 'Ground Beef', calories: 200, protein: 19, carbs: 3, fat: 12),
+            MenuItem(name: 'Pulled Pork', calories: 230, protein: 21, carbs: 8, fat: 13),
+            MenuItem(name: 'Brisket', calories: 260, protein: 22, carbs: 6, fat: 16),
+            MenuItem(name: 'Plant-Based Impossible', calories: 200, protein: 16, carbs: 9, fat: 12),
+            MenuItem(name: 'No Protein', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+        MenuCategory(
+          name: 'Queso (FREE w/ entree)',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: '3-Cheese Queso', calories: 130, protein: 6, carbs: 5, fat: 10),
+            MenuItem(name: 'Queso Diablo', calories: 130, protein: 6, carbs: 5, fat: 10),
+          ],
+        ),
+        MenuCategory(
+          name: 'Toppings',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Fajita Veggies', calories: 25, protein: 1, carbs: 5, fat: 0),
+            MenuItem(name: 'Pico de Gallo', calories: 10, protein: 0, carbs: 2, fat: 0),
+            MenuItem(name: 'Corn Salsa', calories: 70, protein: 2, carbs: 16, fat: 0),
+            MenuItem(name: 'Roasted Tomato Salsa', calories: 20, protein: 1, carbs: 4, fat: 0),
+            MenuItem(name: 'Salsa Verde', calories: 15, protein: 0, carbs: 3, fat: 0),
+            MenuItem(name: 'Sour Cream', calories: 110, protein: 2, carbs: 2, fat: 11),
+            MenuItem(name: 'Guacamole (FREE w/ entree)', calories: 140, protein: 2, carbs: 8, fat: 12),
+            MenuItem(name: 'Cheese', calories: 110, protein: 7, carbs: 1, fat: 9),
+            MenuItem(name: 'Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Jalapeños', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+        MenuCategory(
+          name: 'Extras',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Tortilla Chips (side)', calories: 220, protein: 3, carbs: 28, fat: 10),
+            MenuItem(name: 'Chips & 3-Cheese Queso', calories: 350, protein: 9, carbs: 33, fat: 20),
+            MenuItem(name: 'Chips & Guacamole', calories: 360, protein: 5, carbs: 36, fat: 22),
+          ],
+        ),
+      ],
+      'Bowl': const [
+        MenuCategory(
+          name: 'Rice',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'Cilantro Lime Rice', calories: 170, protein: 4, carbs: 36, fat: 2),
+            MenuItem(name: 'Brown Rice', calories: 180, protein: 4, carbs: 35, fat: 2),
+          ],
+        ),
+        MenuCategory(
+          name: 'Beans',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'Black Beans', calories: 110, protein: 7, carbs: 22, fat: 1),
+            MenuItem(name: 'Pinto Beans', calories: 120, protein: 7, carbs: 22, fat: 1),
+          ],
+        ),
+        MenuCategory(
+          name: 'Protein',
+          mode: SelectionMode.single,
+          allowDouble: true,
+          allowHalfHalf: true,
+          items: [
+            MenuItem(name: 'Grilled Chicken', calories: 190, protein: 32, carbs: 1, fat: 7),
+            MenuItem(name: 'Steak', calories: 220, protein: 26, carbs: 1, fat: 12),
+            MenuItem(name: 'Ground Beef', calories: 200, protein: 19, carbs: 3, fat: 12),
+            MenuItem(name: 'Pulled Pork', calories: 230, protein: 21, carbs: 8, fat: 13),
+            MenuItem(name: 'Brisket', calories: 260, protein: 22, carbs: 6, fat: 16),
+            MenuItem(name: 'Plant-Based Impossible', calories: 200, protein: 16, carbs: 9, fat: 12),
+            MenuItem(name: 'No Protein', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+        MenuCategory(
+          name: 'Toppings',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Fajita Veggies', calories: 25, protein: 1, carbs: 5, fat: 0),
+            MenuItem(name: 'Pico de Gallo', calories: 10, protein: 0, carbs: 2, fat: 0),
+            MenuItem(name: 'Corn Salsa', calories: 70, protein: 2, carbs: 16, fat: 0),
+            MenuItem(name: 'Salsa Verde', calories: 15, protein: 0, carbs: 3, fat: 0),
+            MenuItem(name: 'Sour Cream', calories: 110, protein: 2, carbs: 2, fat: 11),
+            MenuItem(name: 'Guacamole (FREE w/ entree)', calories: 140, protein: 2, carbs: 8, fat: 12),
+            MenuItem(name: '3-Cheese Queso (FREE w/ entree)', calories: 130, protein: 6, carbs: 5, fat: 10),
+            MenuItem(name: 'Cheese', calories: 110, protein: 7, carbs: 1, fat: 9),
+            MenuItem(name: 'Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Jalapeños', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+      ],
+      'Tacos': const [
+        MenuCategory(
+          name: 'Tortilla (3 tacos)',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Soft Flour (×3)', calories: 270, protein: 9, carbs: 45, fat: 6),
+            MenuItem(name: 'Crispy Corn (×3)', calories: 210, protein: 3, carbs: 27, fat: 9),
+          ],
+        ),
+        MenuCategory(
+          name: 'Protein',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Grilled Chicken', calories: 190, protein: 32, carbs: 1, fat: 7),
+            MenuItem(name: 'Steak', calories: 220, protein: 26, carbs: 1, fat: 12),
+            MenuItem(name: 'Ground Beef', calories: 200, protein: 19, carbs: 3, fat: 12),
+            MenuItem(name: 'Pulled Pork', calories: 230, protein: 21, carbs: 8, fat: 13),
+            MenuItem(name: 'Plant-Based Impossible', calories: 200, protein: 16, carbs: 9, fat: 12),
+          ],
+        ),
+        MenuCategory(
+          name: 'Toppings',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Pico de Gallo', calories: 10, protein: 0, carbs: 2, fat: 0),
+            MenuItem(name: 'Sour Cream', calories: 110, protein: 2, carbs: 2, fat: 11),
+            MenuItem(name: 'Guacamole', calories: 140, protein: 2, carbs: 8, fat: 12),
+            MenuItem(name: 'Cheese', calories: 110, protein: 7, carbs: 1, fat: 9),
+            MenuItem(name: 'Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
+          ],
+        ),
+      ],
+      'Quesadilla': const [
+        MenuCategory(
+          name: 'Tortilla + Cheese',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Flour Tortilla + Cheese', calories: 540, protein: 22, carbs: 47, fat: 27),
+          ],
+        ),
+        MenuCategory(
+          name: 'Protein',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Grilled Chicken', calories: 190, protein: 32, carbs: 1, fat: 7),
+            MenuItem(name: 'Steak', calories: 220, protein: 26, carbs: 1, fat: 12),
+            MenuItem(name: 'Pulled Pork', calories: 230, protein: 21, carbs: 8, fat: 13),
+            MenuItem(name: 'No Protein', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+      ],
+      'Nachos': const [
+        MenuCategory(
+          name: 'Chips',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Tortilla Chips (Loaded Nachos Base)', calories: 400, protein: 6, carbs: 51, fat: 18),
+          ],
+        ),
+        MenuCategory(
+          name: 'Protein',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Grilled Chicken', calories: 190, protein: 32, carbs: 1, fat: 7),
+            MenuItem(name: 'Steak', calories: 220, protein: 26, carbs: 1, fat: 12),
+            MenuItem(name: 'Pulled Pork', calories: 230, protein: 21, carbs: 8, fat: 13),
+          ],
+        ),
+        MenuCategory(
+          name: 'Toppings',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: '3-Cheese Queso', calories: 130, protein: 6, carbs: 5, fat: 10),
+            MenuItem(name: 'Cheese', calories: 110, protein: 7, carbs: 1, fat: 9),
+            MenuItem(name: 'Pico de Gallo', calories: 10, protein: 0, carbs: 2, fat: 0),
+            MenuItem(name: 'Sour Cream', calories: 110, protein: 2, carbs: 2, fat: 11),
+            MenuItem(name: 'Guacamole', calories: 140, protein: 2, carbs: 8, fat: 12),
+            MenuItem(name: 'Jalapeños', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+      ],
+      'Salad': const [
+        MenuCategory(
+          name: 'Base',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Romaine Lettuce', calories: 10, protein: 1, carbs: 2, fat: 0),
+          ],
+        ),
+        MenuCategory(
+          name: 'Protein',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Grilled Chicken', calories: 190, protein: 32, carbs: 1, fat: 7),
+            MenuItem(name: 'Steak', calories: 220, protein: 26, carbs: 1, fat: 12),
+            MenuItem(name: 'Plant-Based Impossible', calories: 200, protein: 16, carbs: 9, fat: 12),
+          ],
+        ),
+        MenuCategory(
+          name: 'Dressing',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'Lime Cilantro Vinaigrette', calories: 170, protein: 0, carbs: 6, fat: 17),
+            MenuItem(name: 'Ancho Chile Ranch', calories: 230, protein: 1, carbs: 2, fat: 24),
+            MenuItem(name: 'Avocado Salsa Verde', calories: 220, protein: 1, carbs: 3, fat: 22),
+            MenuItem(name: 'Picante Ranch', calories: 240, protein: 1, carbs: 2, fat: 25),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // 23. TROPICAL SMOOTHIE CAFE — tropicalsmoothiecafe.com nutrition (24oz default).
+  RestaurantMenu(
+    id: 'tropicalsmoothie',
+    name: 'Tropical Smoothie Cafe',
+    emoji: '🥤',
+    accentColor: const Color(0xFF008A6A),
+    mealTypes: const ['Smoothies', 'Flatbreads', 'Wraps', 'Bowls', 'Sandwiches', 'Sides'],
+    builders: {
+      'Smoothies': const [
+        MenuCategory(
+          name: 'Smoothie (24oz)',
+          mode: SelectionMode.single,
+          items: [
+            // Fruit / Classic
+            MenuItem(name: 'Island Green', calories: 220, protein: 2, carbs: 53, fat: 1),
+            MenuItem(name: 'Sunrise Sunset', calories: 320, protein: 2, carbs: 79, fat: 1),
+            MenuItem(name: 'Bahama Mama', calories: 460, protein: 4, carbs: 112, fat: 2),
+            MenuItem(name: 'Mango Magic', calories: 340, protein: 2, carbs: 81, fat: 1),
+            MenuItem(name: 'Pomegranate Plunge', calories: 320, protein: 2, carbs: 78, fat: 1),
+            // Indulgent
+            MenuItem(name: 'Peanut Butter Cup', calories: 800, protein: 22, carbs: 86, fat: 41),
+            MenuItem(name: 'Mocha Madness', calories: 580, protein: 14, carbs: 78, fat: 23),
+            MenuItem(name: 'Chocolate Banana', calories: 650, protein: 12, carbs: 92, fat: 26),
+            // Balanced
+            MenuItem(name: 'Detox Island Green', calories: 290, protein: 3, carbs: 71, fat: 1),
+            MenuItem(name: 'Avocolada', calories: 480, protein: 5, carbs: 78, fat: 18),
+            MenuItem(name: 'Beach Bum', calories: 450, protein: 6, carbs: 95, fat: 8),
+          ],
+        ),
+        MenuCategory(
+          name: 'Size Adjustment',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: '24oz (default)', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: '32oz (+33% cal)', calories: 110, protein: 1, carbs: 25, fat: 1),
+            MenuItem(name: '44oz (+83% cal)', calories: 260, protein: 2, carbs: 60, fat: 2),
+          ],
+        ),
+        MenuCategory(
+          name: 'Boosts',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Whey Protein (per scoop)', calories: 90, protein: 18, carbs: 3, fat: 1),
+            MenuItem(name: 'Plant Protein (per scoop)', calories: 90, protein: 15, carbs: 6, fat: 2),
+            MenuItem(name: 'Fat Burner Boost', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Energy Boost', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Immunity Boost', calories: 30, protein: 0, carbs: 7, fat: 0),
+            MenuItem(name: 'Multi-Vitamin Boost', calories: 25, protein: 0, carbs: 6, fat: 0),
+            MenuItem(name: 'Chia Seeds', calories: 60, protein: 2, carbs: 5, fat: 4),
+          ],
+        ),
+      ],
+      'Flatbreads': const [
+        MenuCategory(
+          name: 'Flatbread',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Chipotle Chicken Club Flatbread', calories: 620, protein: 28, carbs: 56, fat: 31),
+            MenuItem(name: 'Buffalo Chicken Flatbread', calories: 660, protein: 26, carbs: 55, fat: 36),
+            MenuItem(name: 'Turkey Bacon Ranch Flatbread', calories: 600, protein: 31, carbs: 53, fat: 28),
+            MenuItem(name: 'Pesto Veggie Flatbread', calories: 580, protein: 22, carbs: 60, fat: 28),
+          ],
+        ),
+      ],
+      'Wraps': const [
+        MenuCategory(
+          name: 'Wrap',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Thai Chicken Wrap', calories: 660, protein: 32, carbs: 67, fat: 28),
+            MenuItem(name: 'Baja Chicken Wrap', calories: 680, protein: 32, carbs: 64, fat: 30),
+            MenuItem(name: 'Hummus Veggie Wrap', calories: 560, protein: 18, carbs: 73, fat: 22),
+            MenuItem(name: 'Buffalo Chicken Wrap', calories: 700, protein: 30, carbs: 65, fat: 33),
+          ],
+        ),
+      ],
+      'Bowls': const [
+        MenuCategory(
+          name: 'Bowl',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Açaí Primo Bowl', calories: 470, protein: 8, carbs: 88, fat: 11),
+            MenuItem(name: 'Chia Banana Pudding Bowl', calories: 360, protein: 9, carbs: 64, fat: 9),
+            MenuItem(name: 'Sunrise Smoothie Bowl', calories: 410, protein: 7, carbs: 85, fat: 6),
+          ],
+        ),
+      ],
+      'Sandwiches': const [
+        MenuCategory(
+          name: 'Sandwich',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Chicken Caesar Sandwich', calories: 570, protein: 30, carbs: 50, fat: 28),
+            MenuItem(name: 'Turkey Avocado Sandwich', calories: 530, protein: 28, carbs: 52, fat: 24),
+          ],
+        ),
+      ],
+      'Sides': const [
+        MenuCategory(
+          name: 'Side',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Sun Chips', calories: 210, protein: 4, carbs: 28, fat: 10),
+            MenuItem(name: 'Pickle Spear', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Apple', calories: 80, protein: 0, carbs: 21, fat: 0),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // 24. JAMBA — jamba.com nutrition (medium 22oz default).
+  RestaurantMenu(
+    id: 'jamba',
+    name: 'Jamba',
+    emoji: '🧃',
+    accentColor: const Color(0xFFFA9326),
+    mealTypes: const ['Smoothies', 'Bowls', 'Shots', 'Bites', 'Juices'],
+    builders: {
+      'Smoothies': const [
+        MenuCategory(
+          name: 'Smoothie (Medium / 22oz)',
+          mode: SelectionMode.single,
+          items: [
+            // Classics
+            MenuItem(name: 'Caribbean Passion', calories: 320, protein: 3, carbs: 76, fat: 1),
+            MenuItem(name: 'Mango-a-Go-Go', calories: 350, protein: 3, carbs: 81, fat: 1),
+            MenuItem(name: 'Razzmatazz', calories: 320, protein: 3, carbs: 74, fat: 1),
+            MenuItem(name: 'Aloha Pineapple', calories: 350, protein: 6, carbs: 78, fat: 2),
+            MenuItem(name: 'Orange Dream Machine', calories: 380, protein: 11, carbs: 79, fat: 2),
+            // Protein
+            MenuItem(name: 'PB Banana Protein', calories: 490, protein: 28, carbs: 64, fat: 14),
+            MenuItem(name: 'Chocolate Protein', calories: 380, protein: 22, carbs: 61, fat: 7),
+            MenuItem(name: 'Vanilla Protein', calories: 400, protein: 22, carbs: 65, fat: 7),
+            // Plant-Based
+            MenuItem(name: "Greens 'n Ginger", calories: 220, protein: 3, carbs: 53, fat: 1),
+            MenuItem(name: 'PB&J Protein (plant)', calories: 470, protein: 24, carbs: 65, fat: 14),
+            MenuItem(name: 'Mega Mango', calories: 270, protein: 2, carbs: 67, fat: 1),
+          ],
+        ),
+        MenuCategory(
+          name: 'Size Adjustment',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'Small 16oz (–25% cal)', calories: -90, protein: -2, carbs: -20, fat: -1),
+            MenuItem(name: 'Medium 22oz (default)', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Large 28oz (+25% cal)', calories: 90, protein: 2, carbs: 20, fat: 1),
+          ],
+        ),
+        MenuCategory(
+          name: 'Boosts',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Whey Protein Boost', calories: 80, protein: 18, carbs: 1, fat: 1),
+            MenuItem(name: 'Plant Protein Boost', calories: 80, protein: 14, carbs: 5, fat: 1),
+            MenuItem(name: 'Immunity Boost', calories: 35, protein: 0, carbs: 9, fat: 0),
+            MenuItem(name: 'Energy Boost', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Daily Vitamin Boost', calories: 25, protein: 0, carbs: 6, fat: 0),
+          ],
+        ),
+      ],
+      'Bowls': const [
+        MenuCategory(
+          name: 'Bowl',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Açaí Primo Bowl', calories: 490, protein: 10, carbs: 95, fat: 9),
+            MenuItem(name: 'Island Pitaya Bowl', calories: 470, protein: 9, carbs: 95, fat: 7),
+            MenuItem(name: 'Chunky Strawberry Bowl', calories: 470, protein: 9, carbs: 95, fat: 8),
+            MenuItem(name: 'Vanilla Blue Sky Bowl', calories: 490, protein: 8, carbs: 100, fat: 7),
+          ],
+        ),
+      ],
+      'Shots': const [
+        MenuCategory(
+          name: 'Shot',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Ginger Shot (2oz)', calories: 50, protein: 0, carbs: 13, fat: 0),
+            MenuItem(name: 'Wheatgrass Shot (1oz)', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Immunity Shot', calories: 50, protein: 0, carbs: 12, fat: 0),
+            MenuItem(name: 'Turmeric Shot', calories: 25, protein: 0, carbs: 6, fat: 0),
+          ],
+        ),
+      ],
+      'Bites': const [
+        MenuCategory(
+          name: 'Bite',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Peanut Butter Vibe', calories: 220, protein: 6, carbs: 26, fat: 11),
+            MenuItem(name: 'Chocolate Chip Cookie', calories: 290, protein: 4, carbs: 39, fat: 14),
+          ],
+        ),
+      ],
+      'Juices': const [
+        MenuCategory(
+          name: 'Juice',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Fresh Orange Juice (16oz)', calories: 220, protein: 4, carbs: 51, fat: 1),
+            MenuItem(name: 'Apple Juice (16oz)', calories: 230, protein: 0, carbs: 56, fat: 0),
+            MenuItem(name: 'Carrot Juice (16oz)', calories: 130, protein: 4, carbs: 30, fat: 1),
+            MenuItem(name: 'Mighty Veggie Juice (16oz)', calories: 170, protein: 5, carbs: 38, fat: 1),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // 25. WAWA — wawa.com nutrition (built-to-order hoagies).
+  RestaurantMenu(
+    id: 'wawa',
+    name: 'Wawa',
+    emoji: '🦆',
+    accentColor: const Color(0xFFC8102E),
+    mealTypes: const ['Hoagies', 'Breakfast', 'Bowls', 'Sides', 'Drinks', 'Bakery'],
+    builders: {
+      'Hoagies': const [
+        MenuCategory(
+          name: 'Size',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Junior (4")', calories: 200, protein: 7, carbs: 39, fat: 2),
+            MenuItem(name: 'Shorti (6")', calories: 280, protein: 10, carbs: 54, fat: 3),
+            MenuItem(name: 'Classic (10")', calories: 460, protein: 16, carbs: 89, fat: 5),
+          ],
+        ),
+        MenuCategory(
+          name: 'Style',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Cold', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Hot (Toasted)', calories: 30, protein: 0, carbs: 0, fat: 3),
+          ],
+        ),
+        MenuCategory(
+          name: 'Meat (Shorti portion)',
+          mode: SelectionMode.multiple,
+          maxSelections: 2,
+          items: [
+            MenuItem(name: 'Turkey', calories: 80, protein: 14, carbs: 2, fat: 2),
+            MenuItem(name: 'Ham', calories: 80, protein: 14, carbs: 2, fat: 2),
+            MenuItem(name: 'Roast Beef', calories: 100, protein: 17, carbs: 2, fat: 3),
+            MenuItem(name: 'Italian (Capicola/Salami/Pepperoni)', calories: 200, protein: 12, carbs: 1, fat: 16),
+            MenuItem(name: 'Meatball', calories: 280, protein: 16, carbs: 18, fat: 17),
+            MenuItem(name: 'Cheesesteak', calories: 270, protein: 22, carbs: 4, fat: 18),
+            MenuItem(name: 'Chicken Cheesesteak', calories: 220, protein: 28, carbs: 3, fat: 11),
+            MenuItem(name: 'Buffalo Chicken', calories: 250, protein: 28, carbs: 7, fat: 13),
+            MenuItem(name: 'Tuna', calories: 200, protein: 10, carbs: 0, fat: 17),
+          ],
+        ),
+        MenuCategory(
+          name: 'Cheese',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'American', calories: 60, protein: 4, carbs: 1, fat: 5),
+            MenuItem(name: 'Provolone', calories: 60, protein: 5, carbs: 0, fat: 5),
+            MenuItem(name: 'Swiss', calories: 60, protein: 5, carbs: 0, fat: 5),
+            MenuItem(name: 'Pepper Jack', calories: 60, protein: 4, carbs: 0, fat: 5),
+          ],
+        ),
+        MenuCategory(
+          name: 'Toppings',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Tomato', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Onion', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Pickles', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Sweet Peppers', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Hot Peppers', calories: 0, protein: 0, carbs: 0, fat: 0),
+          ],
+        ),
+        MenuCategory(
+          name: 'Condiments',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Oil', calories: 90, protein: 0, carbs: 0, fat: 10),
+            MenuItem(name: 'Vinegar', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Oregano', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Salt', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Pepper', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Mayo', calories: 90, protein: 0, carbs: 1, fat: 10),
+            MenuItem(name: 'Mustard', calories: 5, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Honey Mustard', calories: 30, protein: 0, carbs: 7, fat: 0),
+          ],
+        ),
+      ],
+      'Breakfast': const [
+        MenuCategory(
+          name: 'Bread',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'English Muffin', calories: 130, protein: 5, carbs: 25, fat: 2),
+            MenuItem(name: 'Croissant', calories: 320, protein: 6, carbs: 33, fat: 18),
+            MenuItem(name: 'Bagel (Plain)', calories: 280, protein: 11, carbs: 56, fat: 1),
+          ],
+        ),
+        MenuCategory(
+          name: 'Protein (Sizzli)',
+          mode: SelectionMode.multiple,
+          maxSelections: 2,
+          items: [
+            MenuItem(name: 'Egg', calories: 80, protein: 6, carbs: 1, fat: 6),
+            MenuItem(name: 'Sausage', calories: 200, protein: 8, carbs: 1, fat: 18),
+            MenuItem(name: 'Bacon (2 strips)', calories: 60, protein: 4, carbs: 0, fat: 5),
+            MenuItem(name: 'Turkey Sausage', calories: 90, protein: 9, carbs: 1, fat: 6),
+            MenuItem(name: 'Ham', calories: 50, protein: 8, carbs: 0, fat: 1),
+          ],
+        ),
+        MenuCategory(
+          name: 'Cheese',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'American', calories: 60, protein: 4, carbs: 1, fat: 5),
+            MenuItem(name: 'Cheddar', calories: 60, protein: 4, carbs: 0, fat: 5),
+          ],
+        ),
+        MenuCategory(
+          name: 'Extras',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Breakfast Burrito (Sausage Egg Cheese)', calories: 540, protein: 22, carbs: 47, fat: 28),
+            MenuItem(name: 'Breakfast Burrito (Bacon Egg Cheese)', calories: 470, protein: 20, carbs: 47, fat: 22),
+            MenuItem(name: 'Oatmeal (Apple Cinnamon)', calories: 280, protein: 6, carbs: 60, fat: 3),
+            MenuItem(name: 'Oatmeal (Brown Sugar)', calories: 290, protein: 6, carbs: 63, fat: 3),
+            MenuItem(name: 'Hash Browns', calories: 230, protein: 2, carbs: 25, fat: 14),
+          ],
+        ),
+      ],
+      'Bowls': const [
+        MenuCategory(
+          name: 'Bowl',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Mac & Cheese (Side)', calories: 320, protein: 13, carbs: 38, fat: 13),
+            MenuItem(name: 'Mac & Cheese (Bowl)', calories: 640, protein: 26, carbs: 76, fat: 26),
+            MenuItem(name: 'Chicken Noodle Soup (Cup)', calories: 110, protein: 6, carbs: 16, fat: 2),
+            MenuItem(name: 'Chicken Noodle Soup (Bowl)', calories: 170, protein: 9, carbs: 24, fat: 4),
+            MenuItem(name: 'Mashed Potato Bowl (Chicken)', calories: 590, protein: 32, carbs: 70, fat: 21),
+          ],
+        ),
+      ],
+      'Sides': const [
+        MenuCategory(
+          name: 'Side',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Pretzel (Soft)', calories: 380, protein: 11, carbs: 78, fat: 4),
+            MenuItem(name: 'Bag of Chips', calories: 160, protein: 2, carbs: 15, fat: 10),
+            MenuItem(name: 'Mozzarella Sticks (5)', calories: 410, protein: 17, carbs: 31, fat: 23),
+            MenuItem(name: 'Apple Sauce Pouch', calories: 60, protein: 0, carbs: 15, fat: 0),
+          ],
+        ),
+      ],
+      'Drinks': const [
+        MenuCategory(
+          name: 'Smoothie (24oz built-to-order)',
+          mode: SelectionMode.single,
+          items: [
+            MenuItem(name: 'Strawberry Banana Smoothie', calories: 360, protein: 5, carbs: 79, fat: 3),
+            MenuItem(name: 'Tropical Fruit Smoothie', calories: 380, protein: 4, carbs: 86, fat: 2),
+            MenuItem(name: 'Peanut Butter Banana Smoothie', calories: 520, protein: 11, carbs: 83, fat: 18),
+          ],
+        ),
+        MenuCategory(
+          name: 'Coffee (M / 16oz)',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'Original Coffee', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Latte (Whole Milk)', calories: 160, protein: 8, carbs: 14, fat: 8),
+            MenuItem(name: 'Cappuccino', calories: 90, protein: 5, carbs: 8, fat: 5),
+            MenuItem(name: 'Mocha Latte', calories: 290, protein: 9, carbs: 41, fat: 11),
+            MenuItem(name: 'Iced Coffee', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(name: 'Cold Brew', calories: 5, protein: 0, carbs: 1, fat: 0),
+          ],
+        ),
+        MenuCategory(
+          name: 'Coffee Add-ins',
+          mode: SelectionMode.multiple,
+          optional: true,
+          items: [
+            MenuItem(name: 'Vanilla Syrup', calories: 40, protein: 0, carbs: 10, fat: 0),
+            MenuItem(name: 'Caramel Syrup', calories: 40, protein: 0, carbs: 10, fat: 0),
+            MenuItem(name: 'Hazelnut Syrup', calories: 40, protein: 0, carbs: 10, fat: 0),
+            MenuItem(name: 'Skim Milk Swap (–40 cal)', calories: -40, protein: 0, carbs: 0, fat: -7),
+            MenuItem(name: 'Oat Milk Swap', calories: 20, protein: -3, carbs: 8, fat: 3),
+          ],
+        ),
+      ],
+      'Bakery': const [
+        MenuCategory(
+          name: 'Item',
+          mode: SelectionMode.multiple,
+          items: [
+            MenuItem(name: 'Chocolate Chip Cookie', calories: 320, protein: 3, carbs: 45, fat: 14),
+            MenuItem(name: 'Sticky Bun', calories: 460, protein: 5, carbs: 68, fat: 18),
+            MenuItem(name: 'Brownie', calories: 360, protein: 4, carbs: 47, fat: 18),
+            MenuItem(name: 'Apple Fritter', calories: 540, protein: 6, carbs: 76, fat: 23),
+          ],
+        ),
+      ],
+    },
+  ),
+
+  // ──────────────────────────────────────────────────────────────────
+  // API-search restaurants (Spoonacular-backed). These chains have
+  // 200+ items / heavily-seasonal menus where hand-modelling is more
+  // brittle than letting users search by item name. Tapping any of
+  // these in the browser opens the menu-item search screen with the
+  // restaurant name pre-filled in the query.
+  // ──────────────────────────────────────────────────────────────────
+  RestaurantMenu(
+    id: 'applebees',
+    name: "Applebee's",
+    emoji: '🍎',
+    accentColor: const Color(0xFF339933),
+    searchOnly: true,
+  ),
+  RestaurantMenu(
+    id: 'buffalowildwings',
+    name: 'Buffalo Wild Wings',
+    emoji: '🦬',
+    accentColor: const Color(0xFFFFC400),
+    searchOnly: true,
+  ),
+  RestaurantMenu(
+    id: 'cheesecakefactory',
+    name: 'Cheesecake Factory',
+    emoji: '🍰',
+    accentColor: const Color(0xFF6B4423),
+    searchOnly: true,
+  ),
+  RestaurantMenu(
+    id: 'chilis',
+    name: "Chili's",
+    emoji: '🌶️',
+    accentColor: const Color(0xFFE4002B),
+    searchOnly: true,
+  ),
+  RestaurantMenu(
+    id: 'crackerbarrel',
+    name: 'Cracker Barrel',
+    emoji: '🪵',
+    accentColor: const Color(0xFFC5942A),
+    searchOnly: true,
+  ),
+  RestaurantMenu(
+    id: 'dennys',
+    name: "Denny's",
+    emoji: '☕',
+    accentColor: const Color(0xFFFFCD00),
+    searchOnly: true,
+  ),
+  RestaurantMenu(
+    id: 'ihop',
+    name: 'IHOP',
+    emoji: '🥞',
+    accentColor: const Color(0xFF003DA5),
+    searchOnly: true,
+  ),
+  RestaurantMenu(
+    id: 'olivegarden',
+    name: 'Olive Garden',
+    emoji: '🫒',
+    accentColor: const Color(0xFF8B0000),
+    searchOnly: true,
+  ),
+  RestaurantMenu(
+    id: 'outback',
+    name: 'Outback Steakhouse',
+    emoji: '🥩',
+    accentColor: const Color(0xFF841B2D),
+    searchOnly: true,
+  ),
+  RestaurantMenu(
+    id: 'pfchangs',
+    name: "P.F. Chang's",
+    emoji: '🥡',
+    accentColor: const Color(0xFF8B0000),
+    searchOnly: true,
+  ),
+  RestaurantMenu(
+    id: 'redlobster',
+    name: 'Red Lobster',
+    emoji: '🦞',
+    accentColor: const Color(0xFFC40824),
+    searchOnly: true,
+  ),
+  RestaurantMenu(
+    id: 'tgifridays',
+    name: "TGI Friday's",
+    emoji: '🍹',
+    accentColor: const Color(0xFFC8102E),
+    searchOnly: true,
+  ),
+  // Generic catch-all — empty searchSeed so the user starts with a
+  // blank query and can search any restaurant or food item.
+  RestaurantMenu(
+    id: 'other',
+    name: 'Other Restaurant',
+    emoji: '🔍',
+    accentColor: const Color(0xFF6B6B6B),
+    searchOnly: true,
+    searchSeed: '',
   ),
 ];
 

@@ -336,16 +336,69 @@ class _StrengthLink extends ConsumerWidget {
   final Palette palette;
   final TextTheme textTheme;
 
+  /// Counts how many distinct sessions this exercise has been logged in —
+  /// the same metric the chart needs ≥2 of to render a curve. Cheaper than
+  /// running the full `strengthHistoryProvider` aggregation just to peek.
+  Future<int> _countSessions(WidgetRef ref) async {
+    final points =
+        await ref.read(strengthHistoryProvider(exerciseName).future);
+    return points.length;
+  }
+
+  /// Gate the "View Strength Curve" tap so a single-session (or zero-session)
+  /// exercise can't navigate into an empty chart that — combined with a
+  /// `context.push('/progress')` from a standalone route — used to leave
+  /// the Progress tab in an unrecoverable state.
+  ///
+  /// What changed for safety:
+  ///   * Pre-flight session count → friendly dialog when <2
+  ///   * `context.go(...)` instead of `context.push(...)`: progress is a
+  ///     shell-route tab, pushing it from outside the shell stacks a fresh
+  ///     shell on top and the back button can't pop it cleanly
+  ///   * Whole thing wrapped in try/catch so a router error surfaces as a
+  ///     toast rather than freezing the UI
+  Future<void> _openStrengthCurve(
+      BuildContext context, WidgetRef ref) async {
+    final sessions = await _countSessions(ref);
+    if (!context.mounted) return;
+    if (sessions < 2) {
+      final message = sessions == 0
+          ? 'No data yet — log your first workout to start tracking '
+              'progress.'
+          : 'One more session to go — strength trends need at least 2 '
+              'workouts.';
+      await showCupertinoDialog<void>(
+        context: context,
+        builder: (ctx) => CupertinoAlertDialog(
+          title: const Text('Not enough data yet'),
+          content: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(message),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    try {
+      ref.read(selectedExerciseProvider.notifier).state = exerciseName;
+      if (!context.mounted) return;
+      context.go('/progress');
+    } catch (e) {
+      debugPrint('[strength-curve] navigation failed: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {
-        // Pre-select the exercise in the curve provider then jump to
-        // Progress. Cheaper than carrying state through go_router extras.
-        ref.read(selectedExerciseProvider.notifier).state = exerciseName;
-        context.push('/progress');
-      },
+      onTap: () => _openStrengthCurve(context, ref),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(

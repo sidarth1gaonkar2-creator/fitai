@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,10 +46,10 @@ class _TemplatePreviewScreenState
   List<MuscleGroup> get _primaryMuscles {
     final muscles = <MuscleGroup>{};
     for (final te in _exercises) {
-      final def =
-          exerciseLibrary.where((d) => d.id == te.exerciseId).firstOrNull;
+      final def = lookupExercise(id: te.exerciseId);
       if (def != null) muscles.addAll(def.primaryMuscles);
     }
+    _debugDumpDiagramSources('template:${widget.template.name}', muscles);
     return muscles.toList();
   }
 
@@ -56,14 +57,32 @@ class _TemplatePreviewScreenState
     final primary = _primaryMuscles.toSet();
     final muscles = <MuscleGroup>{};
     for (final te in _exercises) {
-      final def =
-          exerciseLibrary.where((d) => d.id == te.exerciseId).firstOrNull;
+      final def = lookupExercise(id: te.exerciseId);
       if (def != null) {
         muscles.addAll(
             def.secondaryMuscles.where((m) => !primary.contains(m)));
       }
     }
     return muscles.toList();
+  }
+
+  /// Dev-time diagnostic — fires for every primary-muscles read in debug
+  /// builds. Helps spot a wrong-muscle bug by showing which exercises in
+  /// the template resolved and what they contributed. Compiled out in
+  /// release.
+  void _debugDumpDiagramSources(String label, Set<MuscleGroup> primary) {
+    if (!kDebugMode) return;
+    debugPrint('[diagram] $label  exercises=${_exercises.length}');
+    for (final te in _exercises) {
+      final def = lookupExercise(id: te.exerciseId);
+      debugPrint(
+        '[diagram]   id=${te.exerciseId}  '
+        'def=${def?.name ?? "NOT FOUND"}  '
+        'primary=${def?.primaryMuscles}  '
+        'secondary=${def?.secondaryMuscles}',
+      );
+    }
+    debugPrint('[diagram]   ↳ aggregated primary=$primary');
   }
 
   /// Maps the local enum onto the muscle-name strings the highlight widget's

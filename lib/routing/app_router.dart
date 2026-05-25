@@ -23,6 +23,7 @@ import '../features/nutrition/presentation/food_search_screen.dart';
 import '../features/nutrition/presentation/meal_builder_screen.dart';
 import '../features/nutrition/presentation/meal_plan_preview_screen.dart';
 import '../features/nutrition/presentation/nutrition_screen.dart';
+import '../features/nutrition/presentation/restaurant_api_search_screen.dart';
 import '../features/nutrition/presentation/restaurant_browser_screen.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
 import '../features/progress/presentation/pr_hall_screen.dart';
@@ -280,6 +281,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         },
                       ),
                     ],
+                  ),
+                  // Spoonacular menu-item search for sit-down chains we
+                  // don't hand-model. `restaurant` query param pre-fills
+                  // the search; an empty value powers the "Other
+                  // Restaurant" catch-all entry.
+                  GoRoute(
+                    path: 'restaurant-search',
+                    pageBuilder: (context, state) {
+                      final restaurant =
+                          state.uri.queryParameters['restaurant'] ?? '';
+                      final mealTypeParam =
+                          state.uri.queryParameters['mealType'];
+                      MealType? mt;
+                      if (mealTypeParam != null) {
+                        try {
+                          mt = MealType.values.byName(mealTypeParam);
+                        } catch (_) {/* ignore bad param */}
+                      }
+                      return slideUpTransitionPage(
+                        key: state.pageKey,
+                        child: RestaurantApiSearchScreen(
+                          restaurantName: restaurant,
+                          mealType: mt,
+                        ),
+                      );
+                    },
                   ),
                   GoRoute(
                     path: 'saved-meals',

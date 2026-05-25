@@ -1,4 +1,54 @@
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import '../models/enums.dart';
+
+/// Look up an exercise in [exerciseLibrary] by id or name, with several
+/// fallbacks. Returns `null` and logs a `[muscle-lookup]` warning when none
+/// of the strategies match — that warning is the user-facing signal when
+/// the muscle diagram looks empty/wrong for a specific exercise.
+///
+/// Strategies, in order:
+///   1. Exact id match (e.g. `'barbell_bench_press'`)
+///   2. Case-insensitive name match (e.g. `'Barbell Bench Press'`)
+///   3. Slugified-name fallback — strips spaces/punct and lowercases, so
+///      stored values like `'Barbell-Bench-Press'` or `'barbell bench press'`
+///      still resolve when the canonical id is `'barbell_bench_press'`
+///
+/// The slugified fallback catches the edge case where a workout was logged
+/// from a template a long time ago, the name in Isar drifted from the
+/// library's display name, and an id wasn't stored alongside it.
+ExerciseDefinition? lookupExercise({String? id, String? name}) {
+  if (id != null && id.isNotEmpty) {
+    for (final e in exerciseLibrary) {
+      if (e.id == id) return e;
+    }
+  }
+  if (name != null && name.isNotEmpty) {
+    final lower = name.toLowerCase().trim();
+    for (final e in exerciseLibrary) {
+      if (e.name.toLowerCase() == lower) return e;
+    }
+    final slug = _slug(lower);
+    for (final e in exerciseLibrary) {
+      if (_slug(e.name.toLowerCase()) == slug) return e;
+      if (_slug(e.id) == slug) return e;
+    }
+  }
+  debugPrint(
+    '[muscle-lookup] no library match for id=$id name=$name '
+    '— diagram will skip this exercise',
+  );
+  return null;
+}
+
+String _slug(String s) {
+  final buf = StringBuffer();
+  for (final r in s.runes) {
+    final ch = String.fromCharCode(r);
+    if (RegExp(r'[a-z0-9]').hasMatch(ch)) buf.write(ch);
+  }
+  return buf.toString();
+}
 
 class ExerciseDefinition {
   const ExerciseDefinition({

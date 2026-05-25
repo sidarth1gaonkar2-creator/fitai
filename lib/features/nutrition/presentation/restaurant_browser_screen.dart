@@ -31,14 +31,26 @@ class _RestaurantBrowserScreenState
     super.dispose();
   }
 
+  /// Alphabetised view of [restaurantMenus] with the "Other Restaurant"
+  /// catch-all pinned to the bottom — even after search, the catch-all
+  /// stays last so users can quickly fall back to it when their chain
+  /// isn't on the list.
   List<RestaurantMenu> get _filtered {
-    if (_query.trim().isEmpty) return restaurantMenus;
-    final q = _query.toLowerCase();
-    return restaurantMenus
-        .where((r) =>
-            r.name.toLowerCase().contains(q) ||
-            r.mealTypes.any((t) => t.toLowerCase().contains(q)))
-        .toList();
+    final q = _query.trim().toLowerCase();
+    final filtered = q.isEmpty
+        ? restaurantMenus.toList()
+        : restaurantMenus
+            .where((r) =>
+                r.name.toLowerCase().contains(q) ||
+                r.mealTypes.any((t) => t.toLowerCase().contains(q)))
+            .toList();
+    filtered.sort((a, b) {
+      // Pin id == 'other' to the end regardless of name.
+      if (a.id == 'other') return 1;
+      if (b.id == 'other') return -1;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+    return filtered;
   }
 
   @override
@@ -98,15 +110,29 @@ class _RestaurantBrowserScreenState
                       ),
                       itemCount: filtered.length,
                       itemBuilder: (context, index) {
+                        final restaurant = filtered[index];
                         return _RestaurantCard(
-                          menu: filtered[index],
+                          menu: restaurant,
                           onTap: () {
                             HapticFeedback.selectionClick();
                             final mt = widget.mealType?.name;
-                            final path =
-                                '/nutrition/restaurants/${filtered[index].id}'
-                                '${mt != null ? '?mealType=$mt' : ''}';
-                            context.push(path);
+                            if (restaurant.searchOnly) {
+                              // The catch-all entry uses an empty
+                              // searchSeed so the search bar opens blank.
+                              final seed = restaurant.searchSeed ??
+                                  restaurant.name;
+                              final qs = <String>[
+                                'restaurant=${Uri.encodeQueryComponent(seed)}',
+                                if (mt != null) 'mealType=$mt',
+                              ].join('&');
+                              context.push(
+                                  '/nutrition/restaurant-search?$qs');
+                            } else {
+                              final path =
+                                  '/nutrition/restaurants/${restaurant.id}'
+                                  '${mt != null ? '?mealType=$mt' : ''}';
+                              context.push(path);
+                            }
                           },
                         );
                       },
@@ -186,7 +212,11 @@ class _RestaurantCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  menu.mealTypes.join(' · '),
+                  menu.searchOnly
+                      ? (menu.id == 'other'
+                          ? 'Search any menu'
+                          : 'Search menu')
+                      : menu.mealTypes.join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

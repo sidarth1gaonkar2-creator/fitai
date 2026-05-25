@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -160,19 +161,26 @@ class WorkoutDetailScreen extends ConsumerWidget {
                   ref.invalidate(workoutExercisesProvider(workoutId)),
             ),
             data: (exercises) {
-              // Aggregate muscles across all exercises
+              // Aggregate muscles across all exercises. Routes through
+              // lookupExercise so name drift (case, hyphenation, etc.) and
+              // future id-based stores both resolve cleanly. Logs a debug
+              // warning for any exercise that can't be matched.
               final primaryMuscles = <MuscleGroup>{};
               final secondaryMuscles = <MuscleGroup>{};
               for (final entry in exercises) {
-                final exName = entry.name.toLowerCase();
-                final def = exerciseLibrary.where(
-                  (d) => d.name.toLowerCase() == exName,
-                ).firstOrNull;
+                final def = lookupExercise(name: entry.name);
                 if (def != null) {
                   primaryMuscles.addAll(def.primaryMuscles);
                   secondaryMuscles.addAll(def.secondaryMuscles
                       .where((m) => !primaryMuscles.contains(m)));
                 }
+              }
+              if (kDebugMode) {
+                debugPrint(
+                  '[diagram] workout:${workout.title}  '
+                  'exercises=${exercises.length}  '
+                  'primary=$primaryMuscles  secondary=$secondaryMuscles',
+                );
               }
 
               return SingleChildScrollView(
@@ -235,6 +243,9 @@ class WorkoutDetailScreen extends ConsumerWidget {
                     ...exercises.map((entry) {
                       final exerciseName = entry.name;
                       final sets = entry.sets;
+                      final exDef = lookupExercise(name: exerciseName);
+                      final isDumbbell =
+                          exDef?.equipment == ExerciseEquipment.dumbbell;
                       return Card.filled(
                         child: Padding(
                           padding: const EdgeInsets.all(12),
@@ -282,7 +293,10 @@ class WorkoutDetailScreen extends ConsumerWidget {
                                               color: colorScheme
                                                   .onSurfaceVariant))),
                                   Expanded(
-                                      child: Text('Weight',
+                                      child: Text(
+                                          isDumbbell
+                                              ? 'Weight (each)'
+                                              : 'Weight',
                                           style: textTheme.labelSmall?.copyWith(
                                               color: colorScheme
                                                   .onSurfaceVariant))),

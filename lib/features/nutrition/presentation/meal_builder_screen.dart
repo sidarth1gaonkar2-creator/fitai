@@ -597,13 +597,16 @@ class _CategoryBlock extends StatelessWidget {
 
   String get _hint {
     final cap = category.maxSelections;
+    final count = selectedIndexes.length;
     String mode;
     if (isHalfHalf) {
       mode = '(pick two halves)';
     } else if (category.mode == SelectionMode.single) {
       mode = '(pick one)';
     } else if (cap != null) {
-      mode = '(pick up to $cap)';
+      // Running counter — drives the "Protein (2 of 3 max)" UX so the user
+      // can see at a glance how many more they can stack.
+      mode = '($count of $cap max)';
     } else {
       mode = '(pick any)';
     }

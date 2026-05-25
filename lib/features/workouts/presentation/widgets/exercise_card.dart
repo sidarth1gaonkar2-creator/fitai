@@ -1,8 +1,12 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Card, Icons, Theme, IconButton, TextButton, VisualDensity;
+import 'package:flutter/material.dart'
+    show Card, Colors, Dismissible, DismissDirection, Icons, Theme, IconButton, TextButton, VisualDensity;
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/utils/unit_converter.dart';
+import '../../../../data/exercise_library.dart';
+import '../../../../models/enums.dart';
 import '../../../../providers/unit_system_provider.dart';
 import '../../domain/active_workout_state.dart';
 import 'exercise_thumb.dart';
@@ -51,7 +55,13 @@ class ExerciseCard extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final units = ref.watch(unitSystemProvider);
-    final weightLabel = 'Weight (${UnitConverter.weightUnit(units)})';
+    // Dumbbell exercises take the weight value as "per dumbbell". Surface
+    // that in the column header so users don't double-count both hands.
+    final def = lookupExercise(name: exercise.name);
+    final isDumbbell = def?.equipment == ExerciseEquipment.dumbbell;
+    final unit = UnitConverter.weightUnit(units);
+    final weightLabel =
+        isDumbbell ? 'Weight ($unit, each)' : 'Weight ($unit)';
 
     // Epley 1RM in kg across all completed-or-typed sets; display-unit
     // conversion happens at render time so imperial users see lbs.
@@ -154,10 +164,14 @@ class ExerciseCard extends ConsumerWidget {
                   ),
                 ),
               ),
-            // Sets
+            // Sets — each wrapped in a Dismissible so users can swipe left
+            // to delete a set during active logging. We block deletion of
+            // the last remaining set (always keep at least one slot to type
+            // into) by reporting it un-dismissible when `sets.length == 1`.
             ...List.generate(exercise.sets.length, (setIndex) {
               final activeSet = exercise.sets[setIndex];
-              return SetRow(
+              final canDelete = exercise.sets.length > 1;
+              final row = SetRow(
                 set: activeSet,
                 setNumber: setIndex + 1,
                 units: units,
@@ -180,6 +194,30 @@ class ExerciseCard extends ConsumerWidget {
                           weight: prev.weight,
                         );
                       },
+              );
+              if (!canDelete) return row;
+              return Dismissible(
+                key: ValueKey('set-${exercise.name}-$setIndex-${activeSet.order}'),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  margin: const EdgeInsets.symmetric(vertical: 2),
+                  decoration: BoxDecoration(
+                    color: colorScheme.error.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                onDismissed: (_) {
+                  HapticFeedback.lightImpact();
+                  onRemoveSet(setIndex);
+                },
+                child: row,
               );
             }),
             const SizedBox(height: 4),
