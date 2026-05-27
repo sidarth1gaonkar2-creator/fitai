@@ -2,6 +2,55 @@ import 'package:flutter/material.dart';
 
 import '../../../../data/muscle_map.dart';
 
+/// Side flag used by [PanelResolution] and the path helpers.
+enum MuscleSide { front, back }
+
+/// Full description of how one anatomy panel (front or back) will be
+/// composited, including the resolved PNG paths. Returned by
+/// [MuscleHighlightWidget.resolvePanel] so the diagnostic dialog can
+/// dump the same data the renderer uses without duplicating logic.
+class PanelResolution {
+  const PanelResolution({
+    required this.side,
+    required this.baseSheet,
+    required this.baseFromMuscle,
+    required this.baseImagePath,
+    required this.primaryMaskSheets,
+    required this.primaryMaskPaths,
+    required this.primaryMaskFromMuscles,
+    required this.secondaryMaskSheets,
+    required this.secondaryMaskPaths,
+    required this.secondaryMaskFromMuscles,
+    required this.isEmpty,
+  });
+
+  final MuscleSide side;
+  /// PNG stem chosen as the base (full silhouette + baked-in highlight).
+  /// Null when the side is empty.
+  final String? baseSheet;
+  /// Original muscle name (one of the input strings) that produced the
+  /// base sheet. Empty when the base came from a fallback.
+  final String? baseFromMuscle;
+  /// Absolute asset path that will be passed to `Image.asset` for the
+  /// base layer. Empty string when the side is empty.
+  final String baseImagePath;
+  final List<String> primaryMaskSheets;
+  final List<String> primaryMaskPaths;
+  final List<String> primaryMaskFromMuscles;
+  final List<String> secondaryMaskSheets;
+  final List<String> secondaryMaskPaths;
+  final List<String> secondaryMaskFromMuscles;
+  /// True when no muscles on the input list hit this side — the
+  /// renderer short-circuits with a neutral placeholder in that case.
+  final bool isEmpty;
+
+  /// Image.asset count the renderer will produce: 1 for the base +
+  /// each primary/secondary mask. 0 when the side is empty.
+  int get imageCount => isEmpty
+      ? 1
+      : 1 + primaryMaskPaths.length + secondaryMaskPaths.length;
+}
+
 /// Composited anatomy diagram.
 ///
 /// For each body side we render:
@@ -54,6 +103,106 @@ class MuscleHighlightWidget extends StatelessWidget {
   static String? backSheetFor(String muscle) =>
       _AnatomySheets._back[MuscleMap.normalize(muscle)];
 
+  /// Asset directory the widget reads from for the given [brightness].
+  /// Useful for the diagnostic to print exactly what would be loaded in
+  /// either theme without needing a BuildContext.
+  static String originalDir(Brightness brightness) =>
+      brightness == Brightness.light
+          ? 'assets/images/anatomy/light'
+          : 'assets/images/anatomy';
+
+  /// Mask directory for the given [brightness].
+  static String maskDir(Brightness brightness) =>
+      '${originalDir(brightness)}/masks';
+
+  /// Replicates the in-widget panel resolution (base + overlay masks)
+  /// for one side ([side]). Output is exactly what the renderer will
+  /// hand to [Image.asset] so the diagnostic dialog and the rendered
+  /// figure can never drift apart.
+  static PanelResolution resolvePanel({
+    required MuscleSide side,
+    required List<String> targetMuscles,
+    required List<String> secondaryMuscles,
+    required Brightness brightness,
+  }) {
+    final orig = originalDir(brightness);
+    final masks = maskDir(brightness);
+    String? sheet(String m) =>
+        side == MuscleSide.front ? frontSheetFor(m) : backSheetFor(m);
+
+    // Preserve insertion order so the first-listed target wins the base
+    // slot — matches the runtime resolver.
+    final primarySheets = <String>{};
+    final primaryByMuscle = <String, String>{};
+    for (final m in targetMuscles) {
+      final s = sheet(m);
+      if (s != null && primarySheets.add(s)) primaryByMuscle[s] = m;
+    }
+    final secondarySheetsRaw = <String>{};
+    final secondaryByMuscle = <String, String>{};
+    for (final m in secondaryMuscles) {
+      final s = sheet(m);
+      if (s != null && secondarySheetsRaw.add(s)) secondaryByMuscle[s] = m;
+    }
+    // Same dedup the renderer applies — a sheet promoted to primary
+    // by one exercise can't reappear as a half-opacity secondary.
+    final secondarySheets =
+        secondarySheetsRaw.where((s) => !primarySheets.contains(s)).toList();
+
+    if (primarySheets.isEmpty && secondarySheets.isEmpty) {
+      return PanelResolution(
+        side: side,
+        baseSheet: null,
+        baseFromMuscle: null,
+        baseImagePath: '',
+        primaryMaskSheets: const [],
+        primaryMaskPaths: const [],
+        primaryMaskFromMuscles: const [],
+        secondaryMaskSheets: const [],
+        secondaryMaskPaths: const [],
+        secondaryMaskFromMuscles: const [],
+        isEmpty: true,
+      );
+    }
+
+    final String baseSheet;
+    final String? baseFromMuscle;
+    final List<String> primaryOverlaySheets;
+    final List<String> secondaryOverlaySheets;
+    if (primarySheets.isNotEmpty) {
+      baseSheet = primarySheets.first;
+      baseFromMuscle = primaryByMuscle[baseSheet];
+      primaryOverlaySheets = primarySheets.skip(1).toList();
+      secondaryOverlaySheets = secondarySheets;
+    } else {
+      // Fallback path: side has only secondaries → borrow the first
+      // for the base silhouette.
+      baseSheet = secondarySheets.first;
+      baseFromMuscle = secondaryByMuscle[baseSheet];
+      primaryOverlaySheets = const [];
+      secondaryOverlaySheets = secondarySheets.skip(1).toList();
+    }
+
+    return PanelResolution(
+      side: side,
+      baseSheet: baseSheet,
+      baseFromMuscle: baseFromMuscle,
+      baseImagePath: '$orig/$baseSheet.png',
+      primaryMaskSheets: primaryOverlaySheets,
+      primaryMaskPaths:
+          primaryOverlaySheets.map((s) => '$masks/$s.png').toList(),
+      primaryMaskFromMuscles:
+          primaryOverlaySheets.map((s) => primaryByMuscle[s] ?? '').toList(),
+      secondaryMaskSheets: secondaryOverlaySheets,
+      secondaryMaskPaths:
+          secondaryOverlaySheets.map((s) => '$masks/$s.png').toList(),
+      secondaryMaskFromMuscles: secondaryOverlaySheets
+          .map((s) => secondaryByMuscle[s] ?? '')
+          .toList(),
+      isEmpty: false,
+    );
+  }
+
   // Native dimensions of every anatomy PNG.
   static const double _nativeWidth = 669;
   static const double _nativeHeight = 1410;
@@ -65,76 +214,89 @@ class MuscleHighlightWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final brightness = MediaQuery.platformBrightnessOf(context);
-    final origDir = brightness == Brightness.light
-        ? 'assets/images/anatomy/light'
-        : 'assets/images/anatomy';
-    final maskDir = '$origDir/masks';
+    final origDir = originalDir(brightness);
 
-    // Resolve sheet-name sets per side. `Set` dedupes when one muscle name
-    // and a synonym both map to the same PNG.
-    final primaryFront =
-        _AnatomySheets.frontSheetsFor(targetMuscles).toList();
-    final primaryBack = _AnatomySheets.backSheetsFor(targetMuscles).toList();
-    final secFrontAll = _AnatomySheets.frontSheetsFor(secondaryMuscles);
-    final secBackAll = _AnatomySheets.backSheetsFor(secondaryMuscles);
-    // A muscle counted primary by one exercise shouldn't render again as a
-    // half-opacity secondary just because another exercise listed it that
-    // way — drop duplicates here.
-    final secondaryFront =
-        secFrontAll.where((s) => !primaryFront.contains(s)).toList();
-    final secondaryBack =
-        secBackAll.where((s) => !primaryBack.contains(s)).toList();
+    // Use the public resolver so the diagnostic dialog and the renderer
+    // always see the exact same allocation.
+    final frontRes = resolvePanel(
+      side: MuscleSide.front,
+      targetMuscles: targetMuscles,
+      secondaryMuscles: secondaryMuscles,
+      brightness: brightness,
+    );
+    final backRes = resolvePanel(
+      side: MuscleSide.back,
+      targetMuscles: targetMuscles,
+      secondaryMuscles: secondaryMuscles,
+      brightness: brightness,
+    );
 
-    final hasFront = primaryFront.isNotEmpty || secondaryFront.isNotEmpty;
-    final hasBack = primaryBack.isNotEmpty || secondaryBack.isNotEmpty;
+    final hasFront = !frontRes.isEmpty;
+    final hasBack = !backRes.isEmpty;
 
     // Pick which sides to render. Compact mode picks the heavier side.
     final showBoth = !compact && hasFront && hasBack;
     final showFront = compact
-        ? (hasFront && primaryFront.length >= primaryBack.length)
+        ? (hasFront &&
+            frontRes.primaryMaskSheets.length + (frontRes.baseSheet == null ? 0 : 1) >=
+                backRes.primaryMaskSheets.length + (backRes.baseSheet == null ? 0 : 1))
         : hasFront;
     final showBack = compact ? !showFront && hasBack : hasBack;
 
     // Nothing matched at all — render a single neutral front body so the
     // section never collapses to zero height.
     if (!showFront && !showBack) {
-      return _maybeWithOverlay(_layout(
-        height: height,
-        children: [
-          _BodyPanel(
-            baseOriginalPath: '$origDir/front-chest.png',
-            primaryMaskPaths: const [],
-            secondaryMaskPaths: const [],
-            aspectRatio: _nativeWidth / _nativeHeight,
-          ),
-        ],
-      ));
+      return _maybeWithOverlay(
+        _layout(
+          height: height,
+          children: [
+            _BodyPanel(
+              baseOriginalPath: '$origDir/front-chest.png',
+              primaryMaskPaths: const [],
+              secondaryMaskPaths: const [],
+              aspectRatio: _nativeWidth / _nativeHeight,
+              debugBorders: debugOverlay,
+            ),
+          ],
+        ),
+        frontImageCount: 1,
+        backImageCount: 0,
+      );
     }
 
     final panels = <Widget>[];
-    if (showFront) {
-      panels.add(_buildPanel(
-        origDir: origDir,
-        maskDir: maskDir,
-        primary: primaryFront,
-        secondary: secondaryFront,
-      ));
-    }
+    if (showFront) panels.add(_panelFromResolution(frontRes));
     if (showBack || (showBoth && hasBack)) {
-      panels.add(_buildPanel(
-        origDir: origDir,
-        maskDir: maskDir,
-        primary: primaryBack,
-        secondary: secondaryBack,
-      ));
+      panels.add(_panelFromResolution(backRes));
     }
 
-    return _maybeWithOverlay(_layout(height: height, children: panels));
+    return _maybeWithOverlay(
+      _layout(height: height, children: panels),
+      frontImageCount: showFront ? frontRes.imageCount : 0,
+      backImageCount:
+          (showBack || (showBoth && hasBack)) ? backRes.imageCount : 0,
+    );
   }
+
+  Widget _panelFromResolution(PanelResolution res) => _BodyPanel(
+        baseOriginalPath: res.baseImagePath,
+        primaryMaskPaths: res.primaryMaskPaths,
+        secondaryMaskPaths: res.secondaryMaskPaths,
+        aspectRatio: _nativeWidth / _nativeHeight,
+        debugBorders: debugOverlay,
+      );
 
   /// Wraps [child] in a Stack with a "what muscles am I drawing" label
   /// pile when [debugOverlay] is true; otherwise returns [child] as-is.
-  Widget _maybeWithOverlay(Widget child) {
+  /// [frontImageCount] / [backImageCount] = number of `Image.asset`
+  /// widgets in the front / back panel's stack — surfaces the same data
+  /// the diagnostic dialog reports so a tester can verify the figure
+  /// rendered the expected number of layers.
+  Widget _maybeWithOverlay(
+    Widget child, {
+    required int frontImageCount,
+    required int backImageCount,
+  }) {
     if (!debugOverlay) return child;
     return Stack(
       children: [
@@ -172,65 +334,21 @@ class MuscleHighlightWidget extends StatelessWidget {
                         fontFamily: 'Poppins',
                       ),
                     ),
+                  Text(
+                    'LAYERS  front: $frontImageCount  back: $backImageCount   '
+                    'fit: BoxFit.contain  align: center',
+                    style: const TextStyle(
+                      color: Color(0xFF80DEEA),
+                      fontSize: 10,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         ),
       ],
-    );
-  }
-
-  /// Composes one side. The first primary sheet (if any) becomes the
-  /// ORIGINAL base layer — its highlight is already baked in, so we don't
-  /// add a mask for it. The remaining primaries layer as masks at full
-  /// opacity, secondaries at half.
-  ///
-  /// Fallbacks for the base layer when no primary hits this side:
-  ///   * Use the first SECONDARY's original (its highlight will read at
-  ///     full opacity, which is "wrong" but acceptable — better than no
-  ///     silhouette at all).
-  ///   * Last resort: front-chest, just to show *something*.
-  Widget _buildPanel({
-    required String origDir,
-    required String maskDir,
-    required List<String> primary,
-    required List<String> secondary,
-  }) {
-    // Pick the base sheet — primary first, then secondary, then a hardcoded
-    // fallback that exists in both light and dark folders.
-    final String baseSheet;
-    final List<String> remainingPrimaryAsMasks;
-    final List<String> secondaryAsMasks;
-    if (primary.isNotEmpty) {
-      baseSheet = primary.first;
-      remainingPrimaryAsMasks = primary.skip(1).toList();
-      secondaryAsMasks = secondary;
-    } else if (secondary.isNotEmpty) {
-      // No primary on this side — borrow a secondary's original for the
-      // silhouette. Its highlight will appear at full opacity (not 50%)
-      // because there's no separate "base body" PNG anymore. Acceptable
-      // trade-off: most workouts have at least one primary per active side,
-      // so this branch rarely fires.
-      baseSheet = secondary.first;
-      remainingPrimaryAsMasks = const [];
-      secondaryAsMasks = secondary.skip(1).toList();
-    } else {
-      // Shouldn't reach here — `build` short-circuits when a side has
-      // nothing — but be defensive in case the call site ever asks us
-      // to render an empty side.
-      baseSheet = 'front-chest';
-      remainingPrimaryAsMasks = const [];
-      secondaryAsMasks = const [];
-    }
-
-    return _BodyPanel(
-      baseOriginalPath: '$origDir/$baseSheet.png',
-      primaryMaskPaths:
-          remainingPrimaryAsMasks.map((s) => '$maskDir/$s.png').toList(),
-      secondaryMaskPaths:
-          secondaryAsMasks.map((s) => '$maskDir/$s.png').toList(),
-      aspectRatio: _nativeWidth / _nativeHeight,
     );
   }
 
@@ -272,12 +390,26 @@ class _BodyPanel extends StatelessWidget {
     required this.primaryMaskPaths,
     required this.secondaryMaskPaths,
     required this.aspectRatio,
+    this.debugBorders = false,
   });
 
   final String baseOriginalPath;
   final List<String> primaryMaskPaths;
   final List<String> secondaryMaskPaths;
   final double aspectRatio;
+  /// When true, wraps every `Image.asset` in a 1px coloured border so a
+  /// TestFlight tester can count layers visually and confirm they're
+  /// positioned identically. Base=red, secondary mask=yellow, primary
+  /// mask=cyan — same colour vocabulary the diagnostic dialog uses.
+  final bool debugBorders;
+
+  Widget _maybeBorder(Widget child, Color color) {
+    if (!debugBorders) return child;
+    return Container(
+      decoration: BoxDecoration(border: Border.all(color: color, width: 1)),
+      child: child,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -288,32 +420,41 @@ class _BodyPanel extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           // 1. Original PNG — silhouette + first highlight baked in.
-          Image.asset(
-            baseOriginalPath,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high,
-            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          _maybeBorder(
+            Image.asset(
+              baseOriginalPath,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
+              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+            ),
+            Colors.red,
           ),
           // 2. Secondary masks at half opacity — drawn before remaining
           //    primaries so a stray pixel overlap reads as "secondary
           //    tinted under primary" rather than the other way around.
           for (final path in secondaryMaskPaths)
-            Opacity(
-              opacity: 0.5,
-              child: Image.asset(
+            _maybeBorder(
+              Opacity(
+                opacity: 0.5,
+                child: Image.asset(
+                  path,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                ),
+              ),
+              Colors.yellow,
+            ),
+          // 3. Remaining primary masks at full opacity.
+          for (final path in primaryMaskPaths)
+            _maybeBorder(
+              Image.asset(
                 path,
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.high,
                 errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
-            ),
-          // 3. Remaining primary masks at full opacity.
-          for (final path in primaryMaskPaths)
-            Image.asset(
-              path,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.high,
-              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              Colors.cyan,
             ),
         ],
       ),
@@ -367,26 +508,4 @@ abstract final class _AnatomySheets {
     'gastrocnemius': 'back-calves',
     'tibialis': 'back-calves',
   };
-
-  /// Every unique front-sheet filename stem matched by any name in [targets].
-  static Set<String> frontSheetsFor(List<String> targets) {
-    final out = <String>{};
-    for (final raw in targets) {
-      final key = MuscleMap.normalize(raw);
-      final hit = _front[key];
-      if (hit != null) out.add(hit);
-    }
-    return out;
-  }
-
-  /// Every unique back-sheet filename stem matched by any name in [targets].
-  static Set<String> backSheetsFor(List<String> targets) {
-    final out = <String>{};
-    for (final raw in targets) {
-      final key = MuscleMap.normalize(raw);
-      final hit = _back[key];
-      if (hit != null) out.add(hit);
-    }
-    return out;
-  }
 }
