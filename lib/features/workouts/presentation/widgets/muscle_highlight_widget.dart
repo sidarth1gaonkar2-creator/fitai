@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 import '../../../../data/muscle_map.dart';
 
@@ -384,7 +388,23 @@ class MuscleHighlightWidget extends StatelessWidget {
 /// primary masks at full opacity, then secondary masks at 50% opacity.
 /// All composited with normal `srcOver` since masks are transparent
 /// outside their highlight zone.
-class _BodyPanel extends StatelessWidget {
+/// One body side. Renders the base original PNG, then any additional
+/// primary masks at full opacity, then secondary masks at 50% opacity.
+///
+/// CustomPainter implementation: the previous `Stack<Image.asset>` approach
+/// composited base + masks by stacking widgets, each of which independently
+/// resolved `BoxFit.contain` against the available box. In practice some
+/// platforms (notably iOS release builds) produced sub-pixel rounding
+/// differences between layers — the front-shoulders mask would land a few
+/// pixels off the front-chest base, and the highlight would fall outside
+/// the body silhouette. The bug was invisible in dev/hot-reload because
+/// the rounding happened to align.
+///
+/// Painting on a single shared `Rect` removes that class of bug entirely:
+/// every layer uses the exact same destination rectangle. `drawImageRect`
+/// also gives us a true painter cache (`shouldRepaint` returns false when
+/// the layer list hasn't changed) instead of N widget rebuilds.
+class _BodyPanel extends StatefulWidget {
   const _BodyPanel({
     required this.baseOriginalPath,
     required this.primaryMaskPaths,
@@ -397,68 +417,230 @@ class _BodyPanel extends StatelessWidget {
   final List<String> primaryMaskPaths;
   final List<String> secondaryMaskPaths;
   final double aspectRatio;
-  /// When true, wraps every `Image.asset` in a 1px coloured border so a
-  /// TestFlight tester can count layers visually and confirm they're
-  /// positioned identically. Base=red, secondary mask=yellow, primary
-  /// mask=cyan — same colour vocabulary the diagnostic dialog uses.
+  /// When true, the painter draws a 1px coloured outline around each
+  /// layer's destination rectangle so a TestFlight tester can see, at a
+  /// glance, that every image is being painted into the exact same Rect.
+  /// Colour vocabulary mirrors the diagnostic dialog:
+  /// red=BASE, yellow=secondary mask (50%), cyan=primary mask (100%).
   final bool debugBorders;
 
-  Widget _maybeBorder(Widget child, Color color) {
-    if (!debugBorders) return child;
-    return Container(
-      decoration: BoxDecoration(border: Border.all(color: color, width: 1)),
-      child: child,
-    );
+  @override
+  State<_BodyPanel> createState() => _BodyPanelState();
+}
+
+class _BodyPanelState extends State<_BodyPanel> {
+  // All decoded layers, in paint order (base first, then secondary
+  // masks, then primary masks). Indexed identically to [_LayerSpec].
+  List<_DecodedLayer>? _layers;
+  Object? _error;
+  // Bumped each time we kick off a load. Stale loads (cancelled because
+  // the widget rebuilt with new paths) compare on this token and skip
+  // their setState — protects against last-write-wins races.
+  int _loadToken = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAll();
+  }
+
+  @override
+  void didUpdateWidget(covariant _BodyPanel old) {
+    super.didUpdateWidget(old);
+    if (old.baseOriginalPath != widget.baseOriginalPath ||
+        !_listEq(old.primaryMaskPaths, widget.primaryMaskPaths) ||
+        !_listEq(old.secondaryMaskPaths, widget.secondaryMaskPaths)) {
+      _loadAll();
+    }
+  }
+
+  static bool _listEq(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  Future<void> _loadAll() async {
+    final token = ++_loadToken;
+    final specs = <_LayerSpec>[
+      _LayerSpec(widget.baseOriginalPath, 1.0, _LayerRole.base),
+      for (final p in widget.secondaryMaskPaths)
+        _LayerSpec(p, 0.5, _LayerRole.secondaryMask),
+      for (final p in widget.primaryMaskPaths)
+        _LayerSpec(p, 1.0, _LayerRole.primaryMask),
+    ];
+    try {
+      final decoded = await Future.wait(specs.map((s) => _decode(s)));
+      // The load may finish after the widget has been disposed (or after
+      // a newer _loadAll was kicked off with different paths). In either
+      // case the freshly-decoded ui.Images would leak native memory if
+      // we just returned — explicitly dispose them.
+      if (!mounted || token != _loadToken) {
+        for (final l in decoded) {
+          l.image.dispose();
+        }
+        return;
+      }
+      // Dispose the PREVIOUS layer set we're about to replace.
+      final old = _layers;
+      if (old != null) {
+        for (final l in old) {
+          l.image.dispose();
+        }
+      }
+      setState(() {
+        _layers = decoded;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted || token != _loadToken) return;
+      setState(() {
+        _layers = null;
+        _error = e;
+      });
+    }
+  }
+
+  static Future<_DecodedLayer> _decode(_LayerSpec spec) async {
+    final data = await rootBundle.load(spec.path);
+    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+    final frame = await codec.getNextFrame();
+    return _DecodedLayer(image: frame.image, opacity: spec.opacity, role: spec.role);
+  }
+
+  @override
+  void dispose() {
+    // Decoded ui.Image instances hold native memory — dispose them so
+    // rapid template switching doesn't leak.
+    final layers = _layers;
+    if (layers != null) {
+      for (final l in layers) {
+        l.image.dispose();
+      }
+    }
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final layers = _layers;
+    if (_error != null || layers == null) {
+      // Reserve space while loading so the surrounding layout doesn't
+      // jump when the figure pops in.
+      return AspectRatio(
+        aspectRatio: widget.aspectRatio,
+        child: const SizedBox.shrink(),
+      );
+    }
     return AspectRatio(
-      aspectRatio: aspectRatio,
-      child: Stack(
-        alignment: Alignment.center,
-        fit: StackFit.expand,
-        children: [
-          // 1. Original PNG — silhouette + first highlight baked in.
-          _maybeBorder(
-            Image.asset(
-              baseOriginalPath,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.high,
-              errorBuilder: (_, _, _) => const SizedBox.shrink(),
-            ),
-            Colors.red,
-          ),
-          // 2. Secondary masks at half opacity — drawn before remaining
-          //    primaries so a stray pixel overlap reads as "secondary
-          //    tinted under primary" rather than the other way around.
-          for (final path in secondaryMaskPaths)
-            _maybeBorder(
-              Opacity(
-                opacity: 0.5,
-                child: Image.asset(
-                  path,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
-                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                ),
-              ),
-              Colors.yellow,
-            ),
-          // 3. Remaining primary masks at full opacity.
-          for (final path in primaryMaskPaths)
-            _maybeBorder(
-              Image.asset(
-                path,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.high,
-                errorBuilder: (_, _, _) => const SizedBox.shrink(),
-              ),
-              Colors.cyan,
-            ),
-        ],
+      aspectRatio: widget.aspectRatio,
+      child: CustomPaint(
+        painter: _BodyPainter(layers: layers, debugBorders: widget.debugBorders),
       ),
     );
+  }
+}
+
+enum _LayerRole { base, primaryMask, secondaryMask }
+
+class _LayerSpec {
+  const _LayerSpec(this.path, this.opacity, this.role);
+  final String path;
+  final double opacity;
+  final _LayerRole role;
+}
+
+class _DecodedLayer {
+  const _DecodedLayer({required this.image, required this.opacity, required this.role});
+  final ui.Image image;
+  final double opacity;
+  final _LayerRole role;
+}
+
+class _BodyPainter extends CustomPainter {
+  const _BodyPainter({required this.layers, required this.debugBorders});
+
+  final List<_DecodedLayer> layers;
+  final bool debugBorders;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (layers.isEmpty) return;
+    // Every layer ships at the same 669×1410 canvas, so picking the
+    // first layer's dimensions as the "native" size is safe. The dst
+    // rect is computed once and reused for every layer — the whole
+    // point of this painter is to guarantee pixel-identical placement.
+    final base = layers.first.image;
+    final nativeAspect = base.width / base.height;
+    final boxAspect = size.width / size.height;
+    final double dstW, dstH;
+    if (boxAspect > nativeAspect) {
+      // Box is wider than the image — letterbox left/right.
+      dstH = size.height;
+      dstW = dstH * nativeAspect;
+    } else {
+      // Box is taller — letterbox top/bottom.
+      dstW = size.width;
+      dstH = dstW / nativeAspect;
+    }
+    final dx = (size.width - dstW) / 2;
+    final dy = (size.height - dstH) / 2;
+    final dst = Rect.fromLTWH(dx, dy, dstW, dstH);
+
+    for (final layer in layers) {
+      final src = Rect.fromLTWH(
+        0,
+        0,
+        layer.image.width.toDouble(),
+        layer.image.height.toDouble(),
+      );
+      final paint = Paint()
+        ..filterQuality = FilterQuality.high
+        ..isAntiAlias = true
+        ..colorFilter = layer.opacity < 1.0
+            ? ColorFilter.mode(
+                Colors.white.withValues(alpha: layer.opacity),
+                BlendMode.modulate,
+              )
+            : null;
+      canvas.drawImageRect(layer.image, src, dst, paint);
+    }
+
+    if (debugBorders) {
+      // Outline EACH layer's dst rect at a slight inset so the per-layer
+      // colours don't perfectly overlap and become indistinguishable.
+      for (var i = 0; i < layers.length; i++) {
+        final color = switch (layers[i].role) {
+          _LayerRole.base => Colors.red,
+          _LayerRole.secondaryMask => Colors.yellow,
+          _LayerRole.primaryMask => Colors.cyan,
+        };
+        final inset = i.toDouble() * 1.0;
+        canvas.drawRect(
+          dst.deflate(inset),
+          Paint()
+            ..color = color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.0,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BodyPainter old) {
+    if (debugBorders != old.debugBorders) return true;
+    if (layers.length != old.layers.length) return true;
+    for (var i = 0; i < layers.length; i++) {
+      if (!identical(layers[i].image, old.layers[i].image) ||
+          layers[i].opacity != old.layers[i].opacity ||
+          layers[i].role != old.layers[i].role) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 
