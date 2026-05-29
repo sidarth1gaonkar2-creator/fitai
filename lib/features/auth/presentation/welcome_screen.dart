@@ -58,7 +58,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
               // Title
               const Text(
-                'SwoleCoach',
+                'AtlasFit',
                 style: TextStyle(
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.w700,

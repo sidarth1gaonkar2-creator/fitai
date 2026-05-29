@@ -51,7 +51,7 @@ class ActivityRow extends ConsumerWidget {
           title: const Text('Apple Health'),
           content: const Text(
             'Unable to connect to Apple Health. Open the iOS Settings app '
-            'and check Privacy → Health → SwoleCoach.',
+            'and check Privacy → Health → AtlasFit.',
           ),
           actions: [
             CupertinoDialogAction(

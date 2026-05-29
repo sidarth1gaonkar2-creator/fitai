@@ -208,7 +208,7 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
         title: pm.title,
         description: pm.description,
         creatorId: 'system',
-        creatorUsername: 'SwoleCoach',
+        creatorUsername: 'AtlasFit',
         type: premadeTypeFromCategory(pm.category),
         durationDays: pm.durationDays,
         startDate: now,

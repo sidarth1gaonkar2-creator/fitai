@@ -536,7 +536,7 @@ class SettingsScreen extends ConsumerWidget {
                       color: palette.accent,
                     ),
                     title: Text(
-                      'SwoleCoach',
+                      'AtlasFit',
                       style: textTheme.bodyLarge?.copyWith(
                         color: palette.text,
                         fontWeight: FontWeight.w500,
@@ -1103,7 +1103,7 @@ void _showHealthError(BuildContext context) {
       title: const Text('Apple Health'),
       content: const Text(
         'Unable to connect to Apple Health. Open the iOS Settings app and '
-        'check Privacy → Health → SwoleCoach.',
+        'check Privacy → Health → AtlasFit.',
       ),
       actions: [
         CupertinoDialogAction(

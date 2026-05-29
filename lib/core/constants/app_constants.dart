@@ -1,5 +1,5 @@
 class AppConstants {
-  static const String appName = 'SwoleCoach';
+  static const String appName = 'AtlasFit';
   static const int onboardingStepCount = 6;
 
   /// Master kill-switch for the Apple Health integration. When false, every

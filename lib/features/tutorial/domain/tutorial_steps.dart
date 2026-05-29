@@ -26,7 +26,7 @@ final Map<String, GlobalKey> tutorialKeys = {
 final List<TutorialStep> tutorialSteps = [
   TutorialStep(
     id: 'welcome',
-    title: 'Welcome to SwoleCoach!',
+    title: 'Welcome to AtlasFit!',
     description:
         "Let's take a quick tour. It'll only take a minute, and you can skip anytime.",
     targetKey: tutorialKeys['calorie_ring']!,
@@ -52,7 +52,7 @@ final List<TutorialStep> tutorialSteps = [
     id: 'workouts',
     title: 'Log Workouts',
     description:
-        "Tap the Workouts tab to start lifting. SwoleCoach tracks sets, reps, weight, and PRs automatically as you go.",
+        "Tap the Workouts tab to start lifting. AtlasFit tracks sets, reps, weight, and PRs automatically as you go.",
     targetKey: tutorialKeys['workouts_tab']!,
     route: '/workouts',
   ),

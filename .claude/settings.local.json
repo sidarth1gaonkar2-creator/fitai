@@ -48,7 +48,8 @@
       "Bash(cmd *)",
       "PowerShell(flutter analyze *)",
       "Bash(rm ios/Runner/Assets.xcassets/AppIcon.appiconset/*)",
-      "Bash(cp AppIcon-1024.png ios/Runner/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png)"
+      "Bash(cp AppIcon-1024.png ios/Runner/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png)",
+      "Bash(tar -tzf \"C:\\\\Users\\\\sidar\\\\fitai\\\\AppIcon.appiconset.tar.gz\")"
     ]
   }
 }
