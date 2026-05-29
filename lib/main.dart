@@ -13,6 +13,7 @@ import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/database/isar_service.dart';
+import 'core/utils/logger.dart';
 import 'providers/auth_provider.dart';
 import 'providers/firestore_provider.dart';
 import 'providers/isar_provider.dart';
@@ -22,9 +23,7 @@ import 'services/pr_migration_service.dart';
 import 'services/weight_migration_service.dart';
 
 void main() async {
-  debugPrint('[startup] main() entered');
   WidgetsFlutterBinding.ensureInitialized();
-  debugPrint('[startup] WidgetsFlutterBinding initialized');
 
   if (kReleaseMode) {
     ErrorWidget.builder = (FlutterErrorDetails details) {
@@ -47,17 +46,15 @@ void main() async {
 
   try {
     await dotenv.load(fileName: 'assets/.env');
-    debugPrint('[startup] dotenv loaded');
   } catch (e, st) {
-    debugPrint('[startup] dotenv load failed: $e\n$st');
+    AppLogger.error('dotenv load failed', error: e, stack: st);
   }
 
   // Firebase init
   try {
     await Firebase.initializeApp();
-    debugPrint('[startup] Firebase initialized');
   } catch (e, st) {
-    debugPrint('[startup] Firebase init FAILED: $e\n$st');
+    AppLogger.error('Firebase init FAILED', error: e, stack: st);
     runApp(_StartupErrorApp(phase: _StartupPhase.firebase, error: e, stack: st));
     return;
   }
@@ -72,19 +69,16 @@ void main() async {
   };
   await FirebaseCrashlytics.instance
       .setCrashlyticsCollectionEnabled(!kDebugMode);
-  debugPrint('[startup] Crashlytics configured (enabled=${!kDebugMode})');
 
   Isar? isar;
   Object? initError;
   StackTrace? initStack;
-  debugPrint('[startup] before Isar init');
   try {
     isar = await IsarService.initialize();
-    debugPrint('[startup] after Isar init (success)');
   } catch (e, st) {
     initError = e;
     initStack = st;
-    debugPrint('[startup] Isar init FAILED: $e\n$st');
+    AppLogger.error('Isar init FAILED', error: e, stack: st);
   }
 
   final prefs = await SharedPreferences.getInstance();
@@ -96,9 +90,8 @@ void main() async {
       try {
         await PRMigrationService.migrate(isar);
         await prefs.setBool('pr_migration_done', true);
-        debugPrint('[startup] PR migration complete');
-      } catch (e) {
-        debugPrint('[startup] PR migration failed: $e');
+      } catch (e, st) {
+        AppLogger.error('PR migration failed', error: e, stack: st);
       }
     }
 
@@ -106,11 +99,10 @@ void main() async {
     final weightFixDone = prefs.getBool('weight_migration_done') ?? false;
     if (!weightFixDone) {
       try {
-        final fixed = await WeightMigrationService.migrate(isar);
+        await WeightMigrationService.migrate(isar);
         await prefs.setBool('weight_migration_done', true);
-        debugPrint('[startup] Weight migration fixed $fixed sets');
-      } catch (e) {
-        debugPrint('[startup] Weight migration failed: $e');
+      } catch (e, st) {
+        AppLogger.error('Weight migration failed', error: e, stack: st);
       }
     }
   }
@@ -118,12 +110,10 @@ void main() async {
   // Initialize notification service
   try {
     await NotificationService.instance.init();
-    debugPrint('[startup] NotificationService initialized');
-  } catch (e) {
-    debugPrint('[startup] NotificationService init failed: $e');
+  } catch (e, st) {
+    AppLogger.error('NotificationService init failed', error: e, stack: st);
   }
 
-  debugPrint('[startup] before runApp');
   if (isar == null) {
     runApp(_StartupErrorApp(
       phase: _StartupPhase.isar,
@@ -144,7 +134,6 @@ void main() async {
       ),
     );
   }
-  debugPrint('[startup] after runApp');
 }
 
 enum _StartupPhase { firebase, isar }

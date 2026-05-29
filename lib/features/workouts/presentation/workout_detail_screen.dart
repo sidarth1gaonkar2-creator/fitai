@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,7 +11,6 @@ import '../../../models/enums.dart';
 import '../../../providers/unit_system_provider.dart';
 import '../../../providers/workout_providers.dart';
 import 'widgets/exercise_thumb.dart';
-import 'widgets/muscle_diagram_diagnostic.dart';
 import 'widgets/muscle_highlight_widget.dart';
 
 /// Maps the local [MuscleGroup] enum to the muscle-name strings that the
@@ -53,100 +51,13 @@ String? _muscleGroupToZoneName(MuscleGroup g) {
   }
 }
 
-class WorkoutDetailScreen extends ConsumerStatefulWidget {
+class WorkoutDetailScreen extends ConsumerWidget {
   const WorkoutDetailScreen({super.key, required this.workoutId});
 
   final int workoutId;
 
   @override
-  ConsumerState<WorkoutDetailScreen> createState() =>
-      _WorkoutDetailScreenState();
-}
-
-class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
-  /// Mirrors the diagnostic dialog toggle — when true, the muscle
-  /// diagram paints the muscle-name labels on top of the figure.
-  bool _diagramDebugOverlay = false;
-
-  int get workoutId => widget.workoutId;
-
-  /// Opens the on-screen diagnostic for the muscle diagram on this
-  /// workout. Recomputes the per-exercise muscle resolution at click
-  /// time so the report reflects the data the widget currently sees.
-  void _showDiagramDiagnostic(
-    String workoutTitle,
-    List<dynamic> exercises,
-  ) {
-    final entries = <MuscleDiagramDiagnosticEntry>[];
-    final aggregatedPrimary = <MuscleGroup>{};
-    final aggregatedSecondary = <MuscleGroup>{};
-    for (final entry in exercises) {
-      final name = (entry as dynamic).name as String;
-      final def = lookupExercise(name: name);
-      entries.add(MuscleDiagramDiagnosticEntry(
-        // The workout exercises track the human name (not a stable id)
-        // — show that as "id" in the report so the diff against the
-        // template view is clear.
-        id: name,
-        name: def?.name,
-        primary: def?.primaryMuscles ?? const [],
-        secondary: def?.secondaryMuscles ?? const [],
-      ));
-      if (def != null) {
-        aggregatedPrimary.addAll(def.primaryMuscles);
-        aggregatedSecondary.addAll(def.secondaryMuscles
-            .where((m) => !aggregatedPrimary.contains(m)));
-      }
-    }
-    final report = buildMuscleDiagramDiagnostic(
-      contextLabel: 'WORKOUT: $workoutTitle',
-      extraIdLine: 'workout.id: ${widget.workoutId}',
-      entries: entries,
-      computedPrimary: aggregatedPrimary,
-      computedSecondary: aggregatedSecondary,
-      muscleStringFn: (g) => _muscleGroupToZoneName(g) ?? '',
-    );
-    showCupertinoDialog<void>(
-      context: context,
-      builder: (dialogCtx) => CupertinoAlertDialog(
-        title: const Text('Muscle Diagram Diagnostic'),
-        content: SizedBox(
-          width: 320,
-          height: 360,
-          child: SingleChildScrollView(
-            child: Text(
-              report,
-              style: const TextStyle(
-                fontFamily: 'Menlo',
-                fontSize: 11,
-                height: 1.3,
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () {
-              Navigator.of(dialogCtx).pop();
-              setState(
-                  () => _diagramDebugOverlay = !_diagramDebugOverlay);
-            },
-            child: Text(_diagramDebugOverlay
-                ? 'Hide overlay'
-                : 'Show overlay on figure'),
-          ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final workoutAsync = ref.watch(workoutByIdProvider(workoutId));
     final units = ref.watch(unitSystemProvider);
     final colorScheme = Theme.of(context).colorScheme;
@@ -225,26 +136,12 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 🔍 = open the on-screen muscle-diagram diagnostic.
-                // Visible in release/TestFlight (no kDebugMode guard).
-                CupertinoButton(
-                  padding: const EdgeInsets.all(8),
-                  onPressed: () {
-                    final exs = ref
-                            .read(workoutExercisesProvider(workoutId))
-                            .valueOrNull ??
-                        const [];
-                    _showDiagramDiagnostic(workout.title, exs);
-                  },
-                  child: const Icon(CupertinoIcons.search, size: 22),
-                ),
-                const SizedBox(width: 10),
                 CupertinoButton(
                   padding: const EdgeInsets.all(8),
                   onPressed: () => context.go('/workouts/$workoutId/edit'),
                   child: const Icon(CupertinoIcons.pencil, size: 22),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 14),
                 CupertinoButton(
                   padding: const EdgeInsets.all(8),
                   onPressed: () => _confirmDelete(context, ref),
@@ -277,14 +174,6 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
                       .where((m) => !primaryMuscles.contains(m)));
                 }
               }
-              if (kDebugMode) {
-                debugPrint(
-                  '[diagram] workout:${workout.title}  '
-                  'exercises=${exercises.length}  '
-                  'primary=$primaryMuscles  secondary=$secondaryMuscles',
-                );
-              }
-
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -329,7 +218,6 @@ class _WorkoutDetailScreenState extends ConsumerState<WorkoutDetailScreen> {
                                   .whereType<String>()
                                   .toList(),
                               height: 200,
-                              debugOverlay: _diagramDebugOverlay,
                             ),
                           ),
                         ),

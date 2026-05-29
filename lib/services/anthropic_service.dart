@@ -55,8 +55,10 @@ class AnthropicService {
     try {
       final bodyJson = jsonEncode(
           _body(systemPrompt: systemPrompt, messages: messages, stream: true));
-      debugPrint('[Anthropic] → POST $_endpoint (streaming)');
-      debugPrint('[Anthropic] → body: ${_truncate(bodyJson, 500)}');
+      if (kDebugMode) {
+        debugPrint('[Anthropic] → POST $_endpoint (streaming)');
+        debugPrint('[Anthropic] → body: ${_truncate(bodyJson, 500)}');
+      }
 
       final request = await client.postUrl(Uri.parse(_endpoint));
       _headers(streaming: true).forEach(request.headers.set);
@@ -68,11 +70,15 @@ class AnthropicService {
                 'Timed out connecting to the AI service.'),
           );
 
-      debugPrint('[Anthropic] ← status ${response.statusCode}');
+      if (kDebugMode) {
+        debugPrint('[Anthropic] ← status ${response.statusCode}');
+      }
 
       if (response.statusCode != 200) {
         final errorBody = await response.transform(utf8.decoder).join();
-        debugPrint('[Anthropic] ← error body: ${_truncate(errorBody, 1000)}');
+        if (kDebugMode) {
+          debugPrint('[Anthropic] ← error body: ${_truncate(errorBody, 1000)}');
+        }
         Map<String, dynamic>? errorJson;
         try {
           errorJson = jsonDecode(errorBody) as Map<String, dynamic>?;
@@ -103,7 +109,9 @@ class AnthropicService {
           if (!line.startsWith('data: ')) continue;
           final data = line.substring(6);
           if (data == '[DONE]') {
-            debugPrint('[Anthropic] ← stream [DONE] ($chunksYielded chunks)');
+            if (kDebugMode) {
+              debugPrint('[Anthropic] ← stream [DONE] ($chunksYielded chunks)');
+            }
             return;
           }
 
@@ -121,18 +129,22 @@ class AnthropicService {
                 }
               }
             } else if (type == 'message_stop') {
-              debugPrint(
-                  '[Anthropic] ← message_stop ($chunksYielded chunks)');
+              if (kDebugMode) {
+                debugPrint(
+                    '[Anthropic] ← message_stop ($chunksYielded chunks)');
+              }
               return;
             } else if (type == 'error') {
               final error = event['error'] as Map<String, dynamic>?;
               final msg = error?['message'] as String? ?? 'Stream error';
-              debugPrint('[Anthropic] ← stream error event: $msg');
+              AppLogger.error('Anthropic stream error event: $msg');
               throw AnthropicException(msg);
             }
           } on FormatException catch (e) {
-            debugPrint(
-                '[Anthropic] SSE line failed to parse: $e (line=${_truncate(line, 200)})');
+            if (kDebugMode) {
+              debugPrint(
+                  '[Anthropic] SSE line failed to parse: $e (line=${_truncate(line, 200)})');
+            }
           }
         }
       }
@@ -174,8 +186,10 @@ class AnthropicService {
     try {
       final bodyJson = jsonEncode(
           _body(systemPrompt: systemPrompt, messages: messages, stream: false));
-      debugPrint('[Anthropic] → POST $_endpoint (non-streaming fallback)');
-      debugPrint('[Anthropic] → body: ${_truncate(bodyJson, 500)}');
+      if (kDebugMode) {
+        debugPrint('[Anthropic] → POST $_endpoint (non-streaming fallback)');
+        debugPrint('[Anthropic] → body: ${_truncate(bodyJson, 500)}');
+      }
 
       final request = await client.postUrl(Uri.parse(_endpoint));
       _headers(streaming: false).forEach(request.headers.set);
@@ -188,8 +202,10 @@ class AnthropicService {
           );
 
       final body = await response.transform(utf8.decoder).join();
-      debugPrint('[Anthropic] ← status ${response.statusCode}');
-      debugPrint('[Anthropic] ← body: ${_truncate(body, 1000)}');
+      if (kDebugMode) {
+        debugPrint('[Anthropic] ← status ${response.statusCode}');
+        debugPrint('[Anthropic] ← body: ${_truncate(body, 1000)}');
+      }
 
       if (response.statusCode != 200) {
         Map<String, dynamic>? errorJson;

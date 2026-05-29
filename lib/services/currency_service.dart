@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// In-app coin economy. Backed by SharedPreferences (two ints — `coins` and
@@ -35,7 +34,6 @@ class CurrencyService {
     final next = coins + amount;
     await _prefs.setInt(_kCoins, next);
     await _log('earn', 'coins', amount, reason);
-    debugPrint('[Currency] +$amount coins ($reason) → $next');
     return next;
   }
 
@@ -48,7 +46,6 @@ class CurrencyService {
     final next = current - amount;
     await _prefs.setInt(_kCoins, next);
     await _log('spend', 'coins', amount, reason);
-    debugPrint('[Currency] -$amount coins ($reason) → $next');
     return true;
   }
 

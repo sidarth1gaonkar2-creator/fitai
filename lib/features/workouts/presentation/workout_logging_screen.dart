@@ -115,12 +115,10 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
   }
 
   Future<void> _finishWorkout() async {
-    debugPrint('[Finish] Finish button tapped');
     final controller = ref.read(activeWorkoutProvider.notifier);
     final title = _titleController.text.trim();
 
     if (title.isEmpty) {
-      debugPrint('[Finish] Validation failed: title empty');
       showCupertinoToast(context, 'Please enter a workout name.');
       return;
     }
@@ -129,36 +127,26 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
 
     final stateBefore = ref.read(activeWorkoutProvider);
     if (stateBefore.exercises.isEmpty) {
-      debugPrint('[Finish] Validation failed: no exercises');
       showCupertinoToast(context, 'Add at least one exercise.');
       return;
     }
-
-    debugPrint('[Finish] Validation passed (title="$title", '
-        'exercises=${stateBefore.exercises.length})');
-    debugPrint('[Finish] Saving workout...');
 
     int? savedWorkoutId;
     try {
       savedWorkoutId = await controller.saveWorkout();
     } catch (e, st) {
-      debugPrint('[Finish] saveWorkout threw: $e\n$st');
       AppLogger.error('Finish workout failed', error: e, stack: st);
     }
 
     if (!mounted) return;
 
     if (savedWorkoutId == null) {
-      debugPrint('[Finish] saveWorkout returned null');
       showCupertinoToast(context, 'Failed to save workout.');
       return;
     }
 
-    debugPrint('[Finish] Workout saved with id=$savedWorkoutId');
-
     final prNames = ref.read(activeWorkoutProvider).newPRs;
     if (prNames.isNotEmpty) {
-      debugPrint('[Finish] Showing PR confetti for ${prNames.length} PR(s)');
       // Show confetti then continue. Wrapped in try so a failed dialog
       // can't block the rest of the finish flow.
       try {
@@ -170,13 +158,12 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
             onDismiss: () => Navigator.of(context, rootNavigator: true).pop(),
           ),
         );
-      } catch (e) {
-        debugPrint('[Finish] PR confetti dialog failed: $e');
+      } catch (e, st) {
+        AppLogger.error('PR confetti dialog failed', error: e, stack: st);
       }
     }
     if (!mounted) return;
 
-    debugPrint('[Finish] Showing share prompt');
     // Ask the user if they want to share this workout with the community.
     // Wrapped in try so a failed sheet can't strand the user on this screen.
     bool? shouldShare;
@@ -185,8 +172,8 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
         context: context,
         builder: (_) => const _ShareWorkoutPrompt(),
       );
-    } catch (e) {
-      debugPrint('[Finish] Share prompt failed: $e');
+    } catch (e, st) {
+      AppLogger.error('Share prompt failed', error: e, stack: st);
     }
     if (!mounted) return;
 
@@ -201,14 +188,12 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
     // Instead: first go back to /workouts (still inside the shell — safe
     // and animates correctly), give the navigator a frame to settle, then
     // push the standalone create-post route on top of the root navigator.
-    debugPrint('[Finish] Navigating back to /workouts (shell)');
     context.go('/workouts');
 
     if (shouldShare == true) {
       // One frame for the shell route to render before we stack on top.
       await Future.delayed(const Duration(milliseconds: 150));
       if (!mounted) return;
-      debugPrint('[Finish] Pushing /community/create-post on top');
       context.push('/community/create-post?workoutId=$savedWorkoutId');
     }
   }

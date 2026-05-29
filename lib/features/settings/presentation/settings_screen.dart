@@ -1,9 +1,10 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/cupertino.dart';
-// Kept while the Developer section's kDebugMode guard is temporarily
-// removed for the TestFlight screenshot build (see the TODO around the
-// "Seed Community" tile). Restore the guard and this import becomes used.
+// The Developer section below is gated on kDebugMode so the seed
+// buttons never ship to the App Store. The lint rule fires on debug
+// imports that *look* unused in some inline configurations, but the
+// guard genuinely depends on it.
 // ignore: unused_import
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
@@ -433,97 +434,97 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // TEMPORARY (2026-05-23): kDebugMode guard removed so the
-                // Seed Community button ships in the next TestFlight build
-                // for App Store screenshot seeding. RESTORE the
-                // `if (kDebugMode) ...[ ... ]` wrapper around this block
-                // before the next production release.
-                _SectionLabel(label: 'Developer', textTheme: textTheme),
-                const SizedBox(height: 8),
-                _SettingsCard(
-                  child: CupertinoListTile(
-                    leading: _SettingsIconBadge(
-                      icon: CupertinoIcons.wand_stars,
-                      color: palette.accent,
-                    ),
-                    title: Text(
-                      'Seed Community',
-                      style: textTheme.bodyLarge?.copyWith(
+                // Developer-only seed tools. kDebugMode is compile-time
+                // constant in release, so this whole block is tree-shaken
+                // out of production builds.
+                if (kDebugMode) ...[
+                  _SectionLabel(label: 'Developer', textTheme: textTheme),
+                  const SizedBox(height: 8),
+                  _SettingsCard(
+                    child: CupertinoListTile(
+                      leading: _SettingsIconBadge(
+                        icon: CupertinoIcons.wand_stars,
+                        color: palette.accent,
+                      ),
+                      title: Text(
+                        'Seed Community',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.text,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Write 10 demo posts + reactions + comments to Firestore',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      trailing: Icon(
+                        CupertinoIcons.chevron_right,
                         color: palette.text,
-                        fontWeight: FontWeight.w500,
+                        size: 18,
                       ),
+                      onTap: () => _runSeed(context, ref),
                     ),
-                    subtitle: Text(
-                      'Write 10 demo posts + reactions + comments to Firestore',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: palette.textSecondary,
-                      ),
-                    ),
-                    trailing: Icon(
-                      CupertinoIcons.chevron_right,
-                      color: palette.text,
-                      size: 18,
-                    ),
-                    onTap: () => _runSeed(context, ref),
                   ),
-                ),
-                const SizedBox(height: 8),
-                _SettingsCard(
-                  child: CupertinoListTile(
-                    leading: _SettingsIconBadge(
-                      icon: CupertinoIcons.chart_bar_alt_fill,
-                      color: palette.accent,
-                    ),
-                    title: Text(
-                      'Seed Leaderboard',
-                      style: textTheme.bodyLarge?.copyWith(
+                  const SizedBox(height: 8),
+                  _SettingsCard(
+                    child: CupertinoListTile(
+                      leading: _SettingsIconBadge(
+                        icon: CupertinoIcons.chart_bar_alt_fill,
+                        color: palette.accent,
+                      ),
+                      title: Text(
+                        'Seed Leaderboard',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.text,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Write 10 weekly leaderboard entries — you land 4th',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      trailing: Icon(
+                        CupertinoIcons.chevron_right,
                         color: palette.text,
-                        fontWeight: FontWeight.w500,
+                        size: 18,
                       ),
+                      onTap: () => _runSeedLeaderboard(context, ref),
                     ),
-                    subtitle: Text(
-                      'Write 10 weekly leaderboard entries — you land 4th',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: palette.textSecondary,
-                      ),
-                    ),
-                    trailing: Icon(
-                      CupertinoIcons.chevron_right,
-                      color: palette.text,
-                      size: 18,
-                    ),
-                    onTap: () => _runSeedLeaderboard(context, ref),
                   ),
-                ),
-                const SizedBox(height: 8),
-                _SettingsCard(
-                  child: CupertinoListTile(
-                    leading: _SettingsIconBadge(
-                      icon: CupertinoIcons.flag_fill,
-                      color: palette.accent,
-                    ),
-                    title: Text(
-                      'Seed Challenges',
-                      style: textTheme.bodyLarge?.copyWith(
+                  const SizedBox(height: 8),
+                  _SettingsCard(
+                    child: CupertinoListTile(
+                      leading: _SettingsIconBadge(
+                        icon: CupertinoIcons.flag_fill,
+                        color: palette.accent,
+                      ),
+                      title: Text(
+                        'Seed Challenges',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.text,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Write 3 active challenges + bot participants; you join 2',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      trailing: Icon(
+                        CupertinoIcons.chevron_right,
                         color: palette.text,
-                        fontWeight: FontWeight.w500,
+                        size: 18,
                       ),
+                      onTap: () => _runSeedChallenges(context, ref),
                     ),
-                    subtitle: Text(
-                      'Write 3 active challenges + bot participants; you join 2',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: palette.textSecondary,
-                      ),
-                    ),
-                    trailing: Icon(
-                      CupertinoIcons.chevron_right,
-                      color: palette.text,
-                      size: 18,
-                    ),
-                    onTap: () => _runSeedChallenges(context, ref),
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
+                ],
 
                 // About section
                 _SectionLabel(label: 'About', textTheme: textTheme),

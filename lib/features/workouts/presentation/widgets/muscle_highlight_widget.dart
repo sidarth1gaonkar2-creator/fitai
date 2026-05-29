@@ -6,53 +6,23 @@ import 'package:flutter/services.dart' show rootBundle;
 
 import '../../../../data/muscle_map.dart';
 
-/// Side flag used by [PanelResolution] and the path helpers.
-enum MuscleSide { front, back }
+enum _MuscleSide { front, back }
 
-/// Full description of how one anatomy panel (front or back) will be
-/// composited, including the resolved PNG paths. Returned by
-/// [MuscleHighlightWidget.resolvePanel] so the diagnostic dialog can
-/// dump the same data the renderer uses without duplicating logic.
-class PanelResolution {
-  const PanelResolution({
-    required this.side,
-    required this.baseSheet,
-    required this.baseFromMuscle,
+/// Internal description of one anatomy panel's resolved layer paths.
+class _PanelResolution {
+  const _PanelResolution({
     required this.baseImagePath,
-    required this.primaryMaskSheets,
     required this.primaryMaskPaths,
-    required this.primaryMaskFromMuscles,
-    required this.secondaryMaskSheets,
     required this.secondaryMaskPaths,
-    required this.secondaryMaskFromMuscles,
     required this.isEmpty,
   });
 
-  final MuscleSide side;
-  /// PNG stem chosen as the base (full silhouette + baked-in highlight).
-  /// Null when the side is empty.
-  final String? baseSheet;
-  /// Original muscle name (one of the input strings) that produced the
-  /// base sheet. Empty when the base came from a fallback.
-  final String? baseFromMuscle;
-  /// Absolute asset path that will be passed to `Image.asset` for the
-  /// base layer. Empty string when the side is empty.
   final String baseImagePath;
-  final List<String> primaryMaskSheets;
   final List<String> primaryMaskPaths;
-  final List<String> primaryMaskFromMuscles;
-  final List<String> secondaryMaskSheets;
   final List<String> secondaryMaskPaths;
-  final List<String> secondaryMaskFromMuscles;
-  /// True when no muscles on the input list hit this side — the
-  /// renderer short-circuits with a neutral placeholder in that case.
   final bool isEmpty;
 
-  /// Image.asset count the renderer will produce: 1 for the base +
-  /// each primary/secondary mask. 0 when the side is empty.
-  int get imageCount => isEmpty
-      ? 1
-      : 1 + primaryMaskPaths.length + secondaryMaskPaths.length;
+  int get primaryCount => isEmpty ? 0 : 1 + primaryMaskPaths.length;
 }
 
 /// Composited anatomy diagram.
@@ -81,7 +51,6 @@ class MuscleHighlightWidget extends StatelessWidget {
     this.secondaryMuscles = const [],
     this.height = 280,
     this.compact = false,
-    this.debugOverlay = false,
   });
 
   final List<String> targetMuscles;
@@ -89,120 +58,67 @@ class MuscleHighlightWidget extends StatelessWidget {
   final double height;
   final bool compact;
 
-  /// When true, paints the muscle-name strings (with their resolved PNG
-  /// sheet stem in parens) on top of the figure so a TestFlight tester
-  /// can verify what the widget *thinks* it's drawing without needing a
-  /// debugger. No `kDebugMode` guard — intentionally visible in
-  /// release builds while the diagram bug is under investigation.
-  final bool debugOverlay;
-
-  /// Returns the front-sheet PNG stem (e.g. `front-chest`) that the
-  /// given muscle name resolves to, or null if unmapped. Exposed so the
-  /// in-app diagnostic dialog can show the full per-muscle mapping
-  /// without duplicating the lookup table.
-  static String? frontSheetFor(String muscle) =>
-      _AnatomySheets._front[MuscleMap.normalize(muscle)];
-
-  /// Returns the back-sheet PNG stem, or null if unmapped.
-  static String? backSheetFor(String muscle) =>
-      _AnatomySheets._back[MuscleMap.normalize(muscle)];
-
-  /// Asset directory the widget reads from for the given [brightness].
-  /// Useful for the diagnostic to print exactly what would be loaded in
-  /// either theme without needing a BuildContext.
-  static String originalDir(Brightness brightness) =>
-      brightness == Brightness.light
-          ? 'assets/images/anatomy/light'
-          : 'assets/images/anatomy';
-
-  /// Mask directory for the given [brightness].
-  static String maskDir(Brightness brightness) =>
-      '${originalDir(brightness)}/masks';
-
-  /// Replicates the in-widget panel resolution (base + overlay masks)
-  /// for one side ([side]). Output is exactly what the renderer will
-  /// hand to [Image.asset] so the diagnostic dialog and the rendered
-  /// figure can never drift apart.
-  static PanelResolution resolvePanel({
-    required MuscleSide side,
+  static _PanelResolution _resolvePanel({
+    required _MuscleSide side,
     required List<String> targetMuscles,
     required List<String> secondaryMuscles,
-    required Brightness brightness,
+    required String origDir,
+    required String maskDir,
   }) {
-    final orig = originalDir(brightness);
-    final masks = maskDir(brightness);
-    String? sheet(String m) =>
-        side == MuscleSide.front ? frontSheetFor(m) : backSheetFor(m);
+    String? sheet(String m) {
+      final key = MuscleMap.normalize(m);
+      return side == _MuscleSide.front
+          ? _AnatomySheets._front[key]
+          : _AnatomySheets._back[key];
+    }
 
     // Preserve insertion order so the first-listed target wins the base
-    // slot — matches the runtime resolver.
+    // slot — the rendering depends on this stable ordering.
     final primarySheets = <String>{};
-    final primaryByMuscle = <String, String>{};
     for (final m in targetMuscles) {
       final s = sheet(m);
-      if (s != null && primarySheets.add(s)) primaryByMuscle[s] = m;
+      if (s != null) primarySheets.add(s);
     }
     final secondarySheetsRaw = <String>{};
-    final secondaryByMuscle = <String, String>{};
     for (final m in secondaryMuscles) {
       final s = sheet(m);
-      if (s != null && secondarySheetsRaw.add(s)) secondaryByMuscle[s] = m;
+      if (s != null) secondarySheetsRaw.add(s);
     }
-    // Same dedup the renderer applies — a sheet promoted to primary
-    // by one exercise can't reappear as a half-opacity secondary.
+    // A muscle promoted to primary by one exercise can't reappear as a
+    // half-opacity secondary because of another exercise listing it.
     final secondarySheets =
         secondarySheetsRaw.where((s) => !primarySheets.contains(s)).toList();
 
     if (primarySheets.isEmpty && secondarySheets.isEmpty) {
-      return PanelResolution(
-        side: side,
-        baseSheet: null,
-        baseFromMuscle: null,
+      return const _PanelResolution(
         baseImagePath: '',
-        primaryMaskSheets: const [],
-        primaryMaskPaths: const [],
-        primaryMaskFromMuscles: const [],
-        secondaryMaskSheets: const [],
-        secondaryMaskPaths: const [],
-        secondaryMaskFromMuscles: const [],
+        primaryMaskPaths: [],
+        secondaryMaskPaths: [],
         isEmpty: true,
       );
     }
 
     final String baseSheet;
-    final String? baseFromMuscle;
     final List<String> primaryOverlaySheets;
     final List<String> secondaryOverlaySheets;
     if (primarySheets.isNotEmpty) {
       baseSheet = primarySheets.first;
-      baseFromMuscle = primaryByMuscle[baseSheet];
       primaryOverlaySheets = primarySheets.skip(1).toList();
       secondaryOverlaySheets = secondarySheets;
     } else {
       // Fallback path: side has only secondaries → borrow the first
       // for the base silhouette.
       baseSheet = secondarySheets.first;
-      baseFromMuscle = secondaryByMuscle[baseSheet];
       primaryOverlaySheets = const [];
       secondaryOverlaySheets = secondarySheets.skip(1).toList();
     }
 
-    return PanelResolution(
-      side: side,
-      baseSheet: baseSheet,
-      baseFromMuscle: baseFromMuscle,
-      baseImagePath: '$orig/$baseSheet.png',
-      primaryMaskSheets: primaryOverlaySheets,
+    return _PanelResolution(
+      baseImagePath: '$origDir/$baseSheet.png',
       primaryMaskPaths:
-          primaryOverlaySheets.map((s) => '$masks/$s.png').toList(),
-      primaryMaskFromMuscles:
-          primaryOverlaySheets.map((s) => primaryByMuscle[s] ?? '').toList(),
-      secondaryMaskSheets: secondaryOverlaySheets,
+          primaryOverlaySheets.map((s) => '$maskDir/$s.png').toList(),
       secondaryMaskPaths:
-          secondaryOverlaySheets.map((s) => '$masks/$s.png').toList(),
-      secondaryMaskFromMuscles: secondaryOverlaySheets
-          .map((s) => secondaryByMuscle[s] ?? '')
-          .toList(),
+          secondaryOverlaySheets.map((s) => '$maskDir/$s.png').toList(),
       isEmpty: false,
     );
   }
@@ -218,21 +134,24 @@ class MuscleHighlightWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final brightness = MediaQuery.platformBrightnessOf(context);
-    final origDir = originalDir(brightness);
+    final origDir = brightness == Brightness.light
+        ? 'assets/images/anatomy/light'
+        : 'assets/images/anatomy';
+    final maskDir = '$origDir/masks';
 
-    // Use the public resolver so the diagnostic dialog and the renderer
-    // always see the exact same allocation.
-    final frontRes = resolvePanel(
-      side: MuscleSide.front,
+    final frontRes = _resolvePanel(
+      side: _MuscleSide.front,
       targetMuscles: targetMuscles,
       secondaryMuscles: secondaryMuscles,
-      brightness: brightness,
+      origDir: origDir,
+      maskDir: maskDir,
     );
-    final backRes = resolvePanel(
-      side: MuscleSide.back,
+    final backRes = _resolvePanel(
+      side: _MuscleSide.back,
       targetMuscles: targetMuscles,
       secondaryMuscles: secondaryMuscles,
-      brightness: brightness,
+      origDir: origDir,
+      maskDir: maskDir,
     );
 
     final hasFront = !frontRes.isEmpty;
@@ -241,30 +160,23 @@ class MuscleHighlightWidget extends StatelessWidget {
     // Pick which sides to render. Compact mode picks the heavier side.
     final showBoth = !compact && hasFront && hasBack;
     final showFront = compact
-        ? (hasFront &&
-            frontRes.primaryMaskSheets.length + (frontRes.baseSheet == null ? 0 : 1) >=
-                backRes.primaryMaskSheets.length + (backRes.baseSheet == null ? 0 : 1))
+        ? (hasFront && frontRes.primaryCount >= backRes.primaryCount)
         : hasFront;
     final showBack = compact ? !showFront && hasBack : hasBack;
 
     // Nothing matched at all — render a single neutral front body so the
     // section never collapses to zero height.
     if (!showFront && !showBack) {
-      return _maybeWithOverlay(
-        _layout(
-          height: height,
-          children: [
-            _BodyPanel(
-              baseOriginalPath: '$origDir/front-chest.png',
-              primaryMaskPaths: const [],
-              secondaryMaskPaths: const [],
-              aspectRatio: _nativeWidth / _nativeHeight,
-              debugBorders: debugOverlay,
-            ),
-          ],
-        ),
-        frontImageCount: 1,
-        backImageCount: 0,
+      return _layout(
+        height: height,
+        children: [
+          _BodyPanel(
+            baseOriginalPath: '$origDir/front-chest.png',
+            primaryMaskPaths: const [],
+            secondaryMaskPaths: const [],
+            aspectRatio: _nativeWidth / _nativeHeight,
+          ),
+        ],
       );
     }
 
@@ -274,87 +186,15 @@ class MuscleHighlightWidget extends StatelessWidget {
       panels.add(_panelFromResolution(backRes));
     }
 
-    return _maybeWithOverlay(
-      _layout(height: height, children: panels),
-      frontImageCount: showFront ? frontRes.imageCount : 0,
-      backImageCount:
-          (showBack || (showBoth && hasBack)) ? backRes.imageCount : 0,
-    );
+    return _layout(height: height, children: panels);
   }
 
-  Widget _panelFromResolution(PanelResolution res) => _BodyPanel(
+  Widget _panelFromResolution(_PanelResolution res) => _BodyPanel(
         baseOriginalPath: res.baseImagePath,
         primaryMaskPaths: res.primaryMaskPaths,
         secondaryMaskPaths: res.secondaryMaskPaths,
         aspectRatio: _nativeWidth / _nativeHeight,
-        debugBorders: debugOverlay,
       );
-
-  /// Wraps [child] in a Stack with a "what muscles am I drawing" label
-  /// pile when [debugOverlay] is true; otherwise returns [child] as-is.
-  /// [frontImageCount] / [backImageCount] = number of `Image.asset`
-  /// widgets in the front / back panel's stack — surfaces the same data
-  /// the diagnostic dialog reports so a tester can verify the figure
-  /// rendered the expected number of layers.
-  Widget _maybeWithOverlay(
-    Widget child, {
-    required int frontImageCount,
-    required int backImageCount,
-  }) {
-    if (!debugOverlay) return child;
-    return Stack(
-      children: [
-        child,
-        Positioned(
-          left: 4,
-          right: 4,
-          top: 4,
-          child: IgnorePointer(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.65),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'TARGETS: ${targetMuscles.isEmpty ? "(none)" : targetMuscles.join(", ")}',
-                    style: const TextStyle(
-                      color: Color(0xFFFFD54F),
-                      fontSize: 10,
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (secondaryMuscles.isNotEmpty)
-                    Text(
-                      'SECONDARY: ${secondaryMuscles.join(", ")}',
-                      style: const TextStyle(
-                        color: Color(0xFFB0BEC5),
-                        fontSize: 10,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  Text(
-                    'LAYERS  front: $frontImageCount  back: $backImageCount   '
-                    'fit: BoxFit.contain  align: center',
-                    style: const TextStyle(
-                      color: Color(0xFF80DEEA),
-                      fontSize: 10,
-                      fontFamily: 'Poppins',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _layout({required double height, required List<Widget> children}) {
     // Symmetric 16px horizontal padding on the card, two equal-flex columns
@@ -384,45 +224,24 @@ class MuscleHighlightWidget extends StatelessWidget {
   }
 }
 
-/// One body side. Renders the base original PNG, then any additional
-/// primary masks at full opacity, then secondary masks at 50% opacity.
-/// All composited with normal `srcOver` since masks are transparent
-/// outside their highlight zone.
-/// One body side. Renders the base original PNG, then any additional
-/// primary masks at full opacity, then secondary masks at 50% opacity.
-///
-/// CustomPainter implementation: the previous `Stack<Image.asset>` approach
-/// composited base + masks by stacking widgets, each of which independently
-/// resolved `BoxFit.contain` against the available box. In practice some
-/// platforms (notably iOS release builds) produced sub-pixel rounding
-/// differences between layers — the front-shoulders mask would land a few
-/// pixels off the front-chest base, and the highlight would fall outside
-/// the body silhouette. The bug was invisible in dev/hot-reload because
-/// the rounding happened to align.
-///
-/// Painting on a single shared `Rect` removes that class of bug entirely:
-/// every layer uses the exact same destination rectangle. `drawImageRect`
-/// also gives us a true painter cache (`shouldRepaint` returns false when
-/// the layer list hasn't changed) instead of N widget rebuilds.
+/// One body side. Decodes the base original + every mask through
+/// `rootBundle` once, then paints them into a single shared `Rect` via
+/// `CustomPainter`. Single-rect painting avoids the sub-pixel rounding
+/// drift we saw when each layer was an independent `Image.asset` —
+/// some iOS release builds rounded the mask rect a pixel away from the
+/// base rect and the highlight fell outside the body silhouette.
 class _BodyPanel extends StatefulWidget {
   const _BodyPanel({
     required this.baseOriginalPath,
     required this.primaryMaskPaths,
     required this.secondaryMaskPaths,
     required this.aspectRatio,
-    this.debugBorders = false,
   });
 
   final String baseOriginalPath;
   final List<String> primaryMaskPaths;
   final List<String> secondaryMaskPaths;
   final double aspectRatio;
-  /// When true, the painter draws a 1px coloured outline around each
-  /// layer's destination rectangle so a TestFlight tester can see, at a
-  /// glance, that every image is being painted into the exact same Rect.
-  /// Colour vocabulary mirrors the diagnostic dialog:
-  /// red=BASE, yellow=secondary mask (50%), cyan=primary mask (100%).
-  final bool debugBorders;
 
   @override
   State<_BodyPanel> createState() => _BodyPanelState();
@@ -465,11 +284,9 @@ class _BodyPanelState extends State<_BodyPanel> {
   Future<void> _loadAll() async {
     final token = ++_loadToken;
     final specs = <_LayerSpec>[
-      _LayerSpec(widget.baseOriginalPath, 1.0, _LayerRole.base),
-      for (final p in widget.secondaryMaskPaths)
-        _LayerSpec(p, 0.5, _LayerRole.secondaryMask),
-      for (final p in widget.primaryMaskPaths)
-        _LayerSpec(p, 1.0, _LayerRole.primaryMask),
+      _LayerSpec(widget.baseOriginalPath, 1.0),
+      for (final p in widget.secondaryMaskPaths) _LayerSpec(p, 0.5),
+      for (final p in widget.primaryMaskPaths) _LayerSpec(p, 1.0),
     ];
     try {
       final decoded = await Future.wait(specs.map((s) => _decode(s)));
@@ -507,7 +324,7 @@ class _BodyPanelState extends State<_BodyPanel> {
     final data = await rootBundle.load(spec.path);
     final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
     final frame = await codec.getNextFrame();
-    return _DecodedLayer(image: frame.image, opacity: spec.opacity, role: spec.role);
+    return _DecodedLayer(image: frame.image, opacity: spec.opacity);
   }
 
   @override
@@ -536,34 +353,27 @@ class _BodyPanelState extends State<_BodyPanel> {
     }
     return AspectRatio(
       aspectRatio: widget.aspectRatio,
-      child: CustomPaint(
-        painter: _BodyPainter(layers: layers, debugBorders: widget.debugBorders),
-      ),
+      child: CustomPaint(painter: _BodyPainter(layers: layers)),
     );
   }
 }
 
-enum _LayerRole { base, primaryMask, secondaryMask }
-
 class _LayerSpec {
-  const _LayerSpec(this.path, this.opacity, this.role);
+  const _LayerSpec(this.path, this.opacity);
   final String path;
   final double opacity;
-  final _LayerRole role;
 }
 
 class _DecodedLayer {
-  const _DecodedLayer({required this.image, required this.opacity, required this.role});
+  const _DecodedLayer({required this.image, required this.opacity});
   final ui.Image image;
   final double opacity;
-  final _LayerRole role;
 }
 
 class _BodyPainter extends CustomPainter {
-  const _BodyPainter({required this.layers, required this.debugBorders});
+  const _BodyPainter({required this.layers});
 
   final List<_DecodedLayer> layers;
-  final bool debugBorders;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -607,36 +417,14 @@ class _BodyPainter extends CustomPainter {
             : null;
       canvas.drawImageRect(layer.image, src, dst, paint);
     }
-
-    if (debugBorders) {
-      // Outline EACH layer's dst rect at a slight inset so the per-layer
-      // colours don't perfectly overlap and become indistinguishable.
-      for (var i = 0; i < layers.length; i++) {
-        final color = switch (layers[i].role) {
-          _LayerRole.base => Colors.red,
-          _LayerRole.secondaryMask => Colors.yellow,
-          _LayerRole.primaryMask => Colors.cyan,
-        };
-        final inset = i.toDouble() * 1.0;
-        canvas.drawRect(
-          dst.deflate(inset),
-          Paint()
-            ..color = color
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.0,
-        );
-      }
-    }
   }
 
   @override
   bool shouldRepaint(covariant _BodyPainter old) {
-    if (debugBorders != old.debugBorders) return true;
     if (layers.length != old.layers.length) return true;
     for (var i = 0; i < layers.length; i++) {
       if (!identical(layers[i].image, old.layers[i].image) ||
-          layers[i].opacity != old.layers[i].opacity ||
-          layers[i].role != old.layers[i].role) {
+          layers[i].opacity != old.layers[i].opacity) {
         return true;
       }
     }

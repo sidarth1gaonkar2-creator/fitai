@@ -8,9 +8,9 @@ part 'user_theme_state.g.dart';
 /// We use a fixed `id = 1` and treat the collection as a singleton — the app
 /// either reads the row, or creates it with defaults on first launch.
 ///
-/// Default coins/gems are inflated to 100 each for the store-testing phase
-/// so QA can buy multiple themes without grinding. The default `ownedThemeIds`
-/// includes both free themes — `midnight_blue` (the default) and `slate`.
+/// New users start with 50 coins (a small welcome grant) and 0 gems. The
+/// default `ownedThemeIds` includes the two free themes — `midnight_blue`
+/// (the default) and `slate`.
 @collection
 class UserThemeState {
   Id id = 1;
@@ -29,6 +29,6 @@ class UserThemeState {
   UserThemeState.defaults()
       : equippedThemeId = 'midnight_blue',
         ownedThemeIds = const ['midnight_blue', 'slate'],
-        coins = 100,
-        gems = 100;
+        coins = 50,
+        gems = 0;
 }

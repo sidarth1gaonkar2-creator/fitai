@@ -8,12 +8,12 @@ import '../services/anthropic_service.dart';
 final anthropicServiceProvider = Provider<AnthropicService?>((ref) {
   final key = dotenv.env['ANTHROPIC_API_KEY'];
   if (key == null || key.isEmpty || key == 'your-api-key-here') {
-    debugPrint('[Anthropic] API key NOT loaded from assets/.env '
-        '(key=${key == null ? "null" : "empty/placeholder"})');
+    if (kDebugMode) {
+      debugPrint('[Anthropic] API key NOT loaded from assets/.env '
+          '(key=${key == null ? "null" : "empty/placeholder"})');
+    }
     return null;
   }
-  final masked = key.length > 10 ? '${key.substring(0, 10)}…' : key;
-  debugPrint('[Anthropic] API key loaded: length=${key.length} prefix=$masked');
   return AnthropicService(key);
 });
 

@@ -5,11 +5,6 @@ import 'app_theme_data.dart';
 /// Static catalogue of all themes shipped with the app. Order here defines
 /// the order shown in the store grid. The first entry MUST be the default
 /// (free, always owned) so [defaultTheme] never returns null.
-///
-/// Pricing note — ALL coin/gem prices are intentionally set to 1 during the
-/// store-testing phase so the QA flow can rapidly buy/equip every theme.
-/// Real prices live in the `// real:` comments on each entry; switch back
-/// before shipping by replacing the literal with the commented value.
 const List<AppThemeData> themeRegistry = [
   // 1. Default — the iOS dark mode system blue. Free, always owned.
   AppThemeData(
@@ -41,7 +36,7 @@ const List<AppThemeData> themeRegistry = [
     currency: ThemeCurrency.coins,
   ),
 
-  // 3. Emerald — green energy. real: 500
+  // 3. Emerald — green energy.
   AppThemeData(
     id: 'emerald',
     name: 'Emerald',
@@ -52,11 +47,11 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF000000),
     darkSurface: Color(0xFF0D1F12),
     lightAccent: Color(0xFF248A3D), // darker green for AA contrast
-    price: 1, // real: 500
+    price: 500,
     currency: ThemeCurrency.coins,
   ),
 
-  // 4. Sunset — warm amber. real: 500
+  // 4. Sunset — warm amber.
   AppThemeData(
     id: 'sunset',
     name: 'Sunset',
@@ -67,11 +62,11 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF000000),
     darkSurface: Color(0xFF1F1508),
     lightAccent: Color(0xFFC76E00),
-    price: 1, // real: 500
+    price: 500,
     currency: ThemeCurrency.coins,
   ),
 
-  // 5. Crimson — red. real: 750
+  // 5. Crimson — red.
   AppThemeData(
     id: 'crimson',
     name: 'Crimson',
@@ -82,11 +77,11 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF000000),
     darkSurface: Color(0xFF1F0C0A),
     lightAccent: Color(0xFFC2261B),
-    price: 1, // real: 750
+    price: 750,
     currency: ThemeCurrency.coins,
   ),
 
-  // 6. Ocean — aqua / cyan. real: 750
+  // 6. Ocean — aqua / cyan.
   AppThemeData(
     id: 'ocean',
     name: 'Ocean',
@@ -97,11 +92,11 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF000000),
     darkSurface: Color(0xFF0A1520),
     lightAccent: Color(0xFF0080A8),
-    price: 1, // real: 750
+    price: 750,
     currency: ThemeCurrency.coins,
   ),
 
-  // 7. Lavender — purple. real: 1000
+  // 7. Lavender — purple.
   AppThemeData(
     id: 'lavender',
     name: 'Lavender',
@@ -112,11 +107,11 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF000000),
     darkSurface: Color(0xFF150A22),
     lightAccent: Color(0xFF8E2BC2),
-    price: 1, // real: 1000
+    price: 1000,
     currency: ThemeCurrency.coins,
   ),
 
-  // 8. Neon Pulse — premium, magenta + indigo. real: 50
+  // 8. Neon Pulse — premium, magenta + indigo.
   AppThemeData(
     id: 'neon_pulse',
     name: 'Neon Pulse',
@@ -127,12 +122,12 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF0F0F14),
     darkSurface: Color(0xFF12101A),
     lightAccent: Color(0xFFD60036),
-    price: 1, // real: 50
+    price: 50,
     currency: ThemeCurrency.gems,
     isPremium: true,
   ),
 
-  // 9. Stealth — premium, monochrome dark. real: 50
+  // 9. Stealth — premium, monochrome dark.
   AppThemeData(
     id: 'stealth',
     name: 'Stealth',
@@ -143,7 +138,7 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF000000),
     darkSurface: Color(0xFF0A0A0A),
     lightAccent: Color(0xFF1C1C1E),
-    price: 1, // real: 50
+    price: 50,
     currency: ThemeCurrency.gems,
     isPremium: true,
   ),
