@@ -114,8 +114,14 @@ import UIKit
       startComponents.calendar = cal
       endComponents.calendar = cal
 
-      let predicate = HKQuery.predicateForActivitySummary(
-        between: startComponents, end: endComponents)
+      // Swift 6 / Xcode 26 importer surfaces this as
+      // `predicate(forActivitySummariesBetweenStart:end:)` (a static method
+      // on HKQuery). The older Swift name `predicateForActivitySummary(between:end:)`
+      // does not exist in current SDKs and produces "Extra arguments" /
+      // "Missing argument for parameter 'with'" build errors.
+      let predicate = HKQuery.predicate(
+        forActivitySummariesBetweenStart: startComponents,
+        end: endComponents)
       let query = HKActivitySummaryQuery(predicate: predicate) {
         _, summaries, error in
         if let error = error {
