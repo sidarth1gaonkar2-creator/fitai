@@ -194,8 +194,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                 // --- Stats Row ---
                 _StatsRow(
-                  caloriesBurned: calories,
-                  workoutMinutes: workout?.durationMinutes,
+                  calories: calories.toInt(),
+                  workoutsToday: workout != null ? 1 : 0,
                 ),
                 const SizedBox(height: 20),
 
@@ -385,40 +385,50 @@ void _syncWaterToHealth(WidgetRef ref, int delta) {
 // Stats Row
 // ---------------------------------------------------------------------------
 
-class _StatsRow extends StatelessWidget {
+class _StatsRow extends ConsumerWidget {
   const _StatsRow({
-    required this.caloriesBurned,
-    required this.workoutMinutes,
+    required this.calories,
+    required this.workoutsToday,
   });
 
-  final num caloriesBurned;
-  final int? workoutMinutes;
+  final int calories;
+  final int workoutsToday;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Steps + distance live in the activity stat-box row below, so we
+    // surface complementary metrics here: today's calories (echoing the
+    // central ring at a glance), HealthKit active minutes, and the count
+    // of workouts logged today. Active minutes shows "0" rather than "—"
+    // when the read returns nothing — non-iOS, no HealthKit connection,
+    // or the user genuinely has 0 active minutes — all read identically.
+    final activeMinutes = Platform.isIOS
+        ? (ref.watch(todayActiveMinutesProvider).valueOrNull ?? 0)
+        : 0;
+
     return Row(
       children: [
         Expanded(
           child: _StatCard(
-            icon: Icons.directions_walk,
-            value: '—',
-            label: 'Steps',
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _StatCard(
             icon: NutrientIcons.caloriesIcon,
-            value: caloriesBurned.toInt().toString(),
-            label: 'kcal',
+            value: calories.toString(),
+            label: 'Calories',
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _StatCard(
             icon: Icons.timer,
-            value: workoutMinutes != null ? '${workoutMinutes}m' : '—',
-            label: 'Minutes',
+            value: '$activeMinutes',
+            label: 'Active Min',
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _StatCard(
+            icon: Icons.fitness_center,
+            value: '$workoutsToday',
+            label: 'Workouts',
           ),
         ),
       ],

@@ -430,6 +430,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+      // NOTE: declare the static `/create` path BEFORE the `:challengeId`
+      // pattern. go_router matches in declaration order, and putting the
+      // dynamic route first makes `/community/challenge/create` resolve as
+      // `challengeId="create"` → ChallengeDetailScreen → "Challenge not
+      // found." page.
+      GoRoute(
+        path: '/community/challenge/create',
+        pageBuilder: (context, state) => slideUpTransitionPage(
+          key: state.pageKey,
+          child: const CreateChallengeScreen(),
+        ),
+      ),
       GoRoute(
         path: '/community/challenge/:challengeId',
         pageBuilder: (context, state) {
@@ -439,13 +451,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             child: ChallengeDetailScreen(challengeId: challengeId),
           );
         },
-      ),
-      GoRoute(
-        path: '/community/challenge/create',
-        pageBuilder: (context, state) => slideUpTransitionPage(
-          key: state.pageKey,
-          child: const CreateChallengeScreen(),
-        ),
       ),
       GoRoute(
         path: '/community/notifications',

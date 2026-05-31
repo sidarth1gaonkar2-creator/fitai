@@ -92,12 +92,30 @@ import UIKit
         NSLog("[HealthKitGoals] activitySummary auth not granted")
       }
 
+      // Query the last 14 days of activity summaries (not just today). The
+      // Watch's daily summary for "today" is often missing until the user
+      // has worn the device and the Fitness app has synced — querying a
+      // window lets us pick the most recent summary with a non-zero Move
+      // goal so we still show the user's real goal first thing in the
+      // morning, before any data has flowed in for the current day.
       let cal = Calendar.current
-      let today = cal.dateComponents([.year, .month, .day], from: Date())
-      var todayComponents = today
-      todayComponents.calendar = cal
+      let endDate = Date()
+      guard let startDate = cal.date(byAdding: .day, value: -14, to: endDate)
+      else {
+        result(nil)
+        return
+      }
+      let startComp = cal.dateComponents(
+        [.year, .month, .day], from: startDate)
+      let endComp = cal.dateComponents(
+        [.year, .month, .day], from: endDate)
+      var startComponents = startComp
+      var endComponents = endComp
+      startComponents.calendar = cal
+      endComponents.calendar = cal
 
-      let predicate = HKQuery.predicateForActivitySummary(with: todayComponents)
+      let predicate = HKQuery.predicateForActivitySummary(
+        between: startComponents, end: endComponents)
       let query = HKActivitySummaryQuery(predicate: predicate) {
         _, summaries, error in
         if let error = error {
@@ -105,14 +123,23 @@ import UIKit
           result(nil)
           return
         }
-        guard let summary = summaries?.first else {
-          NSLog("[HealthKitGoals] no summary returned for today")
-          // Send an empty map so Dart can distinguish "no Apple Health data
-          // yet today" from "native bridge failed". Both legitimately fall
+        let list = summaries ?? []
+        if list.isEmpty {
+          NSLog("[HealthKitGoals] no summaries returned in 14-day window")
+          // Empty (not nil) tells Dart "bridge OK, no data" so it falls
           // through to the profile-derived fallback.
           result([String: Any]())
           return
         }
+
+        // Pick the most recent summary whose Move goal is > 0. Walking the
+        // list backwards is robust: HealthKit may return summaries in
+        // ascending date order, and a freshly-rolled-over day may have a
+        // zero goal until the device commits the day's targets.
+        func nonZeroMove(_ s: HKActivitySummary) -> Bool {
+          return s.activeEnergyBurnedGoal.doubleValue(for: .kilocalorie()) > 0
+        }
+        let picked = list.reversed().first(where: nonZeroMove) ?? list.last!
 
         let moveKcal: Double
         let exerciseMin: Double
@@ -121,27 +148,33 @@ import UIKit
           // iOS 14+ exposes goals in the unit the user prefers; we ask
           // for the canonical units explicitly so the values are stable
           // regardless of locale.
-          moveKcal = summary.activeEnergyBurnedGoal
+          moveKcal = picked.activeEnergyBurnedGoal
             .doubleValue(for: .kilocalorie())
-          exerciseMin = summary.appleExerciseTimeGoal
+          exerciseMin = picked.appleExerciseTimeGoal
             .doubleValue(for: .minute())
-          standHours = summary.appleStandHoursGoal
+          standHours = picked.appleStandHoursGoal
             .doubleValue(for: .count())
         } else {
           // Pre-iOS 14: only Move and Exercise goals are exposed; Stand
           // goal API doesn't exist, default to the Apple-standard 12.
-          moveKcal = summary.activeEnergyBurnedGoal
+          moveKcal = picked.activeEnergyBurnedGoal
             .doubleValue(for: .kilocalorie())
           exerciseMin = 30
           standHours = 12
         }
 
-        let payload: [String: Any] = [
-          "moveCalories": Int(moveKcal.rounded()),
+        // If even the most recent valid summary has a zero Move goal, omit
+        // the field so Dart falls back to profileMove() rather than showing
+        // "0 / 0 kcal" — that's almost certainly an unconfigured account
+        // rather than a real goal of zero.
+        var payload: [String: Any] = [
           "exerciseMinutes": Int(exerciseMin.rounded()),
           "standHours": Int(standHours.rounded()),
         ]
-        NSLog("[HealthKitGoals] returning \(payload)")
+        if moveKcal > 0 {
+          payload["moveCalories"] = Int(moveKcal.rounded())
+        }
+        NSLog("[HealthKitGoals] returning \(payload) (from \(list.count) summaries)")
         result(payload)
       }
       store.execute(query)
