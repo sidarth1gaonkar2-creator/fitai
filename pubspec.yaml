@@ -50,6 +50,7 @@ flutter:
   assets:
     - assets/.env
     - assets/icons/
+    - assets/images/
     - assets/images/anatomy/
     - assets/images/anatomy/masks/
     - assets/images/anatomy/light/

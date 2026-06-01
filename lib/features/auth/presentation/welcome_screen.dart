@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, Scaffold;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
@@ -40,19 +41,14 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
             children: [
               const Spacer(flex: 3),
 
-              // Logo
-              Container(
+              // Logo — the SVG already includes the rounded brand-blue
+              // background and the white barbell glyph, so we render it
+              // directly at 96×96 instead of wrapping a heart placeholder
+              // in a purple container.
+              SvgPicture.asset(
+                'assets/images/logo-mark.svg',
                 width: 96,
                 height: 96,
-                decoration: BoxDecoration(
-                  color: AppColors.purple,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: const Icon(
-                  CupertinoIcons.heart_fill,
-                  color: CupertinoColors.white,
-                  size: 48,
-                ),
               ),
               const SizedBox(height: 24),
 
