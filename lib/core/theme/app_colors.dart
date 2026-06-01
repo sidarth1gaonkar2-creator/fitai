@@ -12,7 +12,7 @@ import '../../features/themes/providers/theme_providers.dart';
 /// current brightness. Widgets remain unaware of themes — they read tokens
 /// (accent, surface, background, …) and the right values appear.
 ///
-/// To force a full-app rebuild when the theme changes, the root [FitAIApp]
+/// To force a full-app rebuild when the theme changes, the root [AtlasFitApp]
 /// watches `activeThemeProvider`; that propagates through `CupertinoApp` so
 /// all descendants get a fresh build with the new palette.
 abstract final class AppColors {

@@ -209,31 +209,40 @@ class _WheelPicker extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
+          // The picker needs a generous tap target — the previous
+          // configuration (itemExtent 34 + magnification 1.1 + squeeze 1.2)
+          // compressed each row into a ~22-pt strip that effectively dead-
+          // zoned vertical drags. Larger itemExtent + diameterRatio + no
+          // squeeze gives the wheel room to grab gestures cleanly. We also
+          // wrap with `behavior: opaque` so any transparent inner gaps
+          // still consume the touch and route it to the picker.
           Expanded(
-            child: CupertinoPicker(
-              scrollController: controller,
-              itemExtent: 34,
-              magnification: 1.1,
-              squeeze: 1.2,
-              selectionOverlay: Container(
-                decoration: BoxDecoration(
-                  color: palette.accent.withValues(alpha: 0.12),
-                  border: Border(
-                    top: BorderSide(color: palette.accent),
-                    bottom: BorderSide(color: palette.accent),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              child: CupertinoPicker.builder(
+                scrollController: controller,
+                itemExtent: 44,
+                diameterRatio: 1.6,
+                useMagnifier: true,
+                magnification: 1.05,
+                selectionOverlay: Container(
+                  decoration: BoxDecoration(
+                    color: palette.accent.withValues(alpha: 0.12),
+                    border: Border(
+                      top: BorderSide(color: palette.accent),
+                      bottom: BorderSide(color: palette.accent),
+                    ),
                   ),
                 ),
-              ),
-              onSelectedItemChanged: (index) => onChanged(min + index),
-              children: List.generate(
-                max - min + 1,
-                (i) => Center(
+                onSelectedItemChanged: (index) => onChanged(min + index),
+                childCount: max - min + 1,
+                itemBuilder: (context, i) => Center(
                   child: Text(
                     formatItem?.call(min + i) ?? '${min + i}',
                     style: TextStyle(
                       fontFamily: 'Poppins',
                       color: palette.text,
-                      fontSize: 18,
+                      fontSize: 20,
                     ),
                   ),
                 ),

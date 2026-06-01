@@ -130,7 +130,7 @@ void main() async {
           firestoreProvider.overrideWithValue(FirebaseFirestore.instance),
           storageProvider.overrideWithValue(FirebaseStorage.instance),
         ],
-        child: const FitAIApp(),
+        child: const AtlasFitApp(),
       ),
     );
   }
@@ -168,7 +168,7 @@ class _StartupErrorApp extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'FitAI failed to start',
+                    'AtlasFit failed to start',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,

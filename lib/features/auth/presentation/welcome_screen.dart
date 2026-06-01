@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, Scaffold;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
@@ -41,14 +40,18 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
             children: [
               const Spacer(flex: 3),
 
-              // Logo — the SVG already includes the rounded brand-blue
-              // background and the white barbell glyph, so we render it
-              // directly at 96×96 instead of wrapping a heart placeholder
-              // in a purple container.
-              SvgPicture.asset(
-                'assets/images/logo-mark.svg',
-                width: 96,
-                height: 96,
+              // Logo — the AtlasFit app icon PNG (mirror of the iOS
+              // AppIcon-180). iOS uses a 22%-of-width corner radius for app
+              // icons (~21px on a 96-wide rendering), so we clip with a
+              // matching RRect to read as the system app icon.
+              ClipRRect(
+                borderRadius: BorderRadius.circular(21),
+                child: Image.asset(
+                  'assets/images/app-icon.png',
+                  width: 96,
+                  height: 96,
+                  fit: BoxFit.cover,
+                ),
               ),
               const SizedBox(height: 24),
 

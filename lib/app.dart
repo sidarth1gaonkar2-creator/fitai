@@ -9,8 +9,8 @@ import 'features/tutorial/presentation/tutorial_overlay.dart';
 import 'providers/settings_providers.dart';
 import 'routing/app_router.dart';
 
-class FitAIApp extends ConsumerWidget {
-  const FitAIApp({super.key});
+class AtlasFitApp extends ConsumerWidget {
+  const AtlasFitApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
