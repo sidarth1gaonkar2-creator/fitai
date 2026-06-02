@@ -122,15 +122,18 @@ service cloud.firestore {
 
     // -------------------------------------------------------------------------
     // /follows/{followId} — flat collection of follow edges
-    //   doc: { followerUid, followedUid, createdAt }
+    //   doc: { followerId, followingId, createdAt }
+    // Field names match what FollowRepository writes. Earlier drafts of
+    // these rules referenced `followerUid` / `followedUid`, which silently
+    // blocked every follow because those fields don't exist on the doc.
     // -------------------------------------------------------------------------
     match /follows/{followId} {
       allow read: if signedIn();
       allow create: if signedIn()
-        && request.resource.data.followerUid == request.auth.uid;
+        && request.resource.data.followerId == request.auth.uid;
       // Only the follower can unfollow.
       allow delete: if signedIn()
-        && resource.data.followerUid == request.auth.uid;
+        && resource.data.followerId == request.auth.uid;
     }
 
     // -------------------------------------------------------------------------

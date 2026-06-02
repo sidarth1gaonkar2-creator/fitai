@@ -1,12 +1,6 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/cupertino.dart';
-// The Developer section below is gated on kDebugMode so the seed
-// buttons never ship to the App Store. The lint rule fires on debug
-// imports that *look* unused in some inline configurations, but the
-// guard genuinely depends on it.
-// ignore: unused_import
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,6 +26,8 @@ import '../../../providers/firestore_provider.dart';
 import '../../../services/health_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../utils/seed_community.dart';
+import '../../../utils/seed_workouts.dart';
+import '../../community/data/leaderboard_repository.dart';
 import '../../tutorial/providers/tutorial_providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -434,97 +430,127 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // Developer-only seed tools. kDebugMode is compile-time
-                // constant in release, so this whole block is tree-shaken
-                // out of production builds.
-                if (kDebugMode) ...[
-                  _SectionLabel(label: 'Developer', textTheme: textTheme),
-                  const SizedBox(height: 8),
-                  _SettingsCard(
-                    child: CupertinoListTile(
-                      leading: _SettingsIconBadge(
-                        icon: CupertinoIcons.wand_stars,
-                        color: palette.accent,
-                      ),
-                      title: Text(
-                        'Seed Community',
-                        style: textTheme.bodyLarge?.copyWith(
-                          color: palette.text,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      subtitle: Text(
-                        'Write 10 demo posts + reactions + comments to Firestore',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: palette.textSecondary,
-                        ),
-                      ),
-                      trailing: Icon(
-                        CupertinoIcons.chevron_right,
-                        color: palette.text,
-                        size: 18,
-                      ),
-                      onTap: () => _runSeed(context, ref),
+                // TODO(atlasfit): RESTORE kDebugMode guard before App
+                // Store submission. The Developer section is intentionally
+                // visible in TestFlight so reviewers / internal testers
+                // can seed demo data; it must NOT ship to the public App
+                // Store. Wrap this block in `if (kDebugMode) ...[ ... ]`
+                // (and re-add `import 'package:flutter/foundation.dart'
+                // show kDebugMode;`) before submitting the production build.
+                _SectionLabel(label: 'Developer', textTheme: textTheme),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  child: CupertinoListTile(
+                    leading: _SettingsIconBadge(
+                      icon: CupertinoIcons.wand_stars,
+                      color: palette.accent,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  _SettingsCard(
-                    child: CupertinoListTile(
-                      leading: _SettingsIconBadge(
-                        icon: CupertinoIcons.chart_bar_alt_fill,
-                        color: palette.accent,
-                      ),
-                      title: Text(
-                        'Seed Leaderboard',
-                        style: textTheme.bodyLarge?.copyWith(
-                          color: palette.text,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      subtitle: Text(
-                        'Write 10 weekly leaderboard entries — you land 4th',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: palette.textSecondary,
-                        ),
-                      ),
-                      trailing: Icon(
-                        CupertinoIcons.chevron_right,
+                    title: Text(
+                      'Seed Community',
+                      style: textTheme.bodyLarge?.copyWith(
                         color: palette.text,
-                        size: 18,
+                        fontWeight: FontWeight.w500,
                       ),
-                      onTap: () => _runSeedLeaderboard(context, ref),
                     ),
+                    subtitle: Text(
+                      'Write 10 demo posts + reactions + comments to Firestore',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      color: palette.text,
+                      size: 18,
+                    ),
+                    onTap: () => _runSeed(context, ref),
                   ),
-                  const SizedBox(height: 8),
-                  _SettingsCard(
-                    child: CupertinoListTile(
-                      leading: _SettingsIconBadge(
-                        icon: CupertinoIcons.flag_fill,
-                        color: palette.accent,
-                      ),
-                      title: Text(
-                        'Seed Challenges',
-                        style: textTheme.bodyLarge?.copyWith(
-                          color: palette.text,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      subtitle: Text(
-                        'Write 3 active challenges + bot participants; you join 2',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: palette.textSecondary,
-                        ),
-                      ),
-                      trailing: Icon(
-                        CupertinoIcons.chevron_right,
+                ),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  child: CupertinoListTile(
+                    leading: _SettingsIconBadge(
+                      icon: CupertinoIcons.chart_bar_alt_fill,
+                      color: palette.accent,
+                    ),
+                    title: Text(
+                      'Seed Leaderboard',
+                      style: textTheme.bodyLarge?.copyWith(
                         color: palette.text,
-                        size: 18,
+                        fontWeight: FontWeight.w500,
                       ),
-                      onTap: () => _runSeedChallenges(context, ref),
                     ),
+                    subtitle: Text(
+                      'Write 10 weekly leaderboard entries — you land 4th',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      color: palette.text,
+                      size: 18,
+                    ),
+                    onTap: () => _runSeedLeaderboard(context, ref),
                   ),
-                  const SizedBox(height: 24),
-                ],
+                ),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  child: CupertinoListTile(
+                    leading: _SettingsIconBadge(
+                      icon: CupertinoIcons.flag_fill,
+                      color: palette.accent,
+                    ),
+                    title: Text(
+                      'Seed Challenges',
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: palette.text,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Write 3 active challenges + bot participants; you join 2',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      color: palette.text,
+                      size: 18,
+                    ),
+                    onTap: () => _runSeedChallenges(context, ref),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  child: CupertinoListTile(
+                    leading: _SettingsIconBadge(
+                      icon: Icons.fitness_center,
+                      color: palette.accent,
+                    ),
+                    title: Text(
+                      'Seed Workouts',
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: palette.text,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Write 12 PPL sessions + PRs across the last 30 days',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      color: palette.text,
+                      size: 18,
+                    ),
+                    onTap: () => _runSeedWorkouts(context, ref),
+                  ),
+                ),
+                const SizedBox(height: 24),
 
                 // About section
                 _SectionLabel(label: 'About', textTheme: textTheme),
@@ -746,6 +772,65 @@ class SettingsScreen extends ConsumerWidget {
         message:
             'Added ${result.challenges} challenges with ${result.participants} participants. '
             'You\'re enrolled in all three.',
+      );
+    } catch (e) {
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (!context.mounted) return;
+      await _showInfoDialog(
+        context,
+        title: 'Seeding failed',
+        message: '$e',
+      );
+    }
+    await progress;
+  }
+
+  /// Debug-only — populates the CURRENT user's Isar workout history with
+  /// 12 PPL sessions spread across the last 30 days, plus matching PRs.
+  /// Best-effort Firestore sync for workoutsCount + leaderboard entry.
+  Future<void> _runSeedWorkouts(BuildContext context, WidgetRef ref) async {
+    HapticFeedback.selectionClick();
+    final userId = ref.read(currentUserIdProvider);
+    final firestore = ref.read(firestoreProvider);
+    final isar = ref.read(isarProvider);
+    final username = ref.read(firestoreUserProvider).valueOrNull?.username;
+    final leaderboard = ref.read(leaderboardRepositoryProvider);
+    final progress = showCupertinoDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const CupertinoAlertDialog(
+        title: Text('Seeding workouts…'),
+        content: Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: CupertinoActivityIndicator(),
+        ),
+      ),
+    );
+    try {
+      final result = await seedWorkoutHistory(
+        isar: isar,
+        firestore: firestore,
+        currentUserId: userId,
+        currentUsername: username,
+        leaderboardRepository: leaderboard,
+      );
+      // Refresh anything that derives from Isar workouts so the
+      // Dashboard / Progress / PR Hall pick up the seeded data on the
+      // next frame instead of waiting for the next provider lifecycle.
+      ref.invalidate(allWorkoutsProvider);
+      ref.invalidate(workoutDatesProvider);
+      ref.invalidate(todayWorkoutProvider);
+      ref.invalidate(streakProvider);
+      ref.invalidate(personalRecordsProvider);
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (!context.mounted) return;
+      await _showInfoDialog(
+        context,
+        title: 'Workouts seeded',
+        message:
+            'Wrote ${result.workouts} workouts (${result.totalSets} sets) '
+            'and ${result.prs} personal records. Pull-to-refresh the '
+            'Progress screen.',
       );
     } catch (e) {
       if (context.mounted) Navigator.of(context, rootNavigator: true).pop();

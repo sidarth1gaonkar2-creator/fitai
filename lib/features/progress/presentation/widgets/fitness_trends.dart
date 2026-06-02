@@ -12,10 +12,16 @@ import 'chart_axis.dart';
 ///
 /// Visible only on iOS + connected (the caller gates this). Shows:
 ///   * Weekly Move calories bar chart (active energy burned).
-///   * Weekly Exercise minutes bar chart.
+///   * Weekly Exercise minutes bar chart (with empty state when no data).
+///   * Weekly Steps bar chart.
 ///   * Resting Heart Rate stat card.
 ///   * VO2 Max stat card — only when data is available (not in `health 13.3.1`
 ///     today, but the card is here for the day it lands).
+///
+/// The earlier "Calories burned" line chart + standalone "Activity Trends"
+/// section was duplicate data (Apple Health's daily active energy burned IS
+/// the Move calories number). Steps moved here so the three Apple-Health
+/// charts live together and the user only sees each metric once.
 class FitnessTrends extends ConsumerWidget {
   const FitnessTrends({super.key});
 
@@ -31,6 +37,7 @@ class FitnessTrends extends ConsumerWidget {
         ref.watch(weeklyHealthDataProvider(HealthDataType.ACTIVE_ENERGY_BURNED));
     final exerciseAsync =
         ref.watch(weeklyHealthDataProvider(HealthDataType.EXERCISE_TIME));
+    final stepsAsync = ref.watch(weeklyStepsProvider);
     final restingHr = ref.watch(restingHeartRateProvider).valueOrNull;
     final vo2 = ref.watch(latestVO2MaxProvider).valueOrNull;
     final labels = _last7DayLabels();
@@ -58,6 +65,7 @@ class FitnessTrends extends ConsumerWidget {
               barColor: _moveColor,
               unit: 'kcal',
               palette: palette,
+              emptyMessage: 'No active calories tracked this week',
             ),
           ),
         ),
@@ -82,6 +90,32 @@ class FitnessTrends extends ConsumerWidget {
               barColor: _exerciseColor,
               unit: 'min',
               palette: palette,
+              emptyMessage: 'No exercise data this week',
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Steps (last 7 days)',
+          style: textTheme.bodyMedium?.copyWith(
+            color: palette.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 180,
+          child: stepsAsync.when(
+            loading: () => const ShimmerBox(
+                width: double.infinity, height: 180, borderRadius: 12),
+            error: (_, _) => const SizedBox.shrink(),
+            data: (steps) => _Bars(
+              values: steps.map((e) => e.toDouble()).toList(),
+              labels: labels,
+              barColor: palette.accent,
+              unit: '',
+              palette: palette,
+              emptyMessage: 'No steps tracked this week',
             ),
           ),
         ),
@@ -128,6 +162,7 @@ class _Bars extends StatelessWidget {
     required this.barColor,
     required this.unit,
     required this.palette,
+    required this.emptyMessage,
   });
 
   final List<double> values;
@@ -136,12 +171,34 @@ class _Bars extends StatelessWidget {
   final String unit;
   final Palette palette;
 
+  /// Shown when every value in `values` is zero. Drawing a chart full of
+  /// zero bars produces nonsensical axis labels (0, 0, 0, 0) and signals
+  /// "broken" to the user; a one-line message reads cleaner.
+  final String emptyMessage;
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final maxValue = values.isEmpty
-        ? 100.0
-        : values.reduce((a, b) => a > b ? a : b);
+
+    final allZero = values.isEmpty || values.every((v) => v <= 0);
+    if (allZero) {
+      return Container(
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: palette.border),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          emptyMessage,
+          style: textTheme.bodyMedium?.copyWith(
+            color: palette.textSecondary,
+          ),
+        ),
+      );
+    }
+
+    final maxValue = values.reduce((a, b) => a > b ? a : b);
     final axis = niceAxis(maxValue, minHeadroomFactor: 1.15);
 
     return BarChart(
@@ -199,7 +256,9 @@ class _Bars extends StatelessWidget {
         barTouchData: BarTouchData(
           touchTooltipData: BarTouchTooltipData(
             getTooltipItem: (_, _, rod, _) => BarTooltipItem(
-              '${rod.toY.toInt()} $unit',
+              unit.isEmpty
+                  ? '${rod.toY.toInt()}'
+                  : '${rod.toY.toInt()} $unit',
               TextStyle(color: palette.text, fontWeight: FontWeight.w600),
             ),
           ),

@@ -11,7 +11,6 @@ import '../../../core/widgets/shimmer_loading.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/progress_providers.dart';
 import '../../../providers/workout_providers.dart';
-import 'widgets/activity_trends.dart';
 import 'widgets/fitness_trends.dart';
 import 'widgets/milestone_badges.dart';
 import 'widgets/nutrition_trends.dart';
@@ -235,16 +234,7 @@ class _WorkoutLogTab extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           weightAsync.when(
-            data: (entries) {
-              final healthEntries = Platform.isIOS
-                  ? ref.watch(healthWeightHistoryProvider).valueOrNull ??
-                      const <({DateTime date, double weightKg})>[]
-                  : const <({DateTime date, double weightKg})>[];
-              return WeightChart(
-                entries: entries,
-                healthEntries: healthEntries,
-              );
-            },
+            data: (entries) => WeightChart(entries: entries),
             loading: () => const ShimmerBox(
                 width: double.infinity, height: 220, borderRadius: 12),
             error: (_, _) =>
@@ -261,19 +251,14 @@ class _WorkoutLogTab extends ConsumerWidget {
           // empty chart on day one.
           const _StrengthSectionGate(),
 
-          // --- Activity Trends (Apple Health, iOS only when connected) ---
+          // --- Fitness Trends (Apple Health, iOS only when connected) ---
+          // Consolidates the previous "Activity Trends" (Steps + Calories
+          // burned line chart) and "Fitness Trends" (Move calories +
+          // Exercise minutes) into a single section so the user sees each
+          // Apple-Health metric exactly once. The "Calories burned" line
+          // was duplicate data — Move calories IS the daily active energy
+          // burned.
           if (Platform.isIOS && ref.watch(healthConnectedProvider)) ...[
-            Text(
-              'Activity Trends',
-              style: textTheme.titleMedium?.copyWith(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                color: AppColors.of(context).accent,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const ActivityTrends(),
-            const SizedBox(height: 24),
             Text(
               'Fitness Trends',
               style: textTheme.titleMedium?.copyWith(

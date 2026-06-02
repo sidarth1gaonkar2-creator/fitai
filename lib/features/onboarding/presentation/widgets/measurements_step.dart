@@ -43,6 +43,14 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
   late FixedExtentScrollController _weightCtrl;
   late FixedExtentScrollController _heightCtrl;
 
+  /// Controllers retired by [_setUnit] that we can't dispose immediately:
+  /// the [AnimatedSwitcher] keeps the outgoing picker subtree mounted for
+  /// the duration of the crossfade, and that outgoing subtree still holds
+  /// a reference to the old controllers. We dispose everything together
+  /// in [dispose] — at most a handful of controllers accumulate over a
+  /// few unit toggles, each holding only a scroll offset.
+  final List<FixedExtentScrollController> _retiredControllers = [];
+
   int get _minWeight => _isImperial ? _minWeightLbs : _minWeightKg;
   int get _maxWeight => _isImperial ? _maxWeightLbs : _maxWeightKg;
   int get _minHeight => _isImperial ? _minHeightIn : _minHeightCm;
@@ -78,6 +86,9 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
 
   @override
   void dispose() {
+    for (final c in _retiredControllers) {
+      c.dispose();
+    }
     _weightCtrl.dispose();
     _heightCtrl.dispose();
     super.dispose();
@@ -87,36 +98,74 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
     if (toImperial == _isImperial) return;
     HapticFeedback.selectionClick();
 
-    // Convert the current picker values to the new display unit and clamp
-    // to the new range. Conversion happens before the rebuild so the new
-    // controllers can be seeded with the correct initialItem; we also
-    // animate to that item afterwards so the wheel doesn't appear to
-    // jump (animation runs against the *new* picker contents only).
+    // Source the conversion from the LIVE picker position rather than
+    // from `_weight`/`_height`. `onSelectedItemChanged` keeps those
+    // fields in sync, but reading the controllers directly is one
+    // fewer place a stale value can creep in when the segmented
+    // control is tapped before the wheel has snapped after a scroll.
+    // The `hasClients` guard handles the cold path where the
+    // controller hasn't attached to its scrollable yet.
+    final currentWeight = _weightCtrl.hasClients
+        ? _minWeight + _weightCtrl.selectedItem
+        : _weight;
+    final currentHeight = _heightCtrl.hasClients
+        ? _minHeight + _heightCtrl.selectedItem
+        : _height;
+
+    // Conversion formulas:
+    //   kg ↔ lbs : 1 lb = 0.45359237 kg → divide/multiply by 2.20462
+    //   cm ↔ in  : 1 in = 2.54 cm exactly
+    // Clamp to the *new* unit's range so 401 lbs doesn't overflow when
+    // an over-range metric value lands on the rounding boundary.
     final newWeight = toImperial
-        ? UnitConverter.kgToLbs(_weight.toDouble())
+        ? UnitConverter.kgToLbs(currentWeight.toDouble())
             .round()
             .clamp(_minWeightLbs, _maxWeightLbs)
-        : UnitConverter.lbsToKg(_weight.toDouble())
+        : UnitConverter.lbsToKg(currentWeight.toDouble())
             .round()
             .clamp(_minWeightKg, _maxWeightKg);
 
     final newHeight = toImperial
-        ? (_height / 2.54).round().clamp(_minHeightIn, _maxHeightIn)
-        : (_height * 2.54).round().clamp(_minHeightCm, _maxHeightCm);
+        ? (currentHeight / 2.54).round().clamp(_minHeightIn, _maxHeightIn)
+        : (currentHeight * 2.54).round().clamp(_minHeightCm, _maxHeightCm);
 
-    // Dispose the old controllers so they don't leak; then rebuild with
-    // the converted values pinned as initialItem.
-    _weightCtrl.dispose();
-    _heightCtrl.dispose();
+    // Retire the old controllers — we CAN'T dispose them yet because the
+    // outgoing picker subtree (inside AnimatedSwitcher) still references
+    // them while it fades out. They get disposed together in our
+    // [dispose] when the step is unmounted.
+    _retiredControllers.add(_weightCtrl);
+    _retiredControllers.add(_heightCtrl);
 
     setState(() {
       _isImperial = toImperial;
       _weight = newWeight;
       _height = newHeight;
-      _weightCtrl =
-          FixedExtentScrollController(initialItem: _weight - _minWeight);
-      _heightCtrl =
-          FixedExtentScrollController(initialItem: _height - _minHeight);
+      // initialItem = (converted value in new unit) − (new unit's min).
+      // Because `_isImperial` was flipped first, `_minWeight`/`_minHeight`
+      // now resolve to the new unit's range, so the index lands on the
+      // exact item that matches the header.
+      // e.g. 83 kg → 83 − 35 = item[48];  72 in → 72 − 48 = item[24].
+      _weightCtrl = FixedExtentScrollController(
+        initialItem: _weight - _minWeight,
+      );
+      _heightCtrl = FixedExtentScrollController(
+        initialItem: _height - _minHeight,
+      );
+    });
+
+    // Safety net — `initialItem` is supposed to position the wheel when the
+    // controller is first attached, but the AnimatedSwitcher mount timing
+    // can leave the wheel one frame behind on some devices. After the new
+    // picker has mounted and attached the controller, force the index to
+    // the converted value so the wheel and header are guaranteed to match.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_weightCtrl.hasClients) {
+        _weightCtrl.jumpToItem(_weight - _minWeight);
+      }
+      if (_heightCtrl.hasClients) {
+        _heightCtrl.jumpToItem(_height - _minHeight);
+      }
     });
 
     // Persist app-wide so the summary screen, dashboard, and settings all
@@ -464,34 +513,52 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: _WheelPicker(
-                    label: 'Weight',
-                    displayValue: '$_weight $_weightUnit',
-                    onTapValue: _editWeight,
-                    controller: _weightCtrl,
-                    min: _minWeight,
-                    max: _maxWeight,
-                    onChanged: (v) => setState(() => _weight = v),
-                    formatItem: (v) => '$v',
+            // AnimatedSwitcher crossfades between the imperial and metric
+            // picker rows. The `ValueKey(_isImperial)` on the inner Row
+            // is what makes this work: when the unit toggles, Flutter
+            // treats the new Row as a *different* child, so it mounts a
+            // fresh subtree (fresh CupertinoPicker → fresh
+            // ScrollPosition that actually honours the new controller's
+            // initialItem). Without the key change, the picker just
+            // re-attaches the new controller while keeping its old
+            // scroll offset — the header updates but the wheel doesn't,
+            // which is the bug we're fixing here.
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOut,
+              switchOutCurve: Curves.easeIn,
+              transitionBuilder: (child, animation) =>
+                  FadeTransition(opacity: animation, child: child),
+              child: Row(
+                key: ValueKey(_isImperial),
+                children: [
+                  Expanded(
+                    child: _WheelPicker(
+                      label: 'Weight',
+                      displayValue: '$_weight $_weightUnit',
+                      onTapValue: _editWeight,
+                      controller: _weightCtrl,
+                      min: _minWeight,
+                      max: _maxWeight,
+                      onChanged: (v) => setState(() => _weight = v),
+                      formatItem: (v) => '$v',
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _WheelPicker(
-                    label: 'Height',
-                    displayValue: _formatHeight(_height),
-                    onTapValue: _editHeight,
-                    controller: _heightCtrl,
-                    min: _minHeight,
-                    max: _maxHeight,
-                    onChanged: (v) => setState(() => _height = v),
-                    formatItem: _formatHeight,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _WheelPicker(
+                      label: 'Height',
+                      displayValue: _formatHeight(_height),
+                      onTapValue: _editHeight,
+                      controller: _heightCtrl,
+                      min: _minHeight,
+                      max: _maxHeight,
+                      onChanged: (v) => setState(() => _height = v),
+                      formatItem: _formatHeight,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),

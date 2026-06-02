@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/firestore_provider.dart';
 import 'notification_repository.dart';
@@ -33,43 +34,82 @@ class FollowRepository {
   String _docId(String followerId, String followingId) =>
       '${followerId}_$followingId';
 
+  /// Records that [followerId] now follows [followingId]. Writes happen in
+  /// two phases so we don't take down the whole follow attempt if a single
+  /// counter update is rule-blocked:
+  ///
+  ///   1. Create the /follows edge — atomic, this is the source of truth.
+  ///   2. Increment the *follower's* own followingCount — owner-write,
+  ///      always allowed by /users rules.
+  ///   3. Increment the *followed* user's followersCount — cross-user
+  ///      write that strict production rules reject. Wrapped in try/catch
+  ///      so a rule denial leaves the follow edge intact rather than
+  ///      rolling the whole operation back. Followers count then becomes
+  ///      eventually-consistent (or just slightly stale on the followed
+  ///      user's profile until a server-side aggregator catches up); the
+  ///      home feed and following lists derive purely from the edges.
   Future<void> follow(String followerId, String followingId) async {
-    final batch = _firestore.batch();
-    batch.set(_follows.doc(_docId(followerId, followingId)), {
+    await _follows.doc(_docId(followerId, followingId)).set({
       'followerId': followerId,
       'followingId': followingId,
       'createdAt': FieldValue.serverTimestamp(),
     });
-    batch.update(_userDocs.doc(followerId), {
-      'followingCount': FieldValue.increment(1),
-    });
-    batch.update(_userDocs.doc(followingId), {
-      'followersCount': FieldValue.increment(1),
-    });
-    await batch.commit();
 
-    // Notify the followed user.
-    final me = await _users.getUser(followerId);
-    await _notifications.send(
-      toUserId: followingId,
-      type: 'follow',
-      fromUserId: followerId,
-      fromUsername: me?.username ?? 'Someone',
-      fromUserAvatar: me?.profilePictureUrl,
-      message: '${me?.username ?? 'Someone'} started following you',
-    );
+    try {
+      await _userDocs.doc(followerId).update({
+        'followingCount': FieldValue.increment(1),
+      });
+    } catch (e) {
+      debugPrint('[Follow] followingCount bump failed: $e');
+    }
+
+    try {
+      await _userDocs.doc(followingId).update({
+        'followersCount': FieldValue.increment(1),
+      });
+    } catch (e) {
+      // Strict rules forbid writing another user's doc. The follow itself
+      // still succeeded above; we just lose the cosmetic counter bump.
+      debugPrint('[Follow] cross-user followersCount bump skipped: $e');
+    }
+
+    // Notify the followed user. This is also best-effort — if the
+    // recipient is a seed bot with no auth identity, the notification
+    // write may fail, and we don't want a failed notification to
+    // present as a failed follow.
+    try {
+      final me = await _users.getUser(followerId);
+      await _notifications.send(
+        toUserId: followingId,
+        type: 'follow',
+        fromUserId: followerId,
+        fromUsername: me?.username ?? 'Someone',
+        fromUserAvatar: me?.profilePictureUrl,
+        message: '${me?.username ?? 'Someone'} started following you',
+      );
+    } catch (e) {
+      debugPrint('[Follow] notify failed: $e');
+    }
   }
 
   Future<void> unfollow(String followerId, String followingId) async {
-    final batch = _firestore.batch();
-    batch.delete(_follows.doc(_docId(followerId, followingId)));
-    batch.update(_userDocs.doc(followerId), {
-      'followingCount': FieldValue.increment(-1),
-    });
-    batch.update(_userDocs.doc(followingId), {
-      'followersCount': FieldValue.increment(-1),
-    });
-    await batch.commit();
+    await _follows.doc(_docId(followerId, followingId)).delete();
+
+    try {
+      await _userDocs.doc(followerId).update({
+        'followingCount': FieldValue.increment(-1),
+      });
+    } catch (e) {
+      debugPrint('[Unfollow] followingCount decrement failed: $e');
+    }
+
+    try {
+      await _userDocs.doc(followingId).update({
+        'followersCount': FieldValue.increment(-1),
+      });
+    } catch (e) {
+      debugPrint('[Unfollow] cross-user followersCount decrement skipped: $e');
+    }
   }
 
   Future<bool> isFollowing(String followerId, String followingId) async {

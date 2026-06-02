@@ -557,10 +557,26 @@ final effectiveActivityGoalsProvider = Provider<ActivityGoals>((ref) {
     return (raw / 50).round() * 50;
   }
 
+  // For exercise/stand we treat a value of 0 the same as null. iOS returns
+  // 0 when the user has never set a goal on their Apple Watch (or has no
+  // Watch paired) — displaying "0 / 0 min" is worse than showing the
+  // sensible Apple defaults (30 min, 12 hr) the rings normally suggest.
+  int exerciseFallback() {
+    final v = apple?.exerciseMinutes;
+    if (v != null && v > 0) return v;
+    return manual.exerciseMinutes > 0 ? manual.exerciseMinutes : 30;
+  }
+
+  int standFallback() {
+    final v = apple?.standHours;
+    if (v != null && v > 0) return v;
+    return manual.standHours > 0 ? manual.standHours : 12;
+  }
+
   return ActivityGoals(
     moveCalories: apple?.moveCalories ?? profileMove(),
-    exerciseMinutes: apple?.exerciseMinutes ?? manual.exerciseMinutes,
-    standHours: apple?.standHours ?? manual.standHours,
+    exerciseMinutes: exerciseFallback(),
+    standHours: standFallback(),
   );
 });
 
