@@ -17,9 +17,13 @@ final unitSystemProvider =
 class UnitSystemNotifier extends StateNotifier<UnitSystem> {
   UnitSystemNotifier(this._prefs)
       : super(
-          _prefs.getString(_prefKey) == 'imperial'
-              ? UnitSystem.imperial
-              : UnitSystem.metric,
+          // Default to imperial. The onboarding measurements step lets
+          // the user flip this; once they pick (or skip), the chosen
+          // unit is persisted via [setUnit] and carries through the
+          // rest of the app.
+          _prefs.getString(_prefKey) == 'metric'
+              ? UnitSystem.metric
+              : UnitSystem.imperial,
         );
 
   final SharedPreferences _prefs;

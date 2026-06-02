@@ -28,61 +28,47 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
   static const _minHeightCm = 120;
   static const _maxHeightCm = 220;
 
-  // The unit system isn't user-toggleable during onboarding (Settings →
-  // Units lives behind the auth wall), so we latch it once at initState
-  // and key everything off this flag. That lets us scroll the wheel in
-  // the *displayed* unit — every integer pound or kilo shows up exactly
-  // once, instead of producing the irregular 170/172/174… gaps you get
-  // when the underlying step is 1 kg and we just convert to lbs at paint
-  // time.
-  late final bool _isImperial;
+  // Current unit — mutable so the user can switch live via the segmented
+  // control. Synced both to local state (which drives the picker indexing
+  // and headline formatting) and to [unitSystemProvider] so the rest of
+  // the app picks up the choice after onboarding completes.
+  bool _isImperial = true;
 
-  late final int _minWeight;
-  late final int _maxWeight;
-  late final int _minHeight;
-  late final int _maxHeight;
-  late final String _weightUnit;
-
-  // Picker state: integer values already in the display unit.
+  // Picker values in the *current* display unit (lbs/in or kg/cm). When
+  // the user toggles, we convert these once so the wheel can re-index in
+  // 1-unit steps without producing irregular gaps or duplicates.
   late int _weight;
   late int _height;
 
-  late final FixedExtentScrollController _weightCtrl;
-  late final FixedExtentScrollController _heightCtrl;
+  late FixedExtentScrollController _weightCtrl;
+  late FixedExtentScrollController _heightCtrl;
+
+  int get _minWeight => _isImperial ? _minWeightLbs : _minWeightKg;
+  int get _maxWeight => _isImperial ? _maxWeightLbs : _maxWeightKg;
+  int get _minHeight => _isImperial ? _minHeightIn : _minHeightCm;
+  int get _maxHeight => _isImperial ? _maxHeightIn : _maxHeightCm;
+  String get _weightUnit => _isImperial ? 'lbs' : 'kg';
 
   @override
   void initState() {
     super.initState();
-    final units = ref.read(unitSystemProvider);
-    _isImperial = units == UnitSystem.imperial;
-
-    if (_isImperial) {
-      _minWeight = _minWeightLbs;
-      _maxWeight = _maxWeightLbs;
-      _minHeight = _minHeightIn;
-      _maxHeight = _maxHeightIn;
-      _weightUnit = 'lbs';
-    } else {
-      _minWeight = _minWeightKg;
-      _maxWeight = _maxWeightKg;
-      _minHeight = _minHeightCm;
-      _maxHeight = _maxHeightCm;
-      _weightUnit = 'kg';
-    }
+    // Seed from the persisted preference, but fall back to imperial when
+    // there's nothing saved yet (provider default also lives at imperial).
+    _isImperial = ref.read(unitSystemProvider) == UnitSystem.imperial;
 
     final state = ref.read(onboardingControllerProvider);
-
     final savedKg = state.weight ?? 75;
-    _weight = (_isImperial
-            ? UnitConverter.kgToLbs(savedKg).round()
-            : savedKg.round())
-        .clamp(_minWeight, _maxWeight);
-
     final savedCm = state.height ?? 175;
-    _height = (_isImperial
-            ? (savedCm / 2.54).round()
-            : savedCm.round())
-        .clamp(_minHeight, _maxHeight);
+
+    _weight = _isImperial
+        ? UnitConverter.kgToLbs(savedKg)
+            .round()
+            .clamp(_minWeightLbs, _maxWeightLbs)
+        : savedKg.round().clamp(_minWeightKg, _maxWeightKg);
+
+    _height = _isImperial
+        ? (savedCm / 2.54).round().clamp(_minHeightIn, _maxHeightIn)
+        : savedCm.round().clamp(_minHeightCm, _maxHeightCm);
 
     _weightCtrl =
         FixedExtentScrollController(initialItem: _weight - _minWeight);
@@ -95,6 +81,50 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
     _weightCtrl.dispose();
     _heightCtrl.dispose();
     super.dispose();
+  }
+
+  void _setUnit(bool toImperial) {
+    if (toImperial == _isImperial) return;
+    HapticFeedback.selectionClick();
+
+    // Convert the current picker values to the new display unit and clamp
+    // to the new range. Conversion happens before the rebuild so the new
+    // controllers can be seeded with the correct initialItem; we also
+    // animate to that item afterwards so the wheel doesn't appear to
+    // jump (animation runs against the *new* picker contents only).
+    final newWeight = toImperial
+        ? UnitConverter.kgToLbs(_weight.toDouble())
+            .round()
+            .clamp(_minWeightLbs, _maxWeightLbs)
+        : UnitConverter.lbsToKg(_weight.toDouble())
+            .round()
+            .clamp(_minWeightKg, _maxWeightKg);
+
+    final newHeight = toImperial
+        ? (_height / 2.54).round().clamp(_minHeightIn, _maxHeightIn)
+        : (_height * 2.54).round().clamp(_minHeightCm, _maxHeightCm);
+
+    // Dispose the old controllers so they don't leak; then rebuild with
+    // the converted values pinned as initialItem.
+    _weightCtrl.dispose();
+    _heightCtrl.dispose();
+
+    setState(() {
+      _isImperial = toImperial;
+      _weight = newWeight;
+      _height = newHeight;
+      _weightCtrl =
+          FixedExtentScrollController(initialItem: _weight - _minWeight);
+      _heightCtrl =
+          FixedExtentScrollController(initialItem: _height - _minHeight);
+    });
+
+    // Persist app-wide so the summary screen, dashboard, and settings all
+    // pick up the choice. The provider is backed by SharedPreferences via
+    // [UnitSystemNotifier.setUnit].
+    ref.read(unitSystemProvider.notifier).setUnit(
+          toImperial ? UnitSystem.imperial : UnitSystem.metric,
+        );
   }
 
   String _formatHeight(int value) {
@@ -197,9 +227,6 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
   Future<void> _editHeight() async {
     HapticFeedback.selectionClick();
     if (_isImperial) {
-      // Two fields: feet + inches. Inches is bounded to 0–11; the OK
-      // handler also validates the combined total falls within the
-      // picker's full range so the wheel can scroll to it cleanly.
       final ftCtrl = TextEditingController(text: '${_height ~/ 12}');
       final inCtrl = TextEditingController(text: '${_height % 12}');
       final result = await showCupertinoDialog<int>(
@@ -414,7 +441,28 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
               color: palette.textSecondary,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          // Unit toggle — Cupertino segmented control. The thumb animation
+          // is built in; selecting either side triggers the value
+          // conversion + provider sync in [_setUnit].
+          Center(
+            child: SizedBox(
+              width: 260,
+              child: CupertinoSlidingSegmentedControl<bool>(
+                groupValue: _isImperial,
+                thumbColor: palette.accent,
+                backgroundColor: palette.surfaceElevated,
+                onValueChanged: (value) {
+                  if (value != null) _setUnit(value);
+                },
+                children: {
+                  true: _segLabel('Imperial', isSelected: _isImperial),
+                  false: _segLabel('Metric', isSelected: !_isImperial),
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Expanded(
             child: Row(
               children: [
@@ -462,6 +510,23 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _segLabel(String text, {required bool isSelected}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+          color: isSelected
+              ? CupertinoColors.white
+              : AppColors.of(context).text,
+        ),
       ),
     );
   }
