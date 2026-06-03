@@ -49,6 +49,7 @@ class WeightChart extends ConsumerWidget {
     // want to see (raw daily values are too noisy on phone-width).
     final maSpots = <FlSpot>[];
     final firstDate = entries.first.date;
+    final spanDays = entries.last.date.difference(firstDate).inDays.toDouble();
     for (var i = 0; i < entries.length; i++) {
       final x = entries[i].date.difference(firstDate).inDays.toDouble();
       double sum = 0;
@@ -90,8 +91,12 @@ class WeightChart extends ConsumerWidget {
                 const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             rightTitles:
                 const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            bottomTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            bottomTitles: dateAxisTitles(
+              firstDate: firstDate,
+              spanDays: spanDays,
+              style: textTheme.bodySmall
+                  ?.copyWith(color: colorScheme.onSurfaceVariant),
+            ),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,

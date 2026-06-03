@@ -16,8 +16,11 @@ import '../../../../providers/unit_system_provider.dart';
 /// selected exercise.
 enum StrengthMetric { oneRepMax, maxWeight, volume }
 
+/// Default to the actual heaviest weight lifted per session — that's the most
+/// intuitive read of "am I getting stronger?". Estimated 1RM and Volume remain
+/// available via the toggle.
 final strengthMetricProvider =
-    StateProvider<StrengthMetric>((_) => StrengthMetric.oneRepMax);
+    StateProvider<StrengthMetric>((_) => StrengthMetric.maxWeight);
 
 /// Detailed strength visualization — picks an exercise and toggles between
 /// estimated 1RM, max weight per session, and total session volume. Built
@@ -198,6 +201,8 @@ class _CurveChart extends ConsumerWidget {
         }
 
         final firstDate = points.first.date;
+        final spanDays =
+            points.last.date.difference(firstDate).inDays.toDouble();
         final spots = <FlSpot>[];
         for (final p in points) {
           final kg = valueKgFor(p);
@@ -244,8 +249,12 @@ class _CurveChart extends ConsumerWidget {
                     sideTitles: SideTitles(showTitles: false)),
                 rightTitles: const AxisTitles(
                     sideTitles: SideTitles(showTitles: false)),
-                bottomTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false)),
+                bottomTitles: dateAxisTitles(
+                  firstDate: firstDate,
+                  spanDays: spanDays,
+                  style: textTheme.bodySmall
+                      ?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,

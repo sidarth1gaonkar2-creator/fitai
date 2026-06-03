@@ -102,6 +102,8 @@ class _StrengthLineChart extends ConsumerWidget {
         }
 
         final firstDate = points.first.date;
+        final spanDays =
+            points.last.date.difference(firstDate).inDays.toDouble();
         final spots = points
             .map((p) => FlSpot(
                   p.date.difference(firstDate).inDays.toDouble(),
@@ -138,8 +140,12 @@ class _StrengthLineChart extends ConsumerWidget {
                     sideTitles: SideTitles(showTitles: false)),
                 rightTitles: const AxisTitles(
                     sideTitles: SideTitles(showTitles: false)),
-                bottomTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false)),
+                bottomTitles: dateAxisTitles(
+                  firstDate: firstDate,
+                  spanDays: spanDays,
+                  style: textTheme.bodySmall
+                      ?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,

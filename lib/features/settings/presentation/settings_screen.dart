@@ -17,8 +17,11 @@ import '../../../providers/dashboard_providers.dart';
 import '../../../providers/drill_sergeant_providers.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/isar_provider.dart';
+import '../../../providers/nutrition_providers.dart';
+import '../../../providers/progress_providers.dart';
 import '../../../providers/settings_providers.dart';
 import '../../themes/providers/theme_providers.dart';
+import '../../../providers/supplement_providers.dart';
 import '../../../providers/unit_system_provider.dart';
 import '../../../providers/user_profile_provider.dart';
 import '../../../providers/workout_providers.dart';
@@ -26,6 +29,7 @@ import '../../../providers/firestore_provider.dart';
 import '../../../services/health_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../utils/seed_community.dart';
+import '../../../utils/seed_nutrition.dart';
 import '../../../utils/seed_workouts.dart';
 import '../../community/data/leaderboard_repository.dart';
 import '../../tutorial/providers/tutorial_providers.dart';
@@ -559,6 +563,34 @@ class SettingsScreen extends ConsumerWidget {
                       onTap: () => _runSeedWorkouts(context, ref),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  _SettingsCard(
+                    child: CupertinoListTile(
+                      leading: _SettingsIconBadge(
+                        icon: CupertinoIcons.flame,
+                        color: palette.accent,
+                      ),
+                      title: Text(
+                        'Seed Nutrition',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.text,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '7 days of meals, completed days, and supplements',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      trailing: Icon(
+                        CupertinoIcons.chevron_right,
+                        color: palette.text,
+                        size: 18,
+                      ),
+                      onTap: () => _runSeedNutrition(context, ref),
+                    ),
+                  ),
                   const SizedBox(height: 24),
                 ],
 
@@ -841,6 +873,74 @@ class SettingsScreen extends ConsumerWidget {
             'Wrote ${result.workouts} workouts (${result.totalSets} sets) '
             'and ${result.prs} personal records. Pull-to-refresh the '
             'Progress screen.',
+      );
+    } catch (e) {
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (!context.mounted) return;
+      await _showInfoDialog(
+        context,
+        title: 'Seeding failed',
+        message: '$e',
+      );
+    }
+    await progress;
+  }
+
+  /// Debug-only — populates the current user's Isar nutrition log with 7 days
+  /// of realistic meals, marks five days completed, ensures a default
+  /// supplement stack exists + logs it as taken, and tops up today's water for
+  /// App Store screenshots.
+  Future<void> _runSeedNutrition(BuildContext context, WidgetRef ref) async {
+    HapticFeedback.selectionClick();
+    final isar = ref.read(isarProvider);
+    // Stamp CompletedDay rows with the user's real macro targets when we have
+    // them; the seeder falls back to training defaults otherwise.
+    final targets = await ref.read(dailyTargetsProvider.future);
+    if (!context.mounted) return;
+    final progress = showCupertinoDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const CupertinoAlertDialog(
+        title: Text('Seeding nutrition…'),
+        content: Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: CupertinoActivityIndicator(),
+        ),
+      ),
+    );
+    try {
+      final result = await seedNutritionHistory(
+        isar: isar,
+        calorieTarget: targets?.calories ?? 2400,
+        proteinTarget: targets?.protein ?? 180,
+        carbsTarget: targets?.carbs ?? 250,
+        fatTarget: targets?.fat ?? 70,
+      );
+      // Water is in-memory only (resets per session) — top up today's glasses
+      // so the dashboard's hydration ring isn't empty in screenshots.
+      ref.read(waterIntakeProvider.notifier).state = 8;
+      // Refresh everything that derives from the seeded nutrition/supplement
+      // data so the Dashboard / Nutrition / Progress screens update next frame.
+      ref.invalidate(todayNutritionProvider);
+      ref.invalidate(todayMealsProvider);
+      ref.invalidate(todayMicronutrientsProvider);
+      ref.invalidate(todayCompletedDayProvider);
+      ref.invalidate(streakProvider);
+      ref.invalidate(nutritionTrendsProvider);
+      ref.invalidate(activeSupplementsProvider);
+      ref.invalidate(allSupplementsProvider);
+      ref.invalidate(todaySupplementLogsProvider);
+      ref.invalidate(supplementChecklistProvider);
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (!context.mounted) return;
+      await _showInfoDialog(
+        context,
+        title: 'Nutrition seeded',
+        message:
+            'Wrote ${result.foodEntries} food entries across ${result.days} '
+            'days (${result.meals} meals, ${result.completedDays} completed). '
+            'Logged ${result.supplements} supplements over the week. '
+            'Pull-to-refresh the Nutrition screen.',
       );
     } catch (e) {
       if (context.mounted) Navigator.of(context, rootNavigator: true).pop();

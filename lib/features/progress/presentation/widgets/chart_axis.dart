@@ -1,5 +1,53 @@
 import 'dart:math' as math;
 
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
+
+const _monthAbbrev = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/// Short "MMM d" date label, e.g. "May 5". Used on every time-series X-axis.
+String formatShortDate(DateTime date) =>
+    '${_monthAbbrev[date.month - 1]} ${date.day}';
+
+/// Bottom-axis [AxisTitles] for a time-series chart whose `FlSpot` x-values are
+/// *whole days since [firstDate]* (the convention used by the strength and
+/// weight charts). Renders ~[targetLabels] evenly-spaced "MMM d" labels across
+/// the timeline so a glance communicates when each point was recorded, without
+/// crowding — on a 30-day span that's a label roughly every week.
+///
+/// [spanDays] is the x-distance between the first and last point (i.e. the
+/// max x-value). The interval is clamped to a whole number of days ≥ 1 so
+/// fl_chart never receives a zero interval (which throws).
+AxisTitles dateAxisTitles({
+  required DateTime firstDate,
+  required double spanDays,
+  required TextStyle? style,
+  int targetLabels = 4,
+}) {
+  final raw = spanDays <= 0 ? 1.0 : spanDays / targetLabels;
+  final interval = raw < 1 ? 1.0 : raw.roundToDouble();
+  return AxisTitles(
+    sideTitles: SideTitles(
+      showTitles: true,
+      reservedSize: 26,
+      interval: interval,
+      getTitlesWidget: (value, meta) {
+        // fl_chart can emit one tick past the last point — drop it so the
+        // final real date sits flush at the right edge.
+        if (value > spanDays + 0.5) return const SizedBox.shrink();
+        final date = firstDate.add(Duration(days: value.round()));
+        return Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(formatShortDate(date), style: style),
+        );
+      },
+    ),
+  );
+}
+
 /// Rounded axis bounds for an fl_chart Y-axis.
 ///
 /// `niceAxis()` picks a clean step size (1, 2, 2.5, or 5 × 10^n) and a max
