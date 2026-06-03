@@ -30,12 +30,23 @@ import '../../../utils/seed_workouts.dart';
 import '../../community/data/leaderboard_repository.dart';
 import '../../tutorial/providers/tutorial_providers.dart';
 
+/// Accounts allowed to see the Developer section (seed buttons). Email-based
+/// so it works in every build mode — TestFlight and the public App Store
+/// alike — without a `kDebugMode` guard. The Apple review account and all
+/// regular users fall outside this list and never see the section.
+const _adminEmails = [
+  'sidarthgaonkar@gmail.com',
+  'sidarth1gaonkar2@gmail.com',
+];
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(userProfileProvider);
+    final currentEmail = ref.watch(firebaseAuthProvider).currentUser?.email;
+    final isAdmin = _adminEmails.contains(currentEmail?.toLowerCase());
     final themeMode = ref.watch(themeModeProvider);
     final units = ref.watch(unitSystemProvider);
     final textTheme = Theme.of(context).textTheme;
@@ -430,127 +441,126 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // TODO(atlasfit): RESTORE kDebugMode guard before App
-                // Store submission. The Developer section is intentionally
-                // visible in TestFlight so reviewers / internal testers
-                // can seed demo data; it must NOT ship to the public App
-                // Store. Wrap this block in `if (kDebugMode) ...[ ... ]`
-                // (and re-add `import 'package:flutter/foundation.dart'
-                // show kDebugMode;`) before submitting the production build.
-                _SectionLabel(label: 'Developer', textTheme: textTheme),
-                const SizedBox(height: 8),
-                _SettingsCard(
-                  child: CupertinoListTile(
-                    leading: _SettingsIconBadge(
-                      icon: CupertinoIcons.wand_stars,
-                      color: palette.accent,
-                    ),
-                    title: Text(
-                      'Seed Community',
-                      style: textTheme.bodyLarge?.copyWith(
+                // Developer section — gated behind the admin email allowlist
+                // (see [_adminEmails]). Visible to admin accounts in every
+                // build mode (TestFlight and release); never shown to the
+                // Apple review account or regular users.
+                if (isAdmin) ...[
+                  _SectionLabel(label: 'Developer', textTheme: textTheme),
+                  const SizedBox(height: 8),
+                  _SettingsCard(
+                    child: CupertinoListTile(
+                      leading: _SettingsIconBadge(
+                        icon: CupertinoIcons.wand_stars,
+                        color: palette.accent,
+                      ),
+                      title: Text(
+                        'Seed Community',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.text,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Write 10 demo posts + reactions + comments to Firestore',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      trailing: Icon(
+                        CupertinoIcons.chevron_right,
                         color: palette.text,
-                        fontWeight: FontWeight.w500,
+                        size: 18,
                       ),
+                      onTap: () => _runSeed(context, ref),
                     ),
-                    subtitle: Text(
-                      'Write 10 demo posts + reactions + comments to Firestore',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: palette.textSecondary,
-                      ),
-                    ),
-                    trailing: Icon(
-                      CupertinoIcons.chevron_right,
-                      color: palette.text,
-                      size: 18,
-                    ),
-                    onTap: () => _runSeed(context, ref),
                   ),
-                ),
-                const SizedBox(height: 8),
-                _SettingsCard(
-                  child: CupertinoListTile(
-                    leading: _SettingsIconBadge(
-                      icon: CupertinoIcons.chart_bar_alt_fill,
-                      color: palette.accent,
-                    ),
-                    title: Text(
-                      'Seed Leaderboard',
-                      style: textTheme.bodyLarge?.copyWith(
+                  const SizedBox(height: 8),
+                  _SettingsCard(
+                    child: CupertinoListTile(
+                      leading: _SettingsIconBadge(
+                        icon: CupertinoIcons.chart_bar_alt_fill,
+                        color: palette.accent,
+                      ),
+                      title: Text(
+                        'Seed Leaderboard',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.text,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Write 10 weekly leaderboard entries — you land 4th',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      trailing: Icon(
+                        CupertinoIcons.chevron_right,
                         color: palette.text,
-                        fontWeight: FontWeight.w500,
+                        size: 18,
                       ),
+                      onTap: () => _runSeedLeaderboard(context, ref),
                     ),
-                    subtitle: Text(
-                      'Write 10 weekly leaderboard entries — you land 4th',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: palette.textSecondary,
-                      ),
-                    ),
-                    trailing: Icon(
-                      CupertinoIcons.chevron_right,
-                      color: palette.text,
-                      size: 18,
-                    ),
-                    onTap: () => _runSeedLeaderboard(context, ref),
                   ),
-                ),
-                const SizedBox(height: 8),
-                _SettingsCard(
-                  child: CupertinoListTile(
-                    leading: _SettingsIconBadge(
-                      icon: CupertinoIcons.flag_fill,
-                      color: palette.accent,
-                    ),
-                    title: Text(
-                      'Seed Challenges',
-                      style: textTheme.bodyLarge?.copyWith(
+                  const SizedBox(height: 8),
+                  _SettingsCard(
+                    child: CupertinoListTile(
+                      leading: _SettingsIconBadge(
+                        icon: CupertinoIcons.flag_fill,
+                        color: palette.accent,
+                      ),
+                      title: Text(
+                        'Seed Challenges',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.text,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Write 3 active challenges + bot participants; you join 2',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      trailing: Icon(
+                        CupertinoIcons.chevron_right,
                         color: palette.text,
-                        fontWeight: FontWeight.w500,
+                        size: 18,
                       ),
+                      onTap: () => _runSeedChallenges(context, ref),
                     ),
-                    subtitle: Text(
-                      'Write 3 active challenges + bot participants; you join 2',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: palette.textSecondary,
-                      ),
-                    ),
-                    trailing: Icon(
-                      CupertinoIcons.chevron_right,
-                      color: palette.text,
-                      size: 18,
-                    ),
-                    onTap: () => _runSeedChallenges(context, ref),
                   ),
-                ),
-                const SizedBox(height: 8),
-                _SettingsCard(
-                  child: CupertinoListTile(
-                    leading: _SettingsIconBadge(
-                      icon: Icons.fitness_center,
-                      color: palette.accent,
-                    ),
-                    title: Text(
-                      'Seed Workouts',
-                      style: textTheme.bodyLarge?.copyWith(
+                  const SizedBox(height: 8),
+                  _SettingsCard(
+                    child: CupertinoListTile(
+                      leading: _SettingsIconBadge(
+                        icon: Icons.fitness_center,
+                        color: palette.accent,
+                      ),
+                      title: Text(
+                        'Seed Workouts',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.text,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Write 12 PPL sessions + PRs across the last 30 days',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      trailing: Icon(
+                        CupertinoIcons.chevron_right,
                         color: palette.text,
-                        fontWeight: FontWeight.w500,
+                        size: 18,
                       ),
+                      onTap: () => _runSeedWorkouts(context, ref),
                     ),
-                    subtitle: Text(
-                      'Write 12 PPL sessions + PRs across the last 30 days',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: palette.textSecondary,
-                      ),
-                    ),
-                    trailing: Icon(
-                      CupertinoIcons.chevron_right,
-                      color: palette.text,
-                      size: 18,
-                    ),
-                    onTap: () => _runSeedWorkouts(context, ref),
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
+                ],
 
                 // About section
                 _SectionLabel(label: 'About', textTheme: textTheme),

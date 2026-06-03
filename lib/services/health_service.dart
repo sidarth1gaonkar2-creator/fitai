@@ -92,48 +92,20 @@ class HealthService {
   // ───────────────────────────────────────────────────────────────────
   // Type registries
   //
+  // The authoritative read / write type lists live next to
+  // [requestPermissions] below ([_fullReadTypes] and [_fullReadWriteTypes]).
+  //
   // CRITICAL: HealthKit treats some quantity types as system-computed and
-  // read-only. Requesting *share* (write) access on any of them raises
-  // NSInvalidArgumentException at the native bridge and crashes the app
-  // before any try/catch on the Dart side can run. The split below has
-  // been validated against the iOS HealthKit reference — every type in
-  // [_readWriteTypes] is writable, every type in [_readOnlyTypes] is not.
+  // read-only — STEPS, ACTIVE_ENERGY_BURNED, BASAL_ENERGY_BURNED,
+  // EXERCISE_TIME and APPLE_STAND_HOUR among them. Requesting *share*
+  // (write) access on any of them raises NSInvalidArgumentException at the
+  // native bridge and crashes the app before any Dart try/catch runs — and,
+  // just as importantly, an app that wrote those types would be injecting a
+  // second data source that Apple Health could double-count or misattribute,
+  // breaking the user's Activity rings. We therefore READ those types and
+  // never write them; only [_fullReadWriteTypes] (body mass/height, water,
+  // workouts, and *dietary* energy/macros) is ever written.
   // ───────────────────────────────────────────────────────────────────
-
-  /// Read-only on iOS. Most are computed by the OS (exercise time, flights,
-  /// basal energy) or only meaningful as observations (heart rate, sleep).
-  static const List<HealthDataType> _readOnlyTypes = [
-    HealthDataType.STEPS,
-    HealthDataType.ACTIVE_ENERGY_BURNED,
-    HealthDataType.BASAL_ENERGY_BURNED,
-    HealthDataType.HEART_RATE,
-    HealthDataType.DISTANCE_WALKING_RUNNING,
-    HealthDataType.FLIGHTS_CLIMBED,
-    HealthDataType.BODY_FAT_PERCENTAGE,
-    HealthDataType.SLEEP_ASLEEP,
-    HealthDataType.SLEEP_IN_BED,
-    HealthDataType.EXERCISE_TIME,
-  ];
-
-  /// Types the app both reads from and writes to Apple Health.
-  static const List<HealthDataType> _readWriteTypes = [
-    HealthDataType.WEIGHT,
-    HealthDataType.WATER,
-    HealthDataType.WORKOUT,
-    HealthDataType.DIETARY_ENERGY_CONSUMED,
-    HealthDataType.DIETARY_PROTEIN_CONSUMED,
-    HealthDataType.DIETARY_CARBS_CONSUMED,
-    HealthDataType.DIETARY_FATS_CONSUMED,
-  ];
-
-  /// All types the app may read (read-only + read-write).
-  static const List<HealthDataType> readTypes = [
-    ..._readOnlyTypes,
-    ..._readWriteTypes,
-  ];
-
-  /// All types the app may write (subset of read-write).
-  static const List<HealthDataType> writeTypes = _readWriteTypes;
 
   /// `Health.configure()` returns a Future and the docs ("The plugin must be
   /// configured using the configure method before used") explicitly require it
@@ -289,17 +261,20 @@ class HealthService {
 
   Future<double> getTodayActiveCalories() =>
       _cached('active_cals', () async {
-        return _sumNumeric([HealthDataType.ACTIVE_ENERGY_BURNED], _todayRange());
+        return _sumCumulative(
+          HealthDataType.ACTIVE_ENERGY_BURNED,
+          _todayRange(),
+        );
       });
 
   Future<double> getTodayCaloriesBurned() => _cached('total_cals', () async {
-        return _sumNumeric(
-          [
-            HealthDataType.ACTIVE_ENERGY_BURNED,
-            HealthDataType.BASAL_ENERGY_BURNED,
-          ],
-          _todayRange(),
-        );
+        // Active + basal, each summed via the statistics path so the totals
+        // match what Apple Health itself reports.
+        final results = await Future.wait([
+          _sumCumulative(HealthDataType.ACTIVE_ENERGY_BURNED, _todayRange()),
+          _sumCumulative(HealthDataType.BASAL_ENERGY_BURNED, _todayRange()),
+        ]);
+        return results[0] + results[1];
       });
 
   Future<double> getTodayDistance() => _cached('distance', () async {
@@ -632,10 +607,9 @@ class HealthService {
         final day = DateTime(now.year, now.month, now.day)
             .subtract(Duration(days: i));
         final next = day.add(const Duration(days: 1));
-        final total = await _sumNumeric(
-          [HealthDataType.ACTIVE_ENERGY_BURNED],
+        final total = await _sumCumulative(
+          HealthDataType.ACTIVE_ENERGY_BURNED,
           (day, next),
-          useCache: false,
         );
         result.add(total);
       }
@@ -854,6 +828,56 @@ class HealthService {
     final now = DateTime.now();
     final midnight = DateTime(now.year, now.month, now.day);
     return (midnight, now);
+  }
+
+  /// Sums a single cumulative quantity type over [range] using HealthKit's
+  /// `HKStatisticsCollectionQuery` with `.cumulativeSum` — the SAME mechanism
+  /// Apple's Activity rings / Fitness app use to compute the Move ring, and
+  /// the same path our step reads already take via `getTotalStepsInInterval`.
+  ///
+  /// Why not `getHealthDataFromTypes` (a raw `HKSampleQuery`) + a manual sum?
+  /// Active/basal energy is emitted as a long stream of tiny per-minute
+  /// samples. Summing them in Dart is slower, and the `health` plugin dedupes
+  /// the returned points by value/date — collapsing the many identical small
+  /// energy samples and under-counting (or, in practice, reporting 0) even
+  /// when HealthKit clearly has the data. The statistics query returns the
+  /// authoritative cumulative total HealthKit itself maintains, so AtlasFit's
+  /// number matches the ring.
+  ///
+  /// One bucket spanning the whole window (interval = window length) gives a
+  /// single cumulative point; we still iterate in case HealthKit splits it.
+  Future<double> _sumCumulative(
+    HealthDataType type,
+    (DateTime, DateTime) range,
+  ) async {
+    if (!Platform.isIOS) return 0;
+    try {
+      await _ensureConfigured();
+      final seconds = range.$2.difference(range.$1).inSeconds;
+      final points = await _health.getHealthIntervalDataFromTypes(
+        startDate: range.$1,
+        endDate: range.$2,
+        types: [type],
+        interval: seconds < 1 ? 1 : seconds,
+      );
+      double total = 0;
+      for (final point in points) {
+        final v = point.value;
+        if (v is NumericHealthValue) {
+          total += v.numericValue.toDouble();
+        }
+      }
+      return total;
+    } on _HealthUnavailable {
+      return 0;
+    } catch (e, st) {
+      AppLogger.error(
+        'Cumulative sum read failed for $type',
+        error: e,
+        stack: st,
+      );
+      return 0;
+    }
   }
 
   Future<double> _sumNumeric(
