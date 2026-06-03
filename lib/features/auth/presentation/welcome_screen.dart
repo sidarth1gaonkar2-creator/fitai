@@ -40,7 +40,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
             children: [
               const Spacer(flex: 3),
 
-              // Logo — the AtlasFit app icon PNG (mirror of the iOS
+              // Logo — the DrillFit app icon PNG (mirror of the iOS
               // AppIcon-180). iOS uses a 22%-of-width corner radius for app
               // icons (~21px on a 96-wide rendering), so we clip with a
               // matching RRect to read as the system app icon.
@@ -57,7 +57,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
               // Title
               const Text(
-                'AtlasFit',
+                'DrillFit',
                 style: TextStyle(
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.w700,

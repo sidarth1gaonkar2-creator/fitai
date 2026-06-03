@@ -19,6 +19,7 @@ import '../../models/saved_meal_item.dart';
 import '../../models/supplement.dart';
 import '../../models/supplement_log.dart';
 import '../../models/cached_menu_item.dart';
+import '../../models/user_rank.dart';
 import '../../models/user_theme_state.dart';
 import '../../models/weight_entry.dart';
 
@@ -51,6 +52,7 @@ class IsarService {
           SupplementLogSchema,
           UserThemeStateSchema,
           CachedMenuItemSchema,
+          UserRankSchema,
         ],
         directory: dir.path,
       );

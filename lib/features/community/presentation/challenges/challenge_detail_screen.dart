@@ -277,7 +277,7 @@ class _Header extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${challenge.durationDays} days · by ${challenge.creatorUsername.isEmpty ? 'AtlasFit' : challenge.creatorUsername}',
+                      '${challenge.durationDays} days · by ${challenge.creatorUsername.isEmpty ? 'DrillFit' : challenge.creatorUsername}',
                       style: TextStyle(
                         fontFamily: 'LeagueSpartan',
                         fontSize: 13,

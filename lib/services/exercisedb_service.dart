@@ -105,7 +105,7 @@ class ExerciseDBService {
       try {
         debugPrint('[ExerciseDB] GET $uri');
         final request = await _client.getUrl(uri);
-        request.headers.set('User-Agent', 'AtlasFit/1.0 (Flutter)');
+        request.headers.set('User-Agent', 'DrillFit/1.0 (Flutter)');
         request.headers.set('Accept', 'application/json');
         final response = await request.close();
         debugPrint('[ExerciseDB] → ${response.statusCode}');

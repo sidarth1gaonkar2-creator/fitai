@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>AtlasFit</string>
+	<string>DrillFit</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIconName</key>
@@ -17,7 +17,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>AtlasFit</string>
+	<string>DrillFit</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -30,15 +30,15 @@
 		</dict>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>AtlasFit needs camera access to scan food barcodes and upload challenge proof photos</string>
+	<string>DrillFit needs camera access to scan food barcodes and upload challenge proof photos</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>AtlasFit needs photo library access to upload profile pictures and challenge proof photos</string>
+	<string>DrillFit needs photo library access to upload profile pictures and challenge proof photos</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>AtlasFit saves your workout share images and progress photos to your library</string>
+	<string>DrillFit saves your workout share images and progress photos to your library</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>AtlasFit reads your health data to sync steps, calories, and workouts</string>
+	<string>DrillFit reads your health data to sync steps, calories, and workouts</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>AtlasFit writes workout and nutrition data to Apple Health</string>
+	<string>DrillFit writes workout and nutrition data to Apple Health</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

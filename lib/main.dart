@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/database/isar_service.dart';
 import 'core/utils/logger.dart';
+import 'features/splash/presentation/splash_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/firestore_provider.dart';
 import 'providers/isar_provider.dart';
@@ -22,7 +23,7 @@ import 'services/notification_service.dart';
 import 'services/pr_migration_service.dart';
 import 'services/weight_migration_service.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (kReleaseMode) {
@@ -44,25 +45,36 @@ void main() async {
     };
   }
 
+  // Kick off heavy initialization immediately, but render the animated splash
+  // on the very first frame so it animates WHILE Firebase, Isar, migrations
+  // and notifications spin up in the background. When both the intro animation
+  // and bootstrapping finish, [_onBootstrapComplete] swaps in the real app.
+  final bootstrap = _bootstrap();
+  runApp(SplashApp(bootstrap: bootstrap, onReady: _onBootstrapComplete));
+}
+
+/// Initializes every backend service the app needs. Never throws — failures of
+/// the two hard requirements (Firebase, Isar) are returned as a failed
+/// [BootstrapResult] so the splash can hand off to a fatal-error screen;
+/// best-effort steps (dotenv, migrations, notifications) only log.
+Future<BootstrapResult> _bootstrap() async {
   try {
     await dotenv.load(fileName: 'assets/.env');
   } catch (e, st) {
     AppLogger.error('dotenv load failed', error: e, stack: st);
   }
 
-  // Firebase init
+  // Firebase — hard requirement.
   try {
     await Firebase.initializeApp();
   } catch (e, st) {
     AppLogger.error('Firebase init FAILED', error: e, stack: st);
-    runApp(_StartupErrorApp(phase: _StartupPhase.firebase, error: e, stack: st));
-    return;
+    return BootstrapResult.failed(StartupPhase.firebase, e, st);
   }
 
-  // Crashlytics — route Flutter and platform errors to Firebase. Disabled
-  // in debug mode so dev-time exceptions don't pollute prod reports.
-  FlutterError.onError =
-      FirebaseCrashlytics.instance.recordFlutterFatalError;
+  // Crashlytics — route Flutter and platform errors to Firebase. Disabled in
+  // debug mode so dev-time exceptions don't pollute prod reports.
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
   PlatformDispatcher.instance.onError = (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     return true;
@@ -70,6 +82,7 @@ void main() async {
   await FirebaseCrashlytics.instance
       .setCrashlyticsCollectionEnabled(!kDebugMode);
 
+  // Isar — hard requirement.
   Isar? isar;
   Object? initError;
   StackTrace? initStack;
@@ -83,7 +96,7 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
 
-  // One-time PR migration
+  // One-time data migrations (best-effort).
   if (isar != null) {
     final migrated = prefs.getBool('pr_migration_done') ?? false;
     if (!migrated) {
@@ -107,7 +120,7 @@ void main() async {
     }
   }
 
-  // Initialize notification service
+  // Notifications (best-effort).
   try {
     await NotificationService.instance.init();
   } catch (e, st) {
@@ -115,41 +128,91 @@ void main() async {
   }
 
   if (isar == null) {
+    return BootstrapResult.failed(StartupPhase.isar, initError, initStack);
+  }
+  return BootstrapResult.ready(isar, prefs);
+}
+
+/// Called by the splash once initialization AND the intro animation are both
+/// done. Swaps the splash out for either the real app (fading in from the
+/// shared dark background for a seamless crossfade) or the fatal-error screen.
+void _onBootstrapComplete(BootstrapResult result) {
+  if (!result.isReady) {
     runApp(_StartupErrorApp(
-      phase: _StartupPhase.isar,
-      error: initError,
-      stack: initStack,
+      phase: result.phase!,
+      error: result.error,
+      stack: result.stack,
     ));
-  } else {
-    runApp(
-      ProviderScope(
+    return;
+  }
+  runApp(
+    _StartupFadeIn(
+      child: ProviderScope(
         overrides: [
-          isarProvider.overrideWithValue(isar),
-          sharedPreferencesProvider.overrideWithValue(prefs),
+          isarProvider.overrideWithValue(result.isar!),
+          sharedPreferencesProvider.overrideWithValue(result.prefs!),
           firebaseAuthProvider.overrideWithValue(FirebaseAuth.instance),
           firestoreProvider.overrideWithValue(FirebaseFirestore.instance),
           storageProvider.overrideWithValue(FirebaseStorage.instance),
         ],
-        child: const AtlasFitApp(),
+        child: const DrillFitApp(),
+      ),
+    ),
+  );
+}
+
+/// One-shot fade-in over the splash background, so the real app crossfades in
+/// where the splash's logo faded out. Created once (it's the root passed to
+/// runApp), so it animates exactly once at hand-off.
+class _StartupFadeIn extends StatefulWidget {
+  const _StartupFadeIn({required this.child});
+  final Widget child;
+
+  @override
+  State<_StartupFadeIn> createState() => _StartupFadeInState();
+}
+
+class _StartupFadeInState extends State<_StartupFadeIn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 320),
+  )..forward();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: splashBackground,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) => Opacity(
+          opacity: Curves.easeOut.transform(_controller.value),
+          child: child,
+        ),
+        child: widget.child,
       ),
     );
   }
 }
 
-enum _StartupPhase { firebase, isar }
-
 class _StartupErrorApp extends StatelessWidget {
   const _StartupErrorApp({required this.phase, this.error, this.stack});
-  final _StartupPhase phase;
+  final StartupPhase phase;
   final Object? error;
   final StackTrace? stack;
 
   String get _subtitle {
     switch (phase) {
-      case _StartupPhase.firebase:
+      case StartupPhase.firebase:
         return 'Firebase could not be initialized. '
             'GoogleService-Info.plist may be missing from the iOS bundle.';
-      case _StartupPhase.isar:
+      case StartupPhase.isar:
         return 'Local database (Isar) could not be opened.';
     }
   }
@@ -168,7 +231,7 @@ class _StartupErrorApp extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'AtlasFit failed to start',
+                    'DrillFit failed to start',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,

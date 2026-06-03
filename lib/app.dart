@@ -9,8 +9,8 @@ import 'features/tutorial/presentation/tutorial_overlay.dart';
 import 'providers/settings_providers.dart';
 import 'routing/app_router.dart';
 
-class AtlasFitApp extends ConsumerWidget {
-  const AtlasFitApp({super.key});
+class DrillFitApp extends ConsumerWidget {
+  const DrillFitApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,7 +30,7 @@ class AtlasFitApp extends ConsumerWidget {
         isLight ? CupertinoColors.black : CupertinoColors.white;
 
     return CupertinoApp.router(
-      title: 'AtlasFit',
+      title: 'DrillFit',
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       localizationsDelegates: const [

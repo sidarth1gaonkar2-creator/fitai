@@ -671,7 +671,7 @@ Future<SeedChallengesResult> seedChallenges({
       'title': c.title,
       'description': c.description,
       'creatorId': 'system',
-      'creatorUsername': 'AtlasFit',
+      'creatorUsername': 'DrillFit',
       'type': 'workout',
       'durationDays': c.durationDays,
       'startDate': Timestamp.fromDate(startDate),

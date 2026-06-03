@@ -156,7 +156,7 @@ class SpoonacularService {
   }) async {
     try {
       final request = await _client.getUrl(uri);
-      request.headers.set('User-Agent', 'AtlasFit/1.0 (Flutter)');
+      request.headers.set('User-Agent', 'DrillFit/1.0 (Flutter)');
       final response = await request.close();
       if (response.statusCode == 402 || response.statusCode == 429) {
         debugPrint('[Spoonacular] $logTag: '
@@ -173,7 +173,7 @@ class SpoonacularService {
       }
       if (response.statusCode != 200) {
         dev.log('[Spoonacular] $logTag failed: ${response.statusCode}',
-            name: 'AtlasFit.Spoonacular');
+            name: 'DrillFit.Spoonacular');
         return const [];
       }
       final body = await response.transform(utf8.decoder).join();
@@ -198,7 +198,7 @@ class SpoonacularService {
   }) async {
     try {
       final request = await _client.getUrl(uri);
-      request.headers.set('User-Agent', 'AtlasFit/1.0 (Flutter)');
+      request.headers.set('User-Agent', 'DrillFit/1.0 (Flutter)');
       final response = await request.close();
       if (response.statusCode == 404) return null;
       if (response.statusCode == 401 || response.statusCode == 402) {
@@ -208,7 +208,7 @@ class SpoonacularService {
       }
       if (response.statusCode != 200) {
         dev.log('[Spoonacular] $logTag failed: ${response.statusCode}',
-            name: 'AtlasFit.Spoonacular');
+            name: 'DrillFit.Spoonacular');
         return null;
       }
       final body = await response.transform(utf8.decoder).join();

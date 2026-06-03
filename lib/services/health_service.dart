@@ -941,7 +941,7 @@ class HealthService {
   /// the returned points by value/date — collapsing the many identical small
   /// energy samples and under-counting (or, in practice, reporting 0) even
   /// when HealthKit clearly has the data. The statistics query returns the
-  /// authoritative cumulative total HealthKit itself maintains, so AtlasFit's
+  /// authoritative cumulative total HealthKit itself maintains, so DrillFit's
   /// number matches the ring.
   ///
   /// One bucket spanning the whole window (interval = window length) gives a

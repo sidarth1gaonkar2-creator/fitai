@@ -1,5 +1,5 @@
 // =============================================================================
-// FitAI / AtlasFit — Firestore production rules (recommended)
+// FitAI / DrillFit — Firestore production rules (recommended)
 // =============================================================================
 //
 // Paste into the Firebase Console → Firestore Database → Rules tab.

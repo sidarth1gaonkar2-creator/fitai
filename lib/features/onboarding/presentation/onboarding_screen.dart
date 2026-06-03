@@ -78,7 +78,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           backgroundColor: palette.background.withValues(alpha: 0.8),
           border: null,
           middle: Text(
-            'Welcome to AtlasFit',
+            'Welcome to DrillFit',
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w600,
@@ -100,7 +100,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         backgroundColor: palette.background.withValues(alpha: 0.8),
         border: null,
         middle: Text(
-          'Welcome to AtlasFit',
+          'Welcome to DrillFit',
           style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w600,

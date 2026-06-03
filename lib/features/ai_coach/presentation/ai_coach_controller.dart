@@ -9,7 +9,7 @@ import '../../../services/anthropic_service.dart';
 import '../domain/coach_context_builder.dart';
 
 const _systemPrompt =
-    'You are AtlasFit Coach, a knowledgeable and supportive fitness and '
+    'You are DrillFit Coach, a knowledgeable and supportive fitness and '
     'nutrition expert. You give personalized, actionable advice based on '
     "the user's workout history, nutrition data, and goals. Keep responses "
     'concise (under 200 words unless asked for more), practical, and '

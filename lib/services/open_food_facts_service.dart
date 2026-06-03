@@ -20,7 +20,7 @@ class OpenFoodFactsService {
     });
 
     final request = await _client.getUrl(uri);
-    request.headers.set('User-Agent', 'AtlasFit/1.0 (Flutter)');
+    request.headers.set('User-Agent', 'DrillFit/1.0 (Flutter)');
     final response = await request.close();
 
     if (response.statusCode != 200) return [];
@@ -47,7 +47,7 @@ class OpenFoodFactsService {
     });
 
     final request = await _client.getUrl(uri);
-    request.headers.set('User-Agent', 'AtlasFit/1.0 (Flutter)');
+    request.headers.set('User-Agent', 'DrillFit/1.0 (Flutter)');
     final response = await request.close();
 
     if (response.statusCode != 200) return null;

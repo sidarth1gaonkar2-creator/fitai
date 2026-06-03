@@ -9,7 +9,7 @@ Paste the blocks below into the matching fields in App Store Connect →
 
 In App Store Connect, tick **"Sign-in required"** and fill in:
 
-- **User name** (email): `apple-review@atlasfit.com`
+- **User name** (email): `apple-review@drillfit.com`
 - **Password**: `<generate a strong 16+ char password and paste here>`
 
 > Create this account in Firebase Console → Authentication → Users → "Add user"
@@ -20,7 +20,7 @@ In App Store Connect, tick **"Sign-in required"** and fill in:
 
 ### Why an account is required
 
-> AtlasFit is a personalized fitness and nutrition tracker. All core
+> DrillFit is a personalized fitness and nutrition tracker. All core
 > screens — workout history, nutrition logs, AI Coach, progress charts,
 > Apple Health sync, community feed — are tied to the signed-in user's
 > private data. A sign-in is required to demonstrate the app's value;
@@ -84,7 +84,7 @@ Whichever team member is on point for review responses:
 
 Before clicking "Submit for Review":
 
-- [ ] Created `apple-review@atlasfit.com` in Firebase Auth (production project).
+- [ ] Created `apple-review@drillfit.com` in Firebase Auth (production project).
 - [ ] Signed in once on a real iPhone to clear onboarding for that account.
 - [ ] Added one or two workouts + nutrition logs to the demo account so
       tabs aren't empty when the reviewer opens them.
