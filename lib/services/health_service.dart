@@ -880,6 +880,56 @@ class HealthService {
     }
   }
 
+  /// Native (share-only) authorization status string for an energy [type].
+  /// HealthKit hides READ status, so this can read "notDetermined" even when
+  /// reads are granted — it's a diagnostic that the type resolves and the
+  /// bridge is reachable, not proof of read access.
+  Future<String> _nativeAuthStatus(String type) async {
+    if (!Platform.isIOS) return 'n/a (not iOS)';
+    try {
+      final s = await _healthCheckChannel
+          .invokeMethod<String>('getEnergyAuthStatus', {'type': type});
+      return s ?? 'unknown';
+    } catch (e) {
+      return 'error: $e';
+    }
+  }
+
+  /// Gathers a side-by-side comparison of every active-energy read path plus
+  /// context (steps, Move goal, auth status) for the admin-only "HealthKit
+  /// Debug" dialog. Each value is computed independently so we can see exactly
+  /// which path returns data and which returns 0.
+  Future<Map<String, Object?>> collectDiagnostics() async {
+    final range = _todayRange();
+    Future<T> guard<T>(Future<T> Function() f, T fallback) async {
+      try {
+        return await f();
+      } catch (e) {
+        return fallback;
+      }
+    }
+
+    final canUse = await guard(canUseHealthKit, false);
+    final steps = await guard(getTodaySteps, -1);
+    final native = await guard(() => _nativeEnergy('active', range), null);
+    final pluginStats = await guard(
+        () => _sumCumulative(HealthDataType.ACTIVE_ENERGY_BURNED, range), -1.0);
+    final pluginRaw = await guard(
+        () => _sumNumeric([HealthDataType.ACTIVE_ENERGY_BURNED], range), -1.0);
+    final goals = await guard(getAppleActivityGoals, null);
+    final auth = await guard(() => _nativeAuthStatus('active'), 'error');
+
+    return {
+      'canUseHealthKit': canUse,
+      'steps': steps,
+      'nativeActive': native,
+      'pluginStatsActive': pluginStats,
+      'pluginRawActive': pluginRaw,
+      'moveGoal': goals?.moveCalories,
+      'authStatus': auth,
+    };
+  }
+
   /// Sums a single cumulative quantity type over [range] using HealthKit's
   /// `HKStatisticsCollectionQuery` with `.cumulativeSum` — the SAME mechanism
   /// Apple's Activity rings / Fitness app use to compute the Move ring, and

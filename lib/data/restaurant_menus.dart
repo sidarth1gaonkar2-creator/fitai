@@ -1580,25 +1580,34 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(name: 'Original Blend Coffee', calories: 5, protein: 0, carbs: 1, fat: 0),
             MenuItem(name: 'Decaf Coffee', calories: 5, protein: 0, carbs: 1, fat: 0),
-            MenuItem(name: 'Hot Latte (whole milk)', calories: 140, protein: 8, carbs: 13, fat: 7),
+            MenuItem(name: 'Hot Latte (whole milk)', calories: 170, protein: 9, carbs: 13, fat: 9),
             MenuItem(name: 'Hot Cappuccino', calories: 80, protein: 5, carbs: 8, fat: 4),
-            MenuItem(name: 'Hot Macchiato', calories: 100, protein: 5, carbs: 11, fat: 4),
+            MenuItem(name: 'Hot Macchiato', calories: 120, protein: 6, carbs: 11, fat: 6),
             MenuItem(name: 'Hot Americano', calories: 5, protein: 0, carbs: 1, fat: 0),
             MenuItem(name: 'Mocha Latte', calories: 270, protein: 9, carbs: 40, fat: 9),
             MenuItem(name: 'Caramel Latte', calories: 260, protein: 8, carbs: 38, fat: 9),
             MenuItem(name: 'Hot Chocolate', calories: 280, protein: 5, carbs: 56, fat: 5),
           ],
         ),
+        // Add-milk options model the milk/cream ADDED to a black coffee (the
+        // default drinks above — Original Blend, Decaf, Americano — are black).
+        // Previously this was a "Milk Swap" with Whole Milk = +0 cal and
+        // negative deltas, which under-counted every coffee with milk. Values
+        // are Dunkin' medium (14 oz hot) milk/cream additions. Pick "Black /
+        // No Milk" for drinks already made with milk (lattes/cappuccinos) so
+        // the milk isn't double-counted.
         MenuCategory(
-          name: 'Milk Swap',
+          name: 'Add Milk / Cream',
           mode: SelectionMode.single,
           optional: true,
           items: [
-            MenuItem(name: 'Whole Milk (default)', calories: 0, protein: 0, carbs: 0, fat: 0),
-            MenuItem(name: 'Skim Milk (–30 cal)', calories: -30, protein: 0, carbs: 0, fat: -5),
-            MenuItem(name: 'Oat Milk', calories: 60, protein: -2, carbs: 11, fat: 3),
-            MenuItem(name: 'Almond Milk (–50 cal)', calories: -50, protein: -7, carbs: -5, fat: -3),
-            MenuItem(name: 'Coconut Milk (–40 cal)', calories: -40, protein: -8, carbs: -6, fat: 0),
+            MenuItem(name: 'Black / No Milk', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Whole Milk', calories: 70, protein: 4, carbs: 5, fat: 4),
+            MenuItem(name: 'Skim Milk', calories: 45, protein: 4, carbs: 7, fat: 0),
+            MenuItem(name: 'Oat Milk', calories: 65, protein: 1, carbs: 11, fat: 2),
+            MenuItem(name: 'Almond Milk', calories: 25, protein: 1, carbs: 1, fat: 2),
+            MenuItem(name: 'Coconut Milk', calories: 25, protein: 0, carbs: 2, fat: 2),
+            MenuItem(name: 'Cream', calories: 110, protein: 2, carbs: 3, fat: 10),
           ],
         ),
         MenuCategory(
@@ -1646,15 +1655,21 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Iced Chai Latte', calories: 290, protein: 7, carbs: 56, fat: 4),
           ],
         ),
+        // Same add-milk model as Hot Coffee. Dunkin' medium iced is 24 oz; the
+        // milk/cream values track the published medium additions. Pick "Black /
+        // No Milk" for pre-milked drinks (Iced Latte, etc.) to avoid
+        // double-counting.
         MenuCategory(
-          name: 'Milk Swap',
+          name: 'Add Milk / Cream',
           mode: SelectionMode.single,
           optional: true,
           items: [
-            MenuItem(name: 'Whole Milk (default)', calories: 0, protein: 0, carbs: 0, fat: 0),
-            MenuItem(name: 'Skim Milk (–30 cal)', calories: -30, protein: 0, carbs: 0, fat: -5),
-            MenuItem(name: 'Oat Milk', calories: 60, protein: -2, carbs: 11, fat: 3),
-            MenuItem(name: 'Almond Milk (–50 cal)', calories: -50, protein: -7, carbs: -5, fat: -3),
+            MenuItem(name: 'Black / No Milk', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Whole Milk', calories: 70, protein: 4, carbs: 5, fat: 4),
+            MenuItem(name: 'Skim Milk', calories: 45, protein: 4, carbs: 7, fat: 0),
+            MenuItem(name: 'Oat Milk', calories: 65, protein: 1, carbs: 11, fat: 2),
+            MenuItem(name: 'Almond Milk', calories: 25, protein: 1, carbs: 1, fat: 2),
+            MenuItem(name: 'Cream', calories: 110, protein: 2, carbs: 3, fat: 10),
           ],
         ),
         MenuCategory(
@@ -3529,6 +3544,27 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Cold Brew', calories: 5, protein: 0, carbs: 1, fat: 0),
           ],
         ),
+        // Add-milk options model the milk/cream ADDED to a black coffee (the
+        // default coffees above — Original, Iced, Cold Brew — are black).
+        // Previously milk was a negative "swap" delta mixed into the add-ins,
+        // which under-counted every coffee with milk. Values are Wawa medium
+        // (16 oz) milk/cream additions, matching the Dunkin' builder. Pick
+        // "Black / No Milk" for drinks already made with milk (Latte,
+        // Cappuccino) so the milk isn't double-counted.
+        MenuCategory(
+          name: 'Add Milk / Cream',
+          mode: SelectionMode.single,
+          optional: true,
+          items: [
+            MenuItem(name: 'Black / No Milk', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(name: 'Whole Milk', calories: 70, protein: 4, carbs: 5, fat: 4),
+            MenuItem(name: 'Skim Milk', calories: 45, protein: 4, carbs: 7, fat: 0),
+            MenuItem(name: 'Oat Milk', calories: 65, protein: 1, carbs: 11, fat: 2),
+            MenuItem(name: 'Almond Milk', calories: 25, protein: 1, carbs: 1, fat: 2),
+            MenuItem(name: 'Coconut Milk', calories: 25, protein: 0, carbs: 2, fat: 2),
+            MenuItem(name: 'Cream', calories: 110, protein: 2, carbs: 3, fat: 10),
+          ],
+        ),
         MenuCategory(
           name: 'Coffee Add-ins',
           mode: SelectionMode.multiple,
@@ -3537,8 +3573,6 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(name: 'Vanilla Syrup', calories: 40, protein: 0, carbs: 10, fat: 0),
             MenuItem(name: 'Caramel Syrup', calories: 40, protein: 0, carbs: 10, fat: 0),
             MenuItem(name: 'Hazelnut Syrup', calories: 40, protein: 0, carbs: 10, fat: 0),
-            MenuItem(name: 'Skim Milk Swap (–40 cal)', calories: -40, protein: 0, carbs: 0, fat: -7),
-            MenuItem(name: 'Oat Milk Swap', calories: 20, protein: -3, carbs: 8, fat: 3),
           ],
         ),
       ],

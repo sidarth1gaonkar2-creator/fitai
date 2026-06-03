@@ -591,6 +591,34 @@ class SettingsScreen extends ConsumerWidget {
                       onTap: () => _runSeedNutrition(context, ref),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  _SettingsCard(
+                    child: CupertinoListTile(
+                      leading: _SettingsIconBadge(
+                        icon: CupertinoIcons.heart_circle,
+                        color: palette.destructive,
+                      ),
+                      title: Text(
+                        'HealthKit Debug',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.text,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Compare every active-calorie read path on-device',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      trailing: Icon(
+                        CupertinoIcons.chevron_right,
+                        color: palette.text,
+                        size: 18,
+                      ),
+                      onTap: () => _runHealthKitDebug(context, ref),
+                    ),
+                  ),
                   const SizedBox(height: 24),
                 ],
 
@@ -951,6 +979,59 @@ class SettingsScreen extends ConsumerWidget {
         message: '$e',
       );
     }
+    await progress;
+  }
+
+  /// Admin-only — runs every active-energy read path side by side and shows
+  /// the results on-screen. We can't read TestFlight console logs, so this is
+  /// how we see which HealthKit path returns data and which returns 0.
+  Future<void> _runHealthKitDebug(BuildContext context, WidgetRef ref) async {
+    HapticFeedback.selectionClick();
+    final service = ref.read(healthServiceProvider);
+    final progress = showCupertinoDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const CupertinoAlertDialog(
+        title: Text('Reading HealthKit…'),
+        content: Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: CupertinoActivityIndicator(),
+        ),
+      ),
+    );
+    Map<String, Object?> d;
+    try {
+      d = await service.collectDiagnostics();
+    } catch (e) {
+      d = {'error': '$e'};
+    }
+    if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+    if (!context.mounted) return;
+
+    String fmtNum(Object? v) {
+      if (v == null) return 'null';
+      if (v is double) return v.toStringAsFixed(1);
+      return '$v';
+    }
+
+    final message = d.containsKey('error')
+        ? 'Diagnostics failed: ${d['error']}'
+        : 'Can use HealthKit: ${d['canUseHealthKit']}\n'
+            'Steps (plugin): ${fmtNum(d['steps'])}\n'
+            'Active — native HKStatistics: ${fmtNum(d['nativeActive'])} kcal\n'
+            'Active — plugin stats: ${fmtNum(d['pluginStatsActive'])} kcal\n'
+            'Active — plugin raw: ${fmtNum(d['pluginRawActive'])} kcal\n'
+            'Move goal: ${fmtNum(d['moveGoal'])} kcal\n'
+            'Auth (share-only): ${d['authStatus']}\n\n'
+            'A value of -1 means that path threw. null native means the '
+            'bridge returned nothing. Read auth is hidden by iOS, so '
+            '"notDetermined" here is expected even when reads work.';
+
+    await _showInfoDialog(
+      context,
+      title: 'HealthKit Debug',
+      message: message,
+    );
     await progress;
   }
 

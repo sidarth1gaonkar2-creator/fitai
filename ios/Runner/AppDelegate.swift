@@ -68,6 +68,13 @@ import UIKit
         // does to compute the Move ring. Returns the kcal total (Double), or
         // null on error so Dart can fall back to the plugin path.
         self?.sumCumulativeEnergy(call: call, result: result)
+      case "getEnergyAuthStatus":
+        // Diagnostic: returns the SHARE authorization status string for an
+        // energy type. NOTE: HealthKit deliberately never reveals READ status
+        // (privacy), so this reflects write-share only — a read-only-granted
+        // type still reports "notDetermined"/"sharingDenied". Useful mainly to
+        // confirm the type resolves and the bridge is reachable.
+        self?.energyAuthStatus(call: call, result: result)
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -84,14 +91,20 @@ import UIKit
   private func sumCumulativeEnergy(
     call: FlutterMethodCall, result: @escaping FlutterResult
   ) {
-    guard HKHealthStore.isHealthDataAvailable() else {
-      result(nil)
-      return
-    }
+    let available = HKHealthStore.isHealthDataAvailable()
     let args = call.arguments as? [String: Any]
     let typeKey = (args?["type"] as? String) ?? "active"
     let startMs = (args?["startMs"] as? NSNumber)?.doubleValue
     let endMs = (args?["endMs"] as? NSNumber)?.doubleValue
+    NSLog(
+      "[HealthEnergy] getCumulativeEnergy called with type: \(typeKey), "
+        + "start: \(startMs ?? -1), end: \(endMs ?? -1), "
+        + "isHealthDataAvailable: \(available)")
+
+    guard available else {
+      result(nil)
+      return
+    }
     guard let startMs, let endMs else {
       NSLog("[HealthEnergy] missing startMs/endMs")
       result(nil)
@@ -102,11 +115,18 @@ import UIKit
       typeKey == "basal" ? .basalEnergyBurned : .activeEnergyBurned
     guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier)
     else {
+      NSLog("[HealthEnergy] quantity type creation FAILED for \(typeKey)")
       result(nil)
       return
     }
+    NSLog("[HealthEnergy] quantity type created OK for \(typeKey)")
 
     let store = HKHealthStore()
+    let authStatus = store.authorizationStatus(for: quantityType)
+    NSLog(
+      "[HealthEnergy] authorizationStatus (share-only) for \(typeKey): "
+        + "\(Self.authStatusName(authStatus))")
+
     let start = Date(timeIntervalSince1970: startMs / 1000.0)
     let end = Date(timeIntervalSince1970: endMs / 1000.0)
     let predicate = HKQuery.predicateForSamples(
@@ -118,16 +138,48 @@ import UIKit
       quantitySamplePredicate: predicate,
       options: .cumulativeSum
     ) { _, statistics, error in
-      if let error = error {
-        NSLog("[HealthEnergy] \(typeKey) query error: \(error.localizedDescription)")
+      let kcal = statistics?.sumQuantity()?.doubleValue(for: .kilocalorie())
+      NSLog(
+        "[HealthEnergy] Statistics result: \(kcal ?? -1), "
+          + "Statistics error: \(error?.localizedDescription ?? "none")")
+      if error != nil {
         DispatchQueue.main.async { result(nil) }
         return
       }
-      let kcal =
-        statistics?.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0
-      DispatchQueue.main.async { result(kcal) }
+      DispatchQueue.main.async { result(kcal ?? 0) }
     }
     store.execute(query)
+  }
+
+  /// Diagnostic: returns the (share-only) `HKAuthorizationStatus` name for an
+  /// energy type as a String. See the switch-case comment re: read privacy.
+  private func energyAuthStatus(
+    call: FlutterMethodCall, result: @escaping FlutterResult
+  ) {
+    guard HKHealthStore.isHealthDataAvailable() else {
+      result("unavailable")
+      return
+    }
+    let typeKey = (call.arguments as? [String: Any])?["type"] as? String ?? "active"
+    let identifier: HKQuantityTypeIdentifier =
+      typeKey == "basal" ? .basalEnergyBurned : .activeEnergyBurned
+    guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier)
+    else {
+      result("invalid-type")
+      return
+    }
+    let status = HKHealthStore().authorizationStatus(for: quantityType)
+    result(Self.authStatusName(status))
+  }
+
+  /// Human-readable name for an `HKAuthorizationStatus`.
+  private static func authStatusName(_ status: HKAuthorizationStatus) -> String {
+    switch status {
+    case .notDetermined: return "notDetermined"
+    case .sharingDenied: return "sharingDenied"
+    case .sharingAuthorized: return "sharingAuthorized"
+    @unknown default: return "unknown(\(status.rawValue))"
+    }
   }
 
   /// Queries `HKActivitySummaryQuery` for today's record and returns the
@@ -203,14 +255,19 @@ import UIKit
           return
         }
 
-        // Pick the most recent summary whose Move goal is > 0. Walking the
-        // list backwards is robust: HealthKit may return summaries in
-        // ascending date order, and a freshly-rolled-over day may have a
-        // zero goal until the device commits the day's targets.
+        // Pick the most recent summary whose Move goal is > 0. HealthKit does
+        // NOT guarantee the array is date-ordered, so we sort explicitly by
+        // each summary's date (newest first) instead of relying on array order
+        // — otherwise an older summary (e.g. a stale 600 kcal goal) could win
+        // over the user's current goal (e.g. 860).
         func nonZeroMove(_ s: HKActivitySummary) -> Bool {
           return s.activeEnergyBurnedGoal.doubleValue(for: .kilocalorie()) > 0
         }
-        let picked = list.reversed().first(where: nonZeroMove) ?? list.last!
+        func summaryDate(_ s: HKActivitySummary) -> Date {
+          return cal.date(from: s.dateComponents(for: cal)) ?? Date.distantPast
+        }
+        let sorted = list.sorted { summaryDate($0) > summaryDate($1) }
+        let picked = sorted.first(where: nonZeroMove) ?? sorted.first!
 
         let moveKcal: Double
         let exerciseMin: Double
