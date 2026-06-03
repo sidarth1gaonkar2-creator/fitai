@@ -229,12 +229,27 @@ class _CurveChart extends ConsumerWidget {
           StrengthMetric.volume => colorScheme.secondary,
         };
 
-        return SizedBox(
-          height: 200,
-          child: LineChart(
-            LineChartData(
-              minY: range.minY,
-              maxY: range.maxY,
+        final caption = metric == StrengthMetric.volume
+            ? 'Volume ($unitLabel)'
+            : 'Weight ($unitLabel)';
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 4),
+              child: Text(
+                caption,
+                style: textTheme.bodySmall
+                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+              ),
+            ),
+            SizedBox(
+              height: 200,
+              child: LineChart(
+                LineChartData(
+                  minY: range.minY,
+                  maxY: range.maxY,
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
@@ -264,12 +279,15 @@ class _CurveChart extends ConsumerWidget {
                       if (value > range.maxY - range.interval * 0.01) {
                         return const SizedBox.shrink();
                       }
+                      // Whole numbers only, no per-label unit suffix — the
+                      // unit is shown once in the caption above the chart so
+                      // the labels never wrap ("220.5 lbs" → "220").
                       return Padding(
                         padding: const EdgeInsets.only(right: 4),
                         child: Text(
                           metric == StrengthMetric.volume
-                              ? _formatVolume(value, unitLabel)
-                              : '${value.toStringAsFixed(0)} $unitLabel',
+                              ? _volumeAxisLabel(value)
+                              : value.toStringAsFixed(0),
                           style: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -320,12 +338,26 @@ class _CurveChart extends ConsumerWidget {
               ],
             ),
           ),
+            ),
+          ],
         );
       },
     );
   }
 
-  /// Volume axis can blow up into the thousands; abbreviate so labels fit.
+  /// Volume Y-axis label — abbreviated and unit-less (the unit lives in the
+  /// caption above the chart): "12k", "8.5k", "850".
+  static String _volumeAxisLabel(double value) {
+    if (value >= 1000) {
+      final v = value / 1000;
+      return v == v.truncateToDouble()
+          ? '${v.toInt()}k'
+          : '${v.toStringAsFixed(1)}k';
+    }
+    return value.toStringAsFixed(0);
+  }
+
+  /// Volume tooltip label — keeps the unit suffix for the touch tooltip.
   static String _formatVolume(double value, String unitLabel) {
     if (value >= 10000) return '${(value / 1000).toStringAsFixed(0)}k';
     if (value >= 1000) return '${(value / 1000).toStringAsFixed(1)}k';

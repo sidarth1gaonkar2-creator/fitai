@@ -261,20 +261,17 @@ class HealthService {
 
   Future<double> getTodayActiveCalories() =>
       _cached('active_cals', () async {
-        return _sumCumulative(
-          HealthDataType.ACTIVE_ENERGY_BURNED,
-          _todayRange(),
-        );
+        return _activeEnergyForRange(_todayRange());
       });
 
   Future<double> getTodayCaloriesBurned() => _cached('total_cals', () async {
-        // Active + basal, each summed via the statistics path so the totals
-        // match what Apple Health itself reports.
-        final results = await Future.wait([
-          _sumCumulative(HealthDataType.ACTIVE_ENERGY_BURNED, _todayRange()),
-          _sumCumulative(HealthDataType.BASAL_ENERGY_BURNED, _todayRange()),
-        ]);
-        return results[0] + results[1];
+        // Active + basal. Active reuses the cached cascading reader; basal goes
+        // native-first (statistics) then falls back to the plugin path so the
+        // totals match what Apple Health itself reports.
+        final active = await getTodayActiveCalories();
+        final basal = await _energyForRange(
+            'basal', _todayRange(), HealthDataType.BASAL_ENERGY_BURNED);
+        return active + basal;
       });
 
   Future<double> getTodayDistance() => _cached('distance', () async {
@@ -607,10 +604,7 @@ class HealthService {
         final day = DateTime(now.year, now.month, now.day)
             .subtract(Duration(days: i));
         final next = day.add(const Duration(days: 1));
-        final total = await _sumCumulative(
-          HealthDataType.ACTIVE_ENERGY_BURNED,
-          (day, next),
-        );
+        final total = await _activeEnergyForRange((day, next));
         result.add(total);
       }
       return result;
@@ -828,6 +822,62 @@ class HealthService {
     final now = DateTime.now();
     final midnight = DateTime(now.year, now.month, now.day);
     return (midnight, now);
+  }
+
+  /// Active energy (kcal) for [range], trying every reader in order of
+  /// reliability until one returns a positive value:
+  ///   1. Native `HKStatisticsQuery` (.cumulativeSum) via [_nativeEnergy] —
+  ///      the exact mechanism Apple's Move ring and our step reads use.
+  ///   2. The `health` plugin's statistics path ([_sumCumulative]).
+  ///   3. A raw sample-sum ([_sumNumeric]) as a last resort.
+  ///
+  /// A legitimate 0 (no movement yet) simply falls through all three and
+  /// returns 0 — harmless. This cascade exists because the plugin paths were
+  /// observed returning 0 on devices where HealthKit clearly had the data.
+  Future<double> _activeEnergyForRange((DateTime, DateTime) range) =>
+      _energyForRange('active', range, HealthDataType.ACTIVE_ENERGY_BURNED);
+
+  /// Generic energy reader cascade for [nativeType] ('active' | 'basal') with
+  /// the matching [HealthDataType] used for the plugin fallbacks.
+  Future<double> _energyForRange(
+    String nativeType,
+    (DateTime, DateTime) range,
+    HealthDataType pluginType,
+  ) async {
+    if (!Platform.isIOS) return 0;
+    final native = await _nativeEnergy(nativeType, range);
+    if (native != null && native > 0) return native;
+    final viaPlugin = await _sumCumulative(pluginType, range);
+    if (viaPlugin > 0) return viaPlugin;
+    return _sumNumeric([pluginType], range);
+  }
+
+  /// Reads a cumulative energy total (kcal) for [type] ('active' | 'basal')
+  /// over [range] through the native `HKStatisticsQuery` bridge in
+  /// `AppDelegate.swift`. Returns null when the native side is unusable or
+  /// errored, so [_energyForRange] can fall back to the plugin path. A native
+  /// result of 0.0 is returned as-is (it means "HealthKit has no samples").
+  Future<double?> _nativeEnergy(
+    String type,
+    (DateTime, DateTime) range,
+  ) async {
+    if (!Platform.isIOS) return null;
+    if (!await canUseHealthKit()) return null;
+    try {
+      final kcal = await _healthCheckChannel.invokeMethod<double>(
+        'getCumulativeEnergy',
+        {
+          'type': type,
+          'startMs': range.$1.millisecondsSinceEpoch.toDouble(),
+          'endMs': range.$2.millisecondsSinceEpoch.toDouble(),
+        },
+      );
+      return kcal;
+    } catch (e, st) {
+      debugPrint('[HealthService] native energy ($type) threw: $e');
+      AppLogger.error('native energy read failed', error: e, stack: st);
+      return null;
+    }
   }
 
   /// Sums a single cumulative quantity type over [range] using HealthKit's

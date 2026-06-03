@@ -71,7 +71,7 @@ class CoachContextBuilder {
     // --- Nutrition averages (7 days) ---
     try {
       final trends = await ref.read(nutritionTrendsProvider(7).future);
-      if (trends.dailyCalories.isNotEmpty) {
+      if (trends.hasData) {
         parts.add(
           'Nutrition avg (7d): '
           '${trends.avgCalories.toInt()} kcal, '

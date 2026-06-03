@@ -187,65 +187,101 @@ final strengthCurveProvider = FutureProvider.family<
 /// Selected range for nutrition trends: 7, 30, or 90.
 final selectedNutritionRangeProvider = StateProvider<int>((ref) => 7);
 
+/// Nutrition totals for a single calendar day. Days with no log are still
+/// represented (all-zero) so the trend bar charts stay aligned to the calendar.
+class DailyNutrition {
+  const DailyNutrition({
+    required this.date,
+    required this.calories,
+    required this.protein,
+    required this.carbs,
+    required this.fat,
+  });
+
+  final DateTime date;
+  final double calories;
+  final double protein;
+  final double carbs;
+  final double fat;
+}
+
 class NutritionTrendData {
   const NutritionTrendData({
     required this.avgCalories,
     required this.avgProtein,
     required this.avgCarbs,
     required this.avgFat,
-    required this.dailyCalories,
+    required this.daily,
   });
 
   final double avgCalories;
   final double avgProtein;
   final double avgCarbs;
   final double avgFat;
-  /// Daily calorie values for sparkline (oldest first).
-  final List<double> dailyCalories;
+
+  /// One entry per day across the requested range, oldest first. Includes
+  /// zero-value days so the bar charts/X-axis line up with the calendar.
+  final List<DailyNutrition> daily;
+
+  /// Daily calorie values (oldest first). Kept for the AI coach context.
+  List<double> get dailyCalories => daily.map((d) => d.calories).toList();
+
+  /// True when at least one day in the range has logged calories.
+  bool get hasData => daily.any((d) => d.calories > 0);
 }
 
-/// Average daily nutrition over the last N days.
+/// Average daily nutrition over the last N days, plus the per-day series the
+/// trend bar charts plot. Averages are computed over *logged* days only (so a
+/// gap day doesn't drag the average down), while [NutritionTrendData.daily]
+/// carries every calendar day in the range (zeros included).
 final nutritionTrendsProvider =
     FutureProvider.family<NutritionTrendData, int>((ref, days) async {
   final isar = ref.watch(isarProvider);
   final now = DateTime.now();
-  final start = DateTime(now.year, now.month, now.day)
-      .subtract(Duration(days: days));
+  final todayMidnight = DateTime(now.year, now.month, now.day);
+  final start = todayMidnight.subtract(Duration(days: days - 1));
 
   final logs = await isar.nutritionLogs
       .where()
-      .dateGreaterThan(start)
+      .dateGreaterThan(start.subtract(const Duration(seconds: 1)))
       .sortByDate()
       .findAll();
 
-  if (logs.isEmpty) {
-    return const NutritionTrendData(
-      avgCalories: 0,
-      avgProtein: 0,
-      avgCarbs: 0,
-      avgFat: 0,
-      dailyCalories: [],
-    );
-  }
-
-  double totalCal = 0, totalPro = 0, totalCarb = 0, totalFat = 0;
-  final dailyCals = <double>[];
-
+  // Index logs by midnight date for O(1) per-day lookup.
+  final byDate = <DateTime, NutritionLog>{};
   for (final log in logs) {
-    totalCal += log.totalCalories;
-    totalPro += log.totalProtein;
-    totalCarb += log.totalCarbs;
-    totalFat += log.totalFat;
-    dailyCals.add(log.totalCalories);
+    byDate[DateTime(log.date.year, log.date.month, log.date.day)] = log;
   }
 
-  final count = logs.length;
+  final daily = <DailyNutrition>[];
+  double totalCal = 0, totalPro = 0, totalCarb = 0, totalFat = 0;
+  var loggedDays = 0;
+  for (int i = days - 1; i >= 0; i--) {
+    final d = todayMidnight.subtract(Duration(days: i));
+    final log = byDate[d];
+    daily.add(DailyNutrition(
+      date: d,
+      calories: log?.totalCalories ?? 0,
+      protein: log?.totalProtein ?? 0,
+      carbs: log?.totalCarbs ?? 0,
+      fat: log?.totalFat ?? 0,
+    ));
+    if (log != null) {
+      totalCal += log.totalCalories;
+      totalPro += log.totalProtein;
+      totalCarb += log.totalCarbs;
+      totalFat += log.totalFat;
+      loggedDays++;
+    }
+  }
+
+  final divisor = loggedDays == 0 ? 1 : loggedDays;
   return NutritionTrendData(
-    avgCalories: totalCal / count,
-    avgProtein: totalPro / count,
-    avgCarbs: totalCarb / count,
-    avgFat: totalFat / count,
-    dailyCalories: dailyCals,
+    avgCalories: totalCal / divisor,
+    avgProtein: totalPro / divisor,
+    avgCarbs: totalCarb / divisor,
+    avgFat: totalFat / divisor,
+    daily: daily,
   );
 });
 

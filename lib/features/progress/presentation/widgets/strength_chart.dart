@@ -104,14 +104,18 @@ class _StrengthLineChart extends ConsumerWidget {
         final firstDate = points.first.date;
         final spanDays =
             points.last.date.difference(firstDate).inDays.toDouble();
+        // Convert to the user's display unit BEFORE computing the axis so the
+        // gridline steps land on round numbers in lbs/kg. Computing the range
+        // in kg and formatting in lbs produced ugly labels like "220.5 lbs".
+        final unitLabel = UnitConverter.weightUnit(units);
         final spots = points
             .map((p) => FlSpot(
                   p.date.difference(firstDate).inDays.toDouble(),
-                  p.weight,
+                  UnitConverter.kgToDisplayWeight(p.weight, units),
                 ))
             .toList();
 
-        final weights = points.map((p) => p.weight).toList();
+        final weights = spots.map((s) => s.y).toList();
         final rawMin = weights.reduce((a, b) => a < b ? a : b);
         final rawMax = weights.reduce((a, b) => a > b ? a : b);
         final range = niceRange(
@@ -120,12 +124,23 @@ class _StrengthLineChart extends ConsumerWidget {
           minHeadroomFactor: 1.10,
         );
 
-        return SizedBox(
-          height: 200,
-          child: LineChart(
-            LineChartData(
-              minY: range.minY,
-              maxY: range.maxY,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 4),
+              child: Text(
+                'Weight ($unitLabel)',
+                style: textTheme.bodySmall
+                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+              ),
+            ),
+            SizedBox(
+              height: 200,
+              child: LineChart(
+                LineChartData(
+                  minY: range.minY,
+                  maxY: range.maxY,
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
@@ -155,10 +170,12 @@ class _StrengthLineChart extends ConsumerWidget {
                       if (value > range.maxY - range.interval * 0.01) {
                         return const SizedBox.shrink();
                       }
+                      // Whole numbers only, no per-label unit suffix — the
+                      // unit is shown once in the caption above the chart.
                       return Padding(
                         padding: const EdgeInsets.only(right: 4),
                         child: Text(
-                          UnitConverter.formatWeight(value, units),
+                          value.toStringAsFixed(0),
                           style: textTheme.bodySmall
                               ?.copyWith(color: colorScheme.onSurfaceVariant),
                         ),
@@ -172,7 +189,7 @@ class _StrengthLineChart extends ConsumerWidget {
                 touchTooltipData: LineTouchTooltipData(
                   getTooltipItems: (spots) => spots
                       .map((s) => LineTooltipItem(
-                            UnitConverter.formatWeight(s.y, units),
+                            '${s.y.toStringAsFixed(0)} $unitLabel',
                             TextStyle(
                               color: colorScheme.onSurface,
                               fontWeight: FontWeight.w600,
@@ -206,6 +223,8 @@ class _StrengthLineChart extends ConsumerWidget {
               ],
             ),
           ),
+            ),
+          ],
         );
       },
     );

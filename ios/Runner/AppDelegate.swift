@@ -59,10 +59,75 @@ import UIKit
         // (e.g. user has no Apple Watch paired for Exercise/Stand, or hasn't
         // ever opened the Fitness app to seed the Move goal).
         self?.fetchActivityGoals(result: result)
+      case "getCumulativeEnergy":
+        // Sums an energy quantity (active or basal) over a date range using a
+        // native HKStatisticsQuery with .cumulativeSum — the SAME mechanism
+        // that makes the step read reliable. The Flutter `health` plugin's
+        // sample-query + Dart-side sum was returning 0 for active energy on
+        // some devices; this native path mirrors what Apple's own Fitness app
+        // does to compute the Move ring. Returns the kcal total (Double), or
+        // null on error so Dart can fall back to the plugin path.
+        self?.sumCumulativeEnergy(call: call, result: result)
       default:
         result(FlutterMethodNotImplemented)
       }
     }
+  }
+
+  /// Sums `activeEnergyBurned` or `basalEnergyBurned` (in kilocalories) over a
+  /// caller-supplied date range using `HKStatisticsQuery` with `.cumulativeSum`.
+  ///
+  /// Arguments (from Dart): `type` ("active" | "basal"), `startMs`, `endMs`
+  /// (epoch milliseconds). Returns a `Double` kcal total, `0` when HealthKit
+  /// has no samples, or `nil` when the bridge is unusable / the query errors —
+  /// the Dart side treats `nil` as "fall back to the plugin".
+  private func sumCumulativeEnergy(
+    call: FlutterMethodCall, result: @escaping FlutterResult
+  ) {
+    guard HKHealthStore.isHealthDataAvailable() else {
+      result(nil)
+      return
+    }
+    let args = call.arguments as? [String: Any]
+    let typeKey = (args?["type"] as? String) ?? "active"
+    let startMs = (args?["startMs"] as? NSNumber)?.doubleValue
+    let endMs = (args?["endMs"] as? NSNumber)?.doubleValue
+    guard let startMs, let endMs else {
+      NSLog("[HealthEnergy] missing startMs/endMs")
+      result(nil)
+      return
+    }
+
+    let identifier: HKQuantityTypeIdentifier =
+      typeKey == "basal" ? .basalEnergyBurned : .activeEnergyBurned
+    guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier)
+    else {
+      result(nil)
+      return
+    }
+
+    let store = HKHealthStore()
+    let start = Date(timeIntervalSince1970: startMs / 1000.0)
+    let end = Date(timeIntervalSince1970: endMs / 1000.0)
+    let predicate = HKQuery.predicateForSamples(
+      withStart: start, end: end, options: .strictStartDate
+    )
+
+    let query = HKStatisticsQuery(
+      quantityType: quantityType,
+      quantitySamplePredicate: predicate,
+      options: .cumulativeSum
+    ) { _, statistics, error in
+      if let error = error {
+        NSLog("[HealthEnergy] \(typeKey) query error: \(error.localizedDescription)")
+        DispatchQueue.main.async { result(nil) }
+        return
+      }
+      let kcal =
+        statistics?.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0
+      DispatchQueue.main.async { result(kcal) }
+    }
+    store.execute(query)
   }
 
   /// Queries `HKActivitySummaryQuery` for today's record and returns the
