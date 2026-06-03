@@ -9,6 +9,7 @@ import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../data/restaurant_menus.dart';
 import '../../../models/enums.dart';
 import '../../../models/saved_meal_item.dart';
+import '../../../providers/meal_cart_provider.dart';
 import '../../../providers/nutrition_providers.dart';
 import '../../../providers/saved_meal_providers.dart';
 
@@ -44,7 +45,6 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
   // half-and-half protein). When on, the picker collects TWO single
   // selections and each contributes 0.5× nutrition to the total.
   final Set<int> _halfHalf = <int>{};
-  late MealType _mealType;
   bool _isSaving = false;
 
   @override
@@ -52,8 +52,30 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
     super.initState();
     _menu = restaurantById(widget.restaurantId);
     _builderKey = _menu?.mealTypes.first ?? '';
-    _mealType = widget.initialMealType ?? MealType.lunch;
     _initSelections();
+    // Defensive: if a cart is left over from a DIFFERENT restaurant (e.g. the
+    // user backed out without confirming), start this session fresh. Deferred
+    // to post-frame so we never mutate a provider during initState.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final cart = ref.read(mealCartProvider);
+      if (cart.isNotEmpty && cart.restaurantId != widget.restaurantId) {
+        ref.read(mealCartProvider.notifier).clear();
+      }
+    });
+  }
+
+  /// Meal section to pre-highlight in the "Add to which meal?" sheet. Honours
+  /// an explicit [initialMealType] from the route, otherwise falls back to a
+  /// time-of-day guess. The user still confirms by tapping.
+  MealType _defaultMealType() {
+    if (widget.initialMealType != null) return widget.initialMealType!;
+    final h = DateTime.now().hour;
+    if (h >= 5 && h < 11) return MealType.breakfast;
+    if (h >= 11 && h < 15) return MealType.lunch;
+    if (h >= 15 && h < 17) return MealType.snack;
+    if (h >= 17 && h < 22) return MealType.dinner;
+    return MealType.snack;
   }
 
   /// Starts every category EMPTY so the user must explicitly pick something
@@ -270,36 +292,154 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
     return items;
   }
 
-  Future<void> _addToLog() async {
+  /// Banks the currently-configured item into the meal cart and resets the
+  /// builder so the next item starts blank. No-op when nothing is configured.
+  /// Returns true if an item was actually added.
+  bool _pushCurrentToCart() {
+    final t = _totals;
+    if (t.cal <= 0) return false;
+    ref.read(mealCartProvider.notifier).addItem(
+          name: _composedName(),
+          calories: t.cal,
+          protein: t.pro,
+          carbs: t.carb,
+          fat: t.fat,
+          fibre: t.fibre,
+          sodiumMg: t.sodiumMg,
+          restaurantId: widget.restaurantId,
+          restaurantName: _menu?.name ?? widget.restaurantId,
+          restaurantEmoji: _menu?.emoji,
+        );
+    setState(_initSelections);
+    return true;
+  }
+
+  /// "Add to Meal" — bank the current item and keep building.
+  void _addToMeal() {
     final t = _totals;
     if (t.cal <= 0) {
+      showCupertinoToast(context, 'Pick at least one item first.');
+      return;
+    }
+    HapticFeedback.lightImpact();
+    _pushCurrentToCart();
+    final count = ref.read(mealCartProvider).count;
+    showCupertinoToast(
+      context,
+      'Added to meal · $count item${count == 1 ? '' : 's'}',
+    );
+  }
+
+  /// "Add to Log" — commit whatever is on screen, then log the whole cart.
+  /// With an empty cart + a single configured item this is the quick
+  /// single-item path; with items already banked it flushes the full meal.
+  Future<void> _addToLog() async {
+    _pushCurrentToCart();
+    final cart = ref.read(mealCartProvider);
+    if (cart.isEmpty) {
       showCupertinoToast(context, 'Pick at least one item.');
       return;
     }
+    await _logCartFlow();
+  }
+
+  /// Opens the "Your Meal" review sheet. Banks the current configured item
+  /// first so nothing on screen is lost when the user goes to review.
+  Future<void> _openCartSheet() async {
+    HapticFeedback.selectionClick();
+    _pushCurrentToCart();
+    if (!mounted) return;
+    final shouldLog = await showCupertinoModalPopup<bool>(
+      context: context,
+      builder: (_) => _MealCartSheet(accent: _menu?.accentColor),
+    );
+    if (shouldLog == true && mounted) {
+      await _logCartFlow();
+    }
+  }
+
+  /// Shows the meal-type sheet for the cart's totals, then logs every cart
+  /// item under the chosen meal. A multi-item cart is written as one group
+  /// (shared mealGroupId) so it collapses into a single row in the log; a
+  /// lone item is logged ungrouped.
+  Future<void> _logCartFlow() async {
+    final cart = ref.read(mealCartProvider);
+    if (cart.isEmpty) return;
+    final mealType = await _showMealTypeSheet(
+      cal: cart.totalCalories,
+      pro: cart.totalProtein,
+      carb: cart.totalCarbs,
+      fat: cart.totalFat,
+    );
+    if (mealType == null || !mounted) return;
+
     setState(() => _isSaving = true);
     HapticFeedback.lightImpact();
-    final name = _composedName();
-    final ok = await addFoodEntry(
-      ref,
-      mealType: _mealType,
-      name: name,
-      calories: t.cal,
-      protein: t.pro,
-      carbs: t.carb,
-      fat: t.fat,
-      servingSize: 1,
-      servingUnit: 'meal',
-      fibre: t.fibre,
-      sodiumMg: t.sodiumMg,
-    );
+
+    final items = cart.items;
+    final grouped = items.length > 1;
+    final groupId = grouped
+        ? 'restaurant-${widget.restaurantId}-'
+            '${DateTime.now().microsecondsSinceEpoch}'
+        : null;
+    final groupName = grouped ? (_menu?.name ?? widget.restaurantId) : null;
+    final groupEmoji = grouped ? _menu?.emoji : null;
+
+    var allOk = true;
+    for (final item in items) {
+      final ok = await addFoodEntry(
+        ref,
+        mealType: mealType,
+        name: item.name,
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+        servingSize: 1,
+        servingUnit: 'meal',
+        fibre: item.fibre,
+        sodiumMg: item.sodiumMg,
+        mealGroupId: groupId,
+        mealGroupName: groupName,
+        mealGroupEmoji: groupEmoji,
+      );
+      if (!ok) allOk = false;
+    }
+
     if (!mounted) return;
-    if (!ok) {
+    if (!allOk) {
       setState(() => _isSaving = false);
-      showCupertinoToast(context, 'Failed to save. Try again.');
+      showCupertinoToast(context, 'Some items failed to save. Try again.');
       return;
     }
-    showCupertinoToast(context, 'Added $name');
+    ref.read(mealCartProvider.notifier).clear();
+    final n = items.length;
+    showCupertinoToast(
+      context,
+      n == 1 ? 'Added ${items.first.name}' : 'Logged $n items to ${mealType.label}',
+    );
     context.go('/nutrition');
+  }
+
+  /// Bottom sheet: "Add to which meal?" with the cart totals on top and four
+  /// large meal buttons. Returns the chosen [MealType], or null if dismissed.
+  Future<MealType?> _showMealTypeSheet({
+    required double cal,
+    required double pro,
+    required double carb,
+    required double fat,
+  }) {
+    return showCupertinoModalPopup<MealType>(
+      context: context,
+      builder: (_) => _MealTypeSheet(
+        cal: cal,
+        pro: pro,
+        carb: carb,
+        fat: fat,
+        defaultType: _defaultMealType(),
+        accent: _menu?.accentColor ?? AppColors.of(context).accent,
+      ),
+    );
   }
 
   Future<void> _saveAsMeal() async {
@@ -420,6 +560,97 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
     HapticFeedback.lightImpact();
   }
 
+  /// True if any currently-selected item exists (by name) in [newKey]'s
+  /// builder — i.e. switching would CARRY the build over (Chipotle Bowl →
+  /// Burrito keeps your protein/rice). False means the switch lands on an
+  /// unrelated form (Dunkin' Hot Coffee → Bagels) where the current item
+  /// would otherwise be silently dropped.
+  bool _wouldCarryOver(String newKey) {
+    final oldCats = _categories;
+    final selectedNames = <String>{};
+    _selections.forEach((catIdx, items) {
+      if (catIdx >= oldCats.length) return;
+      final cat = oldCats[catIdx];
+      for (final idx in items) {
+        if (idx < cat.items.length) selectedNames.add(cat.items[idx].name);
+      }
+    });
+    if (selectedNames.isEmpty) return false;
+    final newCats = _menu?.builders[newKey] ?? const [];
+    for (final cat in newCats) {
+      for (final item in cat.items) {
+        if (selectedNames.contains(item.name)) return true;
+      }
+    }
+    return false;
+  }
+
+  /// Handles a tap on the restaurant's meal-form tabs. When the switch carries
+  /// the build over (similar forms) it's silent. When it would drop a
+  /// configured item onto an unrelated form, we ask whether to bank it first
+  /// (ISSUE 3): "Add & Switch" / "Discard & Switch" / "Cancel".
+  Future<void> _onSwitchBuilder(String newKey) async {
+    if (newKey == _builderKey) return;
+    final hasItem = _totals.cal > 0;
+    if (hasItem && !_wouldCarryOver(newKey)) {
+      final action = await showCupertinoModalPopup<String>(
+        context: context,
+        builder: (ctx) => CupertinoActionSheet(
+          title: const Text('Add current item to your meal?'),
+          message: Text(
+            "You've started building something here. Add it to your meal "
+            'before switching to "$newKey"?',
+          ),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.of(ctx).pop('add'),
+              child: const Text('Add & Switch'),
+            ),
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              onPressed: () => Navigator.of(ctx).pop('discard'),
+              child: const Text('Discard & Switch'),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(ctx).pop('cancel'),
+            child: const Text('Cancel'),
+          ),
+        ),
+      );
+      if (action == null || action == 'cancel' || !mounted) return;
+      if (action == 'add') _pushCurrentToCart();
+    }
+    setState(() => _switchBuilder(newKey));
+  }
+
+  /// Confirms discarding a non-empty cart when the user tries to leave the
+  /// restaurant. Returns true to proceed (and clear).
+  Future<bool> _confirmDiscardCart(int count) async {
+    final ok = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('Discard your meal?'),
+        content: Text(
+          'You have $count item${count == 1 ? '' : 's'} in your meal that '
+          "haven't been logged. Leaving will discard them.",
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Keep Building'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
@@ -441,71 +672,91 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
       );
     }
     final totals = _totals;
+    final cart = ref.watch(mealCartProvider);
 
-    return Scaffold(
-      appBar: CupertinoNavigationBar(
-        backgroundColor: palette.background.withValues(alpha: 0.8),
-        border: null,
-        middle: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(menu.emoji, style: const TextStyle(fontSize: 18)),
-            const SizedBox(width: 6),
-            Text(menu.name),
-          ],
+    return PopScope(
+      // Block the automatic pop when the cart has unsaved items so we can
+      // confirm before discarding the in-progress meal.
+      canPop: cart.isEmpty,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final proceed = await _confirmDiscardCart(cart.count);
+        if (!proceed || !mounted) return;
+        // Clearing the cart flips `canPop` to true on the next build; defer
+        // the actual pop to after that rebuild so PopScope lets it through
+        // instead of re-intercepting (which would loop).
+        ref.read(mealCartProvider.notifier).clear();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) context.pop();
+        });
+      },
+      child: Scaffold(
+        appBar: CupertinoNavigationBar(
+          backgroundColor: palette.background.withValues(alpha: 0.8),
+          border: null,
+          middle: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(menu.emoji, style: const TextStyle(fontSize: 18)),
+              const SizedBox(width: 6),
+              Text(menu.name),
+            ],
+          ),
         ),
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            // Meal type segmented control (Burrito / Bowl / etc.)
-            if (menu.mealTypes.length > 1)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: _MealTypeSelector(
-                  options: menu.mealTypes,
-                  selected: _builderKey,
-                  accent: menu.accentColor,
-                  onChanged: (s) => setState(() => _switchBuilder(s)),
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              // Meal-form segmented control (Burrito / Bowl / etc.)
+              if (menu.mealTypes.length > 1)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: _MealTypeSelector(
+                    options: menu.mealTypes,
+                    selected: _builderKey,
+                    accent: menu.accentColor,
+                    onChanged: _onSwitchBuilder,
+                  ),
+                ),
+              // Build steps
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 200),
+                  itemCount: _categories.length,
+                  itemBuilder: (context, catIdx) {
+                    final category = _categories[catIdx];
+                    final selectedIdx =
+                        _selections[catIdx] ?? const <int>{};
+                    return _CategoryBlock(
+                      category: category,
+                      selectedIndexes: selectedIdx,
+                      accent: menu.accentColor,
+                      onToggle: (itemIdx) => _toggleItem(catIdx, itemIdx),
+                      isDoubled: _doubled.contains(catIdx),
+                      onToggleDouble: () => _toggleDouble(catIdx),
+                      isHalfHalf: _halfHalf.contains(catIdx),
+                      onToggleHalfHalf: () => _toggleHalfHalf(catIdx),
+                    );
+                  },
                 ),
               ),
-            // Build steps
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 200),
-                itemCount: _categories.length,
-                itemBuilder: (context, catIdx) {
-                  final category = _categories[catIdx];
-                  final selectedIdx =
-                      _selections[catIdx] ?? const <int>{};
-                  return _CategoryBlock(
-                    category: category,
-                    selectedIndexes: selectedIdx,
-                    accent: menu.accentColor,
-                    onToggle: (itemIdx) => _toggleItem(catIdx, itemIdx),
-                    isDoubled: _doubled.contains(catIdx),
-                    onToggleDouble: () => _toggleDouble(catIdx),
-                    isHalfHalf: _halfHalf.contains(catIdx),
-                    onToggleHalfHalf: () => _toggleHalfHalf(catIdx),
-                  );
-                },
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-      bottomNavigationBar: _RunningTotalBar(
-        cal: totals.cal,
-        pro: totals.pro,
-        carb: totals.carb,
-        fat: totals.fat,
-        mealType: _mealType,
-        onMealTypeChanged: (m) => setState(() => _mealType = m),
-        isSaving: _isSaving,
-        onAddToLog: _addToLog,
-        onSaveAsMeal: _saveAsMeal,
-        accent: menu.accentColor,
+        bottomNavigationBar: _RunningTotalBar(
+          cal: totals.cal,
+          pro: totals.pro,
+          carb: totals.carb,
+          fat: totals.fat,
+          cartCount: cart.count,
+          cartCalories: cart.totalCalories,
+          isSaving: _isSaving,
+          onAddToMeal: _addToMeal,
+          onAddToLog: _addToLog,
+          onSaveAsMeal: _saveAsMeal,
+          onOpenCart: _openCartSheet,
+          accent: menu.accentColor,
+        ),
       ),
     );
   }
@@ -982,11 +1233,13 @@ class _RunningTotalBar extends StatelessWidget {
     required this.pro,
     required this.carb,
     required this.fat,
-    required this.mealType,
-    required this.onMealTypeChanged,
+    required this.cartCount,
+    required this.cartCalories,
     required this.isSaving,
+    required this.onAddToMeal,
     required this.onAddToLog,
     required this.onSaveAsMeal,
+    required this.onOpenCart,
     required this.accent,
   });
 
@@ -994,11 +1247,13 @@ class _RunningTotalBar extends StatelessWidget {
   final double pro;
   final double carb;
   final double fat;
-  final MealType mealType;
-  final ValueChanged<MealType> onMealTypeChanged;
+  final int cartCount;
+  final double cartCalories;
   final bool isSaving;
+  final VoidCallback onAddToMeal;
   final VoidCallback onAddToLog;
   final VoidCallback onSaveAsMeal;
+  final VoidCallback onOpenCart;
   final Color accent;
 
   @override
@@ -1016,7 +1271,44 @@ class _RunningTotalBar extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Totals row
+              // Floating cart indicator — tap to review the meal so far.
+              if (cartCount > 0) ...[
+                GestureDetector(
+                  onTap: onOpenCart,
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: accent.withValues(alpha: 0.4)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Text('🛒', style: TextStyle(fontSize: 16)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '$cartCount item${cartCount == 1 ? '' : 's'} · '
+                            '${cartCalories.toInt()} cal in your meal',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: accent,
+                            ),
+                          ),
+                        ),
+                        Icon(CupertinoIcons.chevron_right,
+                            size: 16, color: accent),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              // Totals row (current item being built)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -1052,39 +1344,40 @@ class _RunningTotalBar extends StatelessWidget {
                       _macro('C', carb, palette.warning),
                       const SizedBox(width: 10),
                       _macro('F', fat, palette.success),
+                      const SizedBox(width: 10),
+                      // Save the current configuration as a reusable meal.
+                      GestureDetector(
+                        onTap: isSaving ? null : onSaveAsMeal,
+                        behavior: HitTestBehavior.opaque,
+                        child: Icon(
+                          CupertinoIcons.bookmark,
+                          size: 20,
+                          color: palette.textSecondary,
+                        ),
+                      ),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              // Meal type picker
-              _CompactMealTypePicker(
-                selected: mealType,
-                accent: accent,
-                onChanged: onMealTypeChanged,
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
+              // Primary "Add to Meal" + secondary "Add to Log".
               Row(
                 children: [
                   Expanded(
-                    flex: 2,
                     child: CupertinoButton(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       color: accent,
                       borderRadius: BorderRadius.circular(12),
-                      onPressed: isSaving ? null : onAddToLog,
-                      child: isSaving
-                          ? const CupertinoActivityIndicator(
-                              color: CupertinoColors.white)
-                          : const Text(
-                              'Add to Log',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: CupertinoColors.white,
-                              ),
-                            ),
+                      onPressed: isSaving ? null : onAddToMeal,
+                      child: const Text(
+                        'Add to Meal',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: CupertinoColors.white,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1093,16 +1386,18 @@ class _RunningTotalBar extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       color: palette.surfaceElevated,
                       borderRadius: BorderRadius.circular(12),
-                      onPressed: isSaving ? null : onSaveAsMeal,
-                      child: Text(
-                        'Save Meal',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: palette.text,
-                        ),
-                      ),
+                      onPressed: isSaving ? null : onAddToLog,
+                      child: isSaving
+                          ? const CupertinoActivityIndicator()
+                          : Text(
+                              cartCount > 0 ? 'Log Meal' : 'Add to Log',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: accent,
+                              ),
+                            ),
                     ),
                   ),
                 ],
@@ -1140,58 +1435,398 @@ class _RunningTotalBar extends StatelessWidget {
   }
 }
 
-class _CompactMealTypePicker extends StatelessWidget {
-  const _CompactMealTypePicker({
-    required this.selected,
+// ─── "Add to which meal?" confirmation sheet ──────────────────────
+
+class _MealTypeSheet extends StatelessWidget {
+  const _MealTypeSheet({
+    required this.cal,
+    required this.pro,
+    required this.carb,
+    required this.fat,
+    required this.defaultType,
     required this.accent,
-    required this.onChanged,
   });
 
-  final MealType selected;
+  final double cal;
+  final double pro;
+  final double carb;
+  final double fat;
+  final MealType defaultType;
   final Color accent;
-  final ValueChanged<MealType> onChanged;
+
+  static const _emoji = {
+    MealType.breakfast: '🍳',
+    MealType.lunch: '🥪',
+    MealType.dinner: '🍽️',
+    MealType.snack: '🍎',
+  };
 
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
     return Container(
-      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: palette.surfaceElevated,
-        borderRadius: BorderRadius.circular(10),
+        color: palette.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Row(
-        children: MealType.values
-            .map((m) => Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      onChanged(m);
-                    },
-                    behavior: HitTestBehavior.opaque,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      decoration: BoxDecoration(
-                        color: selected == m ? accent : null,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        m.label,
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 5,
+              decoration: BoxDecoration(
+                color: palette.textSecondary.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Totals summary at the top.
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: palette.surfaceElevated,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        cal.toStringAsFixed(0),
                         style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 11,
-                          color: selected == m
-                              ? Colors.white
-                              : palette.text,
+                          fontFamily: 'LeagueSpartan',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 22,
+                          color: palette.text,
                         ),
                       ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'cal',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '${pro.toStringAsFixed(0)}P · ${carb.toStringAsFixed(0)}C · '
+                    '${fat.toStringAsFixed(0)}F',
+                    style: TextStyle(
+                      fontFamily: 'LeagueSpartan',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: palette.textSecondary,
                     ),
                   ),
-                ))
-            .toList(),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Add to which meal?',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w700,
+                fontSize: 17,
+                color: palette.text,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                _button(context, MealType.breakfast, palette),
+                const SizedBox(width: 10),
+                _button(context, MealType.lunch, palette),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _button(context, MealType.dinner, palette),
+                const SizedBox(width: 10),
+                _button(context, MealType.snack, palette),
+              ],
+            ),
+            const SizedBox(height: 6),
+            CupertinoButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: palette.textSecondary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _button(BuildContext context, MealType type, Palette palette) {
+    final isDefault = type == defaultType;
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          Navigator.of(context).pop(type);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: isDefault
+                ? accent.withValues(alpha: 0.14)
+                : palette.surfaceElevated,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDefault ? accent : palette.border,
+              width: isDefault ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              Text(_emoji[type]!, style: const TextStyle(fontSize: 26)),
+              const SizedBox(height: 6),
+              Text(
+                type.label,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: isDefault ? accent : palette.text,
+                ),
+              ),
+              if (isDefault) ...[
+                const SizedBox(height: 2),
+                Text(
+                  'Suggested',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 10,
+                    color: accent,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── "Your Meal" cart review sheet ────────────────────────────────
+
+class _MealCartSheet extends ConsumerWidget {
+  const _MealCartSheet({this.accent});
+
+  final Color? accent;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = AppColors.of(context);
+    final accentColor = accent ?? palette.accent;
+    final cart = ref.watch(mealCartProvider);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.72,
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 5,
+              decoration: BoxDecoration(
+                color: palette.textSecondary.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Your Meal',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w700,
+                fontSize: 17,
+                color: palette.text,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Swipe an item to remove it',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+                color: palette.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (cart.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                child: Text(
+                  'Your meal is empty.',
+                  style: TextStyle(color: palette.textSecondary),
+                ),
+              )
+            else ...[
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: cart.items.length,
+                  separatorBuilder: (_, _) => Divider(
+                    height: 1,
+                    color: palette.separator,
+                  ),
+                  itemBuilder: (context, i) {
+                    final item = cart.items[i];
+                    return Dismissible(
+                      key: ValueKey(item.id),
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (_) {
+                        HapticFeedback.lightImpact();
+                        ref
+                            .read(mealCartProvider.notifier)
+                            .remove(item.id);
+                      },
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        color: palette.destructive,
+                        child: const Icon(CupertinoIcons.delete,
+                            color: CupertinoColors.white),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.name,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                      color: palette.text,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${item.protein.toStringAsFixed(0)}P · '
+                                    '${item.carbs.toStringAsFixed(0)}C · '
+                                    '${item.fat.toStringAsFixed(0)}F',
+                                    style: TextStyle(
+                                      fontFamily: 'LeagueSpartan',
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 12,
+                                      color: palette.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${item.calories.toStringAsFixed(0)} cal',
+                              style: TextStyle(
+                                fontFamily: 'LeagueSpartan',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: palette.text,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: palette.surfaceElevated,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: palette.text,
+                      ),
+                    ),
+                    Text(
+                      '${cart.totalCalories.toStringAsFixed(0)} cal · '
+                      '${cart.totalProtein.toStringAsFixed(0)}P · '
+                      '${cart.totalCarbs.toStringAsFixed(0)}C · '
+                      '${cart.totalFat.toStringAsFixed(0)}F',
+                      style: TextStyle(
+                        fontFamily: 'LeagueSpartan',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: palette.text,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: CupertinoButton(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  color: accentColor,
+                  borderRadius: BorderRadius.circular(12),
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text(
+                    'Add to Log',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: CupertinoColors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
