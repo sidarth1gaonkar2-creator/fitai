@@ -14,6 +14,9 @@ import '../../../providers/health_providers.dart';
 import '../../../providers/insight_providers.dart';
 import '../../../providers/user_profile_provider.dart';
 import '../../../services/insight_service.dart';
+import '../../ranks/domain/drill_sergeant.dart';
+import '../../ranks/domain/military_ranks.dart';
+import '../../ranks/providers/rank_providers.dart';
 import 'widgets/activity_rings.dart';
 import 'widgets/activity_row.dart';
 import 'widgets/calorie_ring.dart';
@@ -61,13 +64,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     });
   }
 
-  String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  }
-
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(userProfileProvider);
@@ -75,6 +71,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final workoutAsync = ref.watch(todayWorkoutProvider);
     final streakAsync = ref.watch(streakProvider);
     final glasses = ref.watch(waterIntakeProvider);
+    // Drill-sergeant greeting addresses the soldier by rank. Falls back to
+    // Private while the rank is still computing.
+    final overallRank =
+        ref.watch(overallRankProvider).valueOrNull ?? MilitaryRank.private_e1;
 
     return profileAsync.when(
       loading: () => Builder(builder: (context) {
@@ -142,7 +142,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         return Scaffold(
           backgroundColor: palette.background,
           appBar: CupertinoNavigationBar(
-            middle: Text('${_greeting()}, ${profile.name}'),
+            middle: Text(
+              drillGreeting(
+                hour: DateTime.now().hour,
+                rank: overallRank,
+                name: profile.name,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             backgroundColor: palette.background.withValues(alpha: 0.8),
             border: null,
             trailing: Row(

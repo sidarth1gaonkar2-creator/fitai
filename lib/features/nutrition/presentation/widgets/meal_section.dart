@@ -252,7 +252,7 @@ class MealSection extends StatelessWidget {
             ] else ...[
               const SizedBox(height: 8),
               Text(
-                'No foods logged yet.',
+                'Empty plate, soldier. Log it.',
                 style: textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),

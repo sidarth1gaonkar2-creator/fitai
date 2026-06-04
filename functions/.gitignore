@@ -1,0 +1,8 @@
+node_modules/
+npm-debug.log
+firebase-debug.log
+.firebase/
+# Never commit secrets or local secret material
+.env
+.runtimeconfig.json
+.secret.local

@@ -2,15 +2,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../domain/exercise_standards.dart';
 import '../../domain/military_ranks.dart';
 import '../../providers/rank_providers.dart';
 import 'rank_badge.dart';
 
-/// Dashboard card showing the user's overall military rank. Taps open a
-/// per-muscle-group breakdown dialog (Phase-3 will route to a full screen).
+/// Dashboard card showing the user's overall military rank. Tapping opens the
+/// full Ranks screen (muscle-group breakdown, heat map, per-exercise ranks).
 /// Falls back to an encouraging Private empty state before any rankable PRs.
 class RankCard extends ConsumerWidget {
   const RankCard({super.key});
@@ -36,12 +36,10 @@ class RankCard extends ConsumerWidget {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: hasData
-          ? () {
-              HapticFeedback.selectionClick();
-              _showBreakdown(context, calc, palette);
-            }
-          : null,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        context.push('/ranks');
+      },
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -83,80 +81,24 @@ class RankCard extends ConsumerWidget {
                       color: palette.textSecondary,
                     ),
                   ),
-                  if (hasData) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      '${rank.abbreviation} · tier E${rank.tier}',
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
-                        fontSize: 12,
-                        color: palette.textSecondary,
-                      ),
+                  const SizedBox(height: 2),
+                  Text(
+                    hasData
+                        ? '${rank.abbreviation} · tier E${rank.tier} · View Ranks'
+                        : 'View Ranks',
+                    style: TextStyle(
+                      fontFamily: 'LeagueSpartan',
+                      fontSize: 12,
+                      color: palette.accent,
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
-            if (hasData)
-              Icon(CupertinoIcons.chevron_right,
-                  size: 18, color: palette.textSecondary),
+            Icon(CupertinoIcons.chevron_right,
+                size: 18, color: palette.textSecondary),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showBreakdown(
-      BuildContext context, RankCalculation calc, Palette palette) {
-    showCupertinoDialog<void>(
-      context: context,
-      builder: (ctx) => CupertinoAlertDialog(
-        title: Text('${calc.overall.displayName} (${calc.overall.abbreviation})'),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final group in RankGroup.values)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 5),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          group.label,
-                          textAlign: TextAlign.left,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      Builder(builder: (context) {
-                        final r = calc.muscleGroupRanks[group];
-                        if (r == null) {
-                          return Text(
-                            'Unranked',
-                            style: TextStyle(color: palette.textSecondary),
-                          );
-                        }
-                        return Text(
-                          '${r.displayName} (${r.abbreviation})',
-                          style: TextStyle(
-                            color: r.color,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Done'),
-          ),
-        ],
       ),
     );
   }

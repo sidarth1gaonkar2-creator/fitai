@@ -9,6 +9,9 @@ import '../../../core/utils/logger.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../data/exercise_library.dart';
 import '../../../data/workout_templates.dart';
+import '../../ranks/domain/drill_sergeant.dart';
+import '../../ranks/domain/military_ranks.dart';
+import '../../ranks/providers/rank_providers.dart';
 import '../domain/active_workout_state.dart';
 import 'exercise_picker_sheet.dart';
 import 'widgets/exercise_card.dart';
@@ -131,6 +134,15 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
       return;
     }
 
+    // Capture the current overall rank BEFORE saving so we can detect a
+    // promotion once the new PRs land. Best-effort — a failure just disables
+    // the promotion celebration.
+    MilitaryRank? rankBefore;
+    try {
+      rankBefore = (await ref.read(rankCalculatorProvider.future)).overall;
+    } catch (_) {/* promotion detection disabled */}
+    if (!mounted) return;
+
     int? savedWorkoutId;
     try {
       savedWorkoutId = await controller.saveWorkout();
@@ -146,6 +158,19 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
     }
 
     final prNames = ref.read(activeWorkoutProvider).newPRs;
+
+    // Only a new PR can change a rank, so recompute only then.
+    MilitaryRank? rankAfter;
+    if (prNames.isNotEmpty && rankBefore != null) {
+      ref.invalidate(rankCalculatorProvider);
+      try {
+        rankAfter = (await ref.read(rankCalculatorProvider.future)).overall;
+      } catch (_) {/* leave null */}
+    }
+    if (!mounted) return;
+    final promoted =
+        rankBefore != null && rankAfter != null && rankAfter.index > rankBefore.index;
+
     if (prNames.isNotEmpty) {
       // Show confetti then continue. Wrapped in try so a failed dialog
       // can't block the rest of the finish flow.
@@ -161,6 +186,35 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
       } catch (e, st) {
         AppLogger.error('PR confetti dialog failed', error: e, stack: st);
       }
+    }
+    if (!mounted) return;
+
+    // Drill-sergeant feedback: a promotion gets its own celebration; otherwise
+    // a random line of praise (the only completion feedback for non-PR
+    // workouts, which previously had none).
+    if (promoted) {
+      try {
+        await showCupertinoDialog<void>(
+          context: context,
+          builder: (ctx) => CupertinoAlertDialog(
+            title: const Text('🎖️ Promotion!'),
+            content: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(promotionMessage(rankAfter!)),
+            ),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('HOOAH!'),
+              ),
+            ],
+          ),
+        );
+      } catch (e, st) {
+        AppLogger.error('Promotion dialog failed', error: e, stack: st);
+      }
+    } else {
+      showCupertinoToast(context, randomWorkoutPraise());
     }
     if (!mounted) return;
 

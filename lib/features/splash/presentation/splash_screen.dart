@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,23 +8,33 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum StartupPhase { firebase, isar }
 
 /// Result of background app initialization. Either [isReady] (carrying the
-/// opened [Isar] + [SharedPreferences]) or a failure with the offending
-/// [phase]. Produced by `main._bootstrap()` and consumed by [SplashScreen].
+/// opened [Isar] + [SharedPreferences] + the resolved [isSignedIn] auth state)
+/// or a failure with the offending [phase]. Produced by `main._bootstrap()` and
+/// consumed by [SplashScreen].
 class BootstrapResult {
-  const BootstrapResult.ready(Isar this.isar, SharedPreferences this.prefs)
-      : phase = null,
+  const BootstrapResult.ready(
+    Isar this.isar,
+    SharedPreferences this.prefs, {
+    required this.isSignedIn,
+  })  : phase = null,
         error = null,
         stack = null;
 
   const BootstrapResult.failed(StartupPhase this.phase, this.error, this.stack)
       : isar = null,
-        prefs = null;
+        prefs = null,
+        isSignedIn = false;
 
   final Isar? isar;
   final SharedPreferences? prefs;
   final StartupPhase? phase;
   final Object? error;
   final StackTrace? stack;
+
+  /// Whether Firebase reported a signed-in user during bootstrap. Used to pick
+  /// the router's initial route so a signed-in user never sees the welcome
+  /// screen, not even for a frame.
+  final bool isSignedIn;
 
   bool get isReady => phase == null;
 }
@@ -88,6 +100,11 @@ class _SplashScreenState extends State<SplashScreen>
   // Exit fade of the whole logo group, played once both are done so the
   // hand-off to the real app crossfades through the shared dark background.
   late final AnimationController _outro;
+  // Pulsing wait-dot, only shown if bootstrap (incl. Firebase auth resolution)
+  // outlasts the intro animation.
+  late final AnimationController _dot;
+  bool _showWaitDot = false;
+  bool _bootstrapDone = false;
 
   @override
   void initState() {
@@ -96,15 +113,35 @@ class _SplashScreenState extends State<SplashScreen>
         AnimationController(vsync: this, duration: const Duration(milliseconds: 1300));
     _outro =
         AnimationController(vsync: this, duration: const Duration(milliseconds: 280));
+    _dot =
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 750));
     _run();
   }
 
   Future<void> _run() async {
     // Play the intro and wait for initialization — concurrently. We never
     // block the animation on init: the controller drives the UI thread while
-    // the bootstrap future resolves off it.
+    // the bootstrap future resolves off it. Critically we wait for BOTH the
+    // intro AND bootstrap (which now includes the Firebase auth state) before
+    // handing off, so the real app starts on the correct route with no flash.
     final intro = _intro.forward();
+    // If the intro finishes while bootstrap is still pending, reveal a subtle
+    // pulsing dot below the tagline so the held final frame doesn't read as a
+    // freeze.
+    unawaited(intro.then((_) {
+      if (mounted && !_bootstrapDone) {
+        setState(() => _showWaitDot = true);
+        _dot.repeat(reverse: true);
+      }
+    }));
+
     final result = await widget.bootstrap;
+    _bootstrapDone = true;
+    if (mounted && _showWaitDot) {
+      setState(() => _showWaitDot = false);
+      _dot.stop();
+    }
+
     await intro; // ensure the build-in finished before we exit
     if (!mounted) return;
     await _outro.forward();
@@ -116,6 +153,7 @@ class _SplashScreenState extends State<SplashScreen>
   void dispose() {
     _intro.dispose();
     _outro.dispose();
+    _dot.dispose();
     super.dispose();
   }
 
@@ -133,7 +171,7 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: splashBackground,
       body: Center(
         child: AnimatedBuilder(
-          animation: Listenable.merge([_intro, _outro]),
+          animation: Listenable.merge([_intro, _outro, _dot]),
           builder: (context, _) {
             final v = _intro.value;
 
@@ -205,6 +243,22 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                   ),
+                  // Pulsing wait-dot — only while bootstrap (incl. auth)
+                  // outlasts the intro animation.
+                  if (_showWaitDot) ...[
+                    const SizedBox(height: 16),
+                    Opacity(
+                      opacity: 0.3 + 0.7 * _dot.value,
+                      child: Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF8E8E93),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             );

@@ -82,6 +82,23 @@ Future<BootstrapResult> _bootstrap() async {
   await FirebaseCrashlytics.instance
       .setCrashlyticsCollectionEnabled(!kDebugMode);
 
+  // Resolve the persisted Firebase auth state NOW, before the real app mounts,
+  // so the router can start on the correct route (a signed-in user goes
+  // straight to /dashboard, never flashing the welcome screen). Bounded by a
+  // timeout so a hung auth backend can't stall startup; we fall back to the
+  // synchronously-cached currentUser if the stream is slow.
+  var isSignedIn = false;
+  try {
+    final user = await FirebaseAuth.instance
+        .authStateChanges()
+        .first
+        .timeout(const Duration(seconds: 8));
+    isSignedIn = user != null;
+  } catch (e, st) {
+    AppLogger.error('Auth state resolve failed/timed out', error: e, stack: st);
+    isSignedIn = FirebaseAuth.instance.currentUser != null;
+  }
+
   // Isar — hard requirement.
   Isar? isar;
   Object? initError;
@@ -130,7 +147,7 @@ Future<BootstrapResult> _bootstrap() async {
   if (isar == null) {
     return BootstrapResult.failed(StartupPhase.isar, initError, initStack);
   }
-  return BootstrapResult.ready(isar, prefs);
+  return BootstrapResult.ready(isar, prefs, isSignedIn: isSignedIn);
 }
 
 /// Called by the splash once initialization AND the intro animation are both
@@ -154,6 +171,7 @@ void _onBootstrapComplete(BootstrapResult result) {
           firebaseAuthProvider.overrideWithValue(FirebaseAuth.instance),
           firestoreProvider.overrideWithValue(FirebaseFirestore.instance),
           storageProvider.overrideWithValue(FirebaseStorage.instance),
+          bootSignedInProvider.overrideWithValue(result.isSignedIn),
         ],
         child: const DrillFitApp(),
       ),

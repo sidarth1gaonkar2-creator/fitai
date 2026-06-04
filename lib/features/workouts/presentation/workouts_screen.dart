@@ -268,7 +268,7 @@ class _HistoryTab extends ConsumerWidget {
                       Text(
                         selectedDate != null
                             ? 'No workouts on this day.'
-                            : 'No workouts yet.\nTap + to start your first workout!',
+                            : "No workouts logged? That's unacceptable, soldier.\nTap + and get moving!",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontFamily: 'LeagueSpartan',

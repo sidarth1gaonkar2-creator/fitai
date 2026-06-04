@@ -34,6 +34,7 @@ import '../features/nutrition/presentation/create_saved_meal_screen.dart';
 import '../features/nutrition/presentation/saved_meals_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/themes/presentation/theme_store_screen.dart';
+import '../features/ranks/presentation/ranks_screen.dart';
 import '../features/supplements/presentation/supplements_screen.dart';
 import '../features/shell/presentation/shell_screen.dart';
 import '../data/workout_templates.dart';
@@ -52,9 +53,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final authAsync = ref.watch(authStateProvider);
   final profileAsync = ref.watch(userProfileProvider);
   final firestoreUserAsync = ref.watch(firestoreUserProvider);
+  // Resolved before the app mounted (see main._bootstrap). Picking the initial
+  // route from this — instead of always /welcome — means a signed-in user
+  // starts on /dashboard and the welcome screen never renders, even for the
+  // frame before the auth StreamProvider emits. The redirect below then
+  // refines (onboarding / profile-setup) once auth + profile resolve.
+  final signedInAtBoot = ref.read(bootSignedInProvider);
 
   return GoRouter(
-    initialLocation: '/welcome',
+    initialLocation: signedInAtBoot ? '/dashboard' : '/welcome',
     redirect: (context, state) {
       if (authAsync.isLoading) return null;
 
@@ -505,6 +512,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => slideUpTransitionPage(
           key: state.pageKey,
           child: const SupplementsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/ranks',
+        pageBuilder: (context, state) => slideUpTransitionPage(
+          key: state.pageKey,
+          child: const RanksScreen(),
         ),
       ),
       GoRoute(

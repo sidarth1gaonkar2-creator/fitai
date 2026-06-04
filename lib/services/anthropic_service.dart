@@ -8,8 +8,14 @@ import '../core/utils/logger.dart';
 
 /// Streaming + non-streaming client for the Anthropic Messages API.
 class AnthropicService {
-  AnthropicService(this.apiKey) {
-    if (apiKey.isEmpty) {
+  AnthropicService(
+    this.apiKey, {
+    this.proxyEndpoint,
+    this.authTokenProvider,
+  }) {
+    // A key is only required in direct mode; in proxy mode the key lives on the
+    // backend and is never present on the device.
+    if (proxyEndpoint == null && apiKey.isEmpty) {
       throw AnthropicException(
         'ANTHROPIC_API_KEY is missing. Add it to assets/.env and ensure '
         'the file is listed under flutter.assets in pubspec.yaml.',
@@ -18,16 +24,42 @@ class AnthropicService {
   }
 
   final String apiKey;
+
+  /// When set, requests are sent to your own backend (the AI proxy) instead of
+  /// calling Anthropic directly, so the API key never ships inside the app
+  /// bundle. In this mode [apiKey] is ignored and the request is authenticated
+  /// with a Firebase ID token supplied by [authTokenProvider].
+  final Uri? proxyEndpoint;
+
+  /// Supplies a fresh Firebase ID token for proxy-mode auth. Only consulted
+  /// when [proxyEndpoint] is set.
+  final Future<String?> Function()? authTokenProvider;
+
+  bool get _useProxy => proxyEndpoint != null;
+
   static const _model = 'claude-sonnet-4-20250514';
-  static const _endpoint = 'https://api.anthropic.com/v1/messages';
+  static const _anthropicUrl = 'https://api.anthropic.com/v1/messages';
   static const _streamTimeout = Duration(seconds: 60);
 
-  Map<String, String> _headers({required bool streaming}) => {
+  Uri get _uri => proxyEndpoint ?? Uri.parse(_anthropicUrl);
+
+  Future<Map<String, String>> _headers({required bool streaming}) async {
+    if (_useProxy) {
+      final token = await authTokenProvider?.call();
+      return {
         'content-type': 'application/json',
-        'x-api-key': apiKey,
+        if (token != null && token.isNotEmpty) 'authorization': 'Bearer $token',
         'anthropic-version': '2023-06-01',
         if (streaming) 'accept': 'text/event-stream',
       };
+    }
+    return {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      if (streaming) 'accept': 'text/event-stream',
+    };
+  }
 
   Map<String, dynamic> _body({
     required String systemPrompt,
@@ -56,12 +88,12 @@ class AnthropicService {
       final bodyJson = jsonEncode(
           _body(systemPrompt: systemPrompt, messages: messages, stream: true));
       if (kDebugMode) {
-        debugPrint('[Anthropic] → POST $_endpoint (streaming)');
+        debugPrint('[Anthropic] → POST $_uri (streaming, proxy=$_useProxy)');
         debugPrint('[Anthropic] → body: ${_truncate(bodyJson, 500)}');
       }
 
-      final request = await client.postUrl(Uri.parse(_endpoint));
-      _headers(streaming: true).forEach(request.headers.set);
+      final request = await client.postUrl(_uri);
+      (await _headers(streaming: true)).forEach(request.headers.set);
       request.add(utf8.encode(bodyJson));
 
       final response = await request.close().timeout(
@@ -187,12 +219,12 @@ class AnthropicService {
       final bodyJson = jsonEncode(
           _body(systemPrompt: systemPrompt, messages: messages, stream: false));
       if (kDebugMode) {
-        debugPrint('[Anthropic] → POST $_endpoint (non-streaming fallback)');
+        debugPrint('[Anthropic] → POST $_uri (non-streaming, proxy=$_useProxy)');
         debugPrint('[Anthropic] → body: ${_truncate(bodyJson, 500)}');
       }
 
-      final request = await client.postUrl(Uri.parse(_endpoint));
-      _headers(streaming: false).forEach(request.headers.set);
+      final request = await client.postUrl(_uri);
+      (await _headers(streaming: false)).forEach(request.headers.set);
       request.add(utf8.encode(bodyJson));
 
       final response = await request.close().timeout(

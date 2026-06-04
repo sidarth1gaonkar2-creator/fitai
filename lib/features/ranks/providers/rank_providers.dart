@@ -27,6 +27,7 @@ class RankCalculation {
     required this.muscleGroupRanks,
     required this.exerciseScores,
     required this.exerciseRanks,
+    required this.exerciseBestWeightKg,
     required this.bodyWeightKg,
   });
 
@@ -41,6 +42,11 @@ class RankCalculation {
   /// canonical exercise id (or lowercased name) → rank index for that exercise.
   final Map<String, int> exerciseRanks;
 
+  /// canonical exercise id (or lowercased name) → best logged weight (kg, as
+  /// stored on the PR). Powers the "all exercise ranks" list on the Ranks
+  /// screen without re-querying Isar per row.
+  final Map<String, double> exerciseBestWeightKg;
+
   final double bodyWeightKg;
 
   static const empty = RankCalculation(
@@ -50,6 +56,7 @@ class RankCalculation {
     muscleGroupRanks: {},
     exerciseScores: {},
     exerciseRanks: {},
+    exerciseBestWeightKg: {},
     bodyWeightKg: 0,
   );
 }
@@ -161,6 +168,7 @@ Future<RankCalculation> _compute(
   // but dedupe defensively so a stray duplicate can't double-count.
   final bestScore = <String, double>{};
   final bestScored = <String, ScoredExercise>{};
+  final bestWeight = <String, double>{};
 
   for (final pr in prs) {
     if (pr.weightKg <= 0 || bodyWeightKg <= 0) continue;
@@ -184,6 +192,7 @@ Future<RankCalculation> _compute(
     if ((bestScore[key] ?? -1) < score) {
       bestScore[key] = score;
       bestScored[key] = ScoredExercise(standard: standard, score: score);
+      bestWeight[key] = pr.weightKg;
     }
   }
 
@@ -203,6 +212,7 @@ Future<RankCalculation> _compute(
     muscleGroupRanks: groupRanks,
     exerciseScores: bestScore,
     exerciseRanks: exerciseRanks,
+    exerciseBestWeightKg: bestWeight,
     bodyWeightKg: bodyWeightKg,
   );
 }

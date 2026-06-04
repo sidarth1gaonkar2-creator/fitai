@@ -341,6 +341,38 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
+                // My Ranks section
+                _SectionLabel(label: 'Ranks', textTheme: textTheme),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  child: CupertinoListTile(
+                    leading: _SettingsIconBadge(
+                      icon: CupertinoIcons.rosette,
+                      color: palette.accent,
+                    ),
+                    title: Text(
+                      'My Ranks',
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: palette.text,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Overall, muscle-group, and per-exercise ranks',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      color: palette.text,
+                      size: 18,
+                    ),
+                    onTap: () => context.push('/ranks'),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
                 // Account section
                 _SectionLabel(label: 'Account', textTheme: textTheme),
                 const SizedBox(height: 8),

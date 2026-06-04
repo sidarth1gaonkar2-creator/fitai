@@ -231,7 +231,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             ),
             const SizedBox(height: 14),
             Text(
-              'Your feed is empty',
+              'Fall in with the platoon, recruit',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Poppins',
@@ -242,7 +242,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Follow users to see their posts, or share your first workout.',
+              'Follow other soldiers to see their posts, or post your first workout.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'LeagueSpartan',

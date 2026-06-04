@@ -33,7 +33,7 @@ class WeightChart extends ConsumerWidget {
         height: 200,
         child: Center(
           child: Text(
-            'Log your weight to see trends.',
+            'Nothing to show yet. Earn your stripes first!',
             style: textTheme.bodyMedium
                 ?.copyWith(color: colorScheme.onSurfaceVariant),
           ),
