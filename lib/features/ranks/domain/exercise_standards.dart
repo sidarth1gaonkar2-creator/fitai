@@ -6,6 +6,17 @@ import '../../../models/enums.dart';
 /// rank is composed from.
 enum RankGroup { chest, back, legs, shoulders, arms, core }
 
+extension RankGroupLabel on RankGroup {
+  String get label => switch (this) {
+        RankGroup.chest => 'Chest',
+        RankGroup.back => 'Back',
+        RankGroup.legs => 'Legs',
+        RankGroup.shoulders => 'Shoulders',
+        RankGroup.arms => 'Arms',
+        RankGroup.core => 'Core',
+      };
+}
+
 /// Strength standard for one exercise: the 10 allometric rank thresholds plus
 /// the metadata the aggregator needs.
 class ExerciseStandard {

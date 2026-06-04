@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:fitai/features/ranks/domain/exercise_rank_detail.dart';
 import 'package:fitai/features/ranks/domain/exercise_standards.dart';
 import 'package:fitai/features/ranks/domain/military_ranks.dart';
 import 'package:fitai/features/ranks/domain/muscle_group_rank.dart';
@@ -125,6 +126,63 @@ void main() {
         standardForExercise(name: 'Some Custom Press', muscleGroup: MuscleGroup.chest),
         isNotNull,
       );
+    });
+  });
+
+  group('per-exercise rank detail', () {
+    final bench = exerciseStandards['barbell_bench_press']!;
+
+    test('weightKgForScore inverts the score formula', () {
+      final score = allometricScoreFromKg(
+          weightKg: 100, bodyWeightKg: 80, sex: Sex.male);
+      final back = weightKgForScore(
+          targetScore: score, bodyWeightKg: 80, sex: Sex.male);
+      expect(back, closeTo(100, 0.1));
+    });
+
+    test('detail exposes rank, next rank, and weight-to-next', () {
+      // 80 kg male, 100 kg bench (1.25×) → score ≈ 6.9 → Specialist (E4).
+      final d = computeExerciseRankDetail(
+        standard: bench,
+        bestWeightKg: 100,
+        bestReps: 5,
+        bodyWeightKg: 80,
+        sex: Sex.male,
+      );
+      expect(d.hasData, isTrue);
+      expect(d.rank, MilitaryRank.specialist_e4);
+      expect(d.nextRank, MilitaryRank.sergeant_e5);
+      expect(d.score, closeTo(6.9, 0.2));
+      expect(d.progressToNext, closeTo(0.89, 0.06));
+      // ~2 kg to clear the Sergeant threshold (bench score 7.0).
+      expect(d.weightToNextKg, isNotNull);
+      expect(d.weightToNextKg!, closeTo(1.6, 1.0));
+    });
+
+    test('no PR yet → hasData false, Private', () {
+      final d = computeExerciseRankDetail(
+        standard: bench,
+        bestWeightKg: 0,
+        bestReps: 0,
+        bodyWeightKg: 80,
+        sex: Sex.male,
+      );
+      expect(d.hasData, isFalse);
+      expect(d.rank, MilitaryRank.private_e1);
+    });
+
+    test('a maxed lift has no next rank', () {
+      final d = computeExerciseRankDetail(
+        standard: bench,
+        bestWeightKg: 400, // absurd → tops out
+        bestReps: 1,
+        bodyWeightKg: 80,
+        sex: Sex.male,
+      );
+      expect(d.rank, MilitaryRank.sgmArmy_e10);
+      expect(d.nextRank, isNull);
+      expect(d.weightToNextKg, isNull);
+      expect(d.progressToNext, 1.0);
     });
   });
 }

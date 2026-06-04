@@ -24,6 +24,7 @@ import 'widgets/saved_meals_quick_log.dart';
 import 'widgets/streak_counter.dart';
 import 'widgets/today_workout_card.dart';
 import 'widgets/water_tracker.dart';
+import '../../ranks/presentation/widgets/rank_card.dart';
 import '../../supplements/presentation/widgets/supplement_checklist_card.dart';
 import '../../tutorial/presentation/tutorial_anchor.dart';
 import '../../tutorial/providers/tutorial_providers.dart';
@@ -293,6 +294,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+
+                // --- Military rank card ---
+                const RankCard(),
                 const SizedBox(height: 16),
 
                 // --- Quick Log (saved meals — self-gates on availability) ---

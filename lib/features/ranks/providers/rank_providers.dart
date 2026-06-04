@@ -9,6 +9,7 @@ import '../../../models/user_rank.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/user_profile_provider.dart';
 import '../../../providers/workout_providers.dart';
+import '../domain/exercise_rank_detail.dart';
 import '../domain/exercise_standards.dart';
 import '../domain/military_ranks.dart';
 import '../domain/muscle_group_rank.dart';
@@ -108,6 +109,43 @@ final exerciseRankProvider =
   final calc = await ref.watch(rankCalculatorProvider.future);
   final idx = calc.exerciseRanks[exerciseId];
   return idx == null ? null : rankFromIndex(idx);
+});
+
+/// Full per-exercise rank detail (rank, score, best weight, progress to next)
+/// keyed by the exercise's display **name** — the value the workout / exercise
+/// / PR screens already have. Returns:
+///   * null  → the exercise isn't rankable (bodyweight / cardio) — show nothing
+///   * `hasData == false` → rankable but no PR yet — show the empty state
+///   * a full detail otherwise
+final exerciseRankDetailProvider =
+    FutureProvider.family<ExerciseRankDetail?, String>(
+        (ref, exerciseName) async {
+  final standard = standardForExercise(name: exerciseName);
+  if (standard == null || !standard.rankable) return null;
+
+  final profile = await ref.watch(userProfileProvider.future);
+  // Re-run whenever a new PR lands.
+  await ref.watch(personalRecordsProvider.future);
+  final isar = ref.watch(isarProvider);
+
+  final bodyWeightKg = profile?.weight ?? 0;
+  final sex = profile?.sex;
+
+  // Best PR for this exercise (PRs are best-per-exercise; dedupe defensively).
+  final prs = await isar.personalRecords.where().findAll();
+  PersonalRecord? best;
+  for (final pr in prs) {
+    if (pr.exerciseName.toLowerCase() != exerciseName.toLowerCase()) continue;
+    if (best == null || pr.weightKg > best.weightKg) best = pr;
+  }
+
+  return computeExerciseRankDetail(
+    standard: standard,
+    bestWeightKg: best?.weightKg ?? 0,
+    bestReps: best?.bestReps ?? 0,
+    bodyWeightKg: bodyWeightKg,
+    sex: sex,
+  );
 });
 
 // ─── Internals ──────────────────────────────────────────────────────────────

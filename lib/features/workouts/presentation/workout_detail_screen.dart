@@ -10,6 +10,8 @@ import '../../../data/exercise_library.dart';
 import '../../../models/enums.dart';
 import '../../../providers/unit_system_provider.dart';
 import '../../../providers/workout_providers.dart';
+import '../../ranks/presentation/widgets/rank_badge.dart';
+import '../../ranks/providers/rank_providers.dart';
 import 'widgets/exercise_thumb.dart';
 import 'widgets/muscle_highlight_widget.dart';
 
@@ -266,6 +268,7 @@ class WorkoutDetailScreen extends ConsumerWidget {
                                       ),
                                     ),
                                   ),
+                                  _ExerciseRankChip(exerciseName: exerciseName),
                                 ],
                               ),
                               const SizedBox(height: 8),
@@ -358,6 +361,25 @@ class WorkoutDetailScreen extends ConsumerWidget {
       await deleteWorkoutById(ref, workoutId);
       if (context.mounted) context.go('/workouts');
     }
+  }
+}
+
+/// Compact rank badge shown next to an exercise name in the workout's exercise
+/// list. Collapses to nothing when the exercise isn't rankable or has no PR.
+class _ExerciseRankChip extends ConsumerWidget {
+  const _ExerciseRankChip({required this.exerciseName});
+
+  final String exerciseName;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final detail =
+        ref.watch(exerciseRankDetailProvider(exerciseName)).valueOrNull;
+    if (detail == null || !detail.hasData) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: RankBadge(rank: detail.rank, compact: true, size: 20),
+    );
   }
 }
 

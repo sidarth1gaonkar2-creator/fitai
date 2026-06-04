@@ -6,6 +6,8 @@ import '../../../../core/utils/unit_converter.dart';
 import '../../../../models/enums.dart';
 import '../../../../models/personal_record.dart';
 import '../../../../providers/unit_system_provider.dart';
+import '../../../ranks/presentation/widgets/rank_badge.dart';
+import '../../../ranks/providers/rank_providers.dart';
 
 class PRCard extends ConsumerWidget {
   const PRCard({super.key, required this.record});
@@ -73,6 +75,7 @@ class PRCard extends ConsumerWidget {
                     ),
                   ],
                 ),
+                _PRRankBadge(exerciseName: record.exerciseName),
               ],
             ),
           ),
@@ -102,6 +105,25 @@ class PRCard extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Compact rank badge under a PR's stats. Collapses to nothing when the
+/// exercise isn't rankable or has no usable data.
+class _PRRankBadge extends ConsumerWidget {
+  const _PRRankBadge({required this.exerciseName});
+
+  final String exerciseName;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final detail =
+        ref.watch(exerciseRankDetailProvider(exerciseName)).valueOrNull;
+    if (detail == null || !detail.hasData) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: RankBadge(rank: detail.rank, compact: true, size: 18),
     );
   }
 }

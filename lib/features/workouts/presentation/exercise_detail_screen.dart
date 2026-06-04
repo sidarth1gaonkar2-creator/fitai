@@ -14,6 +14,9 @@ import '../../../providers/exercisedb_providers.dart';
 import '../../../providers/personal_records_hall_providers.dart' as pr_hall;
 import '../../../providers/progress_providers.dart';
 import '../../../providers/unit_system_provider.dart';
+import '../../ranks/domain/military_ranks.dart';
+import '../../ranks/presentation/widgets/rank_badge.dart';
+import '../../ranks/providers/rank_providers.dart';
 import 'widgets/muscle_highlight_widget.dart';
 
 /// Detail view for a single exercise. Combines:
@@ -87,6 +90,10 @@ class ExerciseDetailScreen extends ConsumerWidget {
 
             // ── PR for this exercise ───────────────────────────────
             _PRTile(exerciseName: exerciseName),
+            const SizedBox(height: 12),
+
+            // ── Military rank for this exercise ────────────────────
+            _RankSection(exerciseName: exerciseName),
             const SizedBox(height: 20),
 
             // ── Equipment ──────────────────────────────────────────
@@ -487,6 +494,136 @@ class _PRTile extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+// ─── Per-exercise military rank ────────────────────────────────────────────
+
+class _RankSection extends ConsumerWidget {
+  const _RankSection({required this.exerciseName});
+
+  final String exerciseName;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final units = ref.watch(unitSystemProvider);
+    final async = ref.watch(exerciseRankDetailProvider(exerciseName));
+
+    if (async.isLoading && !async.hasValue) {
+      return const ShimmerBox(
+          width: double.infinity, height: 96, borderRadius: 12);
+    }
+    final detail = async.valueOrNull;
+    // Not rankable (bodyweight / cardio) → render nothing.
+    if (detail == null) return const SizedBox.shrink();
+
+    final unit = UnitConverter.weightUnit(units);
+
+    // Rankable but no PR logged yet → empty state.
+    if (!detail.hasData) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: palette.border),
+        ),
+        child: Row(
+          children: [
+            Icon(CupertinoIcons.shield_lefthalf_fill,
+                color: palette.textSecondary, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Log this exercise to earn your rank.',
+                style: textTheme.bodyMedium
+                    ?.copyWith(color: palette.textSecondary),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final best = UnitConverter.kgToDisplayWeight(detail.bestWeightKg, units);
+    final rankColor = detail.rank.color;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: rankColor.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              RankBadge(rank: detail.rank, size: 30),
+              const Spacer(),
+              Text(
+                'Score ${detail.score.toStringAsFixed(1)}',
+                style: TextStyle(
+                  fontFamily: 'LeagueSpartan',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: palette.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Your best: ${best.toStringAsFixed(0)} $unit '
+            '(Score: ${detail.score.toStringAsFixed(1)})',
+            style: textTheme.bodyMedium?.copyWith(color: palette.text),
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: detail.progressToNext.clamp(0.0, 1.0),
+              minHeight: 8,
+              backgroundColor: palette.surfaceElevated,
+              valueColor: AlwaysStoppedAnimation(rankColor),
+            ),
+          ),
+          const SizedBox(height: 6),
+          if (detail.nextRank != null)
+            Text(
+              _nextRankText(detail.weightToNextKg, units, detail.nextRank!),
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: palette.textSecondary,
+              ),
+            )
+          else
+            Text(
+              'Top rank achieved — Sergeant Major of the Army 🎖️',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: rankColor,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _nextRankText(double? toNextKg, UnitSystem units, MilitaryRank next) {
+    if (toNextKg == null || toNextKg <= 0) {
+      return 'Ready to rank up to ${next.displayName}!';
+    }
+    final display = UnitConverter.kgToDisplayWeight(toNextKg, units);
+    final unit = UnitConverter.weightUnit(units);
+    return '${display.toStringAsFixed(0)} more $unit to ${next.displayName}';
   }
 }
 

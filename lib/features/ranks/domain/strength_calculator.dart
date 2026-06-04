@@ -46,6 +46,28 @@ double allometricScoreFromKg({
   return raw * genderMultiplier(sex);
 }
 
+/// Inverse of [allometricScoreFromKg]: the per-implement weight (kg) needed to
+/// reach [targetScore] at the given body weight, sex, and dumbbell multiplier.
+/// Used to tell the user "X more lbs to the next rank". Returns 0 for
+/// non-positive inputs.
+double weightKgForScore({
+  required double targetScore,
+  required double bodyWeightKg,
+  Sex? sex,
+  double weightMultiplier = 1.0,
+}) {
+  if (targetScore <= 0 || bodyWeightKg <= 0 || weightMultiplier <= 0) return 0;
+  final g = genderMultiplier(sex);
+  if (g <= 0) return 0;
+  final bwLbs = bodyWeightKg * _kgToLbs;
+  // score = (weightKg * mult * kgToLbs / bwLbs^0.67) * g
+  //   ⇒ weightKg = targetScore * bwLbs^0.67 / (g * mult * kgToLbs)
+  final perImplementKg = targetScore *
+      math.pow(bwLbs, kAllometricExponent) /
+      (g * weightMultiplier * _kgToLbs);
+  return perImplementKg.isFinite ? perImplementKg : 0;
+}
+
 /// Strength distributions differ by sex, so a woman lifting at the same
 /// allometric score as a man earns a higher rank. Applied as a multiplier on
 /// the score before the rank lookup.

@@ -36,18 +36,23 @@ class PRHallScreen extends ConsumerWidget {
                 backgroundColor: palette.surface,
                 thumbColor: palette.accent,
                 children: const {
+                  PRSortMode.byRank: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6),
+                    child: Text('Rank',
+                        style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
+                  ),
                   PRSortMode.byDate: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 6),
                     child: Text('Recent',
                         style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
                   ),
                   PRSortMode.byMuscleGroup: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 6),
                     child: Text('Muscle',
                         style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
                   ),
                   PRSortMode.alphabetical: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 6),
                     child: Text('A-Z',
                         style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
                   ),
