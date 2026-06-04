@@ -25,16 +25,35 @@ String randomWorkoutPraise() =>
 String promotionMessage(MilitaryRank rank) =>
     "ATTENTION! You've been promoted to ${rank.displayName}!";
 
-/// Time-of-day greeting that addresses the soldier by their rank title.
+/// Time-of-day greeting that addresses the soldier by their rank.
+///
+/// [compact] (for the dashboard nav bar, which is tight on width) uses the
+/// rank ABBREVIATION and drops the trailing motivational clause so it fits on
+/// one line; pass a first name only to keep it short.
 String drillGreeting({
   required int hour,
   required MilitaryRank rank,
   required String name,
+  bool compact = false,
 }) {
+  if (compact) {
+    final who = '${rank.abbreviation} $name';
+    if (hour < 12) return 'Rise and shine, $who';
+    if (hour < 17) return 'Get after it, $who';
+    return 'One more set, $who';
+  }
   final title = rank.displayName;
   if (hour < 12) return 'Rise and shine, $title $name! Time to earn your rank.';
   if (hour < 17) return 'No slacking off, $title $name. Get after it.';
   return "Day's not over yet, $title $name. One more set.";
+}
+
+/// First name only — keeps the dashboard greeting from overflowing with long
+/// full names. Falls back to the whole string if there's no whitespace.
+String firstNameOf(String fullName) {
+  final trimmed = fullName.trim();
+  if (trimmed.isEmpty) return trimmed;
+  return trimmed.split(RegExp(r'\s+')).first;
 }
 
 /// Streak milestone line for the highest threshold reached (7 / 14 / 30 days),

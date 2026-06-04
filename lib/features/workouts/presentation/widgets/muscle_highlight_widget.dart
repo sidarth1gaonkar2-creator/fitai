@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../../../../data/muscle_map.dart';
+import '../../../ranks/domain/military_ranks.dart';
 
 enum _MuscleSide { front, back }
 
@@ -51,12 +52,47 @@ class MuscleHighlightWidget extends StatelessWidget {
     this.secondaryMuscles = const [],
     this.height = 280,
     this.compact = false,
-  });
+  }) : heatMapRanks = null;
+
+  /// Rank heat-map mode: renders the SAME front+back PNG anatomy as the workout
+  /// diagrams, but tints each muscle group's mask by its military rank instead
+  /// of a uniform accent. Keys are [RankGroup] names (`chest`, `back`, `legs`,
+  /// `shoulders`, `arms`, `core`); a missing group renders as "unranked".
+  const MuscleHighlightWidget.rankHeatMap({
+    super.key,
+    required Map<String, MilitaryRank> muscleGroupRanks,
+    this.height = 280,
+  })  : targetMuscles = const [],
+        secondaryMuscles = const [],
+        compact = false,
+        heatMapRanks = muscleGroupRanks;
 
   final List<String> targetMuscles;
   final List<String> secondaryMuscles;
   final double height;
   final bool compact;
+
+  /// Non-null only in [MuscleHighlightWidget.rankHeatMap] mode.
+  final Map<String, MilitaryRank>? heatMapRanks;
+
+  /// Front-panel anatomy sheets paired with the [RankGroup] name they belong
+  /// to. The base body is the first sheet; every sheet's mask is then tinted.
+  static const List<(String, String)> _frontHeatZones = [
+    ('front-chest', 'chest'),
+    ('front-shoulders', 'shoulders'),
+    ('front-biceps', 'arms'),
+    ('front-abs', 'core'),
+    ('front-quads', 'legs'),
+  ];
+
+  /// Back-panel anatomy sheets paired with their [RankGroup] name.
+  static const List<(String, String)> _backHeatZones = [
+    ('back-upper', 'back'),
+    ('back-lower', 'back'),
+    ('back-triceps', 'arms'),
+    ('back-glutes', 'legs'),
+    ('back-calves', 'legs'),
+  ];
 
   static _PanelResolution _resolvePanel({
     required _MuscleSide side,
@@ -139,6 +175,10 @@ class MuscleHighlightWidget extends StatelessWidget {
         : 'assets/images/anatomy';
     final maskDir = '$origDir/masks';
 
+    if (heatMapRanks != null) {
+      return _buildHeatMap(origDir, maskDir);
+    }
+
     final frontRes = _resolvePanel(
       side: _MuscleSide.front,
       targetMuscles: targetMuscles,
@@ -196,6 +236,40 @@ class MuscleHighlightWidget extends StatelessWidget {
         aspectRatio: _nativeWidth / _nativeHeight,
       );
 
+  /// Builds the front + back rank heat-map panels: one neutral body PNG as the
+  /// base, then every group's mask tinted by its rank via a srcIn colour
+  /// filter. Always shows both sides (a full-body heat map), unlike the
+  /// compact workout mode.
+  Widget _buildHeatMap(String origDir, String maskDir) {
+    final ranks = heatMapRanks!;
+
+    List<_LayerSpec> specsFor(List<(String, String)> zones) {
+      final baseStem = zones.first.$1;
+      return [
+        // Base body silhouette (untinted). Its one baked-in highlight is
+        // overpainted below by that zone's tinted mask.
+        _LayerSpec('$origDir/$baseStem.png', 1.0),
+        for (final (stem, group) in zones)
+          _LayerSpec('$maskDir/$stem.png', 1.0,
+              tint: heatColorForRank(ranks[group])),
+      ];
+    }
+
+    return _layout(
+      height: height,
+      children: [
+        _BodyPanel.layers(
+          specs: specsFor(_frontHeatZones),
+          aspectRatio: _nativeWidth / _nativeHeight,
+        ),
+        _BodyPanel.layers(
+          specs: specsFor(_backHeatZones),
+          aspectRatio: _nativeWidth / _nativeHeight,
+        ),
+      ],
+    );
+  }
+
   Widget _layout({required double height, required List<Widget> children}) {
     // Symmetric 16px horizontal padding on the card, two equal-flex columns
     // separated by a 10px gutter. Each column centers its panel within its
@@ -236,11 +310,22 @@ class _BodyPanel extends StatefulWidget {
     required this.primaryMaskPaths,
     required this.secondaryMaskPaths,
     required this.aspectRatio,
-  });
+  }) : layerSpecs = null;
+
+  /// Heat-map path: caller supplies fully-resolved (path + opacity + tint)
+  /// layers directly instead of the base/primary/secondary triplet.
+  const _BodyPanel.layers({
+    required List<_LayerSpec> specs,
+    required this.aspectRatio,
+  })  : baseOriginalPath = '',
+        primaryMaskPaths = const [],
+        secondaryMaskPaths = const [],
+        layerSpecs = specs;
 
   final String baseOriginalPath;
   final List<String> primaryMaskPaths;
   final List<String> secondaryMaskPaths;
+  final List<_LayerSpec>? layerSpecs;
   final double aspectRatio;
 
   @override
@@ -268,7 +353,8 @@ class _BodyPanelState extends State<_BodyPanel> {
     super.didUpdateWidget(old);
     if (old.baseOriginalPath != widget.baseOriginalPath ||
         !_listEq(old.primaryMaskPaths, widget.primaryMaskPaths) ||
-        !_listEq(old.secondaryMaskPaths, widget.secondaryMaskPaths)) {
+        !_listEq(old.secondaryMaskPaths, widget.secondaryMaskPaths) ||
+        !_specsEq(old.layerSpecs, widget.layerSpecs)) {
       _loadAll();
     }
   }
@@ -281,13 +367,27 @@ class _BodyPanelState extends State<_BodyPanel> {
     return true;
   }
 
+  static bool _specsEq(List<_LayerSpec>? a, List<_LayerSpec>? b) {
+    if (a == null && b == null) return true;
+    if (a == null || b == null || a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].path != b[i].path ||
+          a[i].opacity != b[i].opacity ||
+          a[i].tint != b[i].tint) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<void> _loadAll() async {
     final token = ++_loadToken;
-    final specs = <_LayerSpec>[
-      _LayerSpec(widget.baseOriginalPath, 1.0),
-      for (final p in widget.secondaryMaskPaths) _LayerSpec(p, 0.5),
-      for (final p in widget.primaryMaskPaths) _LayerSpec(p, 1.0),
-    ];
+    final specs = widget.layerSpecs ??
+        <_LayerSpec>[
+          _LayerSpec(widget.baseOriginalPath, 1.0),
+          for (final p in widget.secondaryMaskPaths) _LayerSpec(p, 0.5),
+          for (final p in widget.primaryMaskPaths) _LayerSpec(p, 1.0),
+        ];
     try {
       final decoded = await Future.wait(specs.map((s) => _decode(s)));
       // The load may finish after the widget has been disposed (or after
@@ -324,7 +424,8 @@ class _BodyPanelState extends State<_BodyPanel> {
     final data = await rootBundle.load(spec.path);
     final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
     final frame = await codec.getNextFrame();
-    return _DecodedLayer(image: frame.image, opacity: spec.opacity);
+    return _DecodedLayer(
+        image: frame.image, opacity: spec.opacity, tint: spec.tint);
   }
 
   @override
@@ -359,15 +460,20 @@ class _BodyPanelState extends State<_BodyPanel> {
 }
 
 class _LayerSpec {
-  const _LayerSpec(this.path, this.opacity);
+  const _LayerSpec(this.path, this.opacity, {this.tint});
   final String path;
   final double opacity;
+
+  /// When set, the layer is recoloured to this solid colour (keeping the PNG's
+  /// alpha) via a srcIn filter — used to paint each mask in its rank colour.
+  final Color? tint;
 }
 
 class _DecodedLayer {
-  const _DecodedLayer({required this.image, required this.opacity});
+  const _DecodedLayer({required this.image, required this.opacity, this.tint});
   final ui.Image image;
   final double opacity;
+  final Color? tint;
 }
 
 class _BodyPainter extends CustomPainter {
@@ -409,12 +515,16 @@ class _BodyPainter extends CustomPainter {
       final paint = Paint()
         ..filterQuality = FilterQuality.high
         ..isAntiAlias = true
-        ..colorFilter = layer.opacity < 1.0
-            ? ColorFilter.mode(
-                Colors.white.withValues(alpha: layer.opacity),
-                BlendMode.modulate,
-              )
-            : null;
+        ..colorFilter = layer.tint != null
+            // Heat map: replace the mask's RGB with the rank colour, keeping
+            // its alpha, so the zone fills solid in that colour.
+            ? ColorFilter.mode(layer.tint!, BlendMode.srcIn)
+            : (layer.opacity < 1.0
+                ? ColorFilter.mode(
+                    Colors.white.withValues(alpha: layer.opacity),
+                    BlendMode.modulate,
+                  )
+                : null);
       canvas.drawImageRect(layer.image, src, dst, paint);
     }
   }
@@ -424,7 +534,8 @@ class _BodyPainter extends CustomPainter {
     if (layers.length != old.layers.length) return true;
     for (var i = 0; i < layers.length; i++) {
       if (!identical(layers[i].image, old.layers[i].image) ||
-          layers[i].opacity != old.layers[i].opacity) {
+          layers[i].opacity != old.layers[i].opacity ||
+          layers[i].tint != old.layers[i].tint) {
         return true;
       }
     }

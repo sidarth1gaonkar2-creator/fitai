@@ -142,14 +142,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         return Scaffold(
           backgroundColor: palette.background,
           appBar: CupertinoNavigationBar(
+            // Compact, first-name greeting so it fits the nav bar between the
+            // chat + settings icons without truncating the user's name.
             middle: Text(
               drillGreeting(
                 hour: DateTime.now().hour,
                 rank: overallRank,
-                name: profile.name,
+                name: firstNameOf(profile.name),
+                compact: true,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
             backgroundColor: palette.background.withValues(alpha: 0.8),
             border: null,

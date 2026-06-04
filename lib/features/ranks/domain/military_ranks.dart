@@ -179,3 +179,27 @@ double rankPointsForScore(double score, List<double> thresholds) {
 /// Maps composite rank-points (0–9) to a [MilitaryRank] by flooring.
 MilitaryRank rankFromPoints(double points) =>
     rankFromIndex(points.floor());
+
+/// Heat-map tier colour for a rank — five tiers, two ranks each, per the
+/// Phase-3 spec — or a dim neutral when the group is unranked (null). Shared by
+/// the body heat map and its legend.
+Color heatColorForRank(MilitaryRank? rank) {
+  if (rank == null) return const Color(0xFF3A3A3C);
+  switch (rank) {
+    case MilitaryRank.private_e1:
+    case MilitaryRank.privateFc_e2:
+      return const Color(0xFF636366); // gray
+    case MilitaryRank.corporal_e3:
+    case MilitaryRank.specialist_e4:
+      return const Color(0xFF64D2FF); // light blue
+    case MilitaryRank.sergeant_e5:
+    case MilitaryRank.staffSergeant_e6:
+      return const Color(0xFF0A84FF); // blue
+    case MilitaryRank.sergeantFc_e7:
+    case MilitaryRank.masterSergeant_e8:
+      return const Color(0xFF30A8FF); // bright blue
+    case MilitaryRank.sergeantMajor_e9:
+    case MilitaryRank.sgmArmy_e10:
+      return const Color(0xFFFFD60A); // gold
+  }
+}

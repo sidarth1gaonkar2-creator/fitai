@@ -9,12 +9,12 @@ import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../data/exercise_library.dart';
 import '../../../providers/unit_system_provider.dart';
+import '../../workouts/presentation/widgets/muscle_highlight_widget.dart';
 import '../domain/drill_sergeant.dart';
 import '../domain/exercise_standards.dart';
 import '../domain/military_ranks.dart';
 import '../providers/rank_providers.dart';
 import 'widgets/rank_badge.dart';
-import 'widgets/rank_heat_map.dart';
 
 /// Phase-3 dedicated ranks screen: overall rank, a body heat map, per-muscle-
 /// group rank cards, a drill-sergeant weak-point callout, and the full
@@ -56,11 +56,20 @@ class RanksScreen extends ConsumerWidget {
             children: [
               _OverallSection(calc: calc),
               const SizedBox(height: 24),
+              _SectionLabel('Your Rank'),
+              const SizedBox(height: 10),
+              _RankLadder(current: calc.overall),
+              const SizedBox(height: 24),
               _SectionLabel('Strength Map'),
               const SizedBox(height: 4),
               _HeatLegend(),
               const SizedBox(height: 8),
-              RankHeatMap(groupRanks: calc.muscleGroupRanks),
+              MuscleHighlightWidget.rankHeatMap(
+                muscleGroupRanks: {
+                  for (final e in calc.muscleGroupRanks.entries)
+                    e.key.name: e.value,
+                },
+              ),
               const SizedBox(height: 24),
               _SectionLabel('Muscle Groups'),
               const SizedBox(height: 10),
@@ -142,6 +151,209 @@ class _OverallSection extends StatelessWidget {
               color: palette.textSecondary,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Rank ladder ────────────────────────────────────────────────────────────
+
+/// Vertical ladder of all 10 ranks (SMA at top → Private at bottom) with the
+/// user's current rank highlighted, so where they stand among the ranks is
+/// obvious at a glance without decoding "E3" / "CPL".
+class _RankLadder extends StatefulWidget {
+  const _RankLadder({required this.current});
+  final MilitaryRank current;
+
+  @override
+  State<_RankLadder> createState() => _RankLadderState();
+}
+
+class _RankLadderState extends State<_RankLadder>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    final ranks = MilitaryRank.values.reversed.toList(); // SMA → Private
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.border),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      child: Column(
+        children: [
+          for (var i = 0; i < ranks.length; i++)
+            _RankLadderRow(
+              rank: ranks[i],
+              current: widget.current,
+              isFirst: i == 0,
+              isLast: i == ranks.length - 1,
+              pulse: _pulse,
+              palette: palette,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RankLadderRow extends StatelessWidget {
+  const _RankLadderRow({
+    required this.rank,
+    required this.current,
+    required this.isFirst,
+    required this.isLast,
+    required this.pulse,
+    required this.palette,
+  });
+
+  final MilitaryRank rank;
+  final MilitaryRank current;
+  final bool isFirst;
+  final bool isLast;
+  final Animation<double> pulse;
+  final Palette palette;
+
+  static const double _rowHeight = 34;
+
+  @override
+  Widget build(BuildContext context) {
+    final isCurrent = rank == current;
+    final isEarned = rank.index < current.index; // already passed
+    final color = rank.color;
+    final nameColor = isCurrent
+        ? color
+        : (isEarned
+            ? palette.textSecondary
+            : palette.text.withValues(alpha: 0.55));
+
+    return Container(
+      height: _rowHeight,
+      decoration: isCurrent
+          ? BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: color.withValues(alpha: 0.5)),
+            )
+          : null,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Row(
+        children: [
+          // Connecting rail + node.
+          SizedBox(
+            width: 22,
+            height: _rowHeight,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Positioned(
+                  top: isFirst ? _rowHeight / 2 : 0,
+                  bottom: isLast ? _rowHeight / 2 : 0,
+                  child: Container(width: 2, color: palette.border),
+                ),
+                if (isCurrent)
+                  AnimatedBuilder(
+                    animation: pulse,
+                    builder: (_, _) => Container(
+                      width: 10 + 5 * pulse.value,
+                      height: 10 + 5 * pulse.value,
+                      decoration: BoxDecoration(
+                        color: color
+                            .withValues(alpha: 0.30 * (1 - pulse.value) + 0.10),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration:
+                            BoxDecoration(color: color, shape: BoxShape.circle),
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: isEarned ? palette.textSecondary : palette.surface,
+                      shape: BoxShape.circle,
+                      border: isEarned
+                          ? null
+                          : Border.all(color: palette.border, width: 1.5),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Opacity(
+            opacity: isCurrent ? 1.0 : (isEarned ? 0.9 : 0.55),
+            child: RankInsignia(rank: rank, size: 16),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              rank.displayName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 13,
+                color: nameColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (isCurrent)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'YOU ARE HERE',
+                style: TextStyle(
+                  fontFamily: 'LeagueSpartan',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 9,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            )
+          else
+            Text(
+              rank.abbreviation,
+              style: TextStyle(
+                fontFamily: 'LeagueSpartan',
+                fontSize: 11,
+                color: palette.textSecondary
+                    .withValues(alpha: isEarned ? 0.9 : 0.5),
+              ),
+            ),
         ],
       ),
     );
