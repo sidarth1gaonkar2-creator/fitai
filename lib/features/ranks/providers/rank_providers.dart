@@ -6,9 +6,11 @@ import '../../../data/exercise_library.dart';
 import '../../../models/enums.dart';
 import '../../../models/personal_record.dart';
 import '../../../models/user_rank.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/user_profile_provider.dart';
 import '../../../providers/workout_providers.dart';
+import '../../community/data/user_repository.dart';
 import '../domain/exercise_rank_detail.dart';
 import '../domain/exercise_standards.dart';
 import '../domain/military_ranks.dart';
@@ -79,10 +81,24 @@ final rankCalculatorProvider = FutureProvider<RankCalculation>((ref) async {
 
   // Persist as a best-effort side effect — a failure here must not break the
   // returned (live) calculation.
+  int? previousRankIndex;
   try {
-    await _persist(isar, calc);
+    previousRankIndex = await _persist(isar, calc);
   } catch (e, st) {
     AppLogger.error('Rank persist failed', error: e, stack: st);
+  }
+
+  // Mirror the overall rank onto the Firestore user doc — best-effort, and only
+  // when it actually changes — so the community can show this user's rank
+  // badge. `previousRankIndex` is null on the very first calculation, which
+  // differs from any concrete index and therefore initializes the field.
+  if (previousRankIndex != calc.overall.index) {
+    final uid = ref.read(currentUserIdProvider);
+    if (uid != null) {
+      await ref
+          .read(userRepositoryProvider)
+          .updateUserRank(uid, calc.overall.index, calc.overall.displayName);
+    }
   }
 
   return calc;
@@ -217,9 +233,14 @@ Future<RankCalculation> _compute(
   );
 }
 
-Future<void> _persist(Isar isar, RankCalculation calc) async {
+/// Persists [calc] to Isar and returns the OVERALL rank index that was stored
+/// before this write (null on the very first calculation), so callers can tell
+/// whether the rank changed.
+Future<int?> _persist(Isar isar, RankCalculation calc) async {
+  int? previousRankIndex;
   await isar.writeTxn(() async {
     final existing = await isar.userRanks.where().findFirst();
+    previousRankIndex = existing?.overallRankIndex;
     final row = existing ?? UserRank();
 
     row
@@ -247,4 +268,5 @@ Future<void> _persist(Isar isar, RankCalculation calc) async {
 
     await isar.userRanks.put(row);
   });
+  return previousRankIndex;
 }

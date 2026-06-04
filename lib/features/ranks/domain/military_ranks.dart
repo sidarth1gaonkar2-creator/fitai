@@ -56,21 +56,21 @@ const Map<MilitaryRank, RankInfo> _rankInfo = {
     abbreviation: 'PFC',
     chevronCount: 2,
     minimumScore: 1,
-    color: Color(0xFF9DB4A0), // muted sage
+    color: Color(0xFF7C8A5C), // olive green
   ),
   MilitaryRank.corporal_e3: RankInfo(
     name: 'Corporal',
     abbreviation: 'CPL',
     chevronCount: 3,
     minimumScore: 2,
-    color: Color(0xFF5CB270), // green
+    color: Color(0xFF30D158), // green
   ),
   MilitaryRank.specialist_e4: RankInfo(
     name: 'Specialist',
     abbreviation: 'SPC',
     chevronCount: 0,
     minimumScore: 3,
-    color: Color(0xFF2BB1A8), // teal
+    color: Color(0xFF5AC8FA), // teal / cyan
     hasEagle: true, // specialist "eagle" / shield badge
   ),
   MilitaryRank.sergeant_e5: RankInfo(
@@ -85,7 +85,7 @@ const Map<MilitaryRank, RankInfo> _rankInfo = {
     abbreviation: 'SSG',
     chevronCount: 4,
     minimumScore: 5,
-    color: Color(0xFF5E5CE6), // indigo
+    color: Color(0xFF5856D6), // indigo
   ),
   MilitaryRank.sergeantFc_e7: RankInfo(
     name: 'Sergeant First Class',
@@ -99,14 +99,14 @@ const Map<MilitaryRank, RankInfo> _rankInfo = {
     abbreviation: 'MSG',
     chevronCount: 6,
     minimumScore: 7,
-    color: Color(0xFFFF9F0A), // bronze/amber
+    color: Color(0xFFFFD60A), // yellow / gold
   ),
   MilitaryRank.sergeantMajor_e9: RankInfo(
     name: 'Sergeant Major',
     abbreviation: 'SGM',
     chevronCount: 3,
     minimumScore: 8,
-    color: Color(0xFFFFD60A), // gold
+    color: Color(0xFFFF9F0A), // amber / gold
     hasStar: true, // 3 chevrons + 3 rockers + star
   ),
   MilitaryRank.sgmArmy_e10: RankInfo(
@@ -180,26 +180,8 @@ double rankPointsForScore(double score, List<double> thresholds) {
 MilitaryRank rankFromPoints(double points) =>
     rankFromIndex(points.floor());
 
-/// Heat-map tier colour for a rank — five tiers, two ranks each, per the
-/// Phase-3 spec — or a dim neutral when the group is unranked (null). Shared by
-/// the body heat map and its legend.
-Color heatColorForRank(MilitaryRank? rank) {
-  if (rank == null) return const Color(0xFF3A3A3C);
-  switch (rank) {
-    case MilitaryRank.private_e1:
-    case MilitaryRank.privateFc_e2:
-      return const Color(0xFF636366); // gray
-    case MilitaryRank.corporal_e3:
-    case MilitaryRank.specialist_e4:
-      return const Color(0xFF64D2FF); // light blue
-    case MilitaryRank.sergeant_e5:
-    case MilitaryRank.staffSergeant_e6:
-      return const Color(0xFF0A84FF); // blue
-    case MilitaryRank.sergeantFc_e7:
-    case MilitaryRank.masterSergeant_e8:
-      return const Color(0xFF30A8FF); // bright blue
-    case MilitaryRank.sergeantMajor_e9:
-    case MilitaryRank.sgmArmy_e10:
-      return const Color(0xFFFFD60A); // gold
-  }
-}
+/// Heat-map colour for a muscle group's rank: the rank's own distinct insignia
+/// colour (so each rank reads clearly apart on the body, matching the rank
+/// ladder), or a dim neutral when the group is unranked (null).
+Color heatColorForRank(MilitaryRank? rank) =>
+    rank?.color ?? const Color(0xFF3A3A3C);

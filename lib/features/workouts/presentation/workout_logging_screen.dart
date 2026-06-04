@@ -9,8 +9,11 @@ import '../../../core/utils/logger.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../data/exercise_library.dart';
 import '../../../data/workout_templates.dart';
+import '../../../providers/unit_system_provider.dart'
+    show sharedPreferencesProvider;
 import '../../ranks/domain/drill_sergeant.dart';
 import '../../ranks/domain/military_ranks.dart';
+import '../../ranks/presentation/widgets/rank_celebration_overlay.dart';
 import '../../ranks/providers/rank_providers.dart';
 import '../domain/active_workout_state.dart';
 import 'exercise_picker_sheet.dart';
@@ -189,29 +192,38 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
     }
     if (!mounted) return;
 
-    // Drill-sergeant feedback: a promotion gets its own celebration; otherwise
-    // a random line of praise (the only completion feedback for non-PR
-    // workouts, which previously had none).
+    // Drill-sergeant feedback: a promotion gets its own full-screen
+    // celebration; otherwise a random line of praise (the only completion
+    // feedback for non-PR workouts, which previously had none).
     if (promoted) {
-      try {
-        await showCupertinoDialog<void>(
-          context: context,
-          builder: (ctx) => CupertinoAlertDialog(
-            title: const Text('🎖️ Promotion!'),
-            content: Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(promotionMessage(rankAfter!)),
+      final newRank = rankAfter;
+
+      // 5B: scaffold the (not-yet-sent) promotion push-notification text.
+      AppLogger.log(rankUpNotificationText(newRank));
+
+      // 5A: full-screen celebration, fired at most ONCE per rank — a
+      // SharedPreferences marker stops it re-triggering on later recomputes or
+      // launches. (Stored in prefs rather than Isar to avoid this project's
+      // broken Isar codegen; same once-only guarantee.)
+      final prefs = ref.read(sharedPreferencesProvider);
+      final lastCelebrated = prefs.getInt('last_celebrated_rank_index') ?? -1;
+      if (newRank.index > lastCelebrated) {
+        await prefs.setInt('last_celebrated_rank_index', newRank.index);
+        if (!mounted) return;
+        try {
+          await showGeneralDialog<void>(
+            context: context,
+            barrierDismissible: false,
+            barrierColor: Colors.transparent,
+            transitionDuration: const Duration(milliseconds: 250),
+            pageBuilder: (ctx, _, _) => RankCelebrationOverlay(
+              rank: newRank,
+              onDismiss: () => Navigator.of(ctx).pop(),
             ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('HOOAH!'),
-              ),
-            ],
-          ),
-        );
-      } catch (e, st) {
-        AppLogger.error('Promotion dialog failed', error: e, stack: st);
+          );
+        } catch (e, st) {
+          AppLogger.error('Rank celebration failed', error: e, stack: st);
+        }
       }
     } else {
       showCupertinoToast(context, randomWorkoutPraise());

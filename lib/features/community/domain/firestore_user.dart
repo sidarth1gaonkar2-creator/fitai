@@ -12,6 +12,8 @@ class FirestoreUser {
     this.followingCount = 0,
     this.workoutsCount = 0,
     this.createdAt,
+    this.rankIndex,
+    this.rankName,
   });
 
   final String userId;
@@ -25,6 +27,13 @@ class FirestoreUser {
   final int workoutsCount;
   final DateTime? createdAt;
 
+  /// Overall [MilitaryRank] ordinal, mirrored from the local rank engine so the
+  /// community can show this user's rank badge. Null until first computed.
+  final int? rankIndex;
+
+  /// Display name of the overall rank (e.g. "Corporal"), for convenience.
+  final String? rankName;
+
   factory FirestoreUser.fromMap(Map<String, dynamic> map) {
     return FirestoreUser(
       userId: map['userId'] as String? ?? '',
@@ -37,6 +46,8 @@ class FirestoreUser {
       followingCount: (map['followingCount'] as num?)?.toInt() ?? 0,
       workoutsCount: (map['workoutsCount'] as num?)?.toInt() ?? 0,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
+      rankIndex: (map['rankIndex'] as num?)?.toInt(),
+      rankName: map['rankName'] as String?,
     );
   }
 
@@ -54,6 +65,8 @@ class FirestoreUser {
       'createdAt': createdAt != null
           ? Timestamp.fromDate(createdAt!)
           : FieldValue.serverTimestamp(),
+      if (rankIndex != null) 'rankIndex': rankIndex,
+      if (rankName != null) 'rankName': rankName,
     };
   }
 
@@ -66,6 +79,8 @@ class FirestoreUser {
     int? followersCount,
     int? followingCount,
     int? workoutsCount,
+    int? rankIndex,
+    String? rankName,
   }) {
     return FirestoreUser(
       userId: userId,
@@ -78,6 +93,8 @@ class FirestoreUser {
       followingCount: followingCount ?? this.followingCount,
       workoutsCount: workoutsCount ?? this.workoutsCount,
       createdAt: createdAt,
+      rankIndex: rankIndex ?? this.rankIndex,
+      rankName: rankName ?? this.rankName,
     );
   }
 }

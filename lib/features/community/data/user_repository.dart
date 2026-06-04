@@ -63,6 +63,25 @@ class UserRepository {
     await _users.doc(userId).update(fields);
   }
 
+  /// Mirrors the user's overall military rank onto their user doc so the
+  /// community (posts, comments, leaderboard) can show a rank badge. Merge so
+  /// it's safe whether or not the field already exists. Best-effort.
+  Future<void> updateUserRank(
+      String userId, int rankIndex, String rankName) async {
+    try {
+      await _users.doc(userId).set(
+        {'rankIndex': rankIndex, 'rankName': rankName},
+        SetOptions(merge: true),
+      );
+    } catch (e, st) {
+      AppLogger.error(
+        'UserRepository.updateUserRank failed (userId=$userId)',
+        error: e,
+        stack: st,
+      );
+    }
+  }
+
   Future<void> incrementWorkoutCount(String userId) async {
     try {
       await _users.doc(userId).update({

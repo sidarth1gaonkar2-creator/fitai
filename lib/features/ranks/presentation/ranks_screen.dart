@@ -15,6 +15,7 @@ import '../domain/exercise_standards.dart';
 import '../domain/military_ranks.dart';
 import '../providers/rank_providers.dart';
 import 'widgets/rank_badge.dart';
+import 'widgets/rank_share_card.dart';
 
 /// Phase-3 dedicated ranks screen: overall rank, a body heat map, per-muscle-
 /// group rank cards, a drill-sergeant weak-point callout, and the full
@@ -61,9 +62,7 @@ class RanksScreen extends ConsumerWidget {
               _RankLadder(current: calc.overall),
               const SizedBox(height: 24),
               _SectionLabel('Strength Map'),
-              const SizedBox(height: 4),
-              _HeatLegend(),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               MuscleHighlightWidget.rankHeatMap(
                 muscleGroupRanks: {
                   for (final e in calc.muscleGroupRanks.entries)
@@ -80,6 +79,8 @@ class RanksScreen extends ConsumerWidget {
               _SectionLabel('All Exercises'),
               const SizedBox(height: 10),
               _AllExerciseRanks(calc: calc),
+              const SizedBox(height: 24),
+              const _ShareRankButton(),
             ],
           ),
         ),
@@ -780,6 +781,40 @@ class _GroupExpansion extends StatelessWidget {
   }
 }
 
+// ─── Share ──────────────────────────────────────────────────────────────────
+
+class _ShareRankButton extends ConsumerWidget {
+  const _ShareRankButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = AppColors.of(context);
+    return SizedBox(
+      width: double.infinity,
+      child: CupertinoButton(
+        color: palette.accent,
+        borderRadius: BorderRadius.circular(14),
+        onPressed: () => shareCurrentRank(context, ref),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(CupertinoIcons.share, size: 18, color: Colors.white),
+            SizedBox(width: 8),
+            Text(
+              'Share My Rank',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Shared bits ────────────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
@@ -815,49 +850,6 @@ class _RankProgressBar extends StatelessWidget {
         backgroundColor: palette.surfaceElevated,
         valueColor: AlwaysStoppedAnimation(color),
       ),
-    );
-  }
-}
-
-/// Five-tier colour legend for the heat map.
-class _HeatLegend extends StatelessWidget {
-  const _HeatLegend();
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-    Widget swatch(MilitaryRank r, String label) => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: heatColorForRank(r),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 11,
-                color: palette.textSecondary,
-              ),
-            ),
-          ],
-        );
-    return Wrap(
-      spacing: 12,
-      runSpacing: 4,
-      children: [
-        swatch(MilitaryRank.private_e1, 'PVT–PFC'),
-        swatch(MilitaryRank.corporal_e3, 'CPL–SPC'),
-        swatch(MilitaryRank.sergeant_e5, 'SGT–SSG'),
-        swatch(MilitaryRank.sergeantFc_e7, 'SFC–MSG'),
-        swatch(MilitaryRank.sergeantMajor_e9, 'SGM–SMA'),
-      ],
     );
   }
 }

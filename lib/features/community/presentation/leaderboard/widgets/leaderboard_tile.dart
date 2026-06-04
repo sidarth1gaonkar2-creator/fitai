@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/utils/unit_converter.dart';
 import '../../../../../providers/unit_system_provider.dart';
+import '../../../../ranks/presentation/widgets/user_rank_badge.dart';
 import '../../../domain/leaderboard_entry.dart';
 
 class LeaderboardTile extends ConsumerWidget {
@@ -54,8 +55,9 @@ class LeaderboardTile extends ConsumerWidget {
     final units = ref.watch(unitSystemProvider);
     final bg = isCurrentUser ? palette.accent : palette.surface;
     final textColor = isCurrentUser ? CupertinoColors.white : palette.text;
-    final secondaryTextColor =
-        isCurrentUser ? CupertinoColors.white.withOpacity(0.8) : palette.textSecondary;
+    final secondaryTextColor = isCurrentUser
+        ? CupertinoColors.white.withValues(alpha: 0.8)
+        : palette.textSecondary;
 
     return GestureDetector(
       onTap: () => context.push('/profile/${entry.userId}'),
@@ -111,17 +113,24 @@ class LeaderboardTile extends ConsumerWidget {
 
           const SizedBox(width: 12),
 
-          // ---- Username ----
+          // ---- Username + rank badge ----
           Expanded(
-            child: Text(
-              entry.username,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-                color: textColor,
-              ),
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    entry.username,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                      color: textColor,
+                    ),
+                  ),
+                ),
+                UserRankBadge(userId: entry.userId),
+              ],
             ),
           ),
 

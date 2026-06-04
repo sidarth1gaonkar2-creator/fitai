@@ -32,6 +32,9 @@ import '../../../utils/seed_community.dart';
 import '../../../utils/seed_nutrition.dart';
 import '../../../utils/seed_workouts.dart';
 import '../../community/data/leaderboard_repository.dart';
+import '../../ranks/domain/military_ranks.dart';
+import '../../ranks/presentation/widgets/rank_badge.dart';
+import '../../ranks/providers/rank_providers.dart';
 import '../../tutorial/providers/tutorial_providers.dart';
 
 /// Accounts allowed to see the Developer section (seed buttons). Email-based
@@ -55,6 +58,8 @@ class SettingsScreen extends ConsumerWidget {
     final units = ref.watch(unitSystemProvider);
     final textTheme = Theme.of(context).textTheme;
     final palette = AppColors.of(context);
+    final overallRank =
+        ref.watch(overallRankProvider).valueOrNull ?? MilitaryRank.private_e1;
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -656,6 +661,42 @@ class SettingsScreen extends ConsumerWidget {
 
                 // About section
                 _SectionLabel(label: 'About', textTheme: textTheme),
+                const SizedBox(height: 8),
+                // Current overall rank with full insignia — taps through to the
+                // dedicated Ranks screen.
+                _SettingsCard(
+                  child: CupertinoListTile(
+                    onTap: () => context.push('/ranks'),
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: overallRank.color.withValues(alpha: 0.16),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: RankInsignia(rank: overallRank, size: 26),
+                    ),
+                    title: Text(
+                      overallRank.displayName,
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: overallRank.color,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Overall rank · ${overallRank.abbreviation} (E${overallRank.tier})',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      size: 18,
+                      color: palette.textSecondary,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 8),
                 _SettingsCard(
                   child: CupertinoListTile(

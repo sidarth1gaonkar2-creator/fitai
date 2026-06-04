@@ -11,6 +11,7 @@ import '../../../../../core/utils/unit_converter.dart';
 import '../../../../../providers/auth_provider.dart';
 import '../../../../../providers/community_providers.dart';
 import '../../../../../providers/unit_system_provider.dart';
+import '../../../../ranks/presentation/widgets/user_rank_badge.dart';
 import '../../../data/post_repository.dart';
 import '../../../domain/post.dart';
 
@@ -339,16 +340,23 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  post.username,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: palette.text,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        post.username,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: palette.text,
+                        ),
+                      ),
+                    ),
+                    UserRankBadge(userId: post.userId),
+                  ],
                 ),
                 const SizedBox(height: 2),
                 Text(

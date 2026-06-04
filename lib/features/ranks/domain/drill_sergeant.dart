@@ -25,6 +25,17 @@ String randomWorkoutPraise() =>
 String promotionMessage(MilitaryRank rank) =>
     "ATTENTION! You've been promoted to ${rank.displayName}!";
 
+/// Drill-sergeant line on the full-screen rank-up celebration overlay.
+String promotionCelebrationLine() =>
+    "Outstanding work, soldier! You've earned your stripes.";
+
+/// Push-notification text prepared (but NOT yet sent) on a rank-up — a scaffold
+/// for the future notifications implementation. Format mirrors the spec, e.g.
+/// "ATTENTION! You've been promoted to Sergeant (E5). Report for duty, soldier!"
+String rankUpNotificationText(MilitaryRank rank) =>
+    "ATTENTION! You've been promoted to ${rank.displayName} (E${rank.tier}). "
+    'Report for duty, soldier!';
+
 /// Time-of-day greeting that addresses the soldier by their rank.
 ///
 /// [compact] (for the dashboard nav bar, which is tight on width) uses the

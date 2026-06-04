@@ -4,6 +4,7 @@ import 'package:flutter/material.dart' show CircleAvatar;
 import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../ranks/presentation/widgets/user_rank_badge.dart';
 import '../../../domain/comment.dart';
 
 class CommentTile extends StatelessWidget {
@@ -35,15 +36,20 @@ class CommentTile extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(
-                      comment.username,
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: palette.text,
+                    Flexible(
+                      child: Text(
+                        comment.username,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: palette.text,
+                        ),
                       ),
                     ),
+                    UserRankBadge(userId: comment.userId, size: 11),
                     const SizedBox(width: 6),
                     Text(
                       comment.createdAt != null
