@@ -58,6 +58,17 @@ class UserRepository {
     return snap.docs.map((d) => FirestoreUser.fromMap(d.data())).toList();
   }
 
+  /// All public users currently holding [rankIndex] \u2014 powers the "browse by
+  /// rank" filter. Single-field equality, so no composite index is needed.
+  Future<List<FirestoreUser>> getUsersByRank(int rankIndex,
+      {int limit = 40}) async {
+    final snap = await _users
+        .where('rankIndex', isEqualTo: rankIndex)
+        .limit(limit)
+        .get();
+    return snap.docs.map((d) => FirestoreUser.fromMap(d.data())).toList();
+  }
+
   Future<void> updateUser(
       String userId, Map<String, dynamic> fields) async {
     await _users.doc(userId).update(fields);

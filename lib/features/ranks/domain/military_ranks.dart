@@ -185,3 +185,10 @@ MilitaryRank rankFromPoints(double points) =>
 /// ladder), or a dim neutral when the group is unranked (null).
 Color heatColorForRank(MilitaryRank? rank) =>
     rank?.color ?? const Color(0xFF3A3A3C);
+
+/// Leaderboard-facing 0–900 integer "rank score" for continuous rank [points]
+/// (0–9). Each 100 points spans exactly one rank tier, so 4.5 points → 450,
+/// which reads as solidly Sergeant (E5 begins at 400). Keeps the leaderboard
+/// score in the same currency as the rank ladder so a higher score always
+/// means a higher (or deeper-into) rank.
+int rankDisplayScore(double points) => (points.clamp(0.0, 9.0) * 100).round();

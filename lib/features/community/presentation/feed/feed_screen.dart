@@ -10,6 +10,7 @@ import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
 import '../../data/post_repository.dart';
 import '../../domain/post.dart';
+import '../profile/mini_profile_sheet.dart';
 import 'widgets/post_card.dart';
 
 // ─── Feed State ────────────────────────────────────────────────────────────
@@ -305,9 +306,7 @@ class _PostCardWrapper extends ConsumerWidget {
       onComment: () {
         context.push('/community/post/${post.postId}');
       },
-      onTapUser: () {
-        context.push('/profile/${post.userId}');
-      },
+      onTapUser: () => showMiniProfileSheet(context, post.userId),
       onDelete: isOwner
           ? () async {
               final confirmed = await showCupertinoDialog<bool>(

@@ -40,6 +40,13 @@ final userSearchResultsProvider =
   return ref.watch(userRepositoryProvider).searchUsers(query);
 });
 
+/// All users currently at a given overall rank ordinal — powers the "browse by
+/// rank" filter on the search tab.
+final usersByRankProvider =
+    FutureProvider.family<List<FirestoreUser>, int>((ref, rankIndex) async {
+  return ref.watch(userRepositoryProvider).getUsersByRank(rankIndex);
+});
+
 // ─── Follow Providers ───────────────────────────────────────────────────────
 
 final isFollowingProvider =
@@ -86,6 +93,13 @@ final userPostsProvider =
 final leaderboardByFieldProvider =
     FutureProvider.family<List<LeaderboardEntry>, String>((ref, field) async {
   return ref.watch(leaderboardRepositoryProvider).getTopBy(field);
+});
+
+/// A single user's leaderboard row (rank scores + big-3 lifts), or null if they
+/// have none yet. Used by the mini-profile sheet.
+final leaderboardEntryProvider =
+    FutureProvider.family<LeaderboardEntry?, String>((ref, userId) async {
+  return ref.watch(leaderboardRepositoryProvider).getEntry(userId);
 });
 
 // ─── Challenge Providers ────────────────────────────────────────────────────

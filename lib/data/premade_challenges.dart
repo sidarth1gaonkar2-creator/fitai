@@ -1,4 +1,8 @@
-/// A curated, solo-friendly challenge the user can start with one tap.
+import '../features/community/domain/challenge.dart';
+
+/// A curated, rank-focused challenge the user can start with one tap. Every
+/// premade challenge now targets a strength rank objective rather than a daily
+/// habit streak — earning rank is the point.
 class PremadeChallenge {
   const PremadeChallenge({
     required this.id,
@@ -6,10 +10,16 @@ class PremadeChallenge {
     required this.description,
     required this.category,
     required this.durationDays,
-    required this.requiresPhotoProof,
-    required this.proofInstructions,
     required this.icon,
     required this.difficulty,
+    required this.rankGoalType,
+    this.targetRankIndex,
+    this.goalExerciseId,
+    this.goalExerciseLabel,
+    this.targetWeightLbs,
+    this.targetBodyweightMultiple,
+    this.requiresPhotoProof = false,
+    this.proofInstructions = '',
   });
 
   final String id;
@@ -21,103 +31,101 @@ class PremadeChallenge {
   final String proofInstructions;
   final String icon;
   final String difficulty; // Easy | Medium | Hard
+
+  final RankGoalType rankGoalType;
+  final int? targetRankIndex;
+  final String? goalExerciseId;
+  final String? goalExerciseLabel;
+  final double? targetWeightLbs;
+  final double? targetBodyweightMultiple;
 }
 
+// MilitaryRank ordinals (kept inline so this data file has no widget deps):
+//   PVT 0 · PFC 1 · CPL 2 · SPC 3 · SGT 4 · SSG 5 · SFC 6 · MSG 7 · SGM 8 · SMA 9
 const List<PremadeChallenge> premadeChallenges = [
   PremadeChallenge(
-    id: 'homemade_meals_30',
-    title: '30 Days of Home Cooking',
+    id: 'rank_earn_sergeant',
+    title: 'Earn Sergeant',
     description:
-        'Cook and eat homemade meals for 30 days straight. No takeout, no restaurants. Photo proof required for each meal.',
-    category: 'Nutrition',
-    durationDays: 30,
-    requiresPhotoProof: true,
-    proofInstructions: 'Take a photo of your homemade meal before eating',
-    icon: '🍳',
-    difficulty: 'Medium',
-  ),
-  PremadeChallenge(
-    id: 'workout_30',
-    title: '30-Day Workout Streak',
-    description:
-        'Complete at least one workout every day for 30 days.',
-    category: 'Fitness',
-    durationDays: 30,
-    requiresPhotoProof: false,
-    proofInstructions: 'Log a workout in the app each day',
-    icon: '💪',
+        'Climb to Sergeant (E5) overall rank. Build a balanced base across '
+        'every muscle group to pin on those stripes.',
+    category: 'Rank',
+    durationDays: 60,
+    icon: '🎖️',
     difficulty: 'Hard',
+    rankGoalType: RankGoalType.overallRank,
+    targetRankIndex: 4,
   ),
   PremadeChallenge(
-    id: 'steps_10k_21',
-    title: '21 Days of 10K Steps',
-    description: 'Hit 10,000 steps every day for 21 days.',
-    category: 'Cardio',
-    durationDays: 21,
-    requiresPhotoProof: false,
-    proofInstructions: 'Screenshot your step count each day',
-    icon: '🚶',
-    difficulty: 'Medium',
-  ),
-  PremadeChallenge(
-    id: 'no_sugar_14',
-    title: '14-Day No Sugar Challenge',
+    id: 'rank_bench_corporal',
+    title: 'Bench Press Corporal',
     description:
-        'Cut out all added sugars for 14 days. No sweets, no soda, no processed sugar.',
-    category: 'Nutrition',
-    durationDays: 14,
-    requiresPhotoProof: true,
-    proofInstructions: 'Photo your meals to show no sugar',
-    icon: '🚫🍬',
-    difficulty: 'Hard',
-  ),
-  PremadeChallenge(
-    id: 'water_gallon_30',
-    title: 'Gallon of Water Daily',
-    description:
-        'Drink a full gallon (3.8L) of water every day for 30 days.',
-    category: 'Nutrition',
+        'Reach Corporal rank on the barbell bench press. Drill the press '
+        'until your bench earns its stripes.',
+    category: 'Strength',
     durationDays: 30,
-    requiresPhotoProof: false,
-    proofInstructions: 'Log your water intake in the app',
-    icon: '💧',
+    icon: '🏋️',
+    difficulty: 'Medium',
+    rankGoalType: RankGoalType.exerciseRank,
+    targetRankIndex: 2,
+    goalExerciseId: 'barbell_bench_press',
+    goalExerciseLabel: 'Bench',
+  ),
+  PremadeChallenge(
+    id: 'rank_full_body_specialist',
+    title: 'Full Body Specialist',
+    description:
+        'Reach Specialist rank in ALL six muscle groups. No weak links — '
+        'chest, back, legs, shoulders, arms, and core.',
+    category: 'Rank',
+    durationDays: 90,
+    icon: '🛡️',
+    difficulty: 'Hard',
+    rankGoalType: RankGoalType.allMuscleGroups,
+    targetRankIndex: 3,
+  ),
+  PremadeChallenge(
+    id: 'rank_100lb_club',
+    title: '100 lb Club',
+    description:
+        'Bench press at least 100 lb. The first checkpoint on every '
+        'recruit\'s strength ladder.',
+    category: 'Strength',
+    durationDays: 30,
+    icon: '💯',
     difficulty: 'Easy',
+    rankGoalType: RankGoalType.liftWeight,
+    goalExerciseId: 'barbell_bench_press',
+    goalExerciseLabel: 'Bench',
+    targetWeightLbs: 100,
   ),
   PremadeChallenge(
-    id: 'pushup_100_30',
-    title: '100 Push-ups a Day',
+    id: 'rank_2x_bw_squat',
+    title: '2x Bodyweight Squat',
     description:
-        'Complete 100 push-ups every day for 30 days. Split into sets however you like.',
-    category: 'Fitness',
-    durationDays: 30,
-    requiresPhotoProof: false,
-    proofInstructions: 'Log push-ups as a workout each day',
-    icon: '🫸',
+        'Back squat twice your bodyweight. A benchmark of serious lower-body '
+        'strength.',
+    category: 'Strength',
+    durationDays: 60,
+    icon: '🦵',
     difficulty: 'Hard',
+    rankGoalType: RankGoalType.bodyweightMultiple,
+    goalExerciseId: 'barbell_back_squat',
+    goalExerciseLabel: 'Squat',
+    targetBodyweightMultiple: 2.0,
   ),
   PremadeChallenge(
-    id: 'sleep_8h_21',
-    title: '21 Days of 8-Hour Sleep',
+    id: 'rank_big3_1000',
+    title: 'The Big 3: 1000 lb Total',
     description:
-        'Get at least 8 hours of sleep every night for 21 days.',
-    category: 'Recovery',
-    durationDays: 21,
-    requiresPhotoProof: true,
-    proofInstructions: 'Screenshot your sleep tracker each morning',
-    icon: '😴',
-    difficulty: 'Medium',
-  ),
-  PremadeChallenge(
-    id: 'protein_goal_14',
-    title: '14 Days of Hitting Protein',
-    description:
-        'Hit your daily protein target every day for 14 days.',
-    category: 'Nutrition',
-    durationDays: 14,
-    requiresPhotoProof: false,
-    proofInstructions: 'Log all meals in the nutrition tracker',
-    icon: '🥩',
-    difficulty: 'Easy',
+        'Combined bench + squat + deadlift of 1000 lb. Join the four-figure '
+        'club.',
+    category: 'Strength',
+    durationDays: 90,
+    icon: '🏅',
+    difficulty: 'Hard',
+    rankGoalType: RankGoalType.big3Total,
+    targetWeightLbs: 1000,
   ),
 ];
 
@@ -135,6 +143,8 @@ String premadeTypeFromCategory(String category) {
       return 'nutrition';
     case 'fitness':
     case 'cardio':
+    case 'rank':
+    case 'strength':
       return 'workout';
     default:
       return 'habit';

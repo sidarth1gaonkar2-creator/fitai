@@ -9,6 +9,23 @@ import '../../data/leaderboard_repository.dart';
 import '../../domain/leaderboard_entry.dart';
 import 'widgets/leaderboard_tile.dart';
 
+/// One selectable leaderboard segment — the overall composite board plus a
+/// board per muscle group, each sorted by that segment's rank score.
+class _Segment {
+  const _Segment(this.label, this.field);
+  final String label;
+  final String field;
+}
+
+const _segments = <_Segment>[
+  _Segment('Overall', LeaderboardSegments.overall),
+  _Segment('Chest', LeaderboardSegments.chest),
+  _Segment('Back', LeaderboardSegments.back),
+  _Segment('Legs', LeaderboardSegments.legs),
+  _Segment('Shoulders', LeaderboardSegments.shoulders),
+  _Segment('Arms', LeaderboardSegments.arms),
+];
+
 class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
 
@@ -17,18 +34,10 @@ class LeaderboardScreen extends ConsumerStatefulWidget {
 }
 
 class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
-  int _selectedTab = 0; // 0=streak, 1=volume, 2=workouts
+  int _segmentIndex = 0;
   bool _isGlobal = true;
 
-  static const _tabLabels = <int, String>{
-    0: 'Streak \u{1F525}',
-    1: 'Volume \u{1F4AA}',
-    2: 'Workouts \u{1F4CA}',
-  };
-
-  static const _fieldNames = ['currentStreak', 'totalVolume', 'totalWorkouts'];
-
-  String get _currentField => _fieldNames[_selectedTab];
+  String get _field => _segments[_segmentIndex].field;
 
   @override
   Widget build(BuildContext context) {
@@ -40,88 +49,44 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
       child: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // ---- Metric tabs ----
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: CupertinoSlidingSegmentedControl<int>(
-                  groupValue: _selectedTab,
-                  thumbColor: palette.accent,
-                  backgroundColor: palette.surface,
-                  children: _tabLabels.map(
-                    (key, label) => MapEntry(
-                      key,
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 6,
-                        ),
-                        child: Text(
-                          label,
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: _selectedTab == key
-                                ? CupertinoColors.white
-                                : palette.text,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  onValueChanged: (value) {
-                    if (value != null) {
+            // ── Segment chips ──
+            SizedBox(
+              height: 36,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _segments.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final selected = index == _segmentIndex;
+                  return _SegmentChip(
+                    label: _segments[index].label,
+                    selected: selected,
+                    palette: palette,
+                    onTap: () {
                       HapticFeedback.selectionClick();
-                      setState(() => _selectedTab = value);
-                    }
-                  },
-                ),
+                      setState(() => _segmentIndex = index);
+                    },
+                  );
+                },
               ),
             ),
 
             const SizedBox(height: 12),
 
-            // ---- Global / Friends toggle ----
+            // ── Global / Friends toggle ──
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SizedBox(
-                width: 200,
+                width: 220,
                 child: CupertinoSlidingSegmentedControl<bool>(
                   groupValue: _isGlobal,
                   backgroundColor: palette.surface,
                   children: {
-                    true: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      child: Text(
-                        'Global',
-                        style: TextStyle(
-                          fontFamily: 'LeagueSpartan',
-                          fontSize: 13,
-                          color: palette.text,
-                        ),
-                      ),
-                    ),
-                    false: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      child: Text(
-                        'Friends',
-                        style: TextStyle(
-                          fontFamily: 'LeagueSpartan',
-                          fontSize: 13,
-                          color: palette.text,
-                        ),
-                      ),
-                    ),
+                    true: _toggleLabel('Global', palette),
+                    false: _toggleLabel('Friends', palette),
                   },
                   onValueChanged: (value) {
                     if (value != null) {
@@ -133,9 +98,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // ---- Leaderboard list ----
             Expanded(child: _buildList(palette, userId)),
           ],
         ),
@@ -143,37 +107,38 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     );
   }
 
+  Widget _toggleLabel(String text, Palette palette) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontFamily: 'LeagueSpartan',
+            fontSize: 13,
+            color: palette.text,
+          ),
+        ),
+      );
+
   Widget _buildList(Palette palette, String? userId) {
     if (!_isGlobal) {
       return _buildFriendsList(palette, userId);
     }
 
-    final asyncEntries = ref.watch(leaderboardByFieldProvider(_currentField));
+    final asyncEntries = ref.watch(leaderboardByFieldProvider(_field));
 
     return asyncEntries.when(
       loading: () => const Center(child: CupertinoActivityIndicator()),
-      error: (err, _) => Center(
-        child: Text(
-          'Something went wrong.',
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontSize: 14,
-            color: palette.textSecondary,
-          ),
-        ),
-      ),
+      error: (_, _) => _buildError(palette),
       data: (entries) {
-        if (entries.isEmpty) {
-          return _buildEmptyState(palette);
-        }
+        if (entries.isEmpty) return _buildEmptyState(palette);
         return ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           itemCount: entries.length,
           separatorBuilder: (_, _) => const SizedBox(height: 8),
           itemBuilder: (context, index) => LeaderboardTile(
-            rank: index + 1,
+            position: index + 1,
             entry: entries[index],
-            metricField: _currentField,
+            field: _field,
             isCurrentUser: entries[index].userId == userId,
           ),
         );
@@ -186,40 +151,26 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
 
     return asyncFriendIds.when(
       loading: () => const Center(child: CupertinoActivityIndicator()),
-      error: (_, _) => Center(
-        child: Text(
-          'Something went wrong.',
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontSize: 14,
-            color: palette.textSecondary,
-          ),
-        ),
-      ),
+      error: (_, _) => _buildError(palette),
       data: (friendIds) {
-        if (userId != null) {
-          friendIds = {...friendIds, userId};
-        }
-
+        final ids = userId != null ? {...friendIds, userId} : friendIds;
         final repo = ref.watch(leaderboardRepositoryProvider);
         return FutureBuilder<List<LeaderboardEntry>>(
-          future: repo.getFriendsLeaderboard(friendIds, _currentField),
+          future: repo.getFriendsLeaderboard(ids, _field),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CupertinoActivityIndicator());
             }
             final entries = snapshot.data ?? [];
-            if (entries.isEmpty) {
-              return _buildEmptyState(palette);
-            }
+            if (entries.isEmpty) return _buildEmptyState(palette);
             return ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               itemCount: entries.length,
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) => LeaderboardTile(
-                rank: index + 1,
+                position: index + 1,
                 entry: entries[index],
-                metricField: _currentField,
+                field: _field,
                 isCurrentUser: entries[index].userId == userId,
               ),
             );
@@ -229,17 +180,71 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     );
   }
 
+  Widget _buildError(Palette palette) => Center(
+        child: Text(
+          'Something went wrong.',
+          style: TextStyle(
+            fontFamily: 'LeagueSpartan',
+            fontSize: 14,
+            color: palette.textSecondary,
+          ),
+        ),
+      );
+
   Widget _buildEmptyState(Palette palette) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Text(
-          'Complete a workout to appear on the leaderboard',
+          'Log a rankable lift to claim your spot on the board, soldier.',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: 'LeagueSpartan',
             fontSize: 15,
             color: palette.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SegmentChip extends StatelessWidget {
+  const _SegmentChip({
+    required this.label,
+    required this.selected,
+    required this.palette,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final Palette palette;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: selected ? palette.accent : palette.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected ? palette.accent : palette.border,
+            width: 0.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: selected ? CupertinoColors.white : palette.text,
           ),
         ),
       ),

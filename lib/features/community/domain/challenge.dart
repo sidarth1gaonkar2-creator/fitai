@@ -30,6 +30,42 @@ ChallengeTrackingMode _parseTrackingMode(String? raw) {
   return ChallengeTrackingMode.manual;
 }
 
+/// What a rank-based challenge asks the lifter to achieve. Stored as the enum
+/// name in Firestore; [RankGoalType.none] is a legacy habit/streak challenge
+/// with no rank objective. Append-only — never reorder.
+enum RankGoalType {
+  /// Not a rank challenge — falls back to the day-counting progress UI.
+  none,
+
+  /// Reach a target overall [MilitaryRank] (uses [Challenge.targetRankIndex]).
+  overallRank,
+
+  /// Reach a target rank on one specific exercise
+  /// ([Challenge.goalExerciseId] + [Challenge.targetRankIndex]).
+  exerciseRank,
+
+  /// Reach a target rank in ALL muscle groups ([Challenge.targetRankIndex]).
+  allMuscleGroups,
+
+  /// Lift an absolute weight on one exercise ([Challenge.goalExerciseId] +
+  /// [Challenge.targetWeightLbs]).
+  liftWeight,
+
+  /// Lift a multiple of bodyweight on one exercise ([Challenge.goalExerciseId]
+  /// + [Challenge.targetBodyweightMultiple]).
+  bodyweightMultiple,
+
+  /// Combined bench + squat + deadlift ≥ [Challenge.targetWeightLbs].
+  big3Total,
+}
+
+RankGoalType _parseRankGoalType(String? raw) {
+  for (final t in RankGoalType.values) {
+    if (t.name == raw) return t;
+  }
+  return RankGoalType.none;
+}
+
 /// A user or system-created challenge.
 class Challenge {
   const Challenge({
@@ -53,6 +89,12 @@ class Challenge {
     this.trackingMode = ChallengeTrackingMode.manual,
     this.dailyGoalValue,
     this.goalUnit,
+    this.rankGoalType = RankGoalType.none,
+    this.targetRankIndex,
+    this.goalExerciseId,
+    this.goalExerciseLabel,
+    this.targetWeightLbs,
+    this.targetBodyweightMultiple,
   });
 
   final String challengeId;
@@ -86,6 +128,27 @@ class Challenge {
 
   /// Unit string for [dailyGoalValue]: 'steps', 'kcal', 'ml', 'workouts'.
   final String? goalUnit;
+
+  /// Rank objective for this challenge. [RankGoalType.none] = legacy challenge.
+  final RankGoalType rankGoalType;
+
+  /// Target [MilitaryRank] ordinal for rank goals (overall / exercise / all
+  /// muscle groups).
+  final int? targetRankIndex;
+
+  /// Canonical exercise id the goal is measured on (e.g. 'barbell_bench_press').
+  final String? goalExerciseId;
+
+  /// Short display label for [goalExerciseId] (e.g. 'Bench').
+  final String? goalExerciseLabel;
+
+  /// Absolute pounds target for [RankGoalType.liftWeight] / [RankGoalType.big3Total].
+  final double? targetWeightLbs;
+
+  /// Bodyweight-multiple target for [RankGoalType.bodyweightMultiple].
+  final double? targetBodyweightMultiple;
+
+  bool get isRankGoal => rankGoalType != RankGoalType.none;
 
   bool get isAutoTracked => trackingMode != ChallengeTrackingMode.manual;
 
@@ -123,6 +186,13 @@ class Challenge {
       trackingMode: _parseTrackingMode(map['trackingMode'] as String?),
       dailyGoalValue: (map['dailyGoalValue'] as num?)?.toDouble(),
       goalUnit: map['goalUnit'] as String?,
+      rankGoalType: _parseRankGoalType(map['rankGoalType'] as String?),
+      targetRankIndex: (map['targetRankIndex'] as num?)?.toInt(),
+      goalExerciseId: map['goalExerciseId'] as String?,
+      goalExerciseLabel: map['goalExerciseLabel'] as String?,
+      targetWeightLbs: (map['targetWeightLbs'] as num?)?.toDouble(),
+      targetBodyweightMultiple:
+          (map['targetBodyweightMultiple'] as num?)?.toDouble(),
     );
   }
 
@@ -150,6 +220,13 @@ class Challenge {
       'trackingMode': trackingMode.name,
       if (dailyGoalValue != null) 'dailyGoalValue': dailyGoalValue,
       if (goalUnit != null) 'goalUnit': goalUnit,
+      'rankGoalType': rankGoalType.name,
+      if (targetRankIndex != null) 'targetRankIndex': targetRankIndex,
+      if (goalExerciseId != null) 'goalExerciseId': goalExerciseId,
+      if (goalExerciseLabel != null) 'goalExerciseLabel': goalExerciseLabel,
+      if (targetWeightLbs != null) 'targetWeightLbs': targetWeightLbs,
+      if (targetBodyweightMultiple != null)
+        'targetBodyweightMultiple': targetBodyweightMultiple,
     };
   }
 }
@@ -166,6 +243,7 @@ class ChallengeParticipant {
     this.proofPhotos = const [],
     this.isCompleted = false,
     this.lastCheckInDate,
+    this.rankIndex,
   });
 
   final String challengeId;
@@ -178,6 +256,11 @@ class ChallengeParticipant {
   final List<String> proofPhotos;
   final bool isCompleted;
   final DateTime? lastCheckInDate;
+
+  /// Participant's overall [MilitaryRank] ordinal at join time, so rank-based
+  /// challenges can show their badge and rank the roster by strength. Null for
+  /// legacy participants.
+  final int? rankIndex;
 
   factory ChallengeParticipant.fromMap(Map<String, dynamic> map) {
     return ChallengeParticipant(
@@ -197,6 +280,7 @@ class ChallengeParticipant {
       isCompleted: map['isCompleted'] as bool? ?? false,
       lastCheckInDate:
           (map['lastCheckInDate'] as Timestamp?)?.toDate(),
+      rankIndex: (map['rankIndex'] as num?)?.toInt(),
     );
   }
 
@@ -216,6 +300,7 @@ class ChallengeParticipant {
       'lastCheckInDate': lastCheckInDate != null
           ? Timestamp.fromDate(lastCheckInDate!)
           : null,
+      if (rankIndex != null) 'rankIndex': rankIndex,
     };
   }
 }

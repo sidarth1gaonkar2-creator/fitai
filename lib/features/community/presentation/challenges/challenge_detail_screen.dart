@@ -13,8 +13,12 @@ import '../../../../core/utils/logger.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
 import '../../../../providers/firestore_provider.dart';
+import '../../../ranks/domain/military_ranks.dart';
+import '../../../ranks/presentation/widgets/rank_badge.dart';
 import '../../data/challenge_repository.dart';
 import '../../domain/challenge.dart';
+import '../../domain/challenge_goal.dart';
+import 'challenge_goal_progress_view.dart';
 
 class ChallengeDetailScreen extends ConsumerWidget {
   const ChallengeDetailScreen({super.key, required this.challengeId});
@@ -182,14 +186,20 @@ class _Body extends ConsumerWidget {
                   ),
                 );
               }
+              // Rank challenges rank the roster by strength, not check-in days.
+              final list = challenge.isRankGoal
+                  ? ([...participants]..sort((a, b) =>
+                      (b.rankIndex ?? -1).compareTo(a.rankIndex ?? -1)))
+                  : participants;
               return Column(
                 children: [
-                  for (var i = 0; i < participants.length; i++)
+                  for (var i = 0; i < list.length; i++)
                     _ParticipantRow(
-                      rank: i + 1,
-                      participant: participants[i],
+                      position: i + 1,
+                      participant: list[i],
                       palette: palette,
-                      isMe: participants[i].userId == userId,
+                      isMe: list[i].userId == userId,
+                      showRank: challenge.isRankGoal,
                     ),
                 ],
               );
@@ -302,12 +312,30 @@ class _Header extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 14),
-          _ProgressBar(
-            progress: progress,
-            palette: palette,
-            caption:
-                'Day ${elapsed.clamp(0, challenge.durationDays)} of ${challenge.durationDays}',
-          ),
+          if (challenge.isRankGoal)
+            Row(
+              children: [
+                ChallengeTargetBadge(challenge: challenge, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    challengeGoalSummary(challenge),
+                    style: TextStyle(
+                      fontFamily: 'LeagueSpartan',
+                      fontSize: 13,
+                      color: palette.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            _ProgressBar(
+              progress: progress,
+              palette: palette,
+              caption:
+                  'Day ${elapsed.clamp(0, challenge.durationDays)} of ${challenge.durationDays}',
+            ),
         ],
       ),
     );
@@ -351,12 +379,15 @@ class _MyProgressCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          _ProgressBar(
-            progress: fraction,
-            palette: palette,
-            caption:
-                '$completedDays / ${challenge.durationDays} days ' '(${(fraction * 100).toStringAsFixed(0)}%)',
-          ),
+          if (challenge.isRankGoal)
+            ChallengeGoalProgressView(challenge: challenge)
+          else
+            _ProgressBar(
+              progress: fraction,
+              palette: palette,
+              caption:
+                  '$completedDays / ${challenge.durationDays} days ' '(${(fraction * 100).toStringAsFixed(0)}%)',
+            ),
         ],
       ),
     );
@@ -633,19 +664,27 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
 
 class _ParticipantRow extends StatelessWidget {
   const _ParticipantRow({
-    required this.rank,
+    required this.position,
     required this.participant,
     required this.palette,
     required this.isMe,
+    this.showRank = false,
   });
 
-  final int rank;
+  final int position;
   final ChallengeParticipant participant;
   final Palette palette;
   final bool isMe;
 
+  /// Rank challenges display each participant's rank instead of check-in days.
+  final bool showRank;
+
   @override
   Widget build(BuildContext context) {
+    final rank = participant.rankIndex == null
+        ? null
+        : rankFromIndex(participant.rankIndex!);
+
     return GestureDetector(
       onTap: () => context.push('/profile/${participant.userId}'),
       child: Container(
@@ -662,9 +701,9 @@ class _ParticipantRow extends StatelessWidget {
         child: Row(
           children: [
             SizedBox(
-              width: 28,
+              width: 24,
               child: Text(
-                '$rank',
+                '$position',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Poppins',
@@ -674,23 +713,34 @@ class _ParticipantRow extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 10),
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: palette.surfaceElevated,
-              backgroundImage: participant.profilePictureUrl != null
-                  ? CachedNetworkImageProvider(
-                      participant.profilePictureUrl!)
-                  : null,
-              child: participant.profilePictureUrl == null
-                  ? Icon(
-                      CupertinoIcons.person_fill,
-                      size: 16,
-                      color: palette.textSecondary,
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
+            // Rank challenges lead with the rank insignia disc.
+            if (showRank && rank != null) ...[
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: rank.color.withValues(alpha: 0.16),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: RankInsignia(rank: rank, size: 21),
+              ),
+              const SizedBox(width: 10),
+            ] else ...[
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: palette.surfaceElevated,
+                backgroundImage: participant.profilePictureUrl != null
+                    ? CachedNetworkImageProvider(participant.profilePictureUrl!)
+                    : null,
+                child: participant.profilePictureUrl == null
+                    ? Icon(CupertinoIcons.person_fill,
+                        size: 16, color: palette.textSecondary)
+                    : null,
+              ),
+              const SizedBox(width: 10),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -706,25 +756,40 @@ class _ParticipantRow extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Streak ${participant.currentStreak}🔥',
+                    showRank && rank != null
+                        ? rank.displayName
+                        : 'Streak ${participant.currentStreak}🔥',
                     style: TextStyle(
                       fontFamily: 'LeagueSpartan',
                       fontSize: 12,
-                      color: palette.textSecondary,
+                      color: showRank && rank != null
+                          ? rank.color
+                          : palette.textSecondary,
                     ),
                   ),
                 ],
               ),
             ),
-            Text(
-              '${participant.completedDays} d',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: palette.accent,
+            if (showRank && rank != null)
+              Text(
+                rank.abbreviation,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: rank.color,
+                ),
+              )
+            else
+              Text(
+                '${participant.completedDays} d',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: palette.accent,
+                ),
               ),
-            ),
           ],
         ),
       ),

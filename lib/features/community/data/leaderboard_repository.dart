@@ -20,6 +20,14 @@ class LeaderboardRepository {
         .set(entry.toMap(), SetOptions(merge: true));
   }
 
+  /// Single leaderboard row for [userId], or null when the user has no entry
+  /// yet. Powers the mini-profile sheet (rank scores + big-3 lifts).
+  Future<LeaderboardEntry?> getEntry(String userId) async {
+    final doc = await _entries.doc(userId).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return LeaderboardEntry.fromMap(doc.data()!);
+  }
+
   Future<List<LeaderboardEntry>> getTopBy(String field,
       {int limit = 50}) async {
     final snap = await _entries
@@ -61,7 +69,8 @@ class LeaderboardRepository {
       'currentStreak' => e.currentStreak.toDouble(),
       'totalVolume' => e.totalVolume,
       'totalWorkouts' => e.totalWorkouts.toDouble(),
-      _ => 0,
+      // Rank-score segments (overall + per muscle group).
+      _ => e.scoreForField(field),
     };
   }
 }

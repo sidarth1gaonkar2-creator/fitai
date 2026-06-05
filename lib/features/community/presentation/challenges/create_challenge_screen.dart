@@ -7,6 +7,8 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
+import '../../../ranks/domain/military_ranks.dart';
+import '../../../ranks/presentation/widgets/rank_badge.dart';
 import '../../data/challenge_repository.dart';
 import '../../domain/challenge.dart';
 
@@ -21,12 +23,38 @@ class CreateChallengeScreen extends ConsumerStatefulWidget {
 class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
+  final _targetWeightController = TextEditingController();
 
   int _typeIndex = 0; // 0=workout, 1=nutrition, 2=habit
   int _durationIndex = 2; // 0=7, 1=14, 2=30, 3=60 → default 30
   bool _isPublic = true;
   bool _requiresPhotoProof = false;
   bool _isSaving = false;
+
+  // Rank goal selection.
+  int _goalIndex = 0; // index into _goalTypes
+  int _targetRankIndex = 4; // default Sergeant
+  int _goalLiftIndex = 0; // 0 bench, 1 squat, 2 deadlift
+
+  static const _goalTypes = [
+    RankGoalType.none,
+    RankGoalType.overallRank,
+    RankGoalType.liftWeight,
+    RankGoalType.big3Total,
+  ];
+  static const _goalLabels = {
+    0: 'Habit',
+    1: 'Rank',
+    2: 'Lift',
+    3: 'Big 3',
+  };
+
+  // (exercise id, display label) per lift option.
+  static const _liftOptions = [
+    ('barbell_bench_press', 'Bench'),
+    ('barbell_back_squat', 'Squat'),
+    ('conventional_deadlift', 'Deadlift'),
+  ];
 
   static const _typeKeys = ['workout', 'nutrition', 'habit'];
   static const _typeLabels = {0: 'Workout', 1: 'Nutrition', 2: 'Habit'};
@@ -38,10 +66,13 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
     3: '60 days',
   };
 
+  RankGoalType get _goalType => _goalTypes[_goalIndex];
+
   @override
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
+    _targetWeightController.dispose();
     super.dispose();
   }
 
@@ -55,6 +86,14 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) return;
 
+    final goalType = _goalType;
+    if ((goalType == RankGoalType.liftWeight ||
+            goalType == RankGoalType.big3Total) &&
+        (double.tryParse(_targetWeightController.text.trim()) ?? 0) <= 0) {
+      _showError('Enter a target weight in lbs for this goal.');
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
@@ -65,13 +104,21 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
       final duration = _durationDays[_durationIndex];
       final endDate = now.add(Duration(days: duration));
 
+      // Rank challenges are always strength-typed.
+      final type = goalType == RankGoalType.none
+          ? _typeKeys[_typeIndex]
+          : 'workout';
+      final targetWeight =
+          double.tryParse(_targetWeightController.text.trim());
+      final lift = _liftOptions[_goalLiftIndex];
+
       final challenge = Challenge(
         challengeId: id,
         title: title,
         description: _descController.text.trim(),
         creatorId: userId,
         creatorUsername: user?.username ?? '',
-        type: _typeKeys[_typeIndex],
+        type: type,
         durationDays: duration,
         startDate: now,
         endDate: endDate,
@@ -79,6 +126,17 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
         isPublic: _isPublic,
         requiresPhotoProof: _requiresPhotoProof,
         createdAt: now,
+        rankGoalType: goalType,
+        targetRankIndex:
+            goalType == RankGoalType.overallRank ? _targetRankIndex : null,
+        goalExerciseId:
+            goalType == RankGoalType.liftWeight ? lift.$1 : null,
+        goalExerciseLabel:
+            goalType == RankGoalType.liftWeight ? lift.$2 : null,
+        targetWeightLbs: (goalType == RankGoalType.liftWeight ||
+                goalType == RankGoalType.big3Total)
+            ? targetWeight
+            : null,
       );
 
       await repo.createChallenge(challenge);
@@ -90,6 +148,7 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
         username: user?.username ?? '',
         profilePictureUrl: user?.profilePictureUrl,
         joinedAt: now,
+        rankIndex: user?.rankIndex,
       );
       await repo.joinChallenge(participant);
 
@@ -193,27 +252,27 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
 
             const SizedBox(height: 20),
 
-            _label(palette, 'Type'),
+            _label(palette, 'Goal'),
             const SizedBox(height: 6),
             SizedBox(
               width: double.infinity,
               child: CupertinoSlidingSegmentedControl<int>(
-                groupValue: _typeIndex,
+                groupValue: _goalIndex,
                 thumbColor: palette.accent,
                 backgroundColor: palette.surface,
-                children: _typeLabels.map(
+                children: _goalLabels.map(
                   (key, label) => MapEntry(
                     key,
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
+                          horizontal: 8, vertical: 6),
                       child: Text(
                         label,
                         style: TextStyle(
                           fontFamily: 'Poppins',
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w500,
-                          color: _typeIndex == key
+                          color: _goalIndex == key
                               ? CupertinoColors.white
                               : palette.text,
                         ),
@@ -224,13 +283,138 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
                 onValueChanged: (value) {
                   if (value != null) {
                     HapticFeedback.selectionClick();
-                    setState(() => _typeIndex = value);
+                    setState(() => _goalIndex = value);
                   }
                 },
               ),
             ),
 
+            // Goal-specific inputs.
+            if (_goalType == RankGoalType.overallRank) ...[
+              const SizedBox(height: 12),
+              _label(palette, 'Target rank'),
+              const SizedBox(height: 6),
+              SizedBox(
+                height: 38,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: MilitaryRank.values.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final rank = MilitaryRank.values[index];
+                    final selected = _targetRankIndex == index;
+                    return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() => _targetRankIndex = index);
+                      },
+                      child: Container(
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? rank.color.withValues(alpha: 0.18)
+                              : palette.surface,
+                          borderRadius: BorderRadius.circular(19),
+                          border: Border.all(
+                            color: selected ? rank.color : palette.border,
+                            width: selected ? 1.2 : 0.5,
+                          ),
+                        ),
+                        child: RankBadge(rank: rank, compact: true, size: 16),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+            if (_goalType == RankGoalType.liftWeight) ...[
+              const SizedBox(height: 12),
+              _label(palette, 'Lift'),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: double.infinity,
+                child: CupertinoSlidingSegmentedControl<int>(
+                  groupValue: _goalLiftIndex,
+                  thumbColor: palette.accent,
+                  backgroundColor: palette.surface,
+                  children: {
+                    for (var i = 0; i < _liftOptions.length; i++)
+                      i: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        child: Text(
+                          _liftOptions[i].$2,
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: _goalLiftIndex == i
+                                ? CupertinoColors.white
+                                : palette.text,
+                          ),
+                        ),
+                      ),
+                  },
+                  onValueChanged: (value) {
+                    if (value != null) {
+                      HapticFeedback.selectionClick();
+                      setState(() => _goalLiftIndex = value);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+              _targetWeightField(palette, 'Target weight (lbs)'),
+            ],
+            if (_goalType == RankGoalType.big3Total) ...[
+              const SizedBox(height: 12),
+              _targetWeightField(palette, 'Target big-3 total (lbs)'),
+            ],
+
             const SizedBox(height: 20),
+
+            // Challenge type only applies to non-rank (habit) challenges.
+            if (_goalType == RankGoalType.none) ...[
+              _label(palette, 'Type'),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: double.infinity,
+                child: CupertinoSlidingSegmentedControl<int>(
+                  groupValue: _typeIndex,
+                  thumbColor: palette.accent,
+                  backgroundColor: palette.surface,
+                  children: _typeLabels.map(
+                    (key, label) => MapEntry(
+                      key,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: _typeIndex == key
+                                ? CupertinoColors.white
+                                : palette.text,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  onValueChanged: (value) {
+                    if (value != null) {
+                      HapticFeedback.selectionClick();
+                      setState(() => _typeIndex = value);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
 
             _label(palette, 'Duration'),
             const SizedBox(height: 6),
@@ -336,6 +520,26 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
         fontSize: 13,
         color: palette.textSecondary,
       ),
+    );
+  }
+
+  Widget _targetWeightField(Palette palette, String placeholder) {
+    return CupertinoTextField(
+      controller: _targetWeightController,
+      placeholder: placeholder,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      padding: const EdgeInsets.all(14),
+      style: TextStyle(
+        fontFamily: 'LeagueSpartan',
+        fontSize: 15,
+        color: palette.text,
+      ),
+      placeholderStyle: TextStyle(
+        fontFamily: 'LeagueSpartan',
+        fontSize: 15,
+        color: palette.textSecondary,
+      ),
+      decoration: _fieldDecoration(palette),
     );
   }
 

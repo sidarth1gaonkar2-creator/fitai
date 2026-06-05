@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -37,6 +38,15 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   void dispose() {
     _captionController.dispose();
     super.dispose();
+  }
+
+  /// "Workout Share" template — one tap shares the most recent workout (with
+  /// its stats; the rank badge is attached automatically on the post card).
+  Future<void> _shareLastWorkout(int workoutId) async {
+    if (_isSharing) return;
+    HapticFeedback.mediumImpact();
+    setState(() => _selectedWorkoutId = workoutId);
+    await _share();
   }
 
   Future<void> _share() async {
@@ -157,6 +167,22 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // Quick "Workout Share" template — one tap posts the last workout.
+            workoutsAsync.maybeWhen(
+              data: (all) => all.isEmpty
+                  ? const SizedBox.shrink()
+                  : Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _QuickShareTemplate(
+                        palette: palette,
+                        workoutTitle: all.first.title,
+                        busy: _isSharing,
+                        onTap: () => _shareLastWorkout(all.first.id),
+                      ),
+                    ),
+              orElse: () => const SizedBox.shrink(),
+            ),
+
             // Caption
             CupertinoTextField(
               controller: _captionController,
@@ -364,6 +390,85 @@ class _WorkoutTile extends ConsumerWidget {
     return sameYear
         ? '${months[d.month - 1]} ${d.day}'
         : '${months[d.month - 1]} ${d.day}, ${d.year}';
+  }
+}
+
+/// One-tap "Workout Share" template card. Posts the user's most recent workout
+/// with its stats; the rank badge is attached automatically by the post card.
+class _QuickShareTemplate extends StatelessWidget {
+  const _QuickShareTemplate({
+    required this.palette,
+    required this.workoutTitle,
+    required this.busy,
+    required this.onTap,
+  });
+
+  final Palette palette;
+  final String workoutTitle;
+  final bool busy;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: busy ? null : onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: palette.accent.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: palette.accent.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: palette.accent.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              alignment: Alignment.center,
+              child: Icon(CupertinoIcons.bolt_fill,
+                  size: 20, color: palette.accent),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Share last workout',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: palette.text,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'One tap · $workoutTitle · with your rank badge',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'LeagueSpartan',
+                      fontSize: 12.5,
+                      color: palette.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            busy
+                ? const CupertinoActivityIndicator()
+                : Icon(CupertinoIcons.arrow_right_circle_fill,
+                    size: 26, color: palette.accent),
+          ],
+        ),
+      ),
+    );
   }
 }
 

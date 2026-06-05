@@ -10,8 +10,11 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../data/premade_challenges.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
+import '../../../ranks/domain/military_ranks.dart';
+import '../../../ranks/presentation/widgets/rank_badge.dart';
 import '../../data/challenge_repository.dart';
 import '../../domain/challenge.dart';
+import 'challenge_goal_progress_view.dart';
 
 class ChallengesScreen extends ConsumerStatefulWidget {
   const ChallengesScreen({super.key});
@@ -121,7 +124,7 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
         _sectionHeader(palette, 'Featured Challenges'),
         const SizedBox(height: 8),
         SizedBox(
-          height: 220,
+          height: 248,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             scrollDirection: Axis.horizontal,
@@ -221,6 +224,12 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
         icon: pm.icon,
         difficulty: pm.difficulty,
         createdAt: now,
+        rankGoalType: pm.rankGoalType,
+        targetRankIndex: pm.targetRankIndex,
+        goalExerciseId: pm.goalExerciseId,
+        goalExerciseLabel: pm.goalExerciseLabel,
+        targetWeightLbs: pm.targetWeightLbs,
+        targetBodyweightMultiple: pm.targetBodyweightMultiple,
       );
       await repo.createChallenge(challenge);
 
@@ -230,6 +239,7 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
         username: user?.username ?? '',
         profilePictureUrl: user?.profilePictureUrl,
         joinedAt: now,
+        rankIndex: user?.rankIndex,
       ));
 
       ref.invalidate(myChallengesProvider);
@@ -454,12 +464,36 @@ class _PremadeCard extends StatelessWidget {
             children: [
               Text(premade.icon, style: const TextStyle(fontSize: 24)),
               const Spacer(),
-              _chip(premade.category, palette.accent),
-              const SizedBox(width: 6),
               _chip(premade.difficulty, _difficultyColor()),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
+          // Target rank badge (or goal pill for weight challenges).
+          if (premade.targetRankIndex != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: rankFromIndex(premade.targetRankIndex!)
+                      .color
+                      .withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: RankBadge(
+                  rank: rankFromIndex(premade.targetRankIndex!),
+                  compact: true,
+                  size: 18,
+                ),
+              ),
+            )
+          else
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _chip(premade.category, palette.accent),
+            ),
+          const SizedBox(height: 8),
           Text(
             premade.title,
             maxLines: 2,
@@ -475,7 +509,7 @@ class _PremadeCard extends StatelessWidget {
           Expanded(
             child: Text(
               premade.description,
-              maxLines: 3,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontFamily: 'LeagueSpartan',
@@ -563,21 +597,21 @@ class _PremadeCard extends StatelessWidget {
   }
 }
 
-// ─── Community challenge card ──────────────────────────────────────────────
+// ─── Community / my challenge card ─────────────────────────────────────────
 
-class _ChallengeCard extends StatelessWidget {
+class _ChallengeCard extends ConsumerWidget {
   const _ChallengeCard({required this.challenge, required this.palette});
 
   final Challenge challenge;
   final Palette palette;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final daysRemaining = challenge.endDate != null
         ? challenge.endDate!.difference(DateTime.now()).inDays.clamp(0, 9999)
         : challenge.durationDays;
     final elapsed = challenge.durationDays - daysRemaining;
-    final progress = challenge.durationDays > 0
+    final dayProgress = challenge.durationDays > 0
         ? (elapsed / challenge.durationDays).clamp(0.0, 1.0)
         : 0.0;
 
@@ -614,83 +648,129 @@ class _ChallengeCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: palette.accent.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    challenge.typeLabel,
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: palette.accent,
-                    ),
-                  ),
-                ),
+                if (challenge.isRankGoal)
+                  ChallengeTargetBadge(challenge: challenge, size: 18)
+                else
+                  _typeChip(),
               ],
             ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Icon(CupertinoIcons.person_2_fill,
-                    size: 14, color: palette.textSecondary),
-                const SizedBox(width: 4),
-                Text(
-                  '${challenge.participantCount}',
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                    fontSize: 13,
-                    color: palette.textSecondary,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Icon(CupertinoIcons.clock,
-                    size: 14, color: palette.textSecondary),
-                const SizedBox(width: 4),
-                Text(
-                  '$daysRemaining days left',
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                    fontSize: 13,
-                    color: palette.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: SizedBox(
-                height: 6,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = constraints.maxWidth;
-                    return Stack(
-                      children: [
-                        Container(
-                          width: width,
-                          color: palette.surfaceElevated,
-                        ),
-                        Container(
-                          width: width * progress,
-                          decoration: BoxDecoration(
-                            color: palette.accent,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+            const SizedBox(height: 12),
+
+            // Rank-goal: show the user's progress toward the rank objective.
+            // Legacy challenge: keep the day-count bar.
+            if (challenge.isRankGoal)
+              ChallengeGoalProgressView(challenge: challenge, dense: true)
+            else ...[
+              _dayBar(dayProgress),
+              const SizedBox(height: 8),
+              Text(
+                '$daysRemaining days left',
+                style: TextStyle(
+                  fontFamily: 'LeagueSpartan',
+                  fontSize: 12,
+                  color: palette.textSecondary,
                 ),
               ),
-            ),
+            ],
+
+            const SizedBox(height: 12),
+            // Participants: count + top-3 rank badges.
+            _ParticipantStrip(challenge: challenge, palette: palette),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _typeChip() => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: palette.accent.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          challenge.typeLabel,
+          style: TextStyle(
+            fontFamily: 'LeagueSpartan',
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: palette.accent,
+          ),
+        ),
+      );
+
+  Widget _dayBar(double progress) => ClipRRect(
+        borderRadius: BorderRadius.circular(3),
+        child: SizedBox(
+          height: 6,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              return Stack(
+                children: [
+                  Container(width: width, color: palette.surfaceElevated),
+                  Container(
+                    width: width * progress,
+                    decoration: BoxDecoration(
+                      color: palette.accent,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+}
+
+/// Participant count + up to three top participants' rank insignia, ranked by
+/// strength. Reads the challenge's participant roster (cached per challenge).
+class _ParticipantStrip extends ConsumerWidget {
+  const _ParticipantStrip({required this.challenge, required this.palette});
+
+  final Challenge challenge;
+  final Palette palette;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final parts =
+        ref.watch(challengeParticipantsProvider(challenge.challengeId)).valueOrNull;
+    final ranked = (parts ?? [])
+        .where((p) => p.rankIndex != null)
+        .toList()
+      ..sort((a, b) => b.rankIndex!.compareTo(a.rankIndex!));
+    final top = ranked.take(3).toList();
+
+    return Row(
+      children: [
+        Icon(CupertinoIcons.person_2_fill,
+            size: 14, color: palette.textSecondary),
+        const SizedBox(width: 4),
+        Text(
+          '${challenge.participantCount}',
+          style: TextStyle(
+            fontFamily: 'LeagueSpartan',
+            fontSize: 13,
+            color: palette.textSecondary,
+          ),
+        ),
+        const Spacer(),
+        for (final p in top)
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                color: rankFromIndex(p.rankIndex!).color.withValues(alpha: 0.16),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: RankInsignia(rank: rankFromIndex(p.rankIndex!), size: 17),
+            ),
+          ),
+      ],
     );
   }
 }

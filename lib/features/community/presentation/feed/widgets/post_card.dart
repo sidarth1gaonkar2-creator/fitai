@@ -11,10 +11,15 @@ import '../../../../../core/utils/unit_converter.dart';
 import '../../../../../providers/auth_provider.dart';
 import '../../../../../providers/community_providers.dart';
 import '../../../../../providers/unit_system_provider.dart';
-import '../../../../ranks/presentation/widgets/user_rank_badge.dart';
+import '../../../../ranks/domain/military_ranks.dart';
+import '../../../../ranks/presentation/widgets/rank_badge.dart';
 import '../../../data/post_repository.dart';
 import '../../../domain/post.dart';
 
+/// A community feed post card. Rank-first: the author's rank insignia leads the
+/// header before the avatar, with the rank name in its rank colour. Designed to
+/// be compact — tight spacing, a single 28px reaction bar, and a slim workout
+/// attachment.
 class PostCard extends ConsumerStatefulWidget {
   const PostCard({
     super.key,
@@ -39,8 +44,7 @@ class PostCard extends ConsumerStatefulWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
-  /// The five reaction emoji choices shown in the long-press picker. Ordered
-  /// from "expected default" (muscle) to "savage" (beast-mode-face).
+  /// The five reaction emoji choices shown in the long-press picker.
   static const reactionChoices = ['💪', '🔥', '🏆', '👏', '😤'];
 
   @override
@@ -79,8 +83,7 @@ class _PostCardState extends ConsumerState<PostCard>
   }
 
   /// Long-press handler — opens the emoji reaction picker as a small popup
-  /// anchored to where the user pressed. Falls back to a centered modal if
-  /// the tap coordinates aren't usable.
+  /// anchored to where the user pressed.
   Future<void> _openReactionPicker(Offset globalPosition) async {
     HapticFeedback.mediumImpact();
     final userId = ref.read(currentUserIdProvider);
@@ -97,7 +100,6 @@ class _PostCardState extends ConsumerState<PostCard>
     );
     if (picked == null) return;
     await repo.setReaction(widget.post.postId, userId, picked);
-    // Invalidate so the row recomputes from Firestore.
     ref.invalidate(postReactionsProvider(widget.post.postId));
     ref.invalidate(userReactionProvider(widget.post.postId));
   }
@@ -108,13 +110,14 @@ class _PostCardState extends ConsumerState<PostCard>
     final post = widget.post;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      // ~15% tighter than the old 16/8 + 14 padding.
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
         color: palette.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: palette.border),
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(12, 11, 12, 9),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -127,25 +130,23 @@ class _PostCardState extends ConsumerState<PostCard>
             onDelete: widget.onDelete,
           ),
           if (post.caption.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 9),
             Text(
               post.caption,
               style: TextStyle(
                 fontFamily: 'LeagueSpartan',
                 fontSize: 14.5,
                 color: palette.text,
-                height: 1.35,
+                height: 1.32,
               ),
             ),
           ],
           if (post.workoutId != null || post.workoutName.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             _WorkoutAttachment(post: post, palette: palette),
           ],
           const SizedBox(height: 8),
-          _ReactionSummaryRow(postId: post.postId),
-          const SizedBox(height: 4),
-          _ActionsRow(
+          _ReactionBar(
             post: post,
             palette: palette,
             isLiked: widget.isLiked,
@@ -169,141 +170,9 @@ class _PostCardState extends ConsumerState<PostCard>
   }
 }
 
-// ─── Reaction summary row ──────────────────────────────────────────────────
-
-class _ReactionSummaryRow extends ConsumerWidget {
-  const _ReactionSummaryRow({required this.postId});
-  final String postId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(postReactionsProvider(postId));
-    final counts = async.valueOrNull;
-    if (counts == null || counts.isEmpty) return const SizedBox.shrink();
-    // Sort by count desc, take top 3 so the row never overflows.
-    final sorted = counts.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final top = sorted.take(3).toList();
-    final palette = AppColors.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: 2, bottom: 2),
-      child: Row(
-        children: [
-          for (final entry in top) ...[
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: palette.surfaceElevated,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(entry.key, style: const TextStyle(fontSize: 13)),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${entry.value}',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                      color: palette.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 6),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Reaction picker overlay ───────────────────────────────────────────────
-
-class _ReactionPickerOverlay extends StatelessWidget {
-  const _ReactionPickerOverlay({
-    required this.anchor,
-    required this.choices,
-  });
-
-  final Offset anchor;
-  final List<String> choices;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-    final size = MediaQuery.of(context).size;
-    // Position the picker near the anchor but keep it on-screen. The picker
-    // is roughly 270×52; nudge it leftwards if needed.
-    final left = (anchor.dx - 135).clamp(12.0, size.width - 282.0);
-    final top = (anchor.dy - 70).clamp(60.0, size.height - 60.0);
-    return Stack(
-      children: [
-        // Tap-outside dismiss
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            behavior: HitTestBehavior.opaque,
-          ),
-        ),
-        Positioned(
-          left: left,
-          top: top,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                color: palette.surface,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    blurRadius: 18,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-                border: Border.all(color: palette.border),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final emoji in choices)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          Navigator.of(context).pop(emoji);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          child: Text(
-                            emoji,
-                            style: const TextStyle(fontSize: 28),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 // ─── Header ────────────────────────────────────────────────────────────────
 
-class _Header extends StatelessWidget {
+class _Header extends ConsumerWidget {
   const _Header({
     required this.post,
     required this.palette,
@@ -321,9 +190,29 @@ class _Header extends StatelessWidget {
   final VoidCallback? onDelete;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Author rank (mirrored onto their Firestore user doc) — the badge leads
+    // every post. Family provider dedupes the fetch per author across cards.
+    final rankIdx = ref.watch(userByIdProvider(post.userId)).valueOrNull?.rankIndex;
+    final rank = rankIdx == null ? null : rankFromIndex(rankIdx);
+
     return Row(
       children: [
+        // 1. Rank badge first — the visual anchor.
+        if (rank != null) ...[
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: rank.color.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: RankInsignia(rank: rank, size: 22),
+          ),
+          const SizedBox(width: 8),
+        ],
+        // 2. Avatar — smaller (36px).
         GestureDetector(
           onTap: onTapUser,
           child: _PostAvatar(
@@ -333,9 +222,11 @@ class _Header extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
+        // 3. Username + rank name, then time.
         Expanded(
           child: GestureDetector(
             onTap: onTapUser,
+            behavior: HitTestBehavior.opaque,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -355,15 +246,28 @@ class _Header extends StatelessWidget {
                         ),
                       ),
                     ),
-                    UserRankBadge(userId: post.userId),
+                    if (rank != null) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        rank.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          color: rank.color,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),
                 Text(
                   formatRelativeTime(post.createdAt),
                   style: TextStyle(
                     fontFamily: 'LeagueSpartan',
-                    fontSize: 12,
+                    fontSize: 11.5,
                     color: palette.textSecondary,
                   ),
                 ),
@@ -374,10 +278,11 @@ class _Header extends StatelessWidget {
         if (isOwner && (onEdit != null || onDelete != null))
           CupertinoButton(
             padding: EdgeInsets.zero,
-            onPressed: () => _openMenu(context), minimumSize: Size(32, 32),
+            minimumSize: const Size(28, 28),
+            onPressed: () => _openMenu(context),
             child: Icon(
               CupertinoIcons.ellipsis,
-              size: 20,
+              size: 18,
               color: palette.textSecondary,
             ),
           ),
@@ -427,12 +332,11 @@ class _PostAvatar extends StatelessWidget {
   final String? url;
   final String username;
   final Palette palette;
-  static const double radius = 20;
+  static const double radius = 18; // 36px diameter
 
   @override
   Widget build(BuildContext context) {
-    final letter =
-        (username.isNotEmpty ? username[0] : '?').toUpperCase();
+    final letter = (username.isNotEmpty ? username[0] : '?').toUpperCase();
     if (url != null && url!.isNotEmpty) {
       return CircleAvatar(
         radius: radius,
@@ -443,7 +347,7 @@ class _PostAvatar extends StatelessWidget {
             width: radius * 2,
             height: radius * 2,
             fit: BoxFit.cover,
-            placeholder: (_, _) => const CupertinoActivityIndicator(radius: 8),
+            placeholder: (_, _) => const CupertinoActivityIndicator(radius: 7),
             errorWidget: (_, _, _) => _avatarFallback(letter),
           ),
         ),
@@ -461,13 +365,13 @@ class _PostAvatar extends StatelessWidget {
         style: TextStyle(
           fontFamily: 'Poppins',
           fontWeight: FontWeight.bold,
-          fontSize: radius * 0.85,
+          fontSize: radius * 0.82,
           color: CupertinoColors.white,
         ),
       );
 }
 
-// ─── Workout attachment card ───────────────────────────────────────────────
+// ─── Compact workout attachment ──────────────────────────────────────────────
 
 class _WorkoutAttachment extends ConsumerWidget {
   const _WorkoutAttachment({required this.post, required this.palette});
@@ -477,8 +381,6 @@ class _WorkoutAttachment extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // `totalVolume` is persisted in kg. Render it in the viewer's unit so
-    // an Imperial user doesn't see their own workouts in kg in the feed.
     final units = ref.watch(unitSystemProvider);
     final converted = units == UnitSystem.imperial
         ? UnitConverter.kgToLbs(post.totalVolume)
@@ -487,120 +389,79 @@ class _WorkoutAttachment extends ConsumerWidget {
     final volumeStr = converted >= 1000
         ? '${(converted / 1000).toStringAsFixed(1)}k $unitLabel'
         : '${converted.toStringAsFixed(0)} $unitLabel';
-    final date = formatRelativeTime(post.createdAt);
     final exerciseCount = post.exercises.length;
 
+    final stats = <String>[
+      '$exerciseCount ex',
+      '${post.totalSets} sets',
+      volumeStr,
+      if (post.duration > 0) '${post.duration}m',
+    ];
+
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: palette.accent.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: palette.accent.withValues(alpha: 0.35)),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: palette.accent.withValues(alpha: 0.30)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: palette.accent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  CupertinoIcons.flame_fill,
-                  size: 18,
-                  color: palette.accent,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      post.workoutName.isEmpty ? 'Workout' : post.workoutName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: palette.text,
-                      ),
-                    ),
-                    if (date.isNotEmpty)
-                      Text(
-                        date,
-                        style: TextStyle(
-                          fontFamily: 'LeagueSpartan',
-                          fontSize: 12,
-                          color: palette.textSecondary,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: palette.accent.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              CupertinoIcons.flame_fill,
+              size: 16,
+              color: palette.accent,
+            ),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              _stat(palette, '$exerciseCount', 'exercises'),
-              _sep(palette),
-              _stat(palette, '${post.totalSets}', 'sets'),
-              _sep(palette),
-              _stat(palette, volumeStr, 'volume'),
-              if (post.duration > 0) ...[
-                _sep(palette),
-                _stat(palette, '${post.duration}m', 'time'),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  post.workoutName.isEmpty ? 'Workout' : post.workoutName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.5,
+                    color: palette.text,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  stats.join('  ·  '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'LeagueSpartan',
+                    fontSize: 12,
+                    color: palette.textSecondary,
+                  ),
+                ),
               ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _stat(Palette palette, String value, String label) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-              color: palette.text,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontSize: 11,
-              color: palette.textSecondary,
             ),
           ),
         ],
       ),
     );
   }
-
-  Widget _sep(Palette palette) => Container(
-        width: 1,
-        height: 22,
-        color: palette.border,
-      );
 }
 
-// ─── Actions row ───────────────────────────────────────────────────────────
+// ─── Reaction bar (28px) ─────────────────────────────────────────────────────
 
-class _ActionsRow extends StatelessWidget {
-  const _ActionsRow({
+class _ReactionBar extends ConsumerWidget {
+  const _ReactionBar({
     required this.post,
     required this.palette,
     required this.isLiked,
@@ -621,78 +482,188 @@ class _ActionsRow extends StatelessWidget {
   final VoidCallback? onShare;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        // Wrap the like action in a GestureDetector for long-press → emoji
-        // reaction picker. Short tap still goes to the existing like flow.
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onLongPressStart: (details) =>
-              onLongPressLike(details.globalPosition),
-          child: _action(
-            icon: ScaleTransition(
-              scale: likeScale,
-              child: Icon(
-                isLiked ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
-                size: 22,
-                color: isLiked ? palette.destructive : palette.textSecondary,
-              ),
-            ),
-            label: '${post.likesCount}',
-            active: isLiked,
-            onTap: onLike,
-          ),
-        ),
-        const SizedBox(width: 20),
-        _action(
-          icon: Icon(
-            CupertinoIcons.chat_bubble,
-            size: 20,
-            color: palette.textSecondary,
-          ),
-          label: '${post.commentsCount}',
-          onTap: onComment,
-        ),
-        const Spacer(),
-        if (onShare != null)
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: onShare, minimumSize: Size(32, 32),
-            child: Icon(
-              CupertinoIcons.share,
-              size: 20,
-              color: palette.textSecondary,
-            ),
-          ),
-      ],
-    );
-  }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final counts = ref.watch(postReactionsProvider(post.postId)).valueOrNull;
+    final top = (counts == null || counts.isEmpty)
+        ? const <MapEntry<String, int>>[]
+        : (counts.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value)))
+            .take(3)
+            .toList();
 
-  Widget _action({
-    required Widget icon,
-    required String label,
-    required VoidCallback onTap,
-    bool active = false,
-  }) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
+    return SizedBox(
+      height: 28,
       child: Row(
         children: [
-          icon,
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: active ? palette.destructive : palette.textSecondary,
+          // Left: emoji reaction pills (compact).
+          for (final entry in top) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: palette.surfaceElevated,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(entry.key, style: const TextStyle(fontSize: 12)),
+                  const SizedBox(width: 3),
+                  Text(
+                    '${entry.value}',
+                    style: TextStyle(
+                      fontFamily: 'LeagueSpartan',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                      color: palette.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 5),
+          ],
+          const Spacer(),
+          // Right: like + comment counts, then share.
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onLike,
+            onLongPressStart: (d) => onLongPressLike(d.globalPosition),
+            child: Row(
+              children: [
+                ScaleTransition(
+                  scale: likeScale,
+                  child: Icon(
+                    isLiked ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
+                    size: 18,
+                    color: isLiked ? palette.destructive : palette.textSecondary,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${post.likesCount}',
+                  style: TextStyle(
+                    fontFamily: 'LeagueSpartan',
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: isLiked ? palette.destructive : palette.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
+          const SizedBox(width: 16),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onComment,
+            child: Row(
+              children: [
+                Icon(
+                  CupertinoIcons.chat_bubble,
+                  size: 17,
+                  color: palette.textSecondary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${post.commentsCount}',
+                  style: TextStyle(
+                    fontFamily: 'LeagueSpartan',
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: palette.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (onShare != null) ...[
+            const SizedBox(width: 14),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onShare,
+              child: Icon(
+                CupertinoIcons.share,
+                size: 17,
+                color: palette.textSecondary,
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+// ─── Reaction picker overlay ───────────────────────────────────────────────
+
+class _ReactionPickerOverlay extends StatelessWidget {
+  const _ReactionPickerOverlay({
+    required this.anchor,
+    required this.choices,
+  });
+
+  final Offset anchor;
+  final List<String> choices;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    final size = MediaQuery.of(context).size;
+    final left = (anchor.dx - 135).clamp(12.0, size.width - 282.0);
+    final top = (anchor.dy - 70).clamp(60.0, size.height - 60.0);
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            behavior: HitTestBehavior.opaque,
+          ),
+        ),
+        Positioned(
+          left: left,
+          top: top,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: palette.surface,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+                border: Border.all(color: palette.border),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final emoji in choices)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.of(context).pop(emoji);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          child: Text(
+                            emoji,
+                            style: const TextStyle(fontSize: 28),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

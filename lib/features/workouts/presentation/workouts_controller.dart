@@ -25,6 +25,8 @@ import '../../../services/currency_service.dart';
 import '../../community/data/leaderboard_repository.dart';
 import '../../community/data/user_repository.dart';
 import '../../community/domain/leaderboard_entry.dart';
+import '../../ranks/domain/exercise_standards.dart';
+import '../../ranks/providers/rank_providers.dart';
 import '../domain/active_workout_state.dart';
 
 const commonExercises = [
@@ -507,10 +509,27 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
           .read(userRepositoryProvider)
           .getUser(userId);
 
+      // Pull the freshly-computed ranking so the leaderboard sorts by strength
+      // rank rather than raw activity. Best-effort: if it fails we still write
+      // the activity stats below with zeroed scores.
+      final calc = await _ref.read(rankCalculatorProvider.future);
+      final groups = calc.muscleGroupPoints;
+      double bestKg(String id) => calc.exerciseBestWeightKg[id] ?? 0;
+
       final entry = LeaderboardEntry(
         userId: userId,
         username: user?.username ?? 'User',
         avatarUrl: user?.profilePictureUrl,
+        rankIndex: calc.overall.index,
+        scoreOverall: calc.overallPoints,
+        scoreChest: groups[RankGroup.chest] ?? 0,
+        scoreBack: groups[RankGroup.back] ?? 0,
+        scoreLegs: groups[RankGroup.legs] ?? 0,
+        scoreShoulders: groups[RankGroup.shoulders] ?? 0,
+        scoreArms: groups[RankGroup.arms] ?? 0,
+        benchKg: bestKg('barbell_bench_press'),
+        squatKg: bestKg('barbell_back_squat'),
+        deadliftKg: bestKg('conventional_deadlift'),
         currentStreak: streak,
         totalWorkouts: totalWorkouts,
         totalVolume: totalVolume,

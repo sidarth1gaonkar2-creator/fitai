@@ -123,6 +123,109 @@ _Insignia _insigniaFor(MilitaryRank rank) {
   }
 }
 
+/// Paints a [MilitaryRank]'s insignia — chevrons plus any senior-rank star /
+/// eagle / specialist-disk marks — into [canvas], filling [size] and tinted
+/// [color]. Extracted as a free function so both the [RankInsignia] widget and
+/// the off-screen rank-card bitmap renderer ([shareCurrentRank]) draw identical
+/// insignia from one source of truth.
+void paintRankInsignia(
+    Canvas canvas, Size size, MilitaryRank rank, Color color) {
+  final cfg = _insigniaFor(rank);
+  final w = size.width;
+  final h = size.height;
+  final cx = w / 2;
+
+  final stroke = Paint()
+    ..color = color
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round;
+  final fill = Paint()
+    ..color = color
+    ..style = PaintingStyle.fill;
+
+  // Reserve a top band for the senior-rank emblems; the chevrons fill the
+  // rest below them.
+  var top = 0.0;
+  if (cfg.eagle) top += h * 0.20;
+  if (cfg.star) top += h * 0.16;
+  if (cfg.circle) top += h * 0.18;
+
+  final bandTop = top;
+  final bandBottom = h * 0.98;
+  final bandH = math.max(0.0, bandBottom - bandTop);
+  final n = cfg.chevrons;
+
+  if (n > 0 && bandH > 0) {
+    final step = bandH / (n + 0.4);
+    final armDrop = step * 1.3;
+    final halfW = w * 0.34;
+    final sw = (step * 0.5 * (cfg.bold ? 1.25 : 1.0)).clamp(1.2, h * 0.18);
+    stroke.strokeWidth = sw;
+
+    for (var i = 0; i < n; i++) {
+      // i == 0 is the bottom (widest-feeling) chevron.
+      final peakY = bandBottom - armDrop - i * step;
+      final path = Path()
+        ..moveTo(cx - halfW, peakY + armDrop)
+        ..lineTo(cx, peakY)
+        ..lineTo(cx + halfW, peakY + armDrop);
+      canvas.drawPath(path, stroke);
+    }
+  }
+
+  // Emblems, drawn top-to-bottom within the reserved band.
+  var ey = 0.0;
+  if (cfg.eagle) {
+    _drawEagle(canvas, fill, Offset(cx, ey + h * 0.10), w * 0.46);
+    ey += h * 0.20;
+  }
+  if (cfg.star) {
+    _drawStar(canvas, fill, Offset(cx, ey + h * 0.08), h * 0.085);
+    ey += h * 0.16;
+  }
+  if (cfg.circle) {
+    canvas.drawCircle(Offset(cx, ey + h * 0.09), h * 0.06, fill);
+  }
+}
+
+/// A filled 5-pointed star centred at [c] with circum-radius [r].
+void _drawStar(Canvas canvas, Paint paint, Offset c, double r) {
+  final path = Path();
+  const points = 5;
+  final inner = r * 0.42;
+  for (var i = 0; i < points * 2; i++) {
+    final radius = i.isEven ? r : inner;
+    final angle = -math.pi / 2 + i * math.pi / points;
+    final x = c.dx + radius * math.cos(angle);
+    final y = c.dy + radius * math.sin(angle);
+    if (i == 0) {
+      path.moveTo(x, y);
+    } else {
+      path.lineTo(x, y);
+    }
+  }
+  path.close();
+  canvas.drawPath(path, paint);
+}
+
+/// A small stylised spread-wing eagle emblem centred at [c], [width] wide.
+void _drawEagle(Canvas canvas, Paint paint, Offset c, double width) {
+  final hw = width / 2;
+  final wings = Path()
+    ..moveTo(c.dx - hw, c.dy)
+    ..quadraticBezierTo(
+        c.dx - hw * 0.4, c.dy - width * 0.20, c.dx, c.dy + width * 0.04)
+    ..quadraticBezierTo(c.dx + hw * 0.4, c.dy - width * 0.20, c.dx + hw, c.dy)
+    ..quadraticBezierTo(
+        c.dx + hw * 0.4, c.dy + width * 0.12, c.dx, c.dy + width * 0.20)
+    ..quadraticBezierTo(c.dx - hw * 0.4, c.dy + width * 0.12, c.dx - hw, c.dy)
+    ..close();
+  canvas.drawPath(wings, paint);
+  // Head.
+  canvas.drawCircle(Offset(c.dx, c.dy - width * 0.06), width * 0.08, paint);
+}
+
 class _RankInsigniaPainter extends CustomPainter {
   _RankInsigniaPainter({required this.rank, required this.color});
 
@@ -130,102 +233,8 @@ class _RankInsigniaPainter extends CustomPainter {
   final Color color;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final cfg = _insigniaFor(rank);
-    final w = size.width;
-    final h = size.height;
-    final cx = w / 2;
-
-    final stroke = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final fill = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    // Reserve a top band for the senior-rank emblems; the chevrons fill the
-    // rest below them.
-    var top = 0.0;
-    if (cfg.eagle) top += h * 0.20;
-    if (cfg.star) top += h * 0.16;
-    if (cfg.circle) top += h * 0.18;
-
-    final bandTop = top;
-    final bandBottom = h * 0.98;
-    final bandH = math.max(0.0, bandBottom - bandTop);
-    final n = cfg.chevrons;
-
-    if (n > 0 && bandH > 0) {
-      final step = bandH / (n + 0.4);
-      final armDrop = step * 1.3;
-      final halfW = w * 0.34;
-      final sw = (step * 0.5 * (cfg.bold ? 1.25 : 1.0)).clamp(1.2, h * 0.18);
-      stroke.strokeWidth = sw;
-
-      for (var i = 0; i < n; i++) {
-        // i == 0 is the bottom (widest-feeling) chevron.
-        final peakY = bandBottom - armDrop - i * step;
-        final path = Path()
-          ..moveTo(cx - halfW, peakY + armDrop)
-          ..lineTo(cx, peakY)
-          ..lineTo(cx + halfW, peakY + armDrop);
-        canvas.drawPath(path, stroke);
-      }
-    }
-
-    // Emblems, drawn top-to-bottom within the reserved band.
-    var ey = 0.0;
-    if (cfg.eagle) {
-      _drawEagle(canvas, fill, Offset(cx, ey + h * 0.10), w * 0.46);
-      ey += h * 0.20;
-    }
-    if (cfg.star) {
-      _drawStar(canvas, fill, Offset(cx, ey + h * 0.08), h * 0.085);
-      ey += h * 0.16;
-    }
-    if (cfg.circle) {
-      canvas.drawCircle(Offset(cx, ey + h * 0.09), h * 0.06, fill);
-    }
-  }
-
-  /// A filled 5-pointed star centred at [c] with circum-radius [r].
-  void _drawStar(Canvas canvas, Paint paint, Offset c, double r) {
-    final path = Path();
-    const points = 5;
-    final inner = r * 0.42;
-    for (var i = 0; i < points * 2; i++) {
-      final radius = i.isEven ? r : inner;
-      final angle = -math.pi / 2 + i * math.pi / points;
-      final x = c.dx + radius * math.cos(angle);
-      final y = c.dy + radius * math.sin(angle);
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  /// A small stylised spread-wing eagle emblem centred at [c], [width] wide.
-  void _drawEagle(Canvas canvas, Paint paint, Offset c, double width) {
-    final hw = width / 2;
-    final wings = Path()
-      ..moveTo(c.dx - hw, c.dy)
-      ..quadraticBezierTo(
-          c.dx - hw * 0.4, c.dy - width * 0.20, c.dx, c.dy + width * 0.04)
-      ..quadraticBezierTo(c.dx + hw * 0.4, c.dy - width * 0.20, c.dx + hw, c.dy)
-      ..quadraticBezierTo(
-          c.dx + hw * 0.4, c.dy + width * 0.12, c.dx, c.dy + width * 0.20)
-      ..quadraticBezierTo(c.dx - hw * 0.4, c.dy + width * 0.12, c.dx - hw, c.dy)
-      ..close();
-    canvas.drawPath(wings, paint);
-    // Head.
-    canvas.drawCircle(Offset(c.dx, c.dy - width * 0.06), width * 0.08, paint);
-  }
+  void paint(Canvas canvas, Size size) =>
+      paintRankInsignia(canvas, size, rank, color);
 
   @override
   bool shouldRepaint(_RankInsigniaPainter old) =>

@@ -1,8 +1,8 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -19,28 +19,46 @@ import 'rank_badge.dart';
 const _benchId = 'barbell_bench_press';
 const _squatId = 'barbell_back_squat';
 
-/// Reads the current rank + headline lifts, renders a [RankShareCard]
-/// off-screen, captures it to a PNG, and opens the system share sheet.
+/// Output bitmap size — Instagram post ratio (4:5). High enough resolution to
+/// stay crisp when shared or saved; encodes in well under a frame.
+const double _cardW = 1080;
+const double _cardH = 1350;
+
+/// Reads the current rank + headline lifts and shares a branded rank card.
+///
+/// The card is drawn straight to a bitmap with a [ui.Canvas]/[ui.PictureRecorder]
+/// rather than by capturing an off-screen widget with a RepaintBoundary. The
+/// widget approach was unreliable — it depended on the off-screen subtree being
+/// laid out, painted, and having its images decoded before `toImage` ran, and
+/// any of those not being ready produced a blank capture or threw, surfacing as
+/// "Couldn't create your rank card". Drawing directly has no such dependencies.
 Future<void> shareCurrentRank(BuildContext context, WidgetRef ref) async {
   try {
     final calc = await ref.read(rankCalculatorProvider.future);
     final units = ref.read(unitSystemProvider);
+
+    final hasData = calc.exerciseScores.isNotEmpty;
     final benchKg = calc.exerciseBestWeightKg[_benchId];
     final squatKg = calc.exerciseBestWeightKg[_squatId];
+    final parts = <String>[
+      if (benchKg != null) 'Bench: ${UnitConverter.formatWeight(benchKg, units)}',
+      if (squatKg != null) 'Squat: ${UnitConverter.formatWeight(squatKg, units)}',
+    ];
 
-    final card = RankShareCard(
+    final bytes = await _renderRankCard(
       rank: calc.overall,
-      benchText:
-          benchKg == null ? null : UnitConverter.formatWeight(benchKg, units),
-      squatText:
-          squatKg == null ? null : UnitConverter.formatWeight(squatKg, units),
+      hasData: hasData,
+      statsLine: parts.isEmpty ? null : parts.join('   ·   '),
     );
 
-    if (!context.mounted) return;
-    // Make sure the logo is decoded before we capture, or it renders blank.
-    await precacheImage(const AssetImage('assets/images/app-icon.png'), context);
-    if (!context.mounted) return;
-    await _captureAndShare(context, card);
+    final dir = await getTemporaryDirectory();
+    final file =
+        await File('${dir.path}/drillfit_rank.png').writeAsBytes(bytes);
+
+    await Share.shareXFiles(
+      [XFile(file.path, mimeType: 'image/png')],
+      text: 'My DrillFit rank 🎖️',
+    );
   } catch (e, st) {
     AppLogger.error('Share rank failed', error: e, stack: st);
     if (context.mounted) {
@@ -49,170 +67,232 @@ Future<void> shareCurrentRank(BuildContext context, WidgetRef ref) async {
   }
 }
 
-Future<void> _captureAndShare(BuildContext context, Widget card) async {
-  final boundaryKey = GlobalKey();
-  final overlay = Overlay.of(context, rootOverlay: true);
+/// Draws the branded rank card to PNG bytes. Pure drawing + raster — no widget
+/// tree and no frame scheduling, so it can't fail on un-laid-out or un-painted
+/// render objects. [hasData] is false when the user has no rankable PRs yet;
+/// [statsLine] is the pre-formatted "Bench … · Squat …" line, or null when
+/// neither headline lift has been logged.
+Future<Uint8List> _renderRankCard({
+  required MilitaryRank rank,
+  required bool hasData,
+  required String? statsLine,
+}) async {
+  final color = rank.color;
+  const cx = _cardW / 2;
+  const margin = 40.0;
+  const bandW = _cardW - 220; // centered content band (generous side padding)
 
-  // Render the card off-screen (still laid out + painted, so toImage works).
-  final entry = OverlayEntry(
-    builder: (_) => Positioned(
-      left: -4000,
-      top: 0,
-      child: Material(
-        type: MaterialType.transparency,
-        child: RepaintBoundary(key: boundaryKey, child: card),
-      ),
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(
+    recorder,
+    const Rect.fromLTWH(0, 0, _cardW, _cardH),
+  );
+
+  // Backdrop, then the rounded card with a rank-tinted border.
+  canvas.drawRect(
+    const Rect.fromLTWH(0, 0, _cardW, _cardH),
+    Paint()..color = const Color(0xFF0E0E12),
+  );
+  final cardRect = RRect.fromLTRBR(
+    margin,
+    margin,
+    _cardW - margin,
+    _cardH - margin,
+    const Radius.circular(56),
+  );
+  canvas.drawRRect(cardRect, Paint()..color = const Color(0xFF1C1C1E));
+  canvas.drawRRect(
+    cardRect,
+    Paint()
+      ..color = color.withValues(alpha: 0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6,
+  );
+
+  var y = margin + 80;
+
+  // Brand wordmark.
+  y += _drawCenteredText(
+    canvas,
+    'DrillFit',
+    cx: cx,
+    top: y,
+    bandW: bandW,
+    style: const TextStyle(
+      fontFamily: 'Poppins',
+      fontWeight: FontWeight.w700,
+      fontSize: 62,
+      color: Colors.white,
     ),
   );
-  overlay.insert(entry);
+  y += 56;
 
+  // Rank insignia inside a tinted disc — same drawing logic as the in-app badge.
+  const discR = 210.0;
+  final discCenter = Offset(cx, y + discR);
+  canvas.drawCircle(
+    discCenter,
+    discR,
+    Paint()..color = color.withValues(alpha: 0.16),
+  );
+  canvas.drawCircle(
+    discCenter,
+    discR,
+    Paint()
+      ..color = color.withValues(alpha: 0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5,
+  );
+  const insigniaH = 300.0;
+  const insigniaW = insigniaH * 0.92;
+  canvas.save();
+  canvas.translate(cx - insigniaW / 2, discCenter.dy - insigniaH / 2);
+  paintRankInsignia(canvas, Size(insigniaW, insigniaH), rank, color);
+  canvas.restore();
+  y += discR * 2 + 48;
+
+  // Rank name (rank-colored).
+  y += _drawCenteredText(
+    canvas,
+    rank.displayName,
+    cx: cx,
+    top: y,
+    bandW: bandW,
+    maxLines: 2,
+    style: TextStyle(
+      fontFamily: 'Poppins',
+      fontWeight: FontWeight.w800,
+      fontSize: 80,
+      color: color,
+    ),
+  );
+  y += 14;
+
+  // "Overall: <Rank> (E#)".
+  y += _drawCenteredText(
+    canvas,
+    'Overall: ${rank.displayName} (E${rank.tier})',
+    cx: cx,
+    top: y,
+    bandW: bandW,
+    maxLines: 2,
+    style: TextStyle(
+      fontFamily: 'LeagueSpartan',
+      fontSize: 40,
+      color: Colors.white.withValues(alpha: 0.7),
+    ),
+  );
+  y += 40;
+
+  // Headline-lift stats, or the empty-state prompt when there are no PRs.
+  if (hasData && statsLine != null) {
+    _drawStatsPill(canvas, statsLine, cx: cx, top: y);
+  } else {
+    _drawCenteredText(
+      canvas,
+      hasData
+          ? 'Keep logging lifts to fill out your card'
+          : 'Start training to earn your rank',
+      cx: cx,
+      top: y + 12,
+      bandW: bandW,
+      maxLines: 2,
+      style: TextStyle(
+        fontFamily: 'LeagueSpartan',
+        fontSize: 38,
+        color: Colors.white.withValues(alpha: 0.65),
+      ),
+    );
+  }
+
+  // Footer pinned near the bottom edge of the card.
+  _drawCenteredText(
+    canvas,
+    'drillfit.app',
+    cx: cx,
+    top: _cardH - margin - 96,
+    bandW: bandW,
+    style: TextStyle(
+      fontFamily: 'LeagueSpartan',
+      fontSize: 34,
+      letterSpacing: 2,
+      color: color.withValues(alpha: 0.85),
+    ),
+  );
+
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(_cardW.round(), _cardH.round());
   try {
-    // Give it a frame (plus a hair) to lay out and paint.
-    await WidgetsBinding.instance.endOfFrame;
-    await Future<void>.delayed(const Duration(milliseconds: 20));
-
-    final boundary =
-        boundaryKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-    final image = await boundary.toImage(pixelRatio: 3);
-    // Dispose the native image even if PNG encoding throws — a ~2-4 MB bitmap
-    // at pixelRatio 3 would otherwise leak on every failed capture.
-    final byteData = await image
-        .toByteData(format: ui.ImageByteFormat.png)
-        .whenComplete(image.dispose);
-    if (byteData == null) {
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (data == null) {
       throw StateError('Rank card capture produced no bytes');
     }
-
-    final dir = await getTemporaryDirectory();
-    final file = await File('${dir.path}/drillfit_rank.png')
-        .writeAsBytes(byteData.buffer.asUint8List());
-
-    await Share.shareXFiles(
-      [XFile(file.path, mimeType: 'image/png')],
-      text: 'My DrillFit rank 🎖️',
-    );
+    return data.buffer.asUint8List();
   } finally {
-    entry.remove();
+    image.dispose();
+    picture.dispose();
   }
 }
 
-/// The branded, shareable rank image. Fixed width so it captures at a
-/// predictable resolution; always dark so the shared PNG looks consistent
-/// regardless of the user's theme.
-class RankShareCard extends StatelessWidget {
-  const RankShareCard({
-    super.key,
-    required this.rank,
-    this.benchText,
-    this.squatText,
-  });
+/// Draws [text] horizontally centered on [cx], starting at vertical [top],
+/// laid out within a [bandW]-wide band. Returns the painted height so callers
+/// can advance a top-down layout cursor.
+double _drawCenteredText(
+  Canvas canvas,
+  String text, {
+  required double cx,
+  required double top,
+  required double bandW,
+  required TextStyle style,
+  int maxLines = 1,
+}) {
+  final tp = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textAlign: TextAlign.center,
+    textDirection: TextDirection.ltr,
+    maxLines: maxLines,
+    ellipsis: '…',
+  )..layout(minWidth: bandW, maxWidth: bandW);
+  tp.paint(canvas, Offset(cx - bandW / 2, top));
+  return tp.height;
+}
 
-  final MilitaryRank rank;
-  final String? benchText;
-  final String? squatText;
-
-  String? get _statsLine {
-    final parts = <String>[
-      if (benchText != null) 'Bench: $benchText',
-      if (squatText != null) 'Squat: $squatText',
-    ];
-    return parts.isEmpty ? null : parts.join('   ·   ');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final color = rank.color;
-    final stats = _statsLine;
-
-    return Container(
-      width: 360,
-      padding: const EdgeInsets.fromLTRB(28, 26, 28, 22),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0E0E12),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
+/// Draws the stats line centered inside a subtle rounded pill at [top].
+void _drawStatsPill(
+  Canvas canvas,
+  String text, {
+  required double cx,
+  required double top,
+}) {
+  final tp = TextPainter(
+    text: TextSpan(
+      text: text,
+      style: const TextStyle(
+        fontFamily: 'LeagueSpartan',
+        fontSize: 40,
+        color: Colors.white,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset('assets/images/app-icon.png', width: 26, height: 26),
-              const SizedBox(width: 8),
-              const Text(
-                'DrillFit',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 20,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-          Container(
-            width: 132,
-            height: 132,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.16),
-              shape: BoxShape.circle,
-              border: Border.all(color: color.withValues(alpha: 0.6), width: 2),
-            ),
-            alignment: Alignment.center,
-            child: RankInsignia(rank: rank, size: 86),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            rank.displayName,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w800,
-              fontSize: 26,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Overall: ${rank.displayName} (E${rank.tier})',
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.7),
-            ),
-          ),
-          if (stats != null) ...[
-            const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                stats,
-                style: const TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  fontSize: 15,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 18),
-          Text(
-            'drillfit.app',
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontSize: 12,
-              letterSpacing: 1,
-              color: color.withValues(alpha: 0.85),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    ),
+    textAlign: TextAlign.center,
+    textDirection: TextDirection.ltr,
+    maxLines: 1,
+    ellipsis: '…',
+  )..layout(maxWidth: _cardW - 260);
+
+  const padH = 36.0;
+  const padV = 22.0;
+  final pillW = tp.width + padH * 2;
+  final pillH = tp.height + padV * 2;
+  final pill = RRect.fromLTRBR(
+    cx - pillW / 2,
+    top,
+    cx + pillW / 2,
+    top + pillH,
+    const Radius.circular(24),
+  );
+  canvas.drawRRect(
+    pill,
+    Paint()..color = Colors.white.withValues(alpha: 0.06),
+  );
+  tp.paint(canvas, Offset(cx - tp.width / 2, top + padV));
 }

@@ -3,14 +3,17 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show CircleAvatar, Colors, Divider;
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
+import '../../../ranks/domain/military_ranks.dart';
+import '../../../ranks/presentation/widgets/rank_badge.dart';
 import '../../data/follow_repository.dart';
 import '../../domain/firestore_user.dart';
+import '../profile/mini_profile_sheet.dart';
 
 class UserSearchScreen extends ConsumerStatefulWidget {
   const UserSearchScreen({super.key});
@@ -23,6 +26,9 @@ class _UserSearchScreenState extends ConsumerState<UserSearchScreen> {
   final _searchController = TextEditingController();
   Timer? _debounce;
   String _query = '';
+
+  /// Selected rank ordinal filter, or null for "All ranks".
+  int? _rankFilter;
 
   @override
   void dispose() {
@@ -47,7 +53,7 @@ class _UserSearchScreenState extends ConsumerState<UserSearchScreen> {
       backgroundColor: colors.background,
       navigationBar: CupertinoNavigationBar(
         middle: Text(
-          'Search Users',
+          'Search Soldiers',
           style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w600,
@@ -62,7 +68,6 @@ class _UserSearchScreenState extends ConsumerState<UserSearchScreen> {
       child: SafeArea(
         child: Column(
           children: [
-            // --- Search field ---
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: CupertinoSearchTextField(
@@ -77,11 +82,19 @@ class _UserSearchScreenState extends ConsumerState<UserSearchScreen> {
               ),
             ),
 
-            // --- Results ---
+            // ── Rank filter chips ──
+            _RankFilterRow(
+              selected: _rankFilter,
+              colors: colors,
+              onSelect: (idx) {
+                HapticFeedback.selectionClick();
+                setState(() => _rankFilter = idx);
+              },
+            ),
+            const SizedBox(height: 4),
+
             Expanded(
-              child: _query.length < 2
-                  ? _EmptyState(colors: colors)
-                  : _SearchResults(query: _query),
+              child: _Results(query: _query, rankFilter: _rankFilter),
             ),
           ],
         ),
@@ -90,50 +103,108 @@ class _UserSearchScreenState extends ConsumerState<UserSearchScreen> {
   }
 }
 
-// ─── Empty state ─────────────────────────────────────────────────────────────
+// ─── Rank filter chip row ────────────────────────────────────────────────────
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.colors});
+class _RankFilterRow extends StatelessWidget {
+  const _RankFilterRow({
+    required this.selected,
+    required this.colors,
+    required this.onSelect,
+  });
+
+  final int? selected;
   final Palette colors;
+  final ValueChanged<int?> onSelect;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return SizedBox(
+      height: 34,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          Icon(
-            CupertinoIcons.search,
-            size: 48,
-            color: colors.textSecondary,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Search for users by username',
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontSize: 15,
-              color: colors.textSecondary,
+          _chip(label: 'All', active: selected == null, onTap: () => onSelect(null)),
+          for (final rank in MilitaryRank.values)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: _chip(
+                label: rank.abbreviation,
+                color: rank.color,
+                active: selected == rank.index,
+                onTap: () => onSelect(rank.index),
+              ),
             ),
-          ),
         ],
+      ),
+    );
+  }
+
+  Widget _chip({
+    required String label,
+    required bool active,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    final tint = color ?? colors.accent;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: active ? tint : colors.surface,
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(
+            color: active ? tint : colors.border,
+            width: 0.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: active ? CupertinoColors.white : colors.text,
+          ),
+        ),
       ),
     );
   }
 }
 
-// ─── Results list ────────────────────────────────────────────────────────────
+// ─── Results ─────────────────────────────────────────────────────────────────
 
-class _SearchResults extends ConsumerWidget {
-  const _SearchResults({required this.query});
+class _Results extends ConsumerWidget {
+  const _Results({required this.query, required this.rankFilter});
+
   final String query;
+  final int? rankFilter;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = AppColors.of(context);
-    final resultsAsync = ref.watch(userSearchResultsProvider(query));
 
-    return resultsAsync.when(
+    // Browse-by-rank with no text query.
+    if (query.length < 2) {
+      if (rankFilter == null) return _EmptyPrompt(colors: colors);
+      final byRank = ref.watch(usersByRankProvider(rankFilter!));
+      return _list(byRank, colors, rankFilter);
+    }
+
+    // Text search, optionally narrowed to the selected rank.
+    final results = ref.watch(userSearchResultsProvider(query));
+    return _list(results, colors, rankFilter);
+  }
+
+  Widget _list(
+    AsyncValue<List<FirestoreUser>> async,
+    Palette colors,
+    int? rankFilter,
+  ) {
+    return async.when(
       loading: () => const Center(child: CupertinoActivityIndicator()),
       error: (_, _) => Center(
         child: Text(
@@ -144,11 +215,14 @@ class _SearchResults extends ConsumerWidget {
           ),
         ),
       ),
-      data: (users) {
+      data: (all) {
+        final users = rankFilter == null
+            ? all
+            : all.where((u) => u.rankIndex == rankFilter).toList();
         if (users.isEmpty) {
           return Center(
             child: Text(
-              'No users found.',
+              'No soldiers found.',
               style: TextStyle(
                 fontFamily: 'LeagueSpartan',
                 fontSize: 15,
@@ -157,17 +231,43 @@ class _SearchResults extends ConsumerWidget {
             ),
           );
         }
-
         return ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           itemCount: users.length,
-          separatorBuilder: (_, _) => Divider(
-            height: 1,
-            color: colors.border,
-          ),
+          separatorBuilder: (_, _) => Divider(height: 1, color: colors.border),
           itemBuilder: (context, index) => _UserRow(user: users[index]),
         );
       },
+    );
+  }
+}
+
+class _EmptyPrompt extends StatelessWidget {
+  const _EmptyPrompt({required this.colors});
+  final Palette colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(CupertinoIcons.search, size: 48, color: colors.textSecondary),
+            const SizedBox(height: 12),
+            Text(
+              'Search by username, or tap a rank to see who holds it.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'LeagueSpartan',
+                fontSize: 15,
+                color: colors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -183,57 +283,74 @@ class _UserRow extends ConsumerWidget {
     final colors = AppColors.of(context);
     final currentUserId = ref.watch(currentUserIdProvider);
     final isOwnProfile = currentUserId == user.userId;
+    final rank = user.rankIndex == null ? null : rankFromIndex(user.rankIndex!);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => context.push('/profile/${user.userId}'),
+      onTap: () => showMiniProfileSheet(context, user.userId),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
-            // --- Avatar ---
             _buildAvatar(colors),
             const SizedBox(width: 12),
-
-            // --- Name column ---
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '@${user.username}',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      color: colors.text,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          '@${user.username}',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: colors.text,
+                          ),
+                        ),
+                      ),
+                      if (rank != null) ...[
+                        const SizedBox(width: 6),
+                        RankInsignia(rank: rank, size: 15),
+                        const SizedBox(width: 3),
+                        Text(
+                          rank.abbreviation,
+                          style: TextStyle(
+                            fontFamily: 'LeagueSpartan',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11,
+                            color: rank.color,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  if (user.displayName.isNotEmpty &&
+                  if (rank != null)
+                    Text(
+                      rank.displayName,
+                      style: TextStyle(
+                        fontFamily: 'LeagueSpartan',
+                        fontSize: 12,
+                        color: colors.textSecondary,
+                      ),
+                    )
+                  else if (user.displayName.isNotEmpty &&
                       user.displayName != user.username)
                     Text(
                       user.displayName,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: 'LeagueSpartan',
                         fontSize: 13,
                         color: colors.textSecondary,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  Text(
-                    '${user.followersCount} followers',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontSize: 12,
-                      color: colors.textSecondary,
-                    ),
-                  ),
                 ],
               ),
             ),
-
-            // --- Follow button ---
             if (!isOwnProfile) _RowFollowButton(user: user),
           ],
         ),
@@ -321,8 +438,7 @@ class _RowFollowButtonState extends ConsumerState<_RowFollowButton> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    final followAsync =
-        ref.watch(isFollowingProvider(widget.user.userId));
+    final followAsync = ref.watch(isFollowingProvider(widget.user.userId));
     final isFollowing = followAsync.valueOrNull ?? false;
 
     if (_isLoading) {
@@ -338,7 +454,8 @@ class _RowFollowButtonState extends ConsumerState<_RowFollowButton> {
         padding: const EdgeInsets.symmetric(vertical: 6),
         color: isFollowing ? null : colors.accent,
         borderRadius: BorderRadius.circular(8),
-        onPressed: () => _toggle(isFollowing), minimumSize: Size(0, 0),
+        onPressed: () => _toggle(isFollowing),
+        minimumSize: const Size(0, 0),
         child: Container(
           alignment: Alignment.center,
           decoration: isFollowing
@@ -347,9 +464,8 @@ class _RowFollowButtonState extends ConsumerState<_RowFollowButton> {
                   border: Border.all(color: colors.accent),
                 )
               : null,
-          padding: isFollowing
-              ? const EdgeInsets.symmetric(vertical: 6)
-              : null,
+          padding:
+              isFollowing ? const EdgeInsets.symmetric(vertical: 6) : null,
           child: Text(
             isFollowing ? 'Following' : 'Follow',
             style: TextStyle(
