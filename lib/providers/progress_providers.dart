@@ -18,20 +18,45 @@ import 'workout_providers.dart';
 // Weight
 // ---------------------------------------------------------------------------
 
-/// All weight entries sorted by date ascending.
+/// All weight entries sorted by date ascending, with at most one entry per
+/// calendar day. Historical same-day duplicates (which drew a vertical spike on
+/// the chart) are collapsed here, keeping the most recently inserted entry
+/// (largest id) for each date.
 final weightEntriesProvider = FutureProvider<List<WeightEntry>>((ref) async {
   final isar = ref.watch(isarProvider);
-  return isar.weightEntrys.where().sortByDate().findAll();
+  final all = await isar.weightEntrys.where().sortByDate().findAll();
+
+  final byDate = <DateTime, WeightEntry>{};
+  for (final e in all) {
+    final d = DateTime(e.date.year, e.date.month, e.date.day);
+    final existing = byDate[d];
+    if (existing == null || e.id > existing.id) byDate[d] = e;
+  }
+  final deduped = byDate.values.toList()
+    ..sort((a, b) => a.date.compareTo(b.date));
+  return deduped;
 });
 
-/// Saves a weight entry for today and updates the user profile.
+/// Saves a weight entry for today and updates the user profile. Replaces any
+/// existing entry for today (one entry per calendar day) so re-logging doesn't
+/// create a duplicate.
 Future<bool> saveWeightEntry(WidgetRef ref, double kg) async {
   final isar = ref.read(isarProvider);
   try {
     await isar.writeTxn(() async {
       final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+
+      // Remove any existing entries for today so we replace rather than
+      // duplicate (the chart drew a spike when two entries shared a date).
+      final existingToday =
+          await isar.weightEntrys.filter().dateEqualTo(today).findAll();
+      for (final old in existingToday) {
+        await isar.weightEntrys.delete(old.id);
+      }
+
       final entry = WeightEntry()
-        ..date = DateTime(now.year, now.month, now.day)
+        ..date = today
         ..weightKg = kg;
       await isar.weightEntrys.put(entry);
 

@@ -15,7 +15,7 @@ import '../domain/exercise_standards.dart';
 import '../domain/military_ranks.dart';
 import '../providers/rank_providers.dart';
 import 'widgets/rank_badge.dart';
-import 'widgets/rank_share_card.dart';
+import 'rank_card_preview.dart';
 
 /// Phase-3 dedicated ranks screen: overall rank, a body heat map, per-muscle-
 /// group rank cards, a drill-sergeant weak-point callout, and the full
@@ -794,7 +794,7 @@ class _ShareRankButton extends ConsumerWidget {
       child: CupertinoButton(
         color: palette.accent,
         borderRadius: BorderRadius.circular(14),
-        onPressed: () => shareCurrentRank(context, ref),
+        onPressed: () => openRankCardPreview(context),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

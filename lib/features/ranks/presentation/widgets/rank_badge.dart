@@ -125,9 +125,8 @@ _Insignia _insigniaFor(MilitaryRank rank) {
 
 /// Paints a [MilitaryRank]'s insignia — chevrons plus any senior-rank star /
 /// eagle / specialist-disk marks — into [canvas], filling [size] and tinted
-/// [color]. Extracted as a free function so both the [RankInsignia] widget and
-/// the off-screen rank-card bitmap renderer ([shareCurrentRank]) draw identical
-/// insignia from one source of truth.
+/// [color]. Extracted as a free function so the [RankInsignia] widget (used both
+/// in-app and inside the captured rank card) draws from one source of truth.
 void paintRankInsignia(
     Canvas canvas, Size size, MilitaryRank rank, Color color) {
   final cfg = _insigniaFor(rank);
