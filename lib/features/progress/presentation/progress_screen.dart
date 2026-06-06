@@ -209,7 +209,7 @@ class _WorkoutLogTab extends ConsumerWidget {
                     horizontal: 14, vertical: 10),
                 color: AppColors.of(context).accent,
                 borderRadius: BorderRadius.circular(10),
-                onPressed: () => showCupertinoDialog(
+                onPressed: () => showCupertinoModalPopup(
                   context: context,
                   builder: (_) => const WeightEntryDialog(),
                 ),

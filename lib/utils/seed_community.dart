@@ -322,6 +322,8 @@ Future<SeedCommunityResult> seedCommunityFeed({
       'commentsCount': commentCount,
       'createdAt': Timestamp.fromDate(createdAt),
       'allowedUsers': const <String>[],
+      'rankIndex': author.rankIndex,
+      'rankName': author.rankName,
     });
 
     for (var r = 0; r < reactionCount; r++) {

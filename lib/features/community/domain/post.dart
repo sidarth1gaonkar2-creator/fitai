@@ -18,6 +18,8 @@ class Post {
     this.createdAt,
     this.allowedUsers,
     this.workoutId,
+    this.rankIndex,
+    this.rankName,
   });
 
   final String postId;
@@ -38,6 +40,14 @@ class Post {
 
   /// Local Isar workout ID that this post was generated from (optional).
   final int? workoutId;
+
+  /// Author's overall [MilitaryRank] ordinal at post time, embedded so the feed
+  /// can render the rank badge without a separate user-doc lookup. Null on
+  /// legacy posts — the card falls back to the author's user doc, then Private.
+  final int? rankIndex;
+
+  /// Author's overall rank name at post time (e.g. "Corporal").
+  final String? rankName;
 
   /// Firestore document snapshot for pagination cursor.
   DocumentSnapshot? documentSnapshot;
@@ -66,6 +76,8 @@ class Post {
           ?.map((e) => e as String)
           .toList(),
       workoutId: (map['workoutId'] as num?)?.toInt(),
+      rankIndex: (map['rankIndex'] as num?)?.toInt(),
+      rankName: map['rankName'] as String?,
     );
     post.documentSnapshot = doc;
     return post;
@@ -91,6 +103,8 @@ class Post {
           : FieldValue.serverTimestamp(),
       'allowedUsers': allowedUsers ?? [],
       if (workoutId != null) 'workoutId': workoutId,
+      if (rankIndex != null) 'rankIndex': rankIndex,
+      if (rankName != null) 'rankName': rankName,
     };
   }
 }

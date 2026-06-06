@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -37,6 +37,7 @@ Future<void> shareCurrentRank(BuildContext context, WidgetRef ref) async {
     final calc = await ref.read(rankCalculatorProvider.future);
     final units = ref.read(unitSystemProvider);
 
+    final rank = calc.overall;
     final hasData = calc.exerciseScores.isNotEmpty;
     final benchKg = calc.exerciseBestWeightKg[_benchId];
     final squatKg = calc.exerciseBestWeightKg[_squatId];
@@ -44,27 +45,98 @@ Future<void> shareCurrentRank(BuildContext context, WidgetRef ref) async {
       if (benchKg != null) 'Bench: ${UnitConverter.formatWeight(benchKg, units)}',
       if (squatKg != null) 'Squat: ${UnitConverter.formatWeight(squatKg, units)}',
     ];
+    final statsLine = parts.isEmpty ? null : parts.join('   ·   ');
 
-    final bytes = await _renderRankCard(
-      rank: calc.overall,
-      hasData: hasData,
-      statsLine: parts.isEmpty ? null : parts.join('   ·   '),
-    );
+    // iPad requires a source rect for the share popover or it throws. Computed
+    // up front (before more awaits) and reused by both share paths below.
+    final box =
+        context.mounted ? context.findRenderObject() as RenderBox? : null;
+    final origin = (box != null && box.hasSize)
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
 
-    final dir = await getTemporaryDirectory();
-    final file =
-        await File('${dir.path}/drillfit_rank.png').writeAsBytes(bytes);
+    // Try the image card. If ANY step of the image path fails, fall back to
+    // sharing plain text so the button never dead-ends with an error.
+    try {
+      // Render at full resolution; retry once at half if the device can't
+      // allocate the full-size GPU texture.
+      Uint8List bytes;
+      try {
+        bytes = await _renderRankCard(
+          rank: rank,
+          hasData: hasData,
+          statsLine: statsLine,
+        );
+      } catch (e, st) {
+        AppLogger.error(
+          'Rank card render failed at full resolution; retrying at half',
+          error: e,
+          stack: st,
+        );
+        bytes = await _renderRankCard(
+          rank: rank,
+          hasData: hasData,
+          statsLine: statsLine,
+          scale: 0.5,
+        );
+      }
 
-    await Share.shareXFiles(
-      [XFile(file.path, mimeType: 'image/png')],
-      text: 'My DrillFit rank 🎖️',
-    );
+      final dir = await getTemporaryDirectory();
+      final file =
+          await File('${dir.path}/drillfit_rank.png').writeAsBytes(bytes);
+
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'image/png')],
+        text: 'My DrillFit rank 🎖️',
+        sharePositionOrigin: origin,
+      );
+    } catch (imgErr, imgSt) {
+      // Image path failed — log the real cause and share text instead.
+      AppLogger.error(
+        'Rank card image share failed; sharing text instead',
+        error: imgErr,
+        stack: imgSt,
+      );
+      debugPrint('SHARE RANK ERROR: $imgErr');
+      debugPrint('STACK: $imgSt');
+      if (kDebugMode && context.mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (dialogCtx) => AlertDialog(
+            title: const Text('Debug: rank card error'),
+            content: Text(imgErr.toString()),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+      await Share.share(
+        _plainRankSummary(rank, statsLine),
+        subject: 'My DrillFit rank',
+        sharePositionOrigin: origin,
+      );
+    }
   } catch (e, st) {
     AppLogger.error('Share rank failed', error: e, stack: st);
+    debugPrint('SHARE RANK ERROR: $e');
+    debugPrint('STACK: $st');
     if (context.mounted) {
-      showCupertinoToast(context, "Couldn't create your rank card.");
+      showCupertinoToast(context, "Couldn't create your rank card. Try again.");
     }
   }
+}
+
+/// Plain-text rank summary used as a fallback when the image card can't be
+/// rendered/shared — e.g. "I'm Corporal (E3) on DrillFit 🎖️\nBench: 205 lbs …".
+String _plainRankSummary(MilitaryRank rank, String? statsLine) {
+  final b = StringBuffer("I'm ${rank.displayName} (E${rank.tier}) on DrillFit 🎖️");
+  if (statsLine != null) b.write('\n$statsLine');
+  b.write('\ndrillfit.app');
+  return b.toString();
 }
 
 /// Draws the branded rank card to PNG bytes. Pure drawing + raster — no widget
@@ -76,6 +148,7 @@ Future<Uint8List> _renderRankCard({
   required MilitaryRank rank,
   required bool hasData,
   required String? statsLine,
+  double scale = 1.0,
 }) async {
   final color = rank.color;
   const cx = _cardW / 2;
@@ -85,8 +158,12 @@ Future<Uint8List> _renderRankCard({
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(
     recorder,
-    const Rect.fromLTWH(0, 0, _cardW, _cardH),
+    Rect.fromLTWH(0, 0, _cardW * scale, _cardH * scale),
   );
+  // Draw in logical (1080×1350) coordinates; [scale] shrinks the rasterized
+  // bitmap so a device that can't allocate the full-size texture still gets a
+  // card (see the half-res fallback in [shareCurrentRank]).
+  if (scale != 1.0) canvas.scale(scale);
 
   // Backdrop, then the rounded card with a rank-tinted border.
   canvas.drawRect(
@@ -221,7 +298,10 @@ Future<Uint8List> _renderRankCard({
   );
 
   final picture = recorder.endRecording();
-  final image = await picture.toImage(_cardW.round(), _cardH.round());
+  final image = await picture.toImage(
+    (_cardW * scale).round(),
+    (_cardH * scale).round(),
+  );
   try {
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     if (data == null) {

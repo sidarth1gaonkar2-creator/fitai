@@ -5,6 +5,8 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
+import '../../../ranks/domain/military_ranks.dart';
+import '../../../ranks/providers/rank_providers.dart';
 import '../../data/post_repository.dart';
 import '../../domain/post.dart';
 
@@ -61,6 +63,16 @@ class _ShareWorkoutSheetState extends ConsumerState<ShareWorkoutSheet> {
               ))
           .toList();
 
+      // Embed the author's current rank so the feed badge needs no user-doc
+      // lookup. Prefer the live computed rank; fall back to the mirrored value.
+      int? rankIndex = firestoreUser?.rankIndex;
+      String? rankName = firestoreUser?.rankName;
+      try {
+        final rank = await ref.read(overallRankProvider.future);
+        rankIndex = rank.index;
+        rankName = rank.displayName;
+      } catch (_) {}
+
       final post = Post(
         postId: _uuid.v4(),
         userId: userId,
@@ -74,6 +86,8 @@ class _ShareWorkoutSheetState extends ConsumerState<ShareWorkoutSheet> {
         caption: _captionController.text.trim(),
         isPublic: _isPublic,
         createdAt: DateTime.now(),
+        rankIndex: rankIndex,
+        rankName: rankName,
       );
 
       await ref.read(postRepositoryProvider).createPost(post);

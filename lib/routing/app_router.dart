@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme/page_transitions.dart';
@@ -49,62 +50,95 @@ import '../providers/user_profile_provider.dart';
 
 const _authRoutes = {'/welcome', '/signin', '/signup'};
 
+/// Drives go_router redirects WITHOUT recreating the [GoRouter] when the auth /
+/// profile providers change.
+///
+/// The previous approach `ref.watch`-ed those providers directly inside
+/// [appRouterProvider], so any change rebuilt the whole [GoRouter] — and a fresh
+/// router resets navigation to its `initialLocation`. That surfaced as: logging
+/// body weight invalidates `userProfileProvider`, which rebuilt the router and
+/// bounced the user from the Progress tab to the dashboard. Keeping one router
+/// and notifying it instead lets it re-run the redirect in place.
+class _RouterNotifier extends ChangeNotifier {
+  _RouterNotifier(this._ref) {
+    _ref.listen(authStateProvider, (_, _) => notifyListeners());
+    _ref.listen(userProfileProvider, (_, _) => notifyListeners());
+    _ref.listen(firestoreUserProvider, (_, _) => notifyListeners());
+  }
+
+  final Ref _ref;
+
+  String? redirect(BuildContext context, GoRouterState state) {
+    final authAsync = _ref.read(authStateProvider);
+    if (authAsync.isLoading) return null;
+
+    final user = authAsync.valueOrNull;
+    final location = state.matchedLocation;
+    final isAuthRoute = _authRoutes.contains(location);
+
+    // Not authenticated → welcome
+    if (user == null) {
+      return isAuthRoute ? null : '/welcome';
+    }
+
+    // Signed in. Wait for the profile to (re)resolve before any onboarding /
+    // setup routing — a transient reload (e.g. logging body weight invalidates
+    // userProfileProvider) must not be read as "no profile" and bounce the user.
+    final profileAsync = _ref.read(userProfileProvider);
+    if (profileAsync.isLoading) return null;
+    final hasProfile = profileAsync.valueOrNull != null;
+
+    // Authenticated on auth route → forward
+    if (isAuthRoute) {
+      if (!hasProfile) return '/onboarding';
+      final hasFirestoreProfile =
+          _ref.read(firestoreUserProvider).valueOrNull != null;
+      return hasFirestoreProfile ? '/dashboard' : '/profile-setup';
+    }
+
+    // Onboarding guard
+    final isOnboarding = location == '/onboarding';
+    final isProfileSetup = location == '/profile-setup';
+
+    if (!hasProfile && !isOnboarding) return '/onboarding';
+    if (hasProfile && isOnboarding) {
+      final hasFirestoreProfile =
+          _ref.read(firestoreUserProvider).valueOrNull != null;
+      return hasFirestoreProfile ? '/dashboard' : '/profile-setup';
+    }
+
+    // Profile setup guard. Don't bounce an established user to setup while the
+    // Firestore profile is still loading.
+    if (hasProfile && !isProfileSetup) {
+      final firestoreAsync = _ref.read(firestoreUserProvider);
+      if (firestoreAsync.isLoading) return null;
+      final hasFirestoreProfile = firestoreAsync.valueOrNull != null;
+      if (!hasFirestoreProfile &&
+          !isOnboarding &&
+          location != '/profile-setup') {
+        return '/profile-setup';
+      }
+    }
+
+    return null;
+  }
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authAsync = ref.watch(authStateProvider);
-  final profileAsync = ref.watch(userProfileProvider);
-  final firestoreUserAsync = ref.watch(firestoreUserProvider);
+  final notifier = _RouterNotifier(ref);
+  ref.onDispose(notifier.dispose);
+
   // Resolved before the app mounted (see main._bootstrap). Picking the initial
   // route from this — instead of always /welcome — means a signed-in user
   // starts on /dashboard and the welcome screen never renders, even for the
-  // frame before the auth StreamProvider emits. The redirect below then
-  // refines (onboarding / profile-setup) once auth + profile resolve.
+  // frame before the auth StreamProvider emits. The redirect then refines
+  // (onboarding / profile-setup) once auth + profile resolve, in place.
   final signedInAtBoot = ref.read(bootSignedInProvider);
 
   return GoRouter(
     initialLocation: signedInAtBoot ? '/dashboard' : '/welcome',
-    redirect: (context, state) {
-      if (authAsync.isLoading) return null;
-
-      final user = authAsync.valueOrNull;
-      final location = state.matchedLocation;
-      final isAuthRoute = _authRoutes.contains(location);
-
-      // Not authenticated → welcome
-      if (user == null) {
-        return isAuthRoute ? null : '/welcome';
-      }
-
-      // Authenticated on auth route → forward
-      if (isAuthRoute) {
-        final hasProfile = profileAsync.valueOrNull != null;
-        if (!hasProfile) return '/onboarding';
-        final hasFirestoreProfile = firestoreUserAsync.valueOrNull != null;
-        return hasFirestoreProfile ? '/dashboard' : '/profile-setup';
-      }
-
-      // Onboarding guard
-      final hasProfile = profileAsync.valueOrNull != null;
-      final isOnboarding = location == '/onboarding';
-      final isProfileSetup = location == '/profile-setup';
-
-      if (!hasProfile && !isOnboarding) return '/onboarding';
-      if (hasProfile && isOnboarding) {
-        final hasFirestoreProfile = firestoreUserAsync.valueOrNull != null;
-        return hasFirestoreProfile ? '/dashboard' : '/profile-setup';
-      }
-
-      // Profile setup guard
-      if (hasProfile && !isProfileSetup) {
-        final hasFirestoreProfile = firestoreUserAsync.valueOrNull != null;
-        if (!hasFirestoreProfile &&
-            !isOnboarding &&
-            location != '/profile-setup') {
-          return '/profile-setup';
-        }
-      }
-
-      return null;
-    },
+    refreshListenable: notifier,
+    redirect: notifier.redirect,
     routes: [
       // ─── Auth ─────────────────────────────────────────────────
       GoRoute(

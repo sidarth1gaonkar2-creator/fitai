@@ -45,24 +45,20 @@ class WeightChart extends ConsumerWidget {
         isImperial ? UnitConverter.kgToLbs(kg) : kg;
     final unitLabel = UnitConverter.weightUnit(units);
 
-    // Build the series as a 7-day moving average — that's the line users
-    // want to see (raw daily values are too noisy on phone-width).
-    final maSpots = <FlSpot>[];
+    // Plot the actual logged values (converted to the viewer's unit) so each
+    // entry sits at its true Y — a freshly logged 183 lb shows at 183, not at a
+    // smoothed average of recent entries. fl_chart's curve smoothing keeps the
+    // line readable without distorting where the points land.
+    final spots = <FlSpot>[];
     final firstDate = entries.first.date;
     final spanDays = entries.last.date.difference(firstDate).inDays.toDouble();
     for (var i = 0; i < entries.length; i++) {
       final x = entries[i].date.difference(firstDate).inDays.toDouble();
-      double sum = 0;
-      int count = 0;
-      for (var j = i; j >= 0 && (i - j) < 7; j--) {
-        sum += toDisplay(entries[j].weightKg);
-        count++;
-      }
-      maSpots.add(FlSpot(x, sum / count));
+      spots.add(FlSpot(x, toDisplay(entries[i].weightKg)));
     }
 
-    final rawMin = maSpots.map((s) => s.y).reduce((a, b) => a < b ? a : b);
-    final rawMax = maSpots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
+    final rawMin = spots.map((s) => s.y).reduce((a, b) => a < b ? a : b);
+    final rawMax = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
     // Tight headroom — body weight rarely swings far, so a couple of units
     // of padding is enough for a clean read.
     final range = niceRange(
@@ -137,7 +133,7 @@ class WeightChart extends ConsumerWidget {
           ),
           lineBarsData: [
             LineChartBarData(
-              spots: maSpots,
+              spots: spots,
               isCurved: true,
               curveSmoothness: 0.3,
               color: colorScheme.primary,

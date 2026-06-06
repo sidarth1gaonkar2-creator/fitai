@@ -81,24 +81,23 @@ final rankCalculatorProvider = FutureProvider<RankCalculation>((ref) async {
 
   // Persist as a best-effort side effect — a failure here must not break the
   // returned (live) calculation.
-  int? previousRankIndex;
   try {
-    previousRankIndex = await _persist(isar, calc);
+    await _persist(isar, calc);
   } catch (e, st) {
     AppLogger.error('Rank persist failed', error: e, stack: st);
   }
 
-  // Mirror the overall rank onto the Firestore user doc — best-effort, and only
-  // when it actually changes — so the community can show this user's rank
-  // badge. `previousRankIndex` is null on the very first calculation, which
-  // differs from any concrete index and therefore initializes the field.
-  if (previousRankIndex != calc.overall.index) {
-    final uid = ref.read(currentUserIdProvider);
-    if (uid != null) {
-      await ref
-          .read(userRepositoryProvider)
-          .updateUserRank(uid, calc.overall.index, calc.overall.displayName);
-    }
+  // Mirror the overall rank onto the Firestore user doc so the community can
+  // show this user's rank badge. Done UNCONDITIONALLY (not gated on a rank
+  // change): this provider is read on app launch (the dashboard rank card
+  // watches it), so existing users — including those still at Private whose
+  // rank never "changed" — get their `rankIndex`/`rankName` backfilled. The
+  // write is a guarded, idempotent merge, so re-running is cheap.
+  final uid = ref.read(currentUserIdProvider);
+  if (uid != null) {
+    await ref
+        .read(userRepositoryProvider)
+        .updateUserRank(uid, calc.overall.index, calc.overall.displayName);
   }
 
   return calc;

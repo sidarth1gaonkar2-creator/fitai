@@ -191,27 +191,30 @@ class _Header extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Author rank (mirrored onto their Firestore user doc) — the badge leads
-    // every post. Family provider dedupes the fetch per author across cards.
-    final rankIdx = ref.watch(userByIdProvider(post.userId)).valueOrNull?.rankIndex;
-    final rank = rankIdx == null ? null : rankFromIndex(rankIdx);
+    // Author rank for the leading badge. Prefer the value embedded on the post
+    // (no extra fetch); fall back to the author's Firestore user doc for legacy
+    // posts; finally default to Private (PVT) so every post shows a badge. The
+    // `??` short-circuits, so the user-doc lookup only runs when the post has no
+    // embedded rank.
+    final rankIdx = post.rankIndex ??
+        ref.watch(userByIdProvider(post.userId)).valueOrNull?.rankIndex ??
+        0;
+    final rank = rankFromIndex(rankIdx);
 
     return Row(
       children: [
         // 1. Rank badge first — the visual anchor.
-        if (rank != null) ...[
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: rank.color.withValues(alpha: 0.14),
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: RankInsignia(rank: rank, size: 22),
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: rank.color.withValues(alpha: 0.14),
+            shape: BoxShape.circle,
           ),
-          const SizedBox(width: 8),
-        ],
+          alignment: Alignment.center,
+          child: RankInsignia(rank: rank, size: 22),
+        ),
+        const SizedBox(width: 8),
         // 2. Avatar — smaller (36px).
         GestureDetector(
           onTap: onTapUser,
@@ -246,20 +249,18 @@ class _Header extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    if (rank != null) ...[
-                      const SizedBox(width: 6),
-                      Text(
-                        rank.displayName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                          color: rank.color,
-                        ),
+                    const SizedBox(width: 6),
+                    Text(
+                      rank.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                        color: rank.color,
                       ),
-                    ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 1),
