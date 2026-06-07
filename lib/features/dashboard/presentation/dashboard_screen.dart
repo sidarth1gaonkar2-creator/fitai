@@ -243,6 +243,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 const SizedBox(height: 20),
 
+                // --- Military rank card ---
+                // DrillFit's core feature — placed above the Apple Health
+                // activity rings so rank is the more prominent metric.
+                const RankCard(),
+                const SizedBox(height: 20),
+
                 // --- Apple Activity Rings (Move / Exercise / Stand) ---
                 // ActivityRings, ActivityRow and FitnessWorkoutsCard each
                 // self-gate on Platform.isIOS + healthConnectedProvider, so
@@ -306,10 +312,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-
-                // --- Military rank card ---
-                const RankCard(),
                 const SizedBox(height: 16),
 
                 // --- Quick Log (saved meals — self-gates on availability) ---
