@@ -249,20 +249,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 const RankCard(),
                 const SizedBox(height: 20),
 
-                // --- Apple Activity Rings (Move / Exercise / Stand) ---
-                // ActivityRings, ActivityRow and FitnessWorkoutsCard each
-                // self-gate on Platform.isIOS + healthConnectedProvider, so
-                // they collapse cleanly to zero height on Android or when
-                // Health is disconnected.
-                if (Platform.isIOS) ...[
-                  const ActivityRings(),
-                  const SizedBox(height: 12),
-                  const ActivityRow(),
-                  const SizedBox(height: 12),
-                  const FitnessWorkoutsCard(),
-                  const SizedBox(height: 20),
-                ],
-
                 // --- Insights ---
                 // Surfaces up to 3 local-analysis cards (strength progress,
                 // streaks, deload reminders, etc.). Hides entirely while
@@ -356,6 +342,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
+
+                // --- Apple Activity Rings (Move / Exercise / Stand) ---
+                // Moved to the bottom of the dashboard: when iPhone Fitness
+                // tracking isn't working the rings read 0/0/0, which looks
+                // bad up top, so rank/nutrition lead and Health sits last.
+                // ActivityRings, ActivityRow and FitnessWorkoutsCard each
+                // self-gate on Platform.isIOS + healthConnectedProvider, so
+                // they collapse cleanly to zero height on Android or when
+                // Health is disconnected.
+                if (Platform.isIOS) ...[
+                  const ActivityRings(),
+                  const SizedBox(height: 12),
+                  const ActivityRow(),
+                  const SizedBox(height: 12),
+                  const FitnessWorkoutsCard(),
+                  const SizedBox(height: 24),
+                ],
               ],
             ),
           ),
