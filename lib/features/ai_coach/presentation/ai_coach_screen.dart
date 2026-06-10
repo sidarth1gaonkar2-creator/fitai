@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/logger.dart';
@@ -19,27 +18,11 @@ class AICoachScreen extends ConsumerStatefulWidget {
 
 class _AICoachScreenState extends ConsumerState<AICoachScreen> {
   final _scrollController = ScrollController();
-  bool _keyConfigured = true;
-
-  static bool _isPlaceholderKey(String? key) {
-    if (key == null || key.isEmpty) return true;
-    final lower = key.toLowerCase();
-    return lower == 'your-api-key-here' ||
-        lower == 'your-real-key-here' ||
-        lower.startsWith('your-') ||
-        lower.contains('placeholder') ||
-        lower.contains('replace-me');
-  }
 
   @override
   void initState() {
     super.initState();
     AppLogger.log('AI Coach opened');
-    final key = dotenv.isInitialized ? dotenv.env['ANTHROPIC_API_KEY'] : null;
-    _keyConfigured = !_isPlaceholderKey(key);
-    if (!_keyConfigured) {
-      AppLogger.log('AI Coach: API key missing or placeholder');
-    }
   }
 
   @override
@@ -61,7 +44,7 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
   }
 
   void _sendMessage(String text) {
-    if (!_keyConfigured) {
+    if (ref.read(anthropicServiceProvider) == null) {
       showCupertinoDialog<void>(
         context: context,
         builder: (ctx) => CupertinoAlertDialog(
@@ -69,8 +52,8 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
           content: const Padding(
             padding: EdgeInsets.only(top: 8),
             child: Text(
-              'AI Coach is not configured yet. Please add your '
-              'ANTHROPIC_API_KEY to assets/.env and rebuild the app.',
+              "AI Coach isn't set up yet. A backend proxy (AI_PROXY_URL) "
+              'needs to be configured before you can chat.',
             ),
           ),
           actions: [

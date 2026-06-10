@@ -72,7 +72,8 @@ class AIChatController extends StateNotifier<ChatState> {
     if (_anthropic == null) {
       state = state.copyWith(
         errorMessage: () =>
-            'API key not configured. Add your key to assets/.env',
+            "AI Coach isn't set up. A backend proxy (AI_PROXY_URL) must be "
+            'configured.',
       );
       return;
     }
@@ -140,6 +141,11 @@ class AIChatController extends StateNotifier<ChatState> {
           state = state.copyWith(streamingContent: buffer.toString());
         }
       } catch (streamErr) {
+        if (streamErr is AnthropicRateLimitException) {
+          // Daily cap hit — terminal. Don't burn a second call on the
+          // non-streaming fallback; surface the limit notice.
+          rethrow;
+        }
         if (firstChunk) {
           // Nothing streamed yet — try non-streaming fallback.
           streamFailedBeforeFirstChunk = true;
@@ -185,11 +191,14 @@ class AIChatController extends StateNotifier<ChatState> {
       );
     } on AnthropicException catch (e) {
       if (!mounted) return;
+      // The daily-limit message is already user-friendly — show it verbatim.
       state = state.copyWith(
         isStreaming: false,
         isWaitingForStream: false,
         streamingContent: '',
-        errorMessage: () => _friendlyError(e.message),
+        errorMessage: () => e is AnthropicRateLimitException
+            ? e.message
+            : _friendlyError(e.message),
       );
     } catch (e) {
       if (!mounted) return;
@@ -219,8 +228,10 @@ class AIChatController extends StateNotifier<ChatState> {
     if (lower.contains('rate_limit') || lower.contains('rate limit')) {
       return 'Too many requests. Please wait a moment and try again.';
     }
-    if (lower.contains('authentication') || lower.contains('invalid')) {
-      return 'Invalid API key. Check your key in assets/.env';
+    if (lower.contains('authentication') ||
+        lower.contains('invalid') ||
+        lower.contains('auth token')) {
+      return "Couldn't verify your session. Please sign out and back in.";
     }
     if (lower.contains('overloaded')) {
       return 'The AI service is busy. Please try again in a minute.';

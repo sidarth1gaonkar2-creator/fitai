@@ -17,8 +17,8 @@ class AnthropicService {
     // backend and is never present on the device.
     if (proxyEndpoint == null && apiKey.isEmpty) {
       throw AnthropicException(
-        'ANTHROPIC_API_KEY is missing. Add it to assets/.env and ensure '
-        'the file is listed under flutter.assets in pubspec.yaml.',
+        'AnthropicService requires a proxy endpoint (AI_PROXY_URL). The '
+        'Anthropic key is never used on-device.',
       );
     }
   }
@@ -117,6 +117,13 @@ class AnthropicService {
         } catch (_) {}
         final errorMsg = errorJson?['error']?['message'] as String? ??
             'API error (${response.statusCode})';
+        // 429 from the proxy is our own per-user daily cap (Anthropic's own
+        // errors are masked to a generic 502 server-side). Surface it as a
+        // distinct, terminal exception so the controller shows the limit
+        // notice instead of retrying via the non-streaming fallback.
+        if (response.statusCode == 429) {
+          throw AnthropicRateLimitException(errorMsg);
+        }
         throw AnthropicException(errorMsg);
       }
 
@@ -246,6 +253,9 @@ class AnthropicService {
         } catch (_) {}
         final errorMsg = errorJson?['error']?['message'] as String? ??
             'API error (${response.statusCode})';
+        if (response.statusCode == 429) {
+          throw AnthropicRateLimitException(errorMsg);
+        }
         throw AnthropicException(errorMsg);
       }
 
@@ -292,4 +302,11 @@ class AnthropicException implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// Thrown when the proxy rejects a request because the signed-in user has hit
+/// their per-user daily AI Coach cap (HTTP 429). [message] is already
+/// user-friendly and safe to show directly.
+class AnthropicRateLimitException extends AnthropicException {
+  AnthropicRateLimitException(super.message);
 }
