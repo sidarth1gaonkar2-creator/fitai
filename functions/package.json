@@ -1,10 +1,10 @@
 {
   "name": "drillfit-functions",
-  "description": "Server-side AI proxy for DrillFit — keeps the Anthropic key off the device",
+  "description": "Server-side AI proxy for DrillFit â€” keeps the Anthropic key off the device",
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "index.js",
   "scripts": {
