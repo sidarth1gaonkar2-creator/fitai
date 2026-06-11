@@ -84,7 +84,8 @@ Future<bool> saveWeightEntry(WidgetRef ref, double kg) async {
       });
     }
     return true;
-  } catch (_) {
+  } catch (e, st) {
+    AppLogger.error('Failed to save weight entry', error: e, stack: st);
     return false;
   }
 }

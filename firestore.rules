@@ -5,6 +5,14 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if request.auth.uid == userId;
 
+      // Private per-user app profile (fitness onboarding source of truth:
+      // goals, TDEE, body stats). Owner-only — deliberately NOT under the
+      // public read above, so health data is never exposed to other users.
+      match /private/{document} {
+        allow read, write: if request.auth != null
+                           && request.auth.uid == userId;
+      }
+
       // Private per-user notifications subcollection. Only the owner of the
       // parent user doc can read their notifications, but any authenticated
       // user can create one (used by follow/like/comment/challenge_join).

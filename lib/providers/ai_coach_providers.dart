@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/ai_coach/presentation/ai_coach_controller.dart';
 import '../services/anthropic_service.dart';
+import 'auth_provider.dart';
 
 /// Anthropic API service — null when no backend proxy is configured.
 ///
@@ -35,9 +36,14 @@ final anthropicServiceProvider = Provider<AnthropicService?>((ref) {
   );
 });
 
-/// Chat controller with persistent state.
+/// Chat controller with per-user persistent state.
+///
+/// Watches [currentUserIdProvider] so a sign-out or account switch rebuilds the
+/// notifier: the previous user's in-memory messages are dropped immediately and
+/// the new uid's history is reloaded (empty for signed-out or first-time users).
 final aiChatControllerProvider =
     StateNotifierProvider<AIChatController, ChatState>((ref) {
   final anthropic = ref.watch(anthropicServiceProvider);
-  return AIChatController(ref, anthropic);
+  final uid = ref.watch(currentUserIdProvider);
+  return AIChatController(ref, anthropic, uid);
 });

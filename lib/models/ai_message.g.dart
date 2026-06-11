@@ -32,6 +32,11 @@ const AIMessageSchema = CollectionSchema(
       id: 2,
       name: r'timestamp',
       type: IsarType.dateTime,
+    ),
+    r'uid': PropertySchema(
+      id: 3,
+      name: r'uid',
+      type: IsarType.string,
     )
   },
   estimateSize: _aIMessageEstimateSize,
@@ -39,7 +44,21 @@ const AIMessageSchema = CollectionSchema(
   deserialize: _aIMessageDeserialize,
   deserializeProp: _aIMessageDeserializeProp,
   idName: r'id',
-  indexes: {},
+  indexes: {
+    r'uid': IndexSchema(
+      id: 8193695471701937315,
+      name: r'uid',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'uid',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    )
+  },
   links: {},
   embeddedSchemas: {},
   getId: _aIMessageGetId,
@@ -55,6 +74,7 @@ int _aIMessageEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.content.length * 3;
+  bytesCount += 3 + object.uid.length * 3;
   return bytesCount;
 }
 
@@ -67,6 +87,7 @@ void _aIMessageSerialize(
   writer.writeString(offsets[0], object.content);
   writer.writeByte(offsets[1], object.role.index);
   writer.writeDateTime(offsets[2], object.timestamp);
+  writer.writeString(offsets[3], object.uid);
 }
 
 AIMessage _aIMessageDeserialize(
@@ -81,6 +102,7 @@ AIMessage _aIMessageDeserialize(
   object.role = _AIMessageroleValueEnumMap[reader.readByteOrNull(offsets[1])] ??
       MessageRole.user;
   object.timestamp = reader.readDateTime(offsets[2]);
+  object.uid = reader.readString(offsets[3]);
   return object;
 }
 
@@ -98,6 +120,8 @@ P _aIMessageDeserializeProp<P>(
           MessageRole.user) as P;
     case 2:
       return (reader.readDateTime(offset)) as P;
+    case 3:
+      return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -197,6 +221,50 @@ extension AIMessageQueryWhere
         upper: upperId,
         includeUpper: includeUpper,
       ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterWhereClause> uidEqualTo(String uid) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'uid',
+        value: [uid],
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterWhereClause> uidNotEqualTo(
+      String uid) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'uid',
+              lower: [],
+              upper: [uid],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'uid',
+              lower: [uid],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'uid',
+              lower: [uid],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'uid',
+              lower: [],
+              upper: [uid],
+              includeUpper: false,
+            ));
+      }
     });
   }
 }
@@ -493,6 +561,136 @@ extension AIMessageQueryFilter
       ));
     });
   }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> uidEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'uid',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> uidGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'uid',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> uidLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'uid',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> uidBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'uid',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> uidStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'uid',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> uidEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'uid',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> uidContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'uid',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> uidMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'uid',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> uidIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'uid',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> uidIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'uid',
+        value: '',
+      ));
+    });
+  }
 }
 
 extension AIMessageQueryObject
@@ -535,6 +733,18 @@ extension AIMessageQuerySortBy on QueryBuilder<AIMessage, AIMessage, QSortBy> {
   QueryBuilder<AIMessage, AIMessage, QAfterSortBy> sortByTimestampDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'timestamp', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> sortByUid() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uid', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> sortByUidDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uid', Sort.desc);
     });
   }
 }
@@ -588,6 +798,18 @@ extension AIMessageQuerySortThenBy
       return query.addSortBy(r'timestamp', Sort.desc);
     });
   }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> thenByUid() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uid', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> thenByUidDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uid', Sort.desc);
+    });
+  }
 }
 
 extension AIMessageQueryWhereDistinct
@@ -608,6 +830,13 @@ extension AIMessageQueryWhereDistinct
   QueryBuilder<AIMessage, AIMessage, QDistinct> distinctByTimestamp() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'timestamp');
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QDistinct> distinctByUid(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'uid', caseSensitive: caseSensitive);
     });
   }
 }
@@ -635,6 +864,12 @@ extension AIMessageQueryProperty
   QueryBuilder<AIMessage, DateTime, QQueryOperations> timestampProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'timestamp');
+    });
+  }
+
+  QueryBuilder<AIMessage, String, QQueryOperations> uidProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'uid');
     });
   }
 }

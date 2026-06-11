@@ -28,12 +28,15 @@ class WeightChart extends ConsumerWidget {
     final units = ref.watch(unitSystemProvider);
     final isImperial = units == UnitSystem.imperial;
 
-    if (entries.length < 2) {
+    // 0 entries: nothing logged yet — invite the first log rather than drawing
+    // an empty axis.
+    if (entries.isEmpty) {
       return SizedBox(
         height: 200,
         child: Center(
           child: Text(
-            'Nothing to show yet. Earn your stripes first!',
+            'Log your first weight to see your trend.',
+            textAlign: TextAlign.center,
             style: textTheme.bodyMedium
                 ?.copyWith(color: colorScheme.onSurfaceVariant),
           ),
@@ -59,18 +62,34 @@ class WeightChart extends ConsumerWidget {
 
     final rawMin = spots.map((s) => s.y).reduce((a, b) => a < b ? a : b);
     final rawMax = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
-    // Tight headroom — body weight rarely swings far, so a couple of units
-    // of padding is enough for a clean read.
-    final range = niceRange(
-      rawMin - 1,
-      rawMax + 1,
-      minHeadroomFactor: 1.02,
-    );
+
+    // A single entry needs explicit bounds: one point collapses fl_chart's
+    // X-range (minX == maxX → divide-by-zero → blank). Give the lone point a
+    // ±0.5-day window and a rounded ±2-unit Y band so it renders as a single
+    // centered dot with sane axes instead of nothing.
+    final single = entries.length == 1;
+    final NiceRange range;
+    final double? minX;
+    final double? maxX;
+    if (single) {
+      final minY = (rawMin - 2).floorToDouble();
+      range = NiceRange(minY: minY, maxY: minY + 4, interval: 1);
+      minX = -0.5;
+      maxX = 0.5;
+    } else {
+      // Tight headroom — body weight rarely swings far, so a couple of units
+      // of padding is enough for a clean read.
+      range = niceRange(rawMin - 1, rawMax + 1, minHeadroomFactor: 1.02);
+      minX = null; // let fl_chart derive 0..spanDays from the spots
+      maxX = null;
+    }
 
     return SizedBox(
       height: 220,
       child: LineChart(
         LineChartData(
+          minX: minX,
+          maxX: maxX,
           minY: range.minY,
           maxY: range.maxY,
           gridData: FlGridData(
@@ -141,7 +160,7 @@ class WeightChart extends ConsumerWidget {
               dotData: FlDotData(
                 show: true,
                 getDotPainter: (_, _, _, _) => FlDotCirclePainter(
-                  radius: 2.5,
+                  radius: single ? 5 : 2.5,
                   color: colorScheme.primary,
                   strokeWidth: 0,
                 ),

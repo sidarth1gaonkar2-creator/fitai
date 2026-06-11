@@ -64,6 +64,16 @@ service cloud.firestore {
         && nullOrString(request.resource.data.bio, 280);
       // User-initiated delete (e.g. account deletion) only.
       allow delete: if isOwner(uid);
+
+      // -----------------------------------------------------------------------
+      // /users/{uid}/private/{doc} — owner-only app profile. Holds the fitness
+      // onboarding source of truth (goals, TDEE, body stats). NEVER readable by
+      // other users; kept off the public user doc above on purpose so health
+      // data is not exposed to the community read path.
+      // -----------------------------------------------------------------------
+      match /private/{document} {
+        allow read, write: if isOwner(uid);
+      }
     }
 
     // -------------------------------------------------------------------------

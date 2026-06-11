@@ -27,6 +27,7 @@ import '../features/nutrition/presentation/nutrition_screen.dart';
 import '../features/nutrition/presentation/restaurant_api_search_screen.dart';
 import '../features/nutrition/presentation/restaurant_browser_screen.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
+import '../features/onboarding/presentation/profile_error_screen.dart';
 import '../features/progress/presentation/pr_hall_screen.dart';
 import '../features/progress/presentation/progress_screen.dart';
 import '../features/settings/presentation/edit_profile_screen.dart';
@@ -46,7 +47,7 @@ import '../features/workouts/presentation/workouts_screen.dart';
 import '../models/enums.dart';
 import '../providers/auth_provider.dart';
 import '../providers/community_providers.dart';
-import '../providers/user_profile_provider.dart';
+import '../providers/onboarding_gate_provider.dart';
 
 const _authRoutes = {'/welcome', '/signin', '/signup'};
 
@@ -62,7 +63,10 @@ const _authRoutes = {'/welcome', '/signin', '/signup'};
 class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(this._ref) {
     _ref.listen(authStateProvider, (_, _) => notifyListeners());
-    _ref.listen(userProfileProvider, (_, _) => notifyListeners());
+    // Onboarding-vs-app is decided by this gate (Firestore source of truth +
+    // local cache), NOT by userProfileProvider — so logging body weight (which
+    // invalidates userProfileProvider) no longer re-runs the redirect.
+    _ref.listen(onboardingGateProvider, (_, _) => notifyListeners());
     _ref.listen(firestoreUserProvider, (_, _) => notifyListeners());
   }
 
@@ -75,49 +79,51 @@ class _RouterNotifier extends ChangeNotifier {
     final user = authAsync.valueOrNull;
     final location = state.matchedLocation;
     final isAuthRoute = _authRoutes.contains(location);
+    final isOnboarding = location == '/onboarding';
+    final isProfileSetup = location == '/profile-setup';
+    final isProfileError = location == '/profile-error';
 
     // Not authenticated → welcome
     if (user == null) {
       return isAuthRoute ? null : '/welcome';
     }
 
-    // Signed in. Wait for the profile to (re)resolve before any onboarding /
-    // setup routing — a transient reload (e.g. logging body weight invalidates
-    // userProfileProvider) must not be read as "no profile" and bounce the user.
-    final profileAsync = _ref.read(userProfileProvider);
-    if (profileAsync.isLoading) return null;
-    final hasProfile = profileAsync.valueOrNull != null;
+    // Signed in. Resolve onboarding from Firestore (source of truth) with a
+    // local cache fallback. While it's still resolving, stay on the current
+    // route — returning null here is what prevents an onboarding flash for an
+    // existing user whose initial route is /dashboard.
+    final gateAsync = _ref.read(onboardingGateProvider);
+    if (gateAsync.isLoading) return null;
 
-    // Authenticated on auth route → forward
-    if (isAuthRoute) {
-      if (!hasProfile) return '/onboarding';
-      final hasFirestoreProfile =
-          _ref.read(firestoreUserProvider).valueOrNull != null;
-      return hasFirestoreProfile ? '/dashboard' : '/profile-setup';
+    // Couldn't determine onboarding state AND no local cache → retry screen.
+    // Never fall through to onboarding (re-completing could overwrite a profile).
+    if (gateAsync.hasError) {
+      return isProfileError ? null : '/profile-error';
     }
 
-    // Onboarding guard
-    final isOnboarding = location == '/onboarding';
-    final isProfileSetup = location == '/profile-setup';
-
-    if (!hasProfile && !isOnboarding) return '/onboarding';
-    if (hasProfile && isOnboarding) {
-      final hasFirestoreProfile =
-          _ref.read(firestoreUserProvider).valueOrNull != null;
-      return hasFirestoreProfile ? '/dashboard' : '/profile-setup';
+    final onboarded = gateAsync.valueOrNull == OnboardingGate.ready;
+    if (!onboarded) {
+      return isOnboarding ? null : '/onboarding';
     }
 
-    // Profile setup guard. Don't bounce an established user to setup while the
-    // Firestore profile is still loading.
-    if (hasProfile && !isProfileSetup) {
-      final firestoreAsync = _ref.read(firestoreUserProvider);
+    // Onboarded. The social/community profile now decides dashboard vs setup
+    // (unchanged behaviour). `firestoreUserProvider` is the public users/{uid}
+    // doc — distinct from the private onboarding profile above.
+    final firestoreAsync = _ref.read(firestoreUserProvider);
+
+    // Coming from an entry / transient route → forward to the right home.
+    if (isAuthRoute || isOnboarding || isProfileError) {
       if (firestoreAsync.isLoading) return null;
-      final hasFirestoreProfile = firestoreAsync.valueOrNull != null;
-      if (!hasFirestoreProfile &&
-          !isOnboarding &&
-          location != '/profile-setup') {
-        return '/profile-setup';
-      }
+      final hasSocialProfile = firestoreAsync.valueOrNull != null;
+      return hasSocialProfile ? '/dashboard' : '/profile-setup';
+    }
+
+    // Established user navigating in-app: only bounce to setup if we positively
+    // know the social profile is missing (don't bounce while it's loading).
+    if (!isProfileSetup) {
+      if (firestoreAsync.isLoading) return null;
+      final hasSocialProfile = firestoreAsync.valueOrNull != null;
+      if (!hasSocialProfile) return '/profile-setup';
     }
 
     return null;
@@ -160,6 +166,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/profile-setup',
         builder: (context, state) => const ProfileSetupScreen(),
+      ),
+      GoRoute(
+        path: '/profile-error',
+        builder: (context, state) => const ProfileErrorScreen(),
       ),
 
       // ─── Main Shell (5 tabs) ──────────────────────────────────

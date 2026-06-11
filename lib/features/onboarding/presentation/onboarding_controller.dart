@@ -1,12 +1,16 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:isar/isar.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/utils/tdee_calculator.dart';
 import '../../../models/enums.dart';
 import '../../../models/onboarding_progress.dart';
 import '../../../models/user_profile.dart';
 import '../../../providers/isar_provider.dart';
+import '../../../providers/onboarding_gate_provider.dart';
+import '../../../providers/unit_system_provider.dart';
 import '../../../providers/user_profile_provider.dart';
+import '../data/remote_profile_repository.dart';
 import '../domain/onboarding_state.dart';
 
 class OnboardingController extends StateNotifier<OnboardingState> {
@@ -108,7 +112,16 @@ class OnboardingController extends StateNotifier<OnboardingState> {
 
       state = state.copyWith(tdeeBreakdown: breakdown);
 
-      final profile = UserProfile()
+      final isar = _ref.read(isarProvider);
+
+      // Merge into the existing profile row (reuse its id) rather than inserting
+      // a duplicate — if onboarding is ever re-entered, this updates the single
+      // profile in place and never orphans the prior one (which `findFirst`
+      // could otherwise keep returning). Workout/nutrition history lives in
+      // separate collections and is untouched.
+      final existing =
+          await isar.userProfiles.where().anyId().build().findFirst();
+      final profile = (existing ?? UserProfile())
         ..name = state.name
         ..age = state.age!
         ..sex = state.sex!
@@ -118,10 +131,9 @@ class OnboardingController extends StateNotifier<OnboardingState> {
         ..activityLevel = state.activityLevel!
         ..tdee = breakdown.goalAdjustedTarget;
 
-      final isar = _ref.read(isarProvider);
-      // Save profile and clear draft in a single transaction
+      // Save profile and clear draft in a single transaction.
       await isar.writeTxn(() async {
-        await isar.userProfiles.put(profile);
+        await isar.userProfiles.put(profile); // keeps existing id if present
         await isar.onboardingProgress.delete(1);
       });
 
@@ -129,6 +141,36 @@ class OnboardingController extends StateNotifier<OnboardingState> {
       // new profile before the router re-evaluates the redirect.
       _ref.invalidate(userProfileProvider);
       await _ref.read(userProfileProvider.future);
+
+      // Persist completion to the PRIVATE Firestore profile — the source of
+      // truth so future devices/installs route straight to the app. Best-effort
+      // here: on failure the next-launch gate backfills it from the local
+      // profile, so we don't block the user on a flaky write.
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        // Tag the local profile as belonging to this account so the routing
+        // gate trusts it (the local profile collection isn't uid-scoped yet).
+        try {
+          await _ref
+              .read(sharedPreferencesProvider)
+              .setString(localProfileOwnerKey, uid);
+        } catch (_) {
+          // Non-fatal — the gate still resolves via the remote write below.
+        }
+        try {
+          await _ref
+              .read(remoteProfileRepositoryProvider)
+              .save(uid, RemoteProfile.fromLocal(profile));
+        } catch (e, st) {
+          AppLogger.error(
+            'Onboarding: remote profile write failed (will backfill next launch)',
+            error: e,
+            stack: st,
+          );
+        }
+        // Refresh the gate so the router advances to the app now.
+        _ref.invalidate(onboardingGateProvider);
+      }
 
       AppLogger.log('Onboarding completed');
     } catch (e, st) {
