@@ -1,11 +1,20 @@
 import Flutter
 import HealthKit
 import UIKit
+import UserNotifications
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   /// Method channel name used by Dart's HealthService.canUseHealthKit().
   private static let healthCheckChannel = "com.sidarth.fitai/health_check"
+
+  /// Method channel that lets the hidden Notification Diagnostics screen read
+  /// the *real* iOS notification state — the data the flutter_local_notifications
+  /// Dart API can't expose (per-request trigger dates, the precise
+  /// authorization status). We have no device console on TestFlight, so this is
+  /// the only way to see, on-device, whether a schedule actually landed and
+  /// when iOS will fire it.
+  private static let notifDiagChannel = "com.sidarth.fitai/notif_diag"
 
   override func application(
     _ application: UIApplication,
@@ -17,6 +26,76 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     registerHealthKitCheckChannel(registry: engineBridge.pluginRegistry)
+    registerNotifDiagChannel(registry: engineBridge.pluginRegistry)
+  }
+
+  /// Registers the notification-diagnostics channel. Read-only: it queries
+  /// `UNUserNotificationCenter` for the pending request queue (with each
+  /// request's trigger date) and the authorization status. It never schedules,
+  /// cancels, or sets a delegate, so it can't interfere with the
+  /// flutter_local_notifications plugin.
+  private func registerNotifDiagChannel(registry: FlutterPluginRegistry) {
+    guard let registrar = registry.registrar(forPlugin: "NotifDiagPlugin")
+    else { return }
+    let channel = FlutterMethodChannel(
+      name: Self.notifDiagChannel,
+      binaryMessenger: registrar.messenger()
+    )
+    channel.setMethodCallHandler { call, result in
+      let center = UNUserNotificationCenter.current()
+      switch call.method {
+      case "getAuthorizationStatus":
+        center.getNotificationSettings { settings in
+          DispatchQueue.main.async {
+            result(Self.authorizationStatusName(settings.authorizationStatus))
+          }
+        }
+      case "getPendingDetailed":
+        center.getPendingNotificationRequests { requests in
+          var out: [[String: Any]] = []
+          for r in requests {
+            var item: [String: Any] = [
+              "id": r.identifier,
+              "title": r.content.title,
+              "body": r.content.body,
+            ]
+            if let t = r.trigger as? UNCalendarNotificationTrigger {
+              item["type"] = "calendar"
+              item["repeats"] = t.repeats
+              if let next = t.nextTriggerDate() {
+                item["nextTriggerMs"] = next.timeIntervalSince1970 * 1000.0
+              }
+            } else if let t = r.trigger as? UNTimeIntervalNotificationTrigger {
+              item["type"] = "interval"
+              item["repeats"] = t.repeats
+              if let next = t.nextTriggerDate() {
+                item["nextTriggerMs"] = next.timeIntervalSince1970 * 1000.0
+              }
+            } else {
+              item["type"] = "immediate-or-other"
+            }
+            out.append(item)
+          }
+          DispatchQueue.main.async { result(out) }
+        }
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  /// Human-readable name for a `UNAuthorizationStatus`.
+  private static func authorizationStatusName(_ status: UNAuthorizationStatus)
+    -> String
+  {
+    switch status {
+    case .notDetermined: return "notDetermined"
+    case .denied: return "denied"
+    case .authorized: return "authorized"
+    case .provisional: return "provisional"
+    case .ephemeral: return "ephemeral"
+    @unknown default: return "unknown(\(status.rawValue))"
+    }
   }
 
   /// Registers a method channel that lets Dart pre-flight HealthKit availability

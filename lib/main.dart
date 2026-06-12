@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/database/isar_service.dart';
 import 'core/utils/logger.dart';
+import 'core/utils/notif_diag_log.dart';
 import 'features/splash/presentation/splash_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/firestore_provider.dart';
@@ -128,6 +129,12 @@ Future<BootstrapResult> _bootstrap() async {
   }
 
   final prefs = await SharedPreferences.getInstance();
+
+  // Wire the persistent [notif] ring buffer NOW, before NotificationService
+  // .init() runs below — so the timezone-resolution and any cold-launch
+  // schedule errors are captured and survive a restart (readable on-device
+  // via the hidden Notification Diagnostics screen).
+  NotifDiagLog.attach(prefs);
 
   // One-time data migrations (best-effort).
   if (isar != null) {

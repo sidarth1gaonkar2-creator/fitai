@@ -5,6 +5,7 @@ import 'package:timezone/data/latest_all.dart' as tz_data;
 
 import '../core/utils/logger.dart';
 import '../data/motivator_messages.dart';
+import 'notification_diagnostics.dart';
 
 class NotificationService {
   NotificationService._();
@@ -14,6 +15,19 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
+
+  /// Diagnostic state captured during [init], surfaced by [collectDiagnostics]
+  /// so the hidden screen can show a UTC fallback at a glance.
+  String? _resolvedTimezone;
+  String? _tzInitError;
+
+  /// Whether [init] ran far enough to finish `plugin.initialize()`.
+  bool get isInitialized => _initialized;
+
+  /// Dedicated id for the on-device "fire test in 60s" probe. Chosen to sit in
+  /// the gap between morning motivation (860) and the challenge range (900+) so
+  /// it can never collide with a real reminder.
+  static const int diagnosticTestId = 870;
 
   Future<void> init() async {
     if (_initialized) return;
@@ -25,8 +39,11 @@ class NotificationService {
     try {
       final localZone = await FlutterTimezone.getLocalTimezone();
       tz.setLocalLocation(tz.getLocation(localZone));
-      AppLogger.log('[notif] local timezone set to $localZone');
+      _resolvedTimezone = localZone;
+      AppLogger.log('[notif] local timezone set to $localZone '
+          '(tz.local=${tz.local.name})');
     } catch (e, st) {
+      _tzInitError = '${e.runtimeType}: $e';
       AppLogger.error('[notif] timezone resolve failed; staying on UTC',
           error: e, stack: st);
     }
@@ -46,6 +63,17 @@ class NotificationService {
       ),
     );
     _initialized = true;
+    AppLogger.log('[notif] plugin initialized (tz.local=${_safeTzName()})');
+  }
+
+  /// `tz.local.name` without ever throwing — if the database wasn't initialized
+  /// the getter throws, and we never want diagnostics collection to crash.
+  String _safeTzName() {
+    try {
+      return tz.local.name;
+    } catch (e) {
+      return 'UNRESOLVED(${e.runtimeType})';
+    }
   }
 
   Future<bool> requestPermission() async {
@@ -492,7 +520,12 @@ class NotificationService {
   // ───────────────────────────────────────────────────────────────────────
 
   static const _drillSergeantIds = [850, 851, 852, 853];
-  static const _morningMotivationId = 860;
+
+  /// Public so the diagnostics screen can check whether the morning-motivation
+  /// reminder actually landed in the OS pending queue (the failure under
+  /// investigation in Build 77 is specific to this id).
+  static const int morningMotivationId = 860;
+  static const _morningMotivationId = morningMotivationId;
 
   /// Slot times per intensity level. Hours are 24h local time.
   ///   1 = Mild Roast      → 1 notification (6 PM)
@@ -611,5 +644,165 @@ class NotificationService {
         iOS: DarwinNotificationDetails(),
       ),
     );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // On-device diagnostics (hidden Notification Diagnostics screen)
+  //
+  // We have NO console access on TestFlight, so these surface the entire
+  // schedule pipeline on the device itself: the resolved timezone (to catch a
+  // silent UTC fallback), the live OS permission, the real pending queue with
+  // trigger dates, and a fire-test that returns any zonedSchedule exception
+  // text instead of swallowing it.
+  // ───────────────────────────────────────────────────────────────────────
+
+  /// Snapshot every fact the diagnostics screen renders. Never throws — any
+  /// failure is captured into [NotifDiagnostics.collectError].
+  Future<NotifDiagnostics> collectDiagnostics() async {
+    String tzLive;
+    String? tzLiveError;
+    try {
+      tzLive = await FlutterTimezone.getLocalTimezone();
+    } catch (e) {
+      tzLive = '(unavailable)';
+      tzLiveError = '${e.runtimeType}: $e';
+    }
+
+    bool? permEnabled;
+    var permDetail = 'unknown';
+    try {
+      final ios = _plugin.resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>();
+      if (ios != null) {
+        final opts = await ios.checkPermissions();
+        permEnabled = opts?.isEnabled;
+        if (opts != null) {
+          permDetail = 'alert=${opts.isAlertEnabled} '
+              'badge=${opts.isBadgeEnabled} sound=${opts.isSoundEnabled} '
+              'provisional=${opts.isProvisionalEnabled} '
+              'critical=${opts.isCriticalEnabled}';
+        } else {
+          permDetail = 'checkPermissions() returned null';
+        }
+      } else {
+        final android = _plugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+        if (android != null) {
+          permEnabled = await android.areNotificationsEnabled();
+          permDetail = 'android areNotificationsEnabled=$permEnabled';
+        }
+      }
+    } catch (e) {
+      permDetail = 'permission check failed: ${e.runtimeType}: $e';
+    }
+
+    final nativeAuth = await NotifNativeDiag.authorizationStatus();
+
+    // Prefer the native queue (has trigger dates); fall back to the Dart API.
+    var pendingFromNative = true;
+    var pending = await NotifNativeDiag.pendingDetailed();
+    if (pending == null) {
+      pendingFromNative = false;
+      try {
+        final dart = await _plugin.pendingNotificationRequests();
+        pending = dart
+            .map((p) => PendingEntry(
+                  id: p.id,
+                  title: p.title,
+                  body: p.body,
+                  fromNative: false,
+                ))
+            .toList();
+      } catch (e) {
+        pending = <PendingEntry>[];
+      }
+    }
+    pending.sort((a, b) {
+      final at = a.nextTrigger, bt = b.nextTrigger;
+      if (at == null && bt == null) return a.id.compareTo(b.id);
+      if (at == null) return 1;
+      if (bt == null) return -1;
+      return at.compareTo(bt);
+    });
+
+    return NotifDiagnostics(
+      collectedAt: DateTime.now(),
+      pluginInitialized: _initialized,
+      tzLocalName: _safeTzName(),
+      tzResolvedAtInit: _resolvedTimezone,
+      tzInitError: _tzInitError,
+      tzLiveResolved: tzLive,
+      tzLiveError: tzLiveError,
+      permissionEnabled: permEnabled,
+      permissionDetail: permDetail,
+      nativeAuthStatus: nativeAuth,
+      pending: pending,
+      pendingFromNative: pendingFromNative,
+      collectError: null,
+    );
+  }
+
+  /// Schedules a one-shot probe 60 seconds out through the SAME
+  /// [_plugin.zonedSchedule] path morning motivation uses (same channel, iOS
+  /// details and Android schedule mode). Unlike the production helpers this one
+  /// deliberately does NOT swallow the exception — it returns the text so the
+  /// screen can show exactly why scheduling failed.
+  Future<DiagTestResult> scheduleDiagnosticTest() async {
+    final tzName = _safeTzName();
+    tz.TZDateTime scheduled;
+    try {
+      scheduled =
+          tz.TZDateTime.now(tz.local).add(const Duration(seconds: 60));
+    } catch (e, st) {
+      AppLogger.error('[notif] diag test: tz.local unusable', error: e,
+          stack: st);
+      return DiagTestResult(
+        success: false,
+        tzName: tzName,
+        error: '${e.runtimeType}: $e',
+        stack: st.toString(),
+      );
+    }
+
+    try {
+      await _plugin.zonedSchedule(
+        id: diagnosticTestId,
+        title: 'DrillFit test ping',
+        body: 'Scheduling works. This was queued 60s ago from Diagnostics.',
+        scheduledDate: scheduled,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'drill_sergeant',
+            'Drill Sergeant',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+      AppLogger.log('[notif] diag test scheduled for '
+          '${scheduled.toIso8601String()} (tz=$tzName)');
+      return DiagTestResult(
+        success: true,
+        scheduledFor: DateTime.fromMillisecondsSinceEpoch(
+            scheduled.millisecondsSinceEpoch),
+        tzName: tzName,
+      );
+    } catch (e, st) {
+      AppLogger.error('[notif] diag test FAILED to schedule',
+          error: e, stack: st);
+      return DiagTestResult(
+        success: false,
+        tzName: tzName,
+        error: '${e.runtimeType}: $e',
+        stack: st.toString(),
+      );
+    }
+  }
+
+  /// Cancels the diagnostic probe (used by the screen's "clear test" action).
+  Future<void> cancelDiagnosticTest() async {
+    await _plugin.cancel(id: diagnosticTestId);
   }
 }

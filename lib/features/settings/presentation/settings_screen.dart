@@ -700,23 +700,33 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                _SettingsCard(
-                  child: CupertinoListTile(
-                    leading: _SettingsIconBadge(
-                      icon: CupertinoIcons.info,
-                      color: palette.accent,
-                    ),
-                    title: Text(
-                      'DrillFit',
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: palette.text,
-                        fontWeight: FontWeight.w500,
+                // Long-press the version row to open the hidden Notification
+                // Diagnostics screen — the only way to inspect the local-
+                // notification pipeline on a TestFlight device (no console).
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onLongPress: () {
+                    HapticFeedback.mediumImpact();
+                    context.push('/settings/diagnostics');
+                  },
+                  child: _SettingsCard(
+                    child: CupertinoListTile(
+                      leading: _SettingsIconBadge(
+                        icon: CupertinoIcons.info,
+                        color: palette.accent,
                       ),
-                    ),
-                    subtitle: Text(
-                      'Version 1.0.0',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: palette.textSecondary,
+                      title: Text(
+                        'DrillFit',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.text,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Version 1.0.0',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textSecondary,
+                        ),
                       ),
                     ),
                   ),

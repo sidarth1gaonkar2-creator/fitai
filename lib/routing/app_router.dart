@@ -31,6 +31,7 @@ import '../features/onboarding/presentation/profile_error_screen.dart';
 import '../features/progress/presentation/pr_hall_screen.dart';
 import '../features/progress/presentation/progress_screen.dart';
 import '../features/settings/presentation/edit_profile_screen.dart';
+import '../features/settings/presentation/notification_diagnostics_screen.dart';
 import '../features/settings/presentation/notification_settings_screen.dart';
 import '../features/nutrition/presentation/create_saved_meal_screen.dart';
 import '../features/nutrition/presentation/saved_meals_screen.dart';
@@ -544,6 +545,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => slideUpTransitionPage(
               key: state.pageKey,
               child: const NotificationSettingsScreen(),
+            ),
+          ),
+          // Hidden developer screen — reached by long-pressing the version row
+          // in Settings. Surfaces the local-notification pipeline on-device.
+          GoRoute(
+            path: 'diagnostics',
+            pageBuilder: (context, state) => slideUpTransitionPage(
+              key: state.pageKey,
+              child: const NotificationDiagnosticsScreen(),
             ),
           ),
         ],
