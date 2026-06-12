@@ -54,6 +54,175 @@ function utcDay() {
   return new Date().toISOString().slice(0, 10);
 }
 
+// ---------------------------------------------------------------------------
+// AI Coach tool use (Build 75)
+//
+// Two tools the model may PROPOSE — never auto-applied. The app renders a
+// confirmation card and only an explicit user tap writes data. Definitions live
+// here, server-side, so the schema is single-sourced and the client never holds
+// it. Injected into every request below.
+// ---------------------------------------------------------------------------
+const TOOLS = [
+  {
+    name: "update_nutrition_goals",
+    description:
+      "Propose new daily nutrition targets for the user to review. NEVER " +
+      "applied automatically — the app shows a confirmation card and only an " +
+      "explicit user tap saves them. Call this only when the user asks to " +
+      "change their goals/targets.",
+    input_schema: {
+      type: "object",
+      properties: {
+        calories: {type: "integer", description: "Daily calorie target (kcal)"},
+        proteinG: {type: "integer", description: "Daily protein target (g)"},
+        carbsG: {type: "integer", description: "Daily carbohydrate target (g)"},
+        fatG: {type: "integer", description: "Daily fat target (g)"},
+        rationale: {
+          type: "string",
+          description: "Short, in-character reason for the change.",
+        },
+      },
+      required: ["calories", "proteinG", "carbsG", "fatG", "rationale"],
+    },
+  },
+  {
+    name: "create_workout",
+    description:
+      "Propose a workout for the user to review and start. NEVER applied " +
+      "automatically. Derive suggestedWeightKg from the user's actual lift " +
+      "history (~80-90% of a recent best for the rep range); use null when " +
+      "there is no history for an exercise. Call this only when the user asks " +
+      "for a workout or plan.",
+    input_schema: {
+      type: "object",
+      properties: {
+        name: {type: "string"},
+        focus: {type: "string"},
+        exercises: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              exerciseName: {type: "string"},
+              sets: {type: "integer"},
+              reps: {type: "integer"},
+              suggestedWeightKg: {type: ["number", "null"]},
+              restSeconds: {type: "integer"},
+              notes: {type: ["string", "null"]},
+            },
+            required: ["exerciseName", "sets", "reps", "restSeconds"],
+          },
+        },
+        rationale: {type: "string"},
+      },
+      required: ["name", "focus", "exercises", "rationale"],
+    },
+  },
+];
+
+const TOOL_NAMES = new Set(TOOLS.map((t) => t.name));
+
+// update_nutrition_goals clamp bounds: [min, max].
+const NUTRITION_BOUNDS = {
+  calories: [1200, 6000],
+  proteinG: [30, 400],
+  carbsG: [0, 800],
+  fatG: [20, 300],
+};
+const MAX_EXERCISES = 12;
+const MAX_SETS = 10;
+const MAX_REPS = 50;
+
+// Shown (as plain assistant text) when a tool_use is rejected, so the user gets
+// a graceful reply instead of a broken/blocked card. Stays in character.
+const TOOL_REJECTED_TEXT =
+  "Belay that — those numbers were out of safe range, so I won't push that " +
+  "change. Tell me what you're after and I'll redraw it.";
+
+function clampInt(value, bounds) {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return null;
+  return Math.min(bounds[1], Math.max(bounds[0], n));
+}
+
+// Validates + sanitizes a completed tool_use input. Returns {ok:true, input}
+// with the cleaned input to forward, or {ok:false, reason} to reject (→ apology
+// text). Nutrition values are CLAMPED into range; workouts are REJECTED when
+// structurally out of bounds.
+function validateToolInput(name, input) {
+  if (!TOOL_NAMES.has(name)) return {ok: false, reason: "unknown tool"};
+  if (input == null || typeof input !== "object") {
+    return {ok: false, reason: "non-object input"};
+  }
+
+  if (name === "update_nutrition_goals") {
+    const out = {};
+    for (const key of ["calories", "proteinG", "carbsG", "fatG"]) {
+      const c = clampInt(input[key], NUTRITION_BOUNDS[key]);
+      if (c === null) return {ok: false, reason: `missing/invalid ${key}`};
+      out[key] = c;
+    }
+    out.rationale = typeof input.rationale === "string" ? input.rationale : "";
+    return {ok: true, input: out};
+  }
+
+  // create_workout
+  const exercises = Array.isArray(input.exercises) ? input.exercises : null;
+  if (!exercises || exercises.length === 0) {
+    return {ok: false, reason: "no exercises"};
+  }
+  if (exercises.length > MAX_EXERCISES) {
+    return {ok: false, reason: ">12 exercises"};
+  }
+  for (const ex of exercises) {
+    if (!ex || typeof ex.exerciseName !== "string" || !ex.exerciseName.trim()) {
+      return {ok: false, reason: "bad exerciseName"};
+    }
+    const sets = Number(ex.sets);
+    const reps = Number(ex.reps);
+    if (!Number.isInteger(sets) || sets < 1 || sets > MAX_SETS) {
+      return {ok: false, reason: "sets out of range"};
+    }
+    if (!Number.isInteger(reps) || reps < 1 || reps > MAX_REPS) {
+      return {ok: false, reason: "reps out of range"};
+    }
+  }
+  return {ok: true, input};
+}
+
+// Write one Anthropic-style SSE data line. The client parses only `data:` lines
+// (keyed by the `type` field inside), so this is all it needs.
+function sseData(res, obj) {
+  res.write(`data: ${JSON.stringify(obj)}\n\n`);
+}
+
+// Emits a validated tool_use as a normalized 3-event sequence carrying the
+// SANITIZED input in one input_json_delta — so the client receives exactly the
+// clamped/validated values, not the model's raw ones.
+function emitToolUse(res, index, id, name, input) {
+  sseData(res, {
+    type: "content_block_start",
+    index,
+    content_block: {type: "tool_use", id, name, input: {}},
+  });
+  sseData(res, {
+    type: "content_block_delta",
+    index,
+    delta: {type: "input_json_delta", partial_json: JSON.stringify(input)},
+  });
+  sseData(res, {type: "content_block_stop", index});
+}
+
+// Emits the rejection apology as a normal text delta so it lands in the chat
+// like any other assistant text.
+function emitApology(res, index) {
+  sseData(res, {
+    type: "content_block_delta",
+    index,
+    delta: {type: "text_delta", text: TOOL_REJECTED_TEXT},
+  });
+}
+
 exports.aiProxy = onRequest(
     {
       secrets: [ANTHROPIC_API_KEY],
@@ -159,7 +328,14 @@ exports.aiProxy = onRequest(
         return;
       }
 
-      // 4. Forward to Anthropic with the server-side key.
+      // 4. Forward to Anthropic with the server-side key. Tool definitions are
+      //    injected here (not trusted from the client). disable_parallel_tool_use
+      //    enforces at most one proposal per turn.
+      const forwardBody = {
+        ...req.body,
+        tools: TOOLS,
+        tool_choice: {type: "auto", disable_parallel_tool_use: true},
+      };
       let upstream;
       try {
         upstream = await fetch(ANTHROPIC_URL, {
@@ -170,7 +346,7 @@ exports.aiProxy = onRequest(
             "anthropic-version": "2023-06-01",
             ...(req.get("accept") ? {accept: req.get("accept")} : {}),
           },
-          body: JSON.stringify(req.body),
+          body: JSON.stringify(forwardBody),
         });
       } catch (err) {
         logger.error("Upstream Anthropic request failed", err);
@@ -198,21 +374,117 @@ exports.aiProxy = onRequest(
         return;
       }
 
-      // 6. Happy path: stream the 200 body straight through so the client's SSE
-      //    parser sees tokens live (one-shot JSON passes through unchanged too).
+      // 6. Stream the 200 response. Text deltas pass straight through (live),
+      //    but each tool_use block is accumulated until its content_block_stop
+      //    so the completed input is validated BEFORE the client ever sees it —
+      //    rejected tools become a plain text apology. Only the tool_use block
+      //    is buffered, never the whole response.
       res.status(200);
-      const contentType = upstream.headers.get("content-type");
-      if (contentType) res.set("content-type", contentType);
-      // Start the response immediately so SSE chunks aren't buffered.
+      const upstreamCt = upstream.headers.get("content-type") || "";
+      const isSse = upstreamCt.includes("text/event-stream");
+      res.set("content-type",
+          isSse ? "text/event-stream" : (upstreamCt || "application/json"));
+      res.set("cache-control", "no-cache");
       if (typeof res.flushHeaders === "function") res.flushHeaders();
 
-      if (upstream.body) {
+      if (upstream.body && !isSse) {
+        // Non-streaming JSON (the client's sendMessage fallback). Pass through
+        // raw; any tool_use here is validated client-side.
         const reader = upstream.body.getReader();
         try {
           for (;;) {
             const {done, value} = await reader.read();
             if (done) break;
             res.write(Buffer.from(value));
+          }
+        } catch (err) {
+          logger.error("Error streaming upstream JSON body", err);
+        }
+      } else if (upstream.body) {
+        const reader = upstream.body.getReader();
+        const decoder = new TextDecoder();
+        const openTools = {}; // index -> { id, name, json }
+        let buffer = "";
+
+        const handleEvent = (event) => {
+          const type = event && event.type;
+          const index = event && event.index;
+
+          if (type === "content_block_start") {
+            const cb = event.content_block || {};
+            if (cb.type === "tool_use") {
+              // Hold the whole block until stop so we can validate it.
+              openTools[index] = {id: cb.id, name: cb.name, json: ""};
+              return;
+            }
+            sseData(res, event);
+            return;
+          }
+
+          if (type === "content_block_delta") {
+            const open = openTools[index];
+            if (open) {
+              if (event.delta && event.delta.type === "input_json_delta") {
+                open.json += event.delta.partial_json || "";
+              }
+              return; // hold tool input until stop
+            }
+            sseData(res, event);
+            return;
+          }
+
+          if (type === "content_block_stop") {
+            const open = openTools[index];
+            if (open) {
+              delete openTools[index];
+              let parsed = null;
+              try {
+                parsed = open.json ? JSON.parse(open.json) : {};
+              } catch (_) {
+                parsed = null;
+              }
+              const result = parsed == null ?
+                {ok: false, reason: "unparseable input"} :
+                validateToolInput(open.name, parsed);
+              if (result.ok) {
+                emitToolUse(res, index, open.id, open.name, result.input);
+              } else {
+                logger.warn("Rejected tool_use", {
+                  name: open.name,
+                  reason: result.reason,
+                });
+                emitApology(res, index);
+              }
+              return;
+            }
+            sseData(res, event);
+            return;
+          }
+
+          // message_start / message_delta / message_stop / ping / error
+          sseData(res, event);
+        };
+
+        try {
+          for (;;) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, {stream: true});
+            let nl;
+            while ((nl = buffer.indexOf("\n")) !== -1) {
+              const line = buffer.slice(0, nl).trim();
+              buffer = buffer.slice(nl + 1);
+              if (!line.startsWith("data:")) continue;
+              const data = line.slice(5).trim();
+              if (!data || data === "[DONE]") continue;
+              let event;
+              try {
+                event = JSON.parse(data);
+              } catch (_) {
+                continue; // ignore non-JSON keep-alives
+              }
+              handleEvent(event);
+            }
           }
         } catch (err) {
           logger.error("Error streaming upstream body", err);

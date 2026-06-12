@@ -10,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../providers/dashboard_providers.dart';
+import '../../../providers/nutrition_providers.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/insight_providers.dart';
 import '../../../providers/user_profile_provider.dart';
@@ -114,7 +115,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           );
         }
 
-        final tdee = profile.tdee;
+        final targets = resolveDailyTargets(profile);
         final nutrition = nutritionAsync.valueOrNull;
         final workout = workoutAsync.valueOrNull;
         final streak = streakAsync.valueOrNull ?? 0;
@@ -197,7 +198,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           : CalorieRing(
                               key: const ValueKey('ring-loaded'),
                               consumed: calories.toDouble(),
-                              target: tdee,
+                              target: targets.calories,
                               burned: burned,
                             ),
                     ),
@@ -236,8 +237,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             proteinGrams: protein.toDouble(),
                             carbsGrams: carbs.toDouble(),
                             fatGrams: fat.toDouble(),
-                            tdee: tdee,
-                            goal: profile.goal,
+                            proteinTarget: targets.protein,
+                            carbsTarget: targets.carbs,
+                            fatTarget: targets.fat,
                           ),
                   ),
                 ),

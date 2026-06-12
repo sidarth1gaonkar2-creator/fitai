@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import '../../../core/utils/logger.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../data/exercise_library.dart';
 import '../../../data/workout_templates.dart';
+import '../../../models/saved_workout_template.dart';
 import '../../../providers/unit_system_provider.dart'
     show sharedPreferencesProvider;
 import '../../ranks/domain/drill_sergeant.dart';
@@ -29,10 +31,15 @@ class WorkoutLoggingScreen extends ConsumerStatefulWidget {
     super.key,
     this.editWorkoutId,
     this.initialTemplate,
+    this.initialCoachTemplate,
   });
 
   final int? editWorkoutId;
   final WorkoutTemplate? initialTemplate;
+
+  /// An AI Coach-generated template (started from the chat card or the
+  /// Templates tab). Its set weights pre-fill from suggestedWeightKg (kg).
+  final SavedWorkoutTemplate? initialCoachTemplate;
 
   @override
   ConsumerState<WorkoutLoggingScreen> createState() =>
@@ -90,6 +97,41 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
         if (!mounted) return;
         await ref.read(activeWorkoutProvider.notifier).loadFromTemplate(
               title: template.name,
+              exercises: activeExercises,
+            );
+      });
+    } else if (widget.initialCoachTemplate != null) {
+      // AI Coach template — pre-fill each set's reps + weight (kg) so the user
+      // starts logging immediately.
+      final coach = widget.initialCoachTemplate!;
+      _titleController.text = coach.name;
+      List<dynamic> raw;
+      try {
+        raw = jsonDecode(coach.exercisesJson) as List<dynamic>;
+      } catch (_) {
+        raw = const [];
+      }
+      final activeExercises = <ActiveExercise>[];
+      for (var i = 0; i < raw.length; i++) {
+        final e = raw[i];
+        if (e is! Map) continue;
+        activeExercises.add(ActiveExercise(
+          name: e['exerciseName'] as String? ?? 'Exercise',
+          order: i,
+          sets: List.generate(
+            (e['sets'] as num?)?.toInt() ?? 1,
+            (j) => ActiveSet(
+              order: j,
+              reps: (e['reps'] as num?)?.toInt() ?? 0,
+              weight: (e['suggestedWeightKg'] as num?)?.toDouble() ?? 0,
+            ),
+          ),
+        ));
+      }
+      Future.microtask(() async {
+        if (!mounted) return;
+        await ref.read(activeWorkoutProvider.notifier).loadFromTemplate(
+              title: coach.name,
               exercises: activeExercises,
             );
       });

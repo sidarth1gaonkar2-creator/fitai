@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
+import '../../../core/utils/logger.dart';
 import '../../../models/ai_message.dart';
+import '../data/coach_actions.dart';
 import '../../../models/enums.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/unit_system_provider.dart';
@@ -11,10 +14,20 @@ import '../domain/coach_context_builder.dart';
 
 const _systemPrompt =
     'You are DrillFit Coach, a knowledgeable and supportive fitness and '
-    'nutrition expert. You give personalized, actionable advice based on '
-    "the user's workout history, nutrition data, and goals. Keep responses "
-    'concise (under 200 words unless asked for more), practical, and '
-    'encouraging.';
+    'nutrition expert with a no-nonsense drill-sergeant edge. You give '
+    "personalized, actionable advice based on the user's workout history, "
+    'nutrition data, and goals. Keep responses concise (under 200 words unless '
+    'asked for more), practical, and encouraging.\n\n'
+    'TOOLS: You can propose two actions — update_nutrition_goals and '
+    'create_workout — but ONLY when the user explicitly asks to change their '
+    'goals or wants a workout/plan. Never propose a tool for general chat or '
+    'questions. Use at MOST ONE tool call per response. You never apply changes '
+    'yourself: the app shows the user a confirmation card and only their tap '
+    'applies it. Keep each tool rationale in your drill-sergeant character.\n'
+    'For create_workout, suggestedWeightKg MUST be in KILOGRAMS and derive from '
+    "the user's ACTUAL lift history in the context below — a sensible working "
+    'weight is roughly 80–90% of a recent best for the target rep range. Use '
+    'null for any exercise with no history; never invent a number.';
 
 /// Max messages persisted locally per user; older ones are trimmed on save.
 const _maxStoredMessages = 50;
@@ -176,11 +189,12 @@ class AIChatController extends StateNotifier<ChatState> {
       // Stream response — fall back to non-streaming if the stream fails
       // before any chunk arrives.
       final buffer = StringBuffer();
+      CoachToolUse? capturedTool;
       bool firstChunk = true;
       bool streamFailedBeforeFirstChunk = false;
 
       try {
-        await for (final chunk in _anthropic.streamMessage(
+        await for (final event in _anthropic.streamMessage(
           systemPrompt: systemWithContext,
           messages: apiMessages,
         )) {
@@ -194,8 +208,13 @@ class AIChatController extends StateNotifier<ChatState> {
             );
           }
 
-          buffer.write(chunk);
-          state = state.copyWith(streamingContent: buffer.toString());
+          if (event is CoachTextDelta) {
+            buffer.write(event.text);
+            state = state.copyWith(streamingContent: buffer.toString());
+          } else if (event is CoachToolUse) {
+            // One proposal per response (enforced server-side); keep the latest.
+            capturedTool = event;
+          }
         }
       } catch (streamErr) {
         if (streamErr is AnthropicRateLimitException) {
@@ -212,11 +231,12 @@ class AIChatController extends StateNotifier<ChatState> {
       }
 
       if (streamFailedBeforeFirstChunk) {
-        final fullText = await _anthropic.sendMessage(
+        final result = await _anthropic.sendMessage(
           systemPrompt: systemWithContext,
           messages: apiMessages,
         );
-        buffer.write(fullText);
+        buffer.write(result.text);
+        capturedTool ??= result.toolUse;
       }
 
       if (!mounted) return;
@@ -227,6 +247,9 @@ class AIChatController extends StateNotifier<ChatState> {
         ..role = MessageRole.assistant
         ..content = buffer.toString()
         ..timestamp = DateTime.now();
+      if (capturedTool != null) {
+        _attachProposal(assistantMsg, capturedTool);
+      }
 
       await _persist(assistantMsg);
       if (!mounted) return;
@@ -318,6 +341,146 @@ class AIChatController extends StateNotifier<ChatState> {
       messages.length > _maxStoredMessages
           ? messages.sublist(messages.length - _maxStoredMessages)
           : messages;
+
+  /// Attaches a validated tool proposal to [msg] for an inline card. The bounds
+  /// check mirrors the server clamps (TASK 4.2) — out-of-bounds renders an error
+  /// card ('error'), never an appliable one.
+  void _attachProposal(AIMessage msg, CoachToolUse tool) {
+    final kind = switch (tool.name) {
+      'update_nutrition_goals' => 'nutrition',
+      'create_workout' => 'workout',
+      _ => null,
+    };
+    if (kind == null) return;
+    msg.proposalKind = kind;
+    msg.proposalJson = jsonEncode(tool.input);
+    msg.proposalStatus =
+        _proposalWithinBounds(kind, tool.input) ? 'proposed' : 'error';
+  }
+
+  bool _proposalWithinBounds(String kind, Map<String, dynamic> input) {
+    if (kind == 'nutrition') {
+      final cals = (input['calories'] as num?)?.toDouble();
+      final p = (input['proteinG'] as num?)?.toDouble();
+      final c = (input['carbsG'] as num?)?.toDouble();
+      final f = (input['fatG'] as num?)?.toDouble();
+      if (cals == null || p == null || c == null || f == null) return false;
+      return cals >= 1200 &&
+          cals <= 6000 &&
+          p >= 30 &&
+          p <= 400 &&
+          c >= 0 &&
+          c <= 800 &&
+          f >= 20 &&
+          f <= 300;
+    }
+    final exercises = input['exercises'];
+    if (exercises is! List || exercises.isEmpty || exercises.length > 12) {
+      return false;
+    }
+    for (final e in exercises) {
+      if (e is! Map) return false;
+      final sets = (e['sets'] as num?)?.toInt();
+      final reps = (e['reps'] as num?)?.toInt();
+      final name = e['exerciseName'];
+      if (name is! String || name.trim().isEmpty) return false;
+      if (sets == null || sets < 1 || sets > 10) return false;
+      if (reps == null || reps < 1 || reps > 50) return false;
+    }
+    return true;
+  }
+
+  /// Persists a status change on an existing message and refreshes the list.
+  Future<void> _updateMessage(AIMessage msg) async {
+    try {
+      await _isar.writeTxn(() async {
+        await _isar.aIMessages.put(msg);
+      });
+    } catch (e, st) {
+      AppLogger.error('Failed to update proposal status', error: e, stack: st);
+    }
+    if (!mounted) return;
+    state = state.copyWith(messages: [...state.messages]);
+  }
+
+  Future<void> dismissProposal(AIMessage msg) async {
+    msg.proposalStatus = 'dismissed';
+    await _updateMessage(msg);
+  }
+
+  /// Applies a nutrition-goal proposal through the shared resolver path, marks
+  /// the card applied, and appends a confirmation note.
+  Future<void> applyNutritionProposal(AIMessage msg) async {
+    final json = msg.proposalJson;
+    if (json == null) return;
+    try {
+      final input = jsonDecode(json) as Map<String, dynamic>;
+      await applyNutritionGoals(
+        _ref,
+        calories: (input['calories'] as num).toDouble(),
+        proteinG: (input['proteinG'] as num).toDouble(),
+        carbsG: (input['carbsG'] as num).toDouble(),
+        fatG: (input['fatG'] as num).toDouble(),
+      );
+      msg.proposalStatus = 'applied';
+      await _updateMessage(msg);
+      await _appendCoachNote('Targets updated. Now go earn them.');
+    } catch (e, st) {
+      AppLogger.error('applyNutritionProposal failed', error: e, stack: st);
+      if (mounted) {
+        state = state.copyWith(
+          errorMessage: () => "Couldn't apply those targets. Try again.",
+        );
+      }
+    }
+  }
+
+  /// Applies a workout proposal by saving it as a startable Coach template.
+  Future<void> applyWorkoutProposal(AIMessage msg) async {
+    final json = msg.proposalJson;
+    if (json == null) return;
+    try {
+      final input = jsonDecode(json) as Map<String, dynamic>;
+      final id = await saveCoachWorkoutTemplate(
+        _ref,
+        name: input['name'] as String? ?? 'Coach Workout',
+        focus: input['focus'] as String? ?? '',
+        exercisesJson: jsonEncode(input['exercises'] ?? const []),
+      );
+      if (id == null) {
+        if (mounted) {
+          state = state.copyWith(
+            errorMessage: () => 'Sign in to save workouts.',
+          );
+        }
+        return;
+      }
+      msg.proposalStatus = 'applied';
+      await _updateMessage(msg);
+      await _appendCoachNote('Saved to your templates. Hit it when ready.');
+    } catch (e, st) {
+      AppLogger.error('applyWorkoutProposal failed', error: e, stack: st);
+      if (mounted) {
+        state = state.copyWith(
+          errorMessage: () => "Couldn't save that workout. Try again.",
+        );
+      }
+    }
+  }
+
+  /// Appends a short assistant note (e.g. an apply confirmation) to history.
+  Future<void> _appendCoachNote(String text) async {
+    final uid = _uid;
+    if (uid == null) return;
+    final note = AIMessage()
+      ..uid = uid
+      ..role = MessageRole.assistant
+      ..content = text
+      ..timestamp = DateTime.now();
+    await _persist(note);
+    if (!mounted) return;
+    state = state.copyWith(messages: _capInMemory([...state.messages, note]));
+  }
 
   String _friendlyError(String raw) {
     final lower = raw.toLowerCase();

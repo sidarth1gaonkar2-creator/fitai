@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/utils/logger.dart';
 import '../services/notification_service.dart';
 import 'unit_system_provider.dart';
 
@@ -168,8 +169,23 @@ class NotificationSettingsNotifier extends StateNotifier<NotificationSettings> {
     );
   }
 
-  Future<void> _syncSchedules() async {
+  /// Re-applies the current notif_* settings to the scheduler: schedules the
+  /// enabled families, cancels the disabled ones. Requests OS permission first
+  /// when anything is enabled — the prompt the app previously never showed.
+  /// Public so the launch/sign-in reconciler can call it too.
+  Future<void> syncSchedules() async {
     final ns = NotificationService.instance;
+
+    final anyEnabled = state.workoutEnabled ||
+        state.breakfastEnabled ||
+        state.lunchEnabled ||
+        state.dinnerEnabled ||
+        state.waterEnabled ||
+        state.streakEnabled;
+    if (anyEnabled) {
+      final granted = await ns.requestPermission();
+      AppLogger.log('[notif] settings sync: permission granted=$granted');
+    }
 
     // Workout
     if (state.workoutEnabled) {
@@ -222,7 +238,7 @@ class NotificationSettingsNotifier extends StateNotifier<NotificationSettings> {
   Future<void> update(NotificationSettings Function(NotificationSettings) updater) async {
     state = updater(state);
     await _save();
-    await _syncSchedules();
+    await syncSchedules();
   }
 }
 
@@ -234,4 +250,12 @@ final notificationSettingsProvider = StateNotifierProvider<
 
 final notificationPermissionProvider = FutureProvider<bool>((ref) async {
   return NotificationService.instance.requestPermission();
+});
+
+/// Check-only OS notification authorization. autoDispose so it re-checks when a
+/// settings screen re-subscribes (e.g. after the user returns from iOS
+/// Settings). Drives the "enable in Settings" banner — never a silent failure.
+final notificationsAuthorizedProvider =
+    FutureProvider.autoDispose<bool>((ref) async {
+  return NotificationService.instance.hasPermission();
 });

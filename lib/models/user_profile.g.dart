@@ -28,40 +28,60 @@ const UserProfileSchema = CollectionSchema(
       name: r'age',
       type: IsarType.long,
     ),
-    r'createdAt': PropertySchema(
+    r'calorieGoal': PropertySchema(
       id: 2,
+      name: r'calorieGoal',
+      type: IsarType.double,
+    ),
+    r'carbsGoalG': PropertySchema(
+      id: 3,
+      name: r'carbsGoalG',
+      type: IsarType.double,
+    ),
+    r'createdAt': PropertySchema(
+      id: 4,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
+    r'fatGoalG': PropertySchema(
+      id: 5,
+      name: r'fatGoalG',
+      type: IsarType.double,
+    ),
     r'goal': PropertySchema(
-      id: 3,
+      id: 6,
       name: r'goal',
       type: IsarType.byte,
       enumMap: _UserProfilegoalEnumValueMap,
     ),
     r'height': PropertySchema(
-      id: 4,
+      id: 7,
       name: r'height',
       type: IsarType.double,
     ),
     r'name': PropertySchema(
-      id: 5,
+      id: 8,
       name: r'name',
       type: IsarType.string,
     ),
+    r'proteinGoalG': PropertySchema(
+      id: 9,
+      name: r'proteinGoalG',
+      type: IsarType.double,
+    ),
     r'sex': PropertySchema(
-      id: 6,
+      id: 10,
       name: r'sex',
       type: IsarType.byte,
       enumMap: _UserProfilesexEnumValueMap,
     ),
     r'tdee': PropertySchema(
-      id: 7,
+      id: 11,
       name: r'tdee',
       type: IsarType.double,
     ),
     r'weight': PropertySchema(
-      id: 8,
+      id: 12,
       name: r'weight',
       type: IsarType.double,
     )
@@ -98,13 +118,17 @@ void _userProfileSerialize(
 ) {
   writer.writeByte(offsets[0], object.activityLevel.index);
   writer.writeLong(offsets[1], object.age);
-  writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeByte(offsets[3], object.goal.index);
-  writer.writeDouble(offsets[4], object.height);
-  writer.writeString(offsets[5], object.name);
-  writer.writeByte(offsets[6], object.sex.index);
-  writer.writeDouble(offsets[7], object.tdee);
-  writer.writeDouble(offsets[8], object.weight);
+  writer.writeDouble(offsets[2], object.calorieGoal);
+  writer.writeDouble(offsets[3], object.carbsGoalG);
+  writer.writeDateTime(offsets[4], object.createdAt);
+  writer.writeDouble(offsets[5], object.fatGoalG);
+  writer.writeByte(offsets[6], object.goal.index);
+  writer.writeDouble(offsets[7], object.height);
+  writer.writeString(offsets[8], object.name);
+  writer.writeDouble(offsets[9], object.proteinGoalG);
+  writer.writeByte(offsets[10], object.sex.index);
+  writer.writeDouble(offsets[11], object.tdee);
+  writer.writeDouble(offsets[12], object.weight);
 }
 
 UserProfile _userProfileDeserialize(
@@ -118,17 +142,22 @@ UserProfile _userProfileDeserialize(
           reader.readByteOrNull(offsets[0])] ??
       ActivityLevel.sedentary;
   object.age = reader.readLong(offsets[1]);
-  object.createdAt = reader.readDateTime(offsets[2]);
+  object.calorieGoal = reader.readDoubleOrNull(offsets[2]);
+  object.carbsGoalG = reader.readDoubleOrNull(offsets[3]);
+  object.createdAt = reader.readDateTime(offsets[4]);
+  object.fatGoalG = reader.readDoubleOrNull(offsets[5]);
   object.goal =
-      _UserProfilegoalValueEnumMap[reader.readByteOrNull(offsets[3])] ??
+      _UserProfilegoalValueEnumMap[reader.readByteOrNull(offsets[6])] ??
           Goal.loseFat;
-  object.height = reader.readDouble(offsets[4]);
+  object.height = reader.readDouble(offsets[7]);
   object.id = id;
-  object.name = reader.readString(offsets[5]);
-  object.sex = _UserProfilesexValueEnumMap[reader.readByteOrNull(offsets[6])] ??
-      Sex.male;
-  object.tdee = reader.readDouble(offsets[7]);
-  object.weight = reader.readDouble(offsets[8]);
+  object.name = reader.readString(offsets[8]);
+  object.proteinGoalG = reader.readDoubleOrNull(offsets[9]);
+  object.sex =
+      _UserProfilesexValueEnumMap[reader.readByteOrNull(offsets[10])] ??
+          Sex.male;
+  object.tdee = reader.readDouble(offsets[11]);
+  object.weight = reader.readDouble(offsets[12]);
   return object;
 }
 
@@ -146,20 +175,28 @@ P _userProfileDeserializeProp<P>(
     case 1:
       return (reader.readLong(offset)) as P;
     case 2:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 3:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 4:
+      return (reader.readDateTime(offset)) as P;
+    case 5:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 6:
       return (_UserProfilegoalValueEnumMap[reader.readByteOrNull(offset)] ??
           Goal.loseFat) as P;
-    case 4:
-      return (reader.readDouble(offset)) as P;
-    case 5:
-      return (reader.readString(offset)) as P;
-    case 6:
-      return (_UserProfilesexValueEnumMap[reader.readByteOrNull(offset)] ??
-          Sex.male) as P;
     case 7:
       return (reader.readDouble(offset)) as P;
     case 8:
+      return (reader.readString(offset)) as P;
+    case 9:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 10:
+      return (_UserProfilesexValueEnumMap[reader.readByteOrNull(offset)] ??
+          Sex.male) as P;
+    case 11:
+      return (reader.readDouble(offset)) as P;
+    case 12:
       return (reader.readDouble(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -402,6 +439,174 @@ extension UserProfileQueryFilter
   }
 
   QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      calorieGoalIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'calorieGoal',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      calorieGoalIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'calorieGoal',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      calorieGoalEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'calorieGoal',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      calorieGoalGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'calorieGoal',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      calorieGoalLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'calorieGoal',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      calorieGoalBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'calorieGoal',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      carbsGoalGIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'carbsGoalG',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      carbsGoalGIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'carbsGoalG',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      carbsGoalGEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'carbsGoalG',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      carbsGoalGGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'carbsGoalG',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      carbsGoalGLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'carbsGoalG',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      carbsGoalGBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'carbsGoalG',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
       createdAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -453,6 +658,88 @@ extension UserProfileQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      fatGoalGIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'fatGoalG',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      fatGoalGIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'fatGoalG',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition> fatGoalGEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'fatGoalG',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      fatGoalGGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'fatGoalG',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      fatGoalGLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'fatGoalG',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition> fatGoalGBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'fatGoalG',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
       ));
     });
   }
@@ -757,6 +1044,90 @@ extension UserProfileQueryFilter
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      proteinGoalGIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'proteinGoalG',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      proteinGoalGIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'proteinGoalG',
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      proteinGoalGEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'proteinGoalG',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      proteinGoalGGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'proteinGoalG',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      proteinGoalGLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'proteinGoalG',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition>
+      proteinGoalGBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'proteinGoalG',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QAfterFilterCondition> sexEqualTo(
       Sex value) {
     return QueryBuilder.apply(this, (query) {
@@ -969,6 +1340,30 @@ extension UserProfileQuerySortBy
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByCalorieGoal() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calorieGoal', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByCalorieGoalDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calorieGoal', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByCarbsGoalG() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'carbsGoalG', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByCarbsGoalGDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'carbsGoalG', Sort.desc);
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -978,6 +1373,18 @@ extension UserProfileQuerySortBy
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByFatGoalG() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fatGoalG', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByFatGoalGDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fatGoalG', Sort.desc);
     });
   }
 
@@ -1014,6 +1421,19 @@ extension UserProfileQuerySortBy
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> sortByProteinGoalG() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proteinGoalG', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      sortByProteinGoalGDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proteinGoalG', Sort.desc);
     });
   }
 
@@ -1081,6 +1501,30 @@ extension UserProfileQuerySortThenBy
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByCalorieGoal() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calorieGoal', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByCalorieGoalDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'calorieGoal', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByCarbsGoalG() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'carbsGoalG', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByCarbsGoalGDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'carbsGoalG', Sort.desc);
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -1090,6 +1534,18 @@ extension UserProfileQuerySortThenBy
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByFatGoalG() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fatGoalG', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByFatGoalGDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fatGoalG', Sort.desc);
     });
   }
 
@@ -1138,6 +1594,19 @@ extension UserProfileQuerySortThenBy
   QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy> thenByProteinGoalG() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proteinGoalG', Sort.asc);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QAfterSortBy>
+      thenByProteinGoalGDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proteinGoalG', Sort.desc);
     });
   }
 
@@ -1192,9 +1661,27 @@ extension UserProfileQueryWhereDistinct
     });
   }
 
+  QueryBuilder<UserProfile, UserProfile, QDistinct> distinctByCalorieGoal() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'calorieGoal');
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QDistinct> distinctByCarbsGoalG() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'carbsGoalG');
+    });
+  }
+
   QueryBuilder<UserProfile, UserProfile, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QDistinct> distinctByFatGoalG() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'fatGoalG');
     });
   }
 
@@ -1214,6 +1701,12 @@ extension UserProfileQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'name', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<UserProfile, UserProfile, QDistinct> distinctByProteinGoalG() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'proteinGoalG');
     });
   }
 
@@ -1257,9 +1750,27 @@ extension UserProfileQueryProperty
     });
   }
 
+  QueryBuilder<UserProfile, double?, QQueryOperations> calorieGoalProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'calorieGoal');
+    });
+  }
+
+  QueryBuilder<UserProfile, double?, QQueryOperations> carbsGoalGProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'carbsGoalG');
+    });
+  }
+
   QueryBuilder<UserProfile, DateTime, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
+    });
+  }
+
+  QueryBuilder<UserProfile, double?, QQueryOperations> fatGoalGProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'fatGoalG');
     });
   }
 
@@ -1278,6 +1789,12 @@ extension UserProfileQueryProperty
   QueryBuilder<UserProfile, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
+    });
+  }
+
+  QueryBuilder<UserProfile, double?, QQueryOperations> proteinGoalGProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'proteinGoalG');
     });
   }
 

@@ -10,11 +10,15 @@ import '../../../core/utils/tdee_calculator.dart';
 import '../../../core/utils/unit_converter.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/utils/logger.dart';
 import '../../../models/enums.dart';
 import '../../../models/user_profile.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/isar_provider.dart';
+import '../../../providers/nutrition_providers.dart';
 import '../../../providers/unit_system_provider.dart';
 import '../../../providers/user_profile_provider.dart';
+import '../../onboarding/data/remote_profile_repository.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -127,6 +131,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       return;
     }
 
+    // Changing goal type means the user wants re-derived macros — clear any
+    // custom Coach overrides so the goal-based split takes over again.
+    final goalChanged = profile.goal != _goal;
+
     profile
       ..name = _nameController.text.trim()
       ..age = age
@@ -136,6 +144,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       ..goal = _goal!
       ..activityLevel = _activityLevel!
       ..tdee = tdee;
+    if (goalChanged) {
+      profile
+        ..calorieGoal = null
+        ..proteinGoalG = null
+        ..carbsGoalG = null
+        ..fatGoalG = null;
+    }
 
     try {
       await isar.writeTxn(() async {
@@ -143,6 +158,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       });
 
       ref.invalidate(userProfileProvider);
+      await _syncProfileToRemote(profile);
       HapticFeedback.mediumImpact();
 
       if (mounted) {
@@ -157,6 +173,46 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
   }
 
+  /// Mirrors the profile (incl. custom goal overrides + clears) to the private
+  /// Firestore doc so changes survive on new devices. Best-effort.
+  Future<void> _syncProfileToRemote(UserProfile profile) async {
+    final uid = ref.read(currentUserIdProvider);
+    if (uid == null) return;
+    try {
+      await ref
+          .read(remoteProfileRepositoryProvider)
+          .save(uid, RemoteProfile.fromLocal(profile));
+    } catch (e, st) {
+      AppLogger.error('EditProfile: remote profile sync failed',
+          error: e, stack: st);
+    }
+  }
+
+  /// Clears the custom Coach goal overrides so targets revert to goal-derived.
+  Future<void> _resetTargetsToRecommended() async {
+    final isar = ref.read(isarProvider);
+    final profile =
+        await isar.userProfiles.where().anyId().build().findFirst();
+    if (profile == null) return;
+    profile
+      ..calorieGoal = null
+      ..proteinGoalG = null
+      ..carbsGoalG = null
+      ..fatGoalG = null;
+    try {
+      await isar.writeTxn(() async {
+        await isar.userProfiles.put(profile);
+      });
+      ref.invalidate(userProfileProvider);
+      await _syncProfileToRemote(profile);
+      if (mounted) {
+        showCupertinoToast(context, 'Targets reset to recommended.');
+      }
+    } catch (_) {
+      if (mounted) showCupertinoToast(context, 'Could not reset targets.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -166,6 +222,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         units == UnitSystem.imperial ? 'Height (ft\'in")' : 'Height (cm)';
 
     final palette = AppColors.of(context);
+    final profile = ref.watch(userProfileProvider).valueOrNull;
+    final overridesActive = profile != null &&
+        (profile.calorieGoal != null ||
+            profile.proteinGoalG != null ||
+            profile.carbsGoalG != null ||
+            profile.fatGoalG != null);
+    final targets = profile != null ? resolveDailyTargets(profile) : null;
     return Scaffold(
       backgroundColor: palette.background,
       appBar: CupertinoNavigationBar(
@@ -281,6 +344,71 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   ),
                 );
               }),
+              if (targets != null) ...[
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: palette.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: palette.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text('Daily targets', style: textTheme.labelLarge),
+                          const SizedBox(width: 8),
+                          if (overridesActive)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: palette.accent.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Custom · set by Coach',
+                                style: textTheme.labelSmall
+                                    ?.copyWith(color: palette.accent),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${targets.calories.toInt()} kcal · '
+                        '${targets.protein.toInt()}g P · '
+                        '${targets.carbs.toInt()}g C · '
+                        '${targets.fat.toInt()}g F',
+                        style: textTheme.bodyMedium,
+                      ),
+                      if (overridesActive) ...[
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _resetTargetsToRecommended,
+                          child: Text(
+                            'Reset to recommended',
+                            style: textTheme.labelLarge
+                                ?.copyWith(color: palette.accent),
+                          ),
+                        ),
+                      ] else
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Derived from your goal. The AI Coach can propose '
+                            'custom targets.',
+                            style: textTheme.bodySmall
+                                ?.copyWith(color: palette.textSecondary),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
               CupertinoButton(
                 padding: const EdgeInsets.symmetric(vertical: 14),

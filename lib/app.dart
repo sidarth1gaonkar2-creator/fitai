@@ -6,6 +6,8 @@ import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'features/themes/providers/theme_providers.dart';
 import 'features/tutorial/presentation/tutorial_overlay.dart';
+import 'providers/auth_provider.dart';
+import 'providers/notification_reconciler.dart';
 import 'providers/settings_providers.dart';
 import 'routing/app_router.dart';
 
@@ -15,6 +17,19 @@ class DrillFitApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+
+    // Reconcile local notifications on launch (post-auth) and on sign-in;
+    // cancel personal ones on sign-out. Independent of the chat/routing auth
+    // listeners — separate subscriptions, no conflict.
+    ref.listen(currentUserIdProvider, (prev, next) {
+      final reconciler = ref.read(notificationReconcilerProvider);
+      if (next != null && next != prev) {
+        reconciler.reconcile();
+      } else if (next == null && prev != null) {
+        reconciler.cancelPersonal();
+      }
+    });
+
     final themeMode = ref.watch(themeModeProvider);
     // Watch the equipped theme so the entire app rebuilds when the user
     // equips a new pack — that's what propagates the new accent / surface

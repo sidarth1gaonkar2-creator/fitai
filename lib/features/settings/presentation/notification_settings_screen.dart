@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../providers/notification_providers.dart';
+import '../../../services/notification_service.dart';
 
 class NotificationSettingsScreen extends ConsumerWidget {
   const NotificationSettingsScreen({super.key});
@@ -16,6 +17,15 @@ class NotificationSettingsScreen extends ConsumerWidget {
     final notifier = ref.read(notificationSettingsProvider.notifier);
 
     final palette = AppColors.of(context);
+    final authorized =
+        ref.watch(notificationsAuthorizedProvider).valueOrNull ?? true;
+    final anyEnabled = settings.workoutEnabled ||
+        settings.breakfastEnabled ||
+        settings.lunchEnabled ||
+        settings.dinnerEnabled ||
+        settings.waterEnabled ||
+        settings.streakEnabled ||
+        settings.supplementEnabled;
     return CupertinoPageScaffold(
       backgroundColor: palette.background,
       navigationBar: CupertinoNavigationBar(
@@ -27,6 +37,43 @@ class NotificationSettingsScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // OS permission off but notifications enabled in-app → never fail
+            // silently; show a tappable prompt to enable.
+            if (anyEnabled && !authorized) ...[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () async {
+                  await NotificationService.instance.requestPermission();
+                  ref.invalidate(notificationsAuthorizedProvider);
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: palette.destructive.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(CupertinoIcons.bell_slash,
+                          color: palette.destructive, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Notifications are off in iOS Settings. Tap to '
+                          'enable, or turn them on in Settings › DrillFit.',
+                          style: TextStyle(
+                            fontFamily: 'LeagueSpartan',
+                            fontSize: 13,
+                            color: palette.destructive,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             // ─── Workout Reminders ──────────────────────────────────────
             _SectionHeader(title: 'Workout Reminders', icon: Icons.fitness_center),
             _ToggleRow(

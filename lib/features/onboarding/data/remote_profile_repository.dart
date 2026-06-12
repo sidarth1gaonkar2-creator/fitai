@@ -22,6 +22,10 @@ class RemoteProfile {
     required this.goal,
     required this.activityLevel,
     required this.tdee,
+    this.calorieGoal,
+    this.proteinGoalG,
+    this.carbsGoalG,
+    this.fatGoalG,
   });
 
   final String name;
@@ -32,6 +36,13 @@ class RemoteProfile {
   final Goal goal;
   final ActivityLevel activityLevel;
   final double tdee;
+
+  // Custom nutrition-goal overrides (null = derive from goal). Deliberately NOT
+  // part of [isComplete] — null is a valid state for an onboarded user.
+  final double? calorieGoal;
+  final double? proteinGoalG;
+  final double? carbsGoalG;
+  final double? fatGoalG;
 
   /// A profile counts as "complete" only when onboarding produced the required
   /// fields — the routing gate keys off this, not merely the doc's existence.
@@ -47,6 +58,11 @@ class RemoteProfile {
         'goal': goal.name,
         'activityLevel': activityLevel.name,
         'tdee': tdee,
+        // Goal overrides (null clears them on merge so a reset propagates).
+        'calorieGoal': calorieGoal,
+        'proteinGoalG': proteinGoalG,
+        'carbsGoalG': carbsGoalG,
+        'fatGoalG': fatGoalG,
         // Fast-path cache flag; the required fields above are the real check.
         'onboardingCompleted': true,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -81,6 +97,10 @@ class RemoteProfile {
       goal: goal,
       activityLevel: activity,
       tdee: tdee,
+      calorieGoal: (m['calorieGoal'] as num?)?.toDouble(),
+      proteinGoalG: (m['proteinGoalG'] as num?)?.toDouble(),
+      carbsGoalG: (m['carbsGoalG'] as num?)?.toDouble(),
+      fatGoalG: (m['fatGoalG'] as num?)?.toDouble(),
     );
   }
 
@@ -93,6 +113,10 @@ class RemoteProfile {
         goal: p.goal,
         activityLevel: p.activityLevel,
         tdee: p.tdee,
+        calorieGoal: p.calorieGoal,
+        proteinGoalG: p.proteinGoalG,
+        carbsGoalG: p.carbsGoalG,
+        fatGoalG: p.fatGoalG,
       );
 
   /// Builds a local Isar profile from this remote one (new-device hydration).
@@ -104,7 +128,11 @@ class RemoteProfile {
     ..height = heightCm
     ..goal = goal
     ..activityLevel = activityLevel
-    ..tdee = tdee;
+    ..tdee = tdee
+    ..calorieGoal = calorieGoal
+    ..proteinGoalG = proteinGoalG
+    ..carbsGoalG = carbsGoalG
+    ..fatGoalG = fatGoalG;
 }
 
 T? _enumByName<T extends Enum>(List<T> values, Object? name) {

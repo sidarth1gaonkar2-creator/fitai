@@ -1,8 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz_data;
 
+import '../core/utils/logger.dart';
 import '../data/motivator_messages.dart';
 
 class NotificationService {
@@ -18,6 +19,17 @@ class NotificationService {
     if (_initialized) return;
 
     tz_data.initializeTimeZones();
+    // Without this, tz.local defaults to UTC and every zonedSchedule fires at
+    // the wrong wall-clock time (the root of the "wrong time / never see them"
+    // reports). Resolve the device zone explicitly.
+    try {
+      final localZone = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(localZone));
+      AppLogger.log('[notif] local timezone set to $localZone');
+    } catch (e, st) {
+      AppLogger.error('[notif] timezone resolve failed; staying on UTC',
+          error: e, stack: st);
+    }
 
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -56,6 +68,34 @@ class NotificationService {
     }
 
     return true;
+  }
+
+  /// Check-only: whether the OS currently allows notifications, WITHOUT
+  /// prompting. Used to surface the "enable in Settings" state when the user
+  /// has a notification enabled in-app but denied it at the OS level.
+  Future<bool> hasPermission() async {
+    final ios = _plugin.resolvePlatformSpecificImplementation<
+        IOSFlutterLocalNotificationsPlugin>();
+    if (ios != null) {
+      final opts = await ios.checkPermissions();
+      return opts?.isEnabled ?? false;
+    }
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (android != null) {
+      return (await android.areNotificationsEnabled()) ?? false;
+    }
+    return true;
+  }
+
+  /// Debug aid: dumps everything currently queued so on-device TestFlight logs
+  /// show exactly what's scheduled (call after a reconcile).
+  Future<void> dumpPending() async {
+    final pending = await _plugin.pendingNotificationRequests();
+    AppLogger.log('[notif] pending count = ${pending.length}');
+    for (final p in pending) {
+      AppLogger.log('[notif]   pending id=${p.id} title="${p.title}"');
+    }
   }
 
   // ─── Workout Reminders (IDs 100-106) ──────────────────────────────────────
@@ -238,8 +278,12 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time,
       );
-    } catch (e) {
-      debugPrint('[NotificationService] Failed to schedule daily ($id): $e');
+      AppLogger.log('[notif] scheduled daily id=$id at '
+          '${hour.toString().padLeft(2, '0')}:'
+          '${minute.toString().padLeft(2, '0')} ($title)');
+    } catch (e, st) {
+      AppLogger.error('[notif] failed to schedule daily id=$id',
+          error: e, stack: st);
     }
   }
 
@@ -282,13 +326,18 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       );
-    } catch (e) {
-      debugPrint('[NotificationService] Failed to schedule weekly ($id): $e');
+      AppLogger.log('[notif] scheduled weekly id=$id day=$day at '
+          '${hour.toString().padLeft(2, '0')}:'
+          '${minute.toString().padLeft(2, '0')} ($title)');
+    } catch (e, st) {
+      AppLogger.error('[notif] failed to schedule weekly id=$id',
+          error: e, stack: st);
     }
   }
 
   Future<void> cancelAll() async {
     await _plugin.cancelAll();
+    AppLogger.log('[notif] cancelled ALL pending notifications');
   }
 
   // ───────────────────────────────────────────────────────────────────────
@@ -474,12 +523,19 @@ class NotificationService {
 
     final now = DateTime.now();
     final todayWeekday = now.weekday - 1;
-    if (restDays.contains(todayWeekday)) return;
+    if (restDays.contains(todayWeekday)) {
+      AppLogger.log('[notif] drill sergeant: rest day — nothing scheduled');
+      return;
+    }
 
     final daysSince = lastWorkoutDate == null
         ? 999
         : now.difference(lastWorkoutDate).inDays;
-    if (daysSince <= 0) return; // worked out today — nothing to nag about
+    if (daysSince <= 0) {
+      AppLogger.log(
+          '[notif] drill sergeant: worked out today — nothing scheduled');
+      return; // worked out today — nothing to nag about
+    }
 
     final category = MotivatorMessages.missedCategoryFor(daysSince);
     final hours =
@@ -507,6 +563,7 @@ class NotificationService {
     for (final id in _drillSergeantIds) {
       await _plugin.cancel(id: id);
     }
+    AppLogger.log('[notif] cancelled drill sergeant reminders');
   }
 
   /// Daily morning pep-talk delivered at the user's chosen [hour]/[minute].
@@ -530,6 +587,7 @@ class NotificationService {
 
   Future<void> cancelMorningMotivation() async {
     await _plugin.cancel(id: _morningMotivationId);
+    AppLogger.log('[notif] cancelled morning motivation');
   }
 
   /// Aggressive replacement for [showPRNotification] used when the user has

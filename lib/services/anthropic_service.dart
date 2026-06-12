@@ -68,7 +68,9 @@ class AnthropicService {
   }) =>
       {
         'model': _model,
-        'max_tokens': 1024,
+        // A little headroom so a multi-exercise create_workout tool input
+        // isn't truncated mid-JSON.
+        'max_tokens': 1500,
         'stream': stream,
         'system': systemPrompt,
         'messages': messages
@@ -76,9 +78,10 @@ class AnthropicService {
             .toList(),
       };
 
-  /// Streams text deltas from the Anthropic Messages API.
+  /// Streams [CoachEvent]s from the Anthropic Messages API — text deltas plus
+  /// any completed (server-validated) tool proposal.
   /// If the stream errors out, callers should fall back to [sendMessage].
-  Stream<String> streamMessage({
+  Stream<CoachEvent> streamMessage({
     required String systemPrompt,
     required List<({String role, String content})> messages,
   }) async* {
@@ -130,6 +133,11 @@ class AnthropicService {
       // Parse SSE stream with an idle-timeout so we never hang forever.
       String buffer = '';
       int chunksYielded = 0;
+      // Accumulates a tool_use block. The proxy normalizes it to a single
+      // content_block_start + one input_json_delta (carrying the validated
+      // input) + content_block_stop.
+      String? toolName;
+      final toolJson = StringBuffer();
       final lines = response
           .transform(utf8.decoder)
           .timeout(_streamTimeout, onTimeout: (sink) {
@@ -158,14 +166,39 @@ class AnthropicService {
             final event = jsonDecode(data) as Map<String, dynamic>;
             final type = event['type'] as String?;
 
-            if (type == 'content_block_delta') {
+            if (type == 'content_block_start') {
+              final cb = event['content_block'] as Map<String, dynamic>?;
+              if (cb != null && cb['type'] == 'tool_use') {
+                toolName = cb['name'] as String?;
+                toolJson.clear();
+              }
+            } else if (type == 'content_block_delta') {
               final delta = event['delta'] as Map<String, dynamic>?;
               if (delta != null && delta['type'] == 'text_delta') {
                 final text = delta['text'] as String? ?? '';
                 if (text.isNotEmpty) {
                   chunksYielded++;
-                  yield text;
+                  yield CoachTextDelta(text);
                 }
+              } else if (delta != null &&
+                  delta['type'] == 'input_json_delta' &&
+                  toolName != null) {
+                toolJson.write(delta['partial_json'] as String? ?? '');
+              }
+            } else if (type == 'content_block_stop') {
+              final name = toolName;
+              if (name != null) {
+                try {
+                  final input =
+                      jsonDecode(toolJson.toString()) as Map<String, dynamic>;
+                  yield CoachToolUse(name, input);
+                } catch (e) {
+                  if (kDebugMode) {
+                    debugPrint('[Anthropic] tool_use JSON parse failed: $e');
+                  }
+                }
+                toolName = null;
+                toolJson.clear();
               }
             } else if (type == 'message_stop') {
               if (kDebugMode) {
@@ -215,8 +248,9 @@ class AnthropicService {
     }
   }
 
-  /// Non-streaming fallback. Returns the full assistant text in one call.
-  Future<String> sendMessage({
+  /// Non-streaming fallback. Returns the full assistant text plus any tool
+  /// proposal in one call.
+  Future<CoachResult> sendMessage({
     required String systemPrompt,
     required List<({String role, String content})> messages,
   }) async {
@@ -265,12 +299,20 @@ class AnthropicService {
         throw AnthropicException('Empty response from AI service.');
       }
       final buffer = StringBuffer();
+      CoachToolUse? tool;
       for (final block in content) {
-        if (block is Map<String, dynamic> && block['type'] == 'text') {
+        if (block is! Map<String, dynamic>) continue;
+        if (block['type'] == 'text') {
           buffer.write(block['text'] as String? ?? '');
+        } else if (block['type'] == 'tool_use') {
+          final name = block['name'] as String?;
+          final input = block['input'];
+          if (name != null && input is Map<String, dynamic>) {
+            tool = CoachToolUse(name, input);
+          }
         }
       }
-      return buffer.toString();
+      return CoachResult(text: buffer.toString(), toolUse: tool);
     } on AnthropicException {
       rethrow;
     } on SocketException catch (e, st) {
@@ -309,4 +351,30 @@ class AnthropicException implements Exception {
 /// user-friendly and safe to show directly.
 class AnthropicRateLimitException extends AnthropicException {
   AnthropicRateLimitException(super.message);
+}
+
+/// A streamed AI Coach event: a chunk of assistant text, or a completed
+/// (server-validated) tool proposal.
+sealed class CoachEvent {}
+
+class CoachTextDelta extends CoachEvent {
+  CoachTextDelta(this.text);
+  final String text;
+}
+
+class CoachToolUse extends CoachEvent {
+  CoachToolUse(this.name, this.input);
+
+  /// Anthropic tool name: 'update_nutrition_goals' or 'create_workout'.
+  final String name;
+
+  /// The validated tool input (clamped/checked server-side).
+  final Map<String, dynamic> input;
+}
+
+/// Result of a non-streaming [AnthropicService.sendMessage] call.
+class CoachResult {
+  CoachResult({required this.text, this.toolUse});
+  final String text;
+  final CoachToolUse? toolUse;
 }

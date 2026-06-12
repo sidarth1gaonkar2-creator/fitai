@@ -22,6 +22,7 @@ import '../../models/cached_menu_item.dart';
 import '../../models/user_rank.dart';
 import '../../models/user_theme_state.dart';
 import '../../models/weight_entry.dart';
+import '../../models/saved_workout_template.dart';
 
 class IsarService {
   static Future<Isar> initialize() async {
@@ -53,6 +54,7 @@ class IsarService {
           UserThemeStateSchema,
           CachedMenuItemSchema,
           UserRankSchema,
+          SavedWorkoutTemplateSchema,
         ],
         directory: dir.path,
       );

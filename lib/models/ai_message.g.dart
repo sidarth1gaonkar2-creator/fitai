@@ -22,19 +22,34 @@ const AIMessageSchema = CollectionSchema(
       name: r'content',
       type: IsarType.string,
     ),
-    r'role': PropertySchema(
+    r'proposalJson': PropertySchema(
       id: 1,
+      name: r'proposalJson',
+      type: IsarType.string,
+    ),
+    r'proposalKind': PropertySchema(
+      id: 2,
+      name: r'proposalKind',
+      type: IsarType.string,
+    ),
+    r'proposalStatus': PropertySchema(
+      id: 3,
+      name: r'proposalStatus',
+      type: IsarType.string,
+    ),
+    r'role': PropertySchema(
+      id: 4,
       name: r'role',
       type: IsarType.byte,
       enumMap: _AIMessageroleEnumValueMap,
     ),
     r'timestamp': PropertySchema(
-      id: 2,
+      id: 5,
       name: r'timestamp',
       type: IsarType.dateTime,
     ),
     r'uid': PropertySchema(
-      id: 3,
+      id: 6,
       name: r'uid',
       type: IsarType.string,
     )
@@ -74,6 +89,19 @@ int _aIMessageEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.content.length * 3;
+  {
+    final value = object.proposalJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.proposalKind;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.proposalStatus.length * 3;
   bytesCount += 3 + object.uid.length * 3;
   return bytesCount;
 }
@@ -85,9 +113,12 @@ void _aIMessageSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.content);
-  writer.writeByte(offsets[1], object.role.index);
-  writer.writeDateTime(offsets[2], object.timestamp);
-  writer.writeString(offsets[3], object.uid);
+  writer.writeString(offsets[1], object.proposalJson);
+  writer.writeString(offsets[2], object.proposalKind);
+  writer.writeString(offsets[3], object.proposalStatus);
+  writer.writeByte(offsets[4], object.role.index);
+  writer.writeDateTime(offsets[5], object.timestamp);
+  writer.writeString(offsets[6], object.uid);
 }
 
 AIMessage _aIMessageDeserialize(
@@ -99,10 +130,13 @@ AIMessage _aIMessageDeserialize(
   final object = AIMessage();
   object.content = reader.readString(offsets[0]);
   object.id = id;
-  object.role = _AIMessageroleValueEnumMap[reader.readByteOrNull(offsets[1])] ??
+  object.proposalJson = reader.readStringOrNull(offsets[1]);
+  object.proposalKind = reader.readStringOrNull(offsets[2]);
+  object.proposalStatus = reader.readString(offsets[3]);
+  object.role = _AIMessageroleValueEnumMap[reader.readByteOrNull(offsets[4])] ??
       MessageRole.user;
-  object.timestamp = reader.readDateTime(offsets[2]);
-  object.uid = reader.readString(offsets[3]);
+  object.timestamp = reader.readDateTime(offsets[5]);
+  object.uid = reader.readString(offsets[6]);
   return object;
 }
 
@@ -116,11 +150,17 @@ P _aIMessageDeserializeProp<P>(
     case 0:
       return (reader.readString(offset)) as P;
     case 1:
+      return (reader.readStringOrNull(offset)) as P;
+    case 2:
+      return (reader.readStringOrNull(offset)) as P;
+    case 3:
+      return (reader.readString(offset)) as P;
+    case 4:
       return (_AIMessageroleValueEnumMap[reader.readByteOrNull(offset)] ??
           MessageRole.user) as P;
-    case 2:
+    case 5:
       return (reader.readDateTime(offset)) as P;
-    case 3:
+    case 6:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -455,6 +495,448 @@ extension AIMessageQueryFilter
     });
   }
 
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'proposalJson',
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'proposalJson',
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> proposalJsonEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'proposalJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'proposalJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'proposalJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> proposalJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'proposalJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'proposalJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'proposalJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'proposalJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> proposalJsonMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'proposalJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'proposalJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'proposalJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalKindIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'proposalKind',
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalKindIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'proposalKind',
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> proposalKindEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'proposalKind',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalKindGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'proposalKind',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalKindLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'proposalKind',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> proposalKindBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'proposalKind',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalKindStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'proposalKind',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalKindEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'proposalKind',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalKindContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'proposalKind',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> proposalKindMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'proposalKind',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalKindIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'proposalKind',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalKindIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'proposalKind',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalStatusEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'proposalStatus',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalStatusGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'proposalStatus',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalStatusLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'proposalStatus',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalStatusBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'proposalStatus',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalStatusStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'proposalStatus',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalStatusEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'proposalStatus',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalStatusContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'proposalStatus',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalStatusMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'proposalStatus',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalStatusIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'proposalStatus',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition>
+      proposalStatusIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'proposalStatus',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<AIMessage, AIMessage, QAfterFilterCondition> roleEqualTo(
       MessageRole value) {
     return QueryBuilder.apply(this, (query) {
@@ -712,6 +1194,42 @@ extension AIMessageQuerySortBy on QueryBuilder<AIMessage, AIMessage, QSortBy> {
     });
   }
 
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> sortByProposalJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proposalJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> sortByProposalJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proposalJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> sortByProposalKind() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proposalKind', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> sortByProposalKindDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proposalKind', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> sortByProposalStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proposalStatus', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> sortByProposalStatusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proposalStatus', Sort.desc);
+    });
+  }
+
   QueryBuilder<AIMessage, AIMessage, QAfterSortBy> sortByRole() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'role', Sort.asc);
@@ -775,6 +1293,42 @@ extension AIMessageQuerySortThenBy
     });
   }
 
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> thenByProposalJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proposalJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> thenByProposalJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proposalJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> thenByProposalKind() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proposalKind', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> thenByProposalKindDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proposalKind', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> thenByProposalStatus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proposalStatus', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QAfterSortBy> thenByProposalStatusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'proposalStatus', Sort.desc);
+    });
+  }
+
   QueryBuilder<AIMessage, AIMessage, QAfterSortBy> thenByRole() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'role', Sort.asc);
@@ -821,6 +1375,28 @@ extension AIMessageQueryWhereDistinct
     });
   }
 
+  QueryBuilder<AIMessage, AIMessage, QDistinct> distinctByProposalJson(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'proposalJson', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QDistinct> distinctByProposalKind(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'proposalKind', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AIMessage, AIMessage, QDistinct> distinctByProposalStatus(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'proposalStatus',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<AIMessage, AIMessage, QDistinct> distinctByRole() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'role');
@@ -852,6 +1428,24 @@ extension AIMessageQueryProperty
   QueryBuilder<AIMessage, String, QQueryOperations> contentProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'content');
+    });
+  }
+
+  QueryBuilder<AIMessage, String?, QQueryOperations> proposalJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'proposalJson');
+    });
+  }
+
+  QueryBuilder<AIMessage, String?, QQueryOperations> proposalKindProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'proposalKind');
+    });
+  }
+
+  QueryBuilder<AIMessage, String, QQueryOperations> proposalStatusProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'proposalStatus');
     });
   }
 

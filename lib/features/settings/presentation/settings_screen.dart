@@ -15,6 +15,8 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/community_providers.dart';
 import '../../../providers/dashboard_providers.dart';
 import '../../../providers/drill_sergeant_providers.dart';
+import '../../../providers/notification_providers.dart';
+import '../../../providers/notification_reconciler.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/nutrition_providers.dart';
@@ -1652,34 +1654,15 @@ class _DrillSergeantSection extends ConsumerWidget {
   /// providers — neither requires async work in the common path.
   Future<void> _reschedule(WidgetRef ref) async {
     final prefs = ref.read(drillSergeantProvider);
-    final service = NotificationService.instance;
-    if (!prefs.enabled) {
-      await service.cancelDrillSergeantReminders();
-      await service.cancelMorningMotivation();
-      return;
+    // Enabling? Make sure we actually hold OS permission — the prompt the app
+    // historically never requested — then refresh the banner state.
+    if (prefs.enabled) {
+      await NotificationService.instance.requestPermission();
+      ref.invalidate(notificationsAuthorizedProvider);
     }
-    // Use whatever's currently in the streak/workout providers — schedule
-    // is approximate; recalibrates on next app launch anyway.
-    final streak = ref.read(streakProvider).valueOrNull ?? 0;
-    final workouts = ref.read(allWorkoutsProvider).valueOrNull ?? const [];
-    final lastWorkoutDate = workouts.isNotEmpty ? workouts.first.date : null;
-    await service.scheduleDrillSergeantReminders(
-      currentStreak: streak,
-      lastWorkoutDate: lastWorkoutDate,
-      // Rest-day awareness isn't wired to a user-facing pref yet; treat
-      // every day as a workout day. When the rest-day setting lands, swap
-      // the empty set for the configured value.
-      restDays: const <int>{},
-      intensity: prefs.intensity,
-    );
-    if (prefs.morningEnabled) {
-      await service.scheduleMorningMotivation(
-        hour: prefs.morningHour,
-        minute: prefs.morningMinute,
-      );
-    } else {
-      await service.cancelMorningMotivation();
-    }
+    // Delegate the actual (re)scheduling to the shared reconciler so this
+    // toggle path and the launch path can never drift apart.
+    await ref.read(notificationReconcilerProvider).reconcileDrill();
   }
 
   @override
@@ -1687,6 +1670,9 @@ class _DrillSergeantSection extends ConsumerWidget {
     final prefs = ref.watch(drillSergeantProvider);
     final palette = AppColors.of(context);
     final textTheme = Theme.of(context).textTheme;
+    // Default true so the banner doesn't flash before the OS check resolves.
+    final authorized =
+        ref.watch(notificationsAuthorizedProvider).valueOrNull ?? true;
 
     return _SettingsCard(
       child: Padding(
@@ -1748,6 +1734,38 @@ class _DrillSergeantSection extends ConsumerWidget {
                 ),
               ],
             ),
+            if (prefs.enabled && !authorized)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () async {
+                  await NotificationService.instance.requestPermission();
+                  ref.invalidate(notificationsAuthorizedProvider);
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: palette.destructive.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(CupertinoIcons.bell_slash,
+                          color: palette.destructive, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Notifications are off — the Drill Sergeant can't "
+                          'reach you. Tap to enable, or turn them on in iOS '
+                          'Settings › DrillFit.',
+                          style: textTheme.bodySmall
+                              ?.copyWith(color: palette.destructive),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             // Sub-settings — only render when enabled
             if (prefs.enabled) ...[
               const SizedBox(height: 16),

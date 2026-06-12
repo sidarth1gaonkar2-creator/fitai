@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/nutrient_icons.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/macro_targets.dart';
-import '../../../../models/enums.dart';
 
 class MacroRow extends StatelessWidget {
   const MacroRow({
@@ -10,22 +8,20 @@ class MacroRow extends StatelessWidget {
     required this.proteinGrams,
     required this.carbsGrams,
     required this.fatGrams,
-    required this.tdee,
-    required this.goal,
+    required this.proteinTarget,
+    required this.carbsTarget,
+    required this.fatTarget,
   });
 
   final double proteinGrams;
   final double carbsGrams;
   final double fatGrams;
-  final double tdee;
-  final Goal goal;
-
-  MacroTargets get _targets => macroTargetsFor(tdee: tdee, goal: goal);
+  final double proteinTarget;
+  final double carbsTarget;
+  final double fatTarget;
 
   @override
   Widget build(BuildContext context) {
-    final targets = _targets;
-
     return Row(
       children: [
         Expanded(
@@ -34,7 +30,7 @@ class MacroRow extends StatelessWidget {
             icon: const Icon(NutrientIcons.proteinIcon,
                 size: 14, color: NutrientIcons.proteinColor),
             current: proteinGrams,
-            target: targets.protein,
+            target: proteinTarget,
             color: NutrientIcons.proteinColor,
           ),
         ),
@@ -45,7 +41,7 @@ class MacroRow extends StatelessWidget {
             icon: const Icon(NutrientIcons.carbsIcon,
                 size: 14, color: NutrientIcons.carbsColor),
             current: carbsGrams,
-            target: targets.carbs,
+            target: carbsTarget,
             color: NutrientIcons.carbsColor,
           ),
         ),
@@ -55,7 +51,7 @@ class MacroRow extends StatelessWidget {
             label: 'Fat',
             icon: NutrientIcons.fatIconWidget(size: 14),
             current: fatGrams,
-            target: targets.fat,
+            target: fatTarget,
             color: NutrientIcons.fatColor,
           ),
         ),

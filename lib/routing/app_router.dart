@@ -45,6 +45,7 @@ import '../features/workouts/presentation/workout_detail_screen.dart';
 import '../features/workouts/presentation/workout_logging_screen.dart';
 import '../features/workouts/presentation/workouts_screen.dart';
 import '../models/enums.dart';
+import '../models/saved_workout_template.dart';
 import '../providers/auth_provider.dart';
 import '../providers/community_providers.dart';
 import '../providers/onboarding_gate_provider.dart';
@@ -196,11 +197,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'new',
                     pageBuilder: (context, state) {
-                      final template = state.extra as WorkoutTemplate?;
+                      final extra = state.extra;
                       return slideUpTransitionPage(
                         key: state.pageKey,
                         child: WorkoutLoggingScreen(
-                          initialTemplate: template,
+                          initialTemplate:
+                              extra is WorkoutTemplate ? extra : null,
+                          initialCoachTemplate:
+                              extra is SavedWorkoutTemplate ? extra : null,
                         ),
                       );
                     },

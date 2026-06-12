@@ -82,6 +82,22 @@ Future<BootstrapResult> _bootstrap() async {
   await FirebaseCrashlytics.instance
       .setCrashlyticsCollectionEnabled(!kDebugMode);
 
+  // A release build that shipped without the AI proxy configured would silently
+  // disable the AI Coach — a misbuilt .env must be loud. Record a non-fatal so
+  // it surfaces in Crashlytics instead of failing quietly in the field.
+  if (kReleaseMode) {
+    final proxy = dotenv.isInitialized ? dotenv.env['AI_PROXY_URL'] : null;
+    if (proxy == null || proxy.isEmpty) {
+      AppLogger.error('AI Coach disabled by configuration (AI_PROXY_URL empty)');
+      await FirebaseCrashlytics.instance.recordError(
+        StateError('AI Coach disabled by configuration'),
+        StackTrace.current,
+        reason: 'AI_PROXY_URL missing/empty in a release build',
+        fatal: false,
+      );
+    }
+  }
+
   // Resolve the persisted Firebase auth state NOW, before the real app mounts,
   // so the router can start on the correct route (a signed-in user goes
   // straight to /dashboard, never flashing the welcome screen). Bounded by a

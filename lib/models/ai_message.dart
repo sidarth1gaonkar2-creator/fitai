@@ -19,4 +19,16 @@ class AIMessage {
   late String content;
 
   DateTime timestamp = DateTime.now();
+
+  // --- AI Coach tool-use proposal (Build 75) --------------------------------
+  // When this assistant message carries a tool proposal, [proposalKind] is
+  // 'nutrition' or 'workout', [proposalJson] is the validated tool input, and
+  // [proposalStatus] tracks the card lifecycle: 'proposed' | 'applied' |
+  // 'dismissed' | 'error'. Persisted per-uid so cards survive the 50-message
+  // history. Default 'none' = an ordinary text message.
+  String? proposalKind;
+
+  String? proposalJson;
+
+  String proposalStatus = 'none';
 }

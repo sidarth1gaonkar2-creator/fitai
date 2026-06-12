@@ -7,6 +7,7 @@ import '../../../models/enums.dart';
 import '../../../providers/ai_coach_providers.dart';
 import 'widgets/chat_bubble.dart';
 import 'widgets/chat_input_bar.dart';
+import 'widgets/coach_proposal_card.dart';
 import 'widgets/typing_indicator.dart';
 
 class AICoachScreen extends ConsumerStatefulWidget {
@@ -113,6 +114,7 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
     final isBusy = chatState.isStreaming || chatState.isWaitingForStream;
 
     final palette = AppColors.of(context);
+    final configured = ref.watch(anthropicServiceProvider) != null;
     return Scaffold(
       backgroundColor: palette.background,
       appBar: CupertinoNavigationBar(
@@ -128,8 +130,10 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
       body: Column(
         children: [
           Expanded(
-            child: chatState.messages.isEmpty && !isBusy
-                ? _EmptyState(onPromptTapped: _sendMessage)
+            child: !configured
+                ? const _UnavailableState()
+                : chatState.messages.isEmpty && !isBusy
+                    ? _EmptyState(onPromptTapped: _sendMessage)
                 : ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.symmetric(
@@ -140,10 +144,26 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
                     itemBuilder: (context, index) {
                       if (index < chatState.messages.length) {
                         final msg = chatState.messages[index];
-                        return ChatBubble(
-                          role: msg.role,
-                          content: msg.content,
-                          timestamp: msg.timestamp,
+                        if (msg.proposalKind == null) {
+                          return ChatBubble(
+                            role: msg.role,
+                            content: msg.content,
+                            timestamp: msg.timestamp,
+                          );
+                        }
+                        // A message carrying a tool proposal: show any lead-in
+                        // text, then the inline confirmation card.
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (msg.content.trim().isNotEmpty)
+                              ChatBubble(
+                                role: msg.role,
+                                content: msg.content,
+                                timestamp: msg.timestamp,
+                              ),
+                            CoachProposalCard(message: msg),
+                          ],
                         );
                       }
 
@@ -163,7 +183,7 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
                   ),
           ),
           ChatInputBar(
-            enabled: !isBusy,
+            enabled: configured && !isBusy,
             onSend: _sendMessage,
           ),
         ],
@@ -216,6 +236,40 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
     if (confirmed == true) {
       ref.read(aiChatControllerProvider.notifier).clearHistory();
     }
+  }
+}
+
+/// Shown when no AI proxy is configured (`AI_PROXY_URL` empty) — an explicit
+/// "unavailable — configuration" state, never a silent blank chat.
+class _UnavailableState extends StatelessWidget {
+  const _UnavailableState();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(CupertinoIcons.wrench, size: 48, color: palette.textSecondary),
+            const SizedBox(height: 16),
+            Text('AI Coach unavailable',
+                textAlign: TextAlign.center, style: textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(
+              "The coach is offline due to a configuration issue — this build "
+              "can't reach the backend. Nothing you did; it'll be back.",
+              textAlign: TextAlign.center,
+              style: textTheme.bodyMedium
+                  ?.copyWith(color: palette.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

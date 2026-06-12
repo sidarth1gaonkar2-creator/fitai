@@ -1,13 +1,19 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../data/workout_templates.dart';
 import '../../../models/enums.dart';
+import '../../../models/saved_workout_template.dart';
+import '../../ai_coach/data/coach_actions.dart';
 import 'template_preview_screen.dart';
 
 /// Embeddable (or modal) template browser with category filter chips.
 /// When [isEmbedded] is true the drag handle and close button are hidden
 /// (designed for use inside a tab rather than a bottom sheet).
-class TemplatePickerContent extends StatefulWidget {
+class TemplatePickerContent extends ConsumerStatefulWidget {
   const TemplatePickerContent({
     super.key,
     this.isEmbedded = false,
@@ -16,10 +22,11 @@ class TemplatePickerContent extends StatefulWidget {
   final bool isEmbedded;
 
   @override
-  State<TemplatePickerContent> createState() => _TemplatePickerContentState();
+  ConsumerState<TemplatePickerContent> createState() =>
+      _TemplatePickerContentState();
 }
 
-class _TemplatePickerContentState extends State<TemplatePickerContent> {
+class _TemplatePickerContentState extends ConsumerState<TemplatePickerContent> {
   WorkoutTemplateCategory? _selectedCategory;
 
   List<WorkoutTemplate> get _filtered => _selectedCategory == null
@@ -32,6 +39,9 @@ class _TemplatePickerContentState extends State<TemplatePickerContent> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final coachTemplates =
+        ref.watch(savedWorkoutTemplatesProvider).valueOrNull ??
+            const <SavedWorkoutTemplate>[];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,30 +113,48 @@ class _TemplatePickerContentState extends State<TemplatePickerContent> {
         ),
         const SizedBox(height: 4),
 
-        // Template list
+        // Template list — Coach templates on top (newest first), built-ins
+        // below. The Coach section is hidden when the user has none.
         Expanded(
-          child: ListView.builder(
+          child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: _filtered.length,
-            itemBuilder: (context, index) {
-              final template = _filtered[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: TemplateCard(
-                  template: template,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            TemplatePreviewScreen(template: template),
-                      ),
-                    );
-                  },
+            children: [
+              if (coachTemplates.isNotEmpty) ...[
+                const _SectionLabel(label: 'From your Coach'),
+                ...coachTemplates.map(
+                  (t) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _CoachTemplateCard(
+                      template: t,
+                      onStart: () {
+                        HapticFeedback.lightImpact();
+                        context.push('/workouts/new', extra: t);
+                      },
+                      onDelete: () => deleteCoachWorkoutTemplate(ref, t.id),
+                    ),
+                  ),
                 ),
-              );
-            },
+                const _SectionLabel(label: 'Templates'),
+              ],
+              ..._filtered.map(
+                (template) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: TemplateCard(
+                    template: template,
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              TemplatePreviewScreen(template: template),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -270,6 +298,121 @@ class _StatChip extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Coach templates ("From your Coach")
+// ---------------------------------------------------------------------------
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 8),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+      ),
+    );
+  }
+}
+
+class _CoachTemplateCard extends StatelessWidget {
+  const _CoachTemplateCard({
+    required this.template,
+    required this.onStart,
+    required this.onDelete,
+  });
+
+  final SavedWorkoutTemplate template;
+  final VoidCallback onStart;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    int exerciseCount;
+    try {
+      exerciseCount = (jsonDecode(template.exercisesJson) as List).length;
+    } catch (_) {
+      exerciseCount = 0;
+    }
+
+    return Card.filled(
+      child: InkWell(
+        onTap: onStart,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      template.name,
+                      style: textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'Coach',
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(Icons.delete_outline,
+                        size: 20, color: colorScheme.onSurfaceVariant),
+                    onPressed: onDelete,
+                  ),
+                ],
+              ),
+              if (template.focus.isNotEmpty)
+                Text(
+                  template.focus,
+                  style: textTheme.bodySmall
+                      ?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.fitness_center,
+                      size: 13, color: colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 3),
+                  Text(
+                    '$exerciseCount exercises · tap to start',
+                    style: textTheme.labelSmall
+                        ?.copyWith(color: colorScheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

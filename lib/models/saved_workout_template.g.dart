@@ -1,0 +1,1380 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'saved_workout_template.dart';
+
+// **************************************************************************
+// IsarCollectionGenerator
+// **************************************************************************
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+extension GetSavedWorkoutTemplateCollection on Isar {
+  IsarCollection<SavedWorkoutTemplate> get savedWorkoutTemplates =>
+      this.collection();
+}
+
+const SavedWorkoutTemplateSchema = CollectionSchema(
+  name: r'SavedWorkoutTemplate',
+  id: -785033484599894766,
+  properties: {
+    r'createdAt': PropertySchema(
+      id: 0,
+      name: r'createdAt',
+      type: IsarType.dateTime,
+    ),
+    r'exercisesJson': PropertySchema(
+      id: 1,
+      name: r'exercisesJson',
+      type: IsarType.string,
+    ),
+    r'focus': PropertySchema(
+      id: 2,
+      name: r'focus',
+      type: IsarType.string,
+    ),
+    r'name': PropertySchema(
+      id: 3,
+      name: r'name',
+      type: IsarType.string,
+    ),
+    r'source': PropertySchema(
+      id: 4,
+      name: r'source',
+      type: IsarType.string,
+    ),
+    r'uid': PropertySchema(
+      id: 5,
+      name: r'uid',
+      type: IsarType.string,
+    )
+  },
+  estimateSize: _savedWorkoutTemplateEstimateSize,
+  serialize: _savedWorkoutTemplateSerialize,
+  deserialize: _savedWorkoutTemplateDeserialize,
+  deserializeProp: _savedWorkoutTemplateDeserializeProp,
+  idName: r'id',
+  indexes: {
+    r'uid': IndexSchema(
+      id: 8193695471701937315,
+      name: r'uid',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'uid',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    )
+  },
+  links: {},
+  embeddedSchemas: {},
+  getId: _savedWorkoutTemplateGetId,
+  getLinks: _savedWorkoutTemplateGetLinks,
+  attach: _savedWorkoutTemplateAttach,
+  version: '3.1.0+1',
+);
+
+int _savedWorkoutTemplateEstimateSize(
+  SavedWorkoutTemplate object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  bytesCount += 3 + object.exercisesJson.length * 3;
+  bytesCount += 3 + object.focus.length * 3;
+  bytesCount += 3 + object.name.length * 3;
+  bytesCount += 3 + object.source.length * 3;
+  bytesCount += 3 + object.uid.length * 3;
+  return bytesCount;
+}
+
+void _savedWorkoutTemplateSerialize(
+  SavedWorkoutTemplate object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeDateTime(offsets[0], object.createdAt);
+  writer.writeString(offsets[1], object.exercisesJson);
+  writer.writeString(offsets[2], object.focus);
+  writer.writeString(offsets[3], object.name);
+  writer.writeString(offsets[4], object.source);
+  writer.writeString(offsets[5], object.uid);
+}
+
+SavedWorkoutTemplate _savedWorkoutTemplateDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = SavedWorkoutTemplate();
+  object.createdAt = reader.readDateTime(offsets[0]);
+  object.exercisesJson = reader.readString(offsets[1]);
+  object.focus = reader.readString(offsets[2]);
+  object.id = id;
+  object.name = reader.readString(offsets[3]);
+  object.source = reader.readString(offsets[4]);
+  object.uid = reader.readString(offsets[5]);
+  return object;
+}
+
+P _savedWorkoutTemplateDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readDateTime(offset)) as P;
+    case 1:
+      return (reader.readString(offset)) as P;
+    case 2:
+      return (reader.readString(offset)) as P;
+    case 3:
+      return (reader.readString(offset)) as P;
+    case 4:
+      return (reader.readString(offset)) as P;
+    case 5:
+      return (reader.readString(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+Id _savedWorkoutTemplateGetId(SavedWorkoutTemplate object) {
+  return object.id;
+}
+
+List<IsarLinkBase<dynamic>> _savedWorkoutTemplateGetLinks(
+    SavedWorkoutTemplate object) {
+  return [];
+}
+
+void _savedWorkoutTemplateAttach(
+    IsarCollection<dynamic> col, Id id, SavedWorkoutTemplate object) {
+  object.id = id;
+}
+
+extension SavedWorkoutTemplateQueryWhereSort
+    on QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QWhere> {
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterWhere>
+      anyId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+}
+
+extension SavedWorkoutTemplateQueryWhere
+    on QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QWhereClause> {
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterWhereClause>
+      idEqualTo(Id id) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: id,
+        upper: id,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterWhereClause>
+      idNotEqualTo(Id id) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: id, includeUpper: false),
+            )
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: id, includeLower: false),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: id, includeLower: false),
+            )
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: id, includeUpper: false),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterWhereClause>
+      idGreaterThan(Id id, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.greaterThan(lower: id, includeLower: include),
+      );
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterWhereClause>
+      idLessThan(Id id, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.lessThan(upper: id, includeUpper: include),
+      );
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterWhereClause>
+      idBetween(
+    Id lowerId,
+    Id upperId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: lowerId,
+        includeLower: includeLower,
+        upper: upperId,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterWhereClause>
+      uidEqualTo(String uid) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'uid',
+        value: [uid],
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterWhereClause>
+      uidNotEqualTo(String uid) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'uid',
+              lower: [],
+              upper: [uid],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'uid',
+              lower: [uid],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'uid',
+              lower: [uid],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'uid',
+              lower: [],
+              upper: [uid],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+}
+
+extension SavedWorkoutTemplateQueryFilter on QueryBuilder<SavedWorkoutTemplate,
+    SavedWorkoutTemplate, QFilterCondition> {
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> createdAtEqualTo(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'createdAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> createdAtGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'createdAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> createdAtLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'createdAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> createdAtBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'createdAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> exercisesJsonEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'exercisesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> exercisesJsonGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'exercisesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> exercisesJsonLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'exercisesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> exercisesJsonBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'exercisesJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> exercisesJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'exercisesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> exercisesJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'exercisesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+          QAfterFilterCondition>
+      exercisesJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'exercisesJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+          QAfterFilterCondition>
+      exercisesJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'exercisesJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> exercisesJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'exercisesJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> exercisesJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'exercisesJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> focusEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'focus',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> focusGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'focus',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> focusLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'focus',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> focusBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'focus',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> focusStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'focus',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> focusEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'focus',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+          QAfterFilterCondition>
+      focusContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'focus',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+          QAfterFilterCondition>
+      focusMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'focus',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> focusIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'focus',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> focusIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'focus',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> idEqualTo(Id value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> idGreaterThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> idLessThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> idBetween(
+    Id lower,
+    Id upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'id',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> nameEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> nameGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> nameLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> nameBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'name',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> nameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> nameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+          QAfterFilterCondition>
+      nameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+          QAfterFilterCondition>
+      nameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'name',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> nameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'name',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> nameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'name',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> sourceEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> sourceGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> sourceLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> sourceBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'source',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> sourceStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> sourceEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+          QAfterFilterCondition>
+      sourceContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+          QAfterFilterCondition>
+      sourceMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'source',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> sourceIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'source',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> sourceIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'source',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> uidEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'uid',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> uidGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'uid',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> uidLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'uid',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> uidBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'uid',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> uidStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'uid',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> uidEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'uid',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+          QAfterFilterCondition>
+      uidContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'uid',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+          QAfterFilterCondition>
+      uidMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'uid',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> uidIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'uid',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate,
+      QAfterFilterCondition> uidIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'uid',
+        value: '',
+      ));
+    });
+  }
+}
+
+extension SavedWorkoutTemplateQueryObject on QueryBuilder<SavedWorkoutTemplate,
+    SavedWorkoutTemplate, QFilterCondition> {}
+
+extension SavedWorkoutTemplateQueryLinks on QueryBuilder<SavedWorkoutTemplate,
+    SavedWorkoutTemplate, QFilterCondition> {}
+
+extension SavedWorkoutTemplateQuerySortBy
+    on QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QSortBy> {
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      sortByCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      sortByCreatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      sortByExercisesJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'exercisesJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      sortByExercisesJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'exercisesJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      sortByFocus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'focus', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      sortByFocusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'focus', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      sortByName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'name', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      sortByNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      sortBySource() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'source', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      sortBySourceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'source', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      sortByUid() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uid', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      sortByUidDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uid', Sort.desc);
+    });
+  }
+}
+
+extension SavedWorkoutTemplateQuerySortThenBy
+    on QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QSortThenBy> {
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      thenByCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      thenByCreatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      thenByExercisesJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'exercisesJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      thenByExercisesJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'exercisesJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      thenByFocus() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'focus', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      thenByFocusDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'focus', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      thenById() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      thenByIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      thenByName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'name', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      thenByNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      thenBySource() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'source', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      thenBySourceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'source', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      thenByUid() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uid', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QAfterSortBy>
+      thenByUidDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'uid', Sort.desc);
+    });
+  }
+}
+
+extension SavedWorkoutTemplateQueryWhereDistinct
+    on QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QDistinct> {
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QDistinct>
+      distinctByCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'createdAt');
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QDistinct>
+      distinctByExercisesJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'exercisesJson',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QDistinct>
+      distinctByFocus({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'focus', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QDistinct>
+      distinctByName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'name', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QDistinct>
+      distinctBySource({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'source', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, SavedWorkoutTemplate, QDistinct>
+      distinctByUid({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'uid', caseSensitive: caseSensitive);
+    });
+  }
+}
+
+extension SavedWorkoutTemplateQueryProperty on QueryBuilder<
+    SavedWorkoutTemplate, SavedWorkoutTemplate, QQueryProperty> {
+  QueryBuilder<SavedWorkoutTemplate, int, QQueryOperations> idProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, DateTime, QQueryOperations>
+      createdAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'createdAt');
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, String, QQueryOperations>
+      exercisesJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'exercisesJson');
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, String, QQueryOperations> focusProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'focus');
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, String, QQueryOperations> nameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'name');
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, String, QQueryOperations>
+      sourceProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'source');
+    });
+  }
+
+  QueryBuilder<SavedWorkoutTemplate, String, QQueryOperations> uidProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'uid');
+    });
+  }
+}

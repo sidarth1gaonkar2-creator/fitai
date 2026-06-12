@@ -12,6 +12,7 @@ import '../models/enums.dart';
 import '../models/food_entry.dart';
 import '../models/meal.dart';
 import '../models/nutrition_log.dart';
+import '../models/user_profile.dart';
 import '../services/menu_item_cache_service.dart';
 import '../services/open_food_facts_service.dart';
 import '../services/spoonacular_service.dart';
@@ -254,16 +255,27 @@ class DailyTargets {
   final double fat;
 }
 
+/// THE single source of truth for a user's effective daily targets. Any custom
+/// override on [UserProfile] (set by the AI Coach goal card) wins; otherwise the
+/// value derives from the effective calorie goal + goal-type split. EVERY
+/// surface — dashboard ring + macros, nutrition tab, rings, settings, and the
+/// AI Coach context — must read through this so they all show the same numbers
+/// the user sees.
+DailyTargets resolveDailyTargets(UserProfile profile) {
+  final calories = profile.calorieGoal ?? profile.tdee;
+  final derived = macroTargetsFor(tdee: calories, goal: profile.goal);
+  return DailyTargets(
+    calories: calories,
+    protein: profile.proteinGoalG ?? derived.protein,
+    carbs: profile.carbsGoalG ?? derived.carbs,
+    fat: profile.fatGoalG ?? derived.fat,
+  );
+}
+
 final dailyTargetsProvider = FutureProvider<DailyTargets?>((ref) async {
   final profile = await ref.watch(userProfileProvider.future);
   if (profile == null) return null;
-  final macros = macroTargetsFor(tdee: profile.tdee, goal: profile.goal);
-  return DailyTargets(
-    calories: profile.tdee,
-    protein: macros.protein,
-    carbs: macros.carbs,
-    fat: macros.fat,
-  );
+  return resolveDailyTargets(profile);
 });
 
 // ---------------------------------------------------------------------------
