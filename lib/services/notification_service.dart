@@ -581,7 +581,7 @@ class NotificationService {
         id: _drillSergeantIds[i],
         hour: hours[i],
         minute: 0,
-        title: 'Drill Sergeant',
+        title: MotivatorMessages.titleFor(category),
         body: MotivatorMessages.random(
           category,
           streakCount: currentStreak,
@@ -611,7 +611,7 @@ class NotificationService {
       id: _morningMotivationId,
       hour: hour,
       minute: minute,
-      title: 'Wake up',
+      title: MotivatorMessages.titleFor(MotivatorCategory.morningMotivation),
       body: MotivatorMessages.random(MotivatorCategory.morningMotivation),
       channelId: 'drill_sergeant',
       channelName: 'Drill Sergeant',
@@ -630,7 +630,7 @@ class NotificationService {
       String exerciseName, double weight) async {
     await _plugin.show(
       id: 450,
-      title: 'NEW PR',
+      title: MotivatorMessages.titleFor(MotivatorCategory.prCelebration),
       body:
           '${MotivatorMessages.random(MotivatorCategory.prCelebration)}\n'
           '$exerciseName · ${weight.toStringAsFixed(1)} kg',

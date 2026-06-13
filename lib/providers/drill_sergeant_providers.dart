@@ -1,12 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../data/motivator_messages.dart';
 import '../providers/unit_system_provider.dart';
 
 const _kEnabled = 'drill_sergeant_enabled';
 const _kIntensity = 'drill_sergeant_intensity';
 const _kMorningEnabled = 'morning_motivation_enabled';
 const _kMorningTime = 'morning_motivation_time';
+const _kFullMetal = 'drill_sergeant_full_metal';
 
 /// User preferences for the toxic-motivator personality. Stored in
 /// SharedPreferences (via the existing [sharedPreferencesProvider]) so the
@@ -19,13 +21,15 @@ class DrillSergeantPrefs {
     required this.morningEnabled,
     required this.morningHour,
     required this.morningMinute,
+    required this.fullMetalEnabled,
   });
 
-  /// Master switch. When false, all four other fields are ignored and any
+  /// Master switch. When false, all other fields are ignored and any
   /// previously-scheduled notifications are cancelled by the caller.
   final bool enabled;
 
   /// 1 = Mild (1×/day), 2 = Medium (2×/day), 3 = Full Savage (4×/day).
+  /// Controls FREQUENCY only — message tone does not change with intensity.
   final int intensity;
 
   /// Independent of [enabled] in storage so we don't lose the user's chosen
@@ -33,6 +37,12 @@ class DrillSergeantPrefs {
   final bool morningEnabled;
   final int morningHour;
   final int morningMinute;
+
+  /// Opt-in to the explicit-language "Full Metal" message pool. Persisted, but
+  /// only has any effect while [kFullMetalEnabled] is true (the hard gate) —
+  /// otherwise the 12+ pool is always used. The Settings toggle that sets this
+  /// is hidden until the gate opens.
+  final bool fullMetalEnabled;
 
   String get intensityLabel => switch (intensity) {
         1 => 'Mild Roast',
@@ -54,6 +64,7 @@ class DrillSergeantPrefs {
     bool? morningEnabled,
     int? morningHour,
     int? morningMinute,
+    bool? fullMetalEnabled,
   }) {
     return DrillSergeantPrefs(
       enabled: enabled ?? this.enabled,
@@ -61,6 +72,7 @@ class DrillSergeantPrefs {
       morningEnabled: morningEnabled ?? this.morningEnabled,
       morningHour: morningHour ?? this.morningHour,
       morningMinute: morningMinute ?? this.morningMinute,
+      fullMetalEnabled: fullMetalEnabled ?? this.fullMetalEnabled,
     );
   }
 
@@ -75,13 +87,19 @@ class DrillSergeantPrefs {
       morningEnabled: prefs.getBool(_kMorningEnabled) ?? false,
       morningHour: h.clamp(0, 23),
       morningMinute: m.clamp(0, 59),
+      fullMetalEnabled: prefs.getBool(_kFullMetal) ?? false,
     );
   }
 }
 
 class DrillSergeantNotifier extends StateNotifier<DrillSergeantPrefs> {
   DrillSergeantNotifier(this._prefs)
-      : super(DrillSergeantPrefs.fromPrefs(_prefs));
+      : super(DrillSergeantPrefs.fromPrefs(_prefs)) {
+    // Sync the message-pool selection with the persisted preference. The gate
+    // ([kFullMetalEnabled]) is enforced inside setFullMetal, so while it's
+    // closed this is a no-op and the 12+ pool stays active.
+    MotivatorMessages.setFullMetal(state.fullMetalEnabled);
+  }
 
   final SharedPreferences _prefs;
 
@@ -106,6 +124,15 @@ class DrillSergeantNotifier extends StateNotifier<DrillSergeantPrefs> {
     final h = hour.toString().padLeft(2, '0');
     final m = minute.toString().padLeft(2, '0');
     await _prefs.setString(_kMorningTime, '$h:$m');
+  }
+
+  /// Opt in/out of the explicit "Full Metal" pool. Persisted regardless, but
+  /// [MotivatorMessages.setFullMetal] only actually switches pools while
+  /// [kFullMetalEnabled] is true — so this is inert until the gate opens.
+  Future<void> setFullMetal(bool value) async {
+    state = state.copyWith(fullMetalEnabled: value);
+    MotivatorMessages.setFullMetal(value);
+    await _prefs.setBool(_kFullMetal, value);
   }
 }
 

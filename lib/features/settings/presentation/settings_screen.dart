@@ -10,6 +10,7 @@ import '../../../core/utils/unit_converter.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
+import '../../../data/motivator_messages.dart';
 import '../../../models/enums.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/community_providers.dart';
@@ -1795,6 +1796,51 @@ class _DrillSergeantSection extends ConsumerWidget {
                   await _reschedule(ref);
                 },
               ),
+              // ── Full Metal Mode (explicit language) ──────────────────────
+              // DORMANT: only renders while the kFullMetalEnabled gate (in
+              // motivator_messages.dart) is open. Today it's closed, so this
+              // toggle never appears and the shipping content stays 12+.
+              // Enabling the gate requires bumping the App Store rating to 17+.
+              if (kFullMetalEnabled) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Full Metal Mode',
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: palette.text,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            prefs.fullMetalEnabled
+                                ? 'Explicit language ON (17+)'
+                                : 'Unfiltered, explicit language. Opt-in.',
+                            style: textTheme.bodySmall?.copyWith(
+                              color: palette.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    CupertinoSwitch(
+                      value: prefs.fullMetalEnabled,
+                      activeTrackColor: palette.destructive,
+                      onChanged: (value) async {
+                        HapticFeedback.selectionClick();
+                        await ref
+                            .read(drillSergeantProvider.notifier)
+                            .setFullMetal(value);
+                        await _reschedule(ref);
+                      },
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 16),
               Row(
                 children: [
