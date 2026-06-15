@@ -603,7 +603,11 @@ class _WorkoutsTab extends ConsumerWidget {
                 subtitle: 'Log your first workout to see it here.',
                 colors: colors,
                 ctaLabel: 'Start Workout',
-                onCta: () => context.push('/workouts/new'),
+                // `go`, not `push`: this profile route is standalone (outside
+                // the shell), so push-ing the shell-nested /workouts/new from
+                // here clones a second StatefulShellRoute and black-screens.
+                // See exercise_detail_screen.dart:355 for the same fix.
+                onCta: () => context.go('/workouts/new'),
               ),
             );
           }
@@ -641,6 +645,16 @@ class _WorkoutTile extends StatelessWidget {
     final duration = workout.durationMinutes ?? 0;
 
     return GestureDetector(
+      // KNOWN LATENT BUG — documented for a follow-up, intentionally NOT fixed
+      // in this PR. This profile route is standalone (outside the shell), so
+      // push-ing the shell-nested /workouts/:id clones a second
+      // StatefulShellRoute → duplicate _shellStateKey GlobalKey → black screen
+      // in release (same crash class as the coach "Start now" bug). A plain
+      // `go` would fix the crash but regress back-nav (back would land on the
+      // Workouts tab instead of returning to this profile). Proper fix: host
+      // /workouts/:id on a ROOT-navigator route (parentNavigatorKey:
+      // rootNavigatorKey) so it stacks on top of this standalone route and
+      // preserves back-to-profile.
       onTap: () => context.push('/workouts/${workout.id}'),
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
@@ -748,7 +762,10 @@ class _PRsTab extends ConsumerWidget {
               subtitle: 'Complete a set heavier than your best to set one.',
               colors: colors,
               ctaLabel: 'Log Workout',
-              onCta: () => context.push('/workouts/new'),
+              // `go`, not `push` — same reason as the Workouts-tab CTA above:
+              // a cross-shell push of /workouts/new from this standalone
+              // profile route clones a second StatefulShellRoute → black screen.
+              onCta: () => context.go('/workouts/new'),
             ),
           );
         }

@@ -128,7 +128,13 @@ class _TemplatePickerContentState extends ConsumerState<TemplatePickerContent> {
                       template: t,
                       onStart: () {
                         HapticFeedback.lightImpact();
-                        context.push('/workouts/new', extra: t);
+                        // This tab is embedded inside the Workouts shell branch,
+                        // so the old `push` here was actually safe — but `go`
+                        // matches the FAB and stays safe even if this picker is
+                        // ever shown from OUTSIDE the shell (e.g. via
+                        // showTemplatePickerSheet from a standalone route), where
+                        // a push would clone a second shell and black-screen.
+                        context.go('/workouts/new', extra: t);
                       },
                       onDelete: () => deleteCoachWorkoutTemplate(ref, t.id),
                     ),

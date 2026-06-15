@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/unit_converter.dart';
+import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../models/ai_message.dart';
 import '../../../../models/saved_workout_template.dart';
 import '../../../../providers/ai_coach_providers.dart';
@@ -326,12 +327,35 @@ class _WorkoutCard extends ConsumerWidget {
   }
 
   void _startNow(BuildContext context) {
+    final exercises =
+        (input['exercises'] as List?)?.whereType<Map>().toList() ?? const [];
+    // Defensive: an applied workout proposal always carries 1–12 exercises (the
+    // server clamp + _proposalWithinBounds guarantee it), but never launch an
+    // empty logging session — give feedback instead of a useless blank screen.
+    if (exercises.isEmpty) {
+      showCupertinoToast(context, 'That workout has no exercises to start.');
+      return;
+    }
+
     final template = SavedWorkoutTemplate()
       ..uid = ''
       ..name = input['name'] as String? ?? 'Coach Workout'
       ..focus = input['focus'] as String? ?? ''
-      ..exercisesJson = jsonEncode(input['exercises'] ?? const [])
+      ..exercisesJson = jsonEncode(exercises)
       ..source = 'coach';
-    context.push('/workouts/new', extra: template);
+
+    // `/workouts/new` is nested INSIDE the Workouts shell branch; this card
+    // lives on `/ai-coach`, a standalone route that was itself push-ed on top
+    // of the shell (dashboard_screen.dart:166). Imperatively `push`-ing the
+    // shell-nested route from there makes go_router append a SECOND
+    // StatefulShellRoute match — both reuse the shell's single _shellStateKey
+    // GlobalKey, which breaks the root Navigator (a black frame in release, a
+    // duplicate-GlobalKey assertion in debug) and corrupts the branch stack so
+    // the Workouts tab later bounces to /dashboard. `go` REPLACES the route
+    // list, so exactly one shell is ever built: it rebuilds shell → branch →
+    // /workouts/new cleanly and carries `extra` (the template) through non-null.
+    // Same pattern the working entries use (workouts_screen.dart:81 FAB;
+    // exercise_detail_screen.dart:355 documents the identical push→go fix).
+    context.go('/workouts/new', extra: template);
   }
 }
