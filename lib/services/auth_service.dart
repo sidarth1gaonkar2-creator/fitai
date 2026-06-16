@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../core/utils/logger.dart';
 
@@ -71,6 +76,84 @@ class AuthService {
     );
 
     return _auth.signInWithCredential(credential);
+  }
+
+  /// Native Sign in with Apple → Firebase. Required for App Store Guideline 4.8
+  /// (an equal third-party login option alongside Google).
+  ///
+  /// Replay-protection nonce flow: a cryptographically secure RAW nonce is
+  /// SHA-256 hashed and sent to Apple (`nonce:`); the RAW nonce goes to Firebase
+  /// via [OAuthProvider.credential] (`rawNonce:`), which re-hashes it and
+  /// compares against the hash embedded in Apple's id token. Swapping raw/hashed
+  /// is the classic cause of `MissingOrInvalidNonce`.
+  Future<UserCredential> signInWithApple() async {
+    final rawNonce = _generateNonce();
+    final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
+
+    final AuthorizationCredentialAppleID appleCredential;
+    try {
+      appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: const [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: hashedNonce,
+      );
+    } on SignInWithAppleAuthorizationException catch (e) {
+      // Dismissing the Apple sheet is a normal no-op, not an error. Normalize to
+      // a sentinel code the UI treats silently (mirrors Google's cancel code).
+      if (e.code == AuthorizationErrorCode.canceled) {
+        throw FirebaseAuthException(
+          code: 'apple-sign-in-cancelled',
+          message: 'Apple sign-in was cancelled.',
+        );
+      }
+      rethrow;
+    }
+
+    final idToken = appleCredential.identityToken;
+    if (idToken == null) {
+      throw FirebaseAuthException(
+        code: 'apple-missing-id-token',
+        message: 'Apple did not return an identity token. Please try again.',
+      );
+    }
+
+    final oauthCredential = OAuthProvider('apple.com').credential(
+      idToken: idToken,
+      rawNonce: rawNonce,
+    );
+
+    final userCredential = await _auth.signInWithCredential(oauthCredential);
+
+    // Apple returns the name ONLY on the first authorization. Capture it into
+    // the Firebase displayName (same convention as signUpWithEmail) when present
+    // and not already set, so onboarding/profile can use it. Best-effort — never
+    // block sign-in on a name write.
+    final given = appleCredential.givenName?.trim() ?? '';
+    final family = appleCredential.familyName?.trim() ?? '';
+    final fullName =
+        [given, family].where((p) => p.isNotEmpty).join(' ').trim();
+    final existing = userCredential.user?.displayName?.trim() ?? '';
+    if (fullName.isNotEmpty && existing.isEmpty) {
+      try {
+        await userCredential.user?.updateDisplayName(fullName);
+      } catch (e, st) {
+        AppLogger.error('Apple sign-in: updateDisplayName failed',
+            error: e, stack: st);
+      }
+    }
+
+    return userCredential;
+  }
+
+  /// Cryptographically secure random nonce (URL-safe charset).
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+        length, (_) => charset[random.nextInt(charset.length)]).join();
   }
 
   Future<void> sendPasswordResetEmail(String email) {

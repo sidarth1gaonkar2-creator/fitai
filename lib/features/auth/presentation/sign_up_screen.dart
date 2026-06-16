@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' show Colors, Scaffold;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../providers/auth_provider.dart';
+import 'apple_sign_in_button.dart';
 import 'auth_error_dialog.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
@@ -181,6 +182,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         ),
                 ),
               ),
+              const SizedBox(height: 24),
+
+              // Sign in with Apple (App Store 4.8) — additional access point.
+              const AuthOrDivider(),
+              const SizedBox(height: 20),
+              const AppleSignInButton(),
             ],
           ),
         ),

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../providers/auth_provider.dart';
+import 'apple_sign_in_button.dart';
 import 'auth_error_dialog.dart';
 
 class WelcomeScreen extends ConsumerStatefulWidget {
@@ -99,6 +100,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   onPressed: () => context.push('/signin'),
                 ),
               ),
+              const SizedBox(height: 12),
+
+              // Sign in with Apple (App Store 4.8) — an equal peer to Google:
+              // same full width and placement weight, positioned directly above
+              // it per Apple's Human Interface Guidelines.
+              const AppleSignInButton(),
               const SizedBox(height: 12),
 
               // Google Sign-In button
