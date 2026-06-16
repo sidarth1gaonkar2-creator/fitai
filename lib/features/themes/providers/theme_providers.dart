@@ -38,11 +38,6 @@ final coinBalanceProvider = Provider<int>((ref) {
   return ref.watch(userThemeStateProvider).coins;
 });
 
-/// Gem balance shortcut.
-final gemBalanceProvider = Provider<int>((ref) {
-  return ref.watch(userThemeStateProvider).gems;
-});
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Notifier
 // ─────────────────────────────────────────────────────────────────────────────
@@ -86,24 +81,16 @@ class UserThemeStateNotifier extends StateNotifier<UserThemeState> {
   ///   * `PurchaseResult.success` — bought and equipped
   ///   * `PurchaseResult.alreadyOwned` — was already owned (no-op aside
   ///     from equipping)
-  ///   * `PurchaseResult.insufficientFunds` — not enough coins/gems
+  ///   * `PurchaseResult.insufficientFunds` — not enough coins
   Future<PurchaseResult> purchase(AppThemeData theme) async {
     if (state.ownedThemeIds.contains(theme.id) ||
         theme.id == defaultTheme.id) {
       await equip(theme.id);
       return PurchaseResult.alreadyOwned;
     }
-    final wallet = theme.currency == ThemeCurrency.coins
-        ? state.coins
-        : state.gems;
-    if (wallet < theme.price) return PurchaseResult.insufficientFunds;
+    if (state.coins < theme.price) return PurchaseResult.insufficientFunds;
 
-    final next = _clone(state);
-    if (theme.currency == ThemeCurrency.coins) {
-      next.coins = state.coins - theme.price;
-    } else {
-      next.gems = state.gems - theme.price;
-    }
+    final next = _clone(state)..coins = state.coins - theme.price;
     next.ownedThemeIds = [...next.ownedThemeIds, theme.id];
     next.equippedThemeId = theme.id;
     next.updatedAt = DateTime.now();
@@ -118,17 +105,6 @@ class UserThemeStateNotifier extends StateNotifier<UserThemeState> {
     if (amount <= 0) return;
     final next = _clone(state)
       ..coins = state.coins + amount
-      ..updatedAt = DateTime.now();
-    await _persist(next);
-  }
-
-  /// Adds [amount] gems. Hooked up for completeness — gem awards aren't
-  /// currently issued anywhere, but if/when StoreKit lands we'll route IAP
-  /// completions through here.
-  Future<void> awardGems(int amount) async {
-    if (amount <= 0) return;
-    final next = _clone(state)
-      ..gems = state.gems + amount
       ..updatedAt = DateTime.now();
     await _persist(next);
   }
@@ -159,6 +135,9 @@ class UserThemeStateNotifier extends StateNotifier<UserThemeState> {
       ..equippedThemeId = src.equippedThemeId
       ..ownedThemeIds = List.of(src.ownedThemeIds)
       ..coins = src.coins
+      // `gems` is a dormant, never-surfaced field (single-currency model).
+      // Copied only to satisfy the late field / preserve any legacy balance
+      // until it's dropped in the planned schema bump. See user_theme_state.dart.
       ..gems = src.gems
       ..updatedAt = src.updatedAt;
   }

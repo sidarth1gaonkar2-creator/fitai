@@ -22,12 +22,10 @@ class ThemePreviewSheet extends ConsumerWidget {
     final owned = ref.watch(ownedThemesProvider);
     final state = ref.watch(userThemeStateProvider);
     final coins = state.coins;
-    final gems = state.gems;
 
     final isOwned = owned.contains(theme.id);
     final isEquipped = state.equippedThemeId == theme.id;
-    final wallet = theme.currency == ThemeCurrency.coins ? coins : gems;
-    final canAfford = wallet >= theme.price;
+    final canAfford = coins >= theme.price;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -85,9 +83,7 @@ class ThemePreviewSheet extends ConsumerWidget {
             if (!isOwned && !canAfford) ...[
               const SizedBox(height: 10),
               Text(
-                theme.currency == ThemeCurrency.coins
-                    ? 'Not enough coins — finish more workouts to earn more.'
-                    : 'Not enough gems — premium themes will unlock with future updates.',
+                'Not enough coins — finish more workouts to earn more.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Poppins',
@@ -135,15 +131,9 @@ class ThemePreviewSheet extends ConsumerWidget {
       await showCupertinoDialog<void>(
         context: context,
         builder: (ctx) => CupertinoAlertDialog(
-          title: Text(
-            theme.currency == ThemeCurrency.coins
-                ? 'Not enough coins'
-                : 'Not enough gems',
-          ),
+          title: const Text('Not enough coins'),
           content: Text(
-            'You need ${theme.price} '
-            '${theme.currency == ThemeCurrency.coins ? "coins" : "gems"} '
-            'to unlock “${theme.name}”.',
+            'You need ${theme.price} coins to unlock “${theme.name}”.',
           ),
           actions: [
             CupertinoDialogAction(
@@ -181,18 +171,17 @@ class _PriceLine extends StatelessWidget {
         ),
       );
     }
-    final isCoins = theme.currency == ThemeCurrency.coins;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(
-          isCoins ? Icons.monetization_on : Icons.diamond,
+          Icons.monetization_on,
           size: 14,
-          color: isCoins ? palette.warning : palette.accent,
+          color: palette.warning,
         ),
         const SizedBox(width: 4),
         Text(
-          '${theme.price} ${isCoins ? "coins" : "gems"}',
+          '${theme.price} coins',
           style: TextStyle(
             fontFamily: 'Poppins',
             fontWeight: FontWeight.w600,
@@ -233,13 +222,10 @@ class _ActionButton extends StatelessWidget {
       label = 'Equip';
       enabled = true;
     } else if (!canAfford) {
-      label = theme.currency == ThemeCurrency.coins
-          ? 'Not enough coins'
-          : 'Not enough gems';
+      label = 'Not enough coins';
       enabled = false;
     } else {
-      label = 'Buy for ${theme.price} '
-          '${theme.currency == ThemeCurrency.coins ? "coins" : "gems"}';
+      label = 'Buy for ${theme.price} coins';
       enabled = true;
     }
     return SizedBox(

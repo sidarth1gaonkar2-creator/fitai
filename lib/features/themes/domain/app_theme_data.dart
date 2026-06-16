@@ -1,10 +1,5 @@
 import 'package:flutter/painting.dart';
 
-/// Currency types a theme can be priced in. Coins are earned in-app (workouts,
-/// streaks, PRs, etc.); gems are reserved for premium themes that will hook
-/// into StoreKit once IAP is wired up.
-enum ThemeCurrency { coins, gems }
-
 /// One purchasable visual palette. Pure data — built into the binary via the
 /// static registry in `theme_registry.dart`, never persisted. The user's
 /// equipped + owned themes are stored separately in the `UserThemeState`
@@ -32,7 +27,6 @@ class AppThemeData {
     required this.darkSurface,
     required this.lightAccent,
     required this.price,
-    required this.currency,
     this.isPremium = false,
   });
 
@@ -49,7 +43,8 @@ class AppThemeData {
   final Color lightAccent;
 
   // ── Commerce ─────────────────────────────────────────────────────────────
+  /// Price in coins — the app's single currency, earned in-app (workouts,
+  /// streaks, PRs, etc.). 0 = free / always owned.
   final int price;
-  final ThemeCurrency currency;
   final bool isPremium;
 }

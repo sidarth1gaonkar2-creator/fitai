@@ -17,9 +17,7 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF000000),
     darkSurface: Color(0xFF1C1C1E),
     lightAccent: Color(0xFF007AFF),
-    price: 0,
-    currency: ThemeCurrency.coins,
-  ),
+    price: 0,  ),
 
   // 2. Slate — monochrome / minimalist. Free unlock on first launch.
   AppThemeData(
@@ -32,9 +30,7 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF000000),
     darkSurface: Color(0xFF1C1C1E),
     lightAccent: Color(0xFF636366), // WCAG AA-safe on white
-    price: 0,
-    currency: ThemeCurrency.coins,
-  ),
+    price: 0,  ),
 
   // 3. Emerald — green energy.
   AppThemeData(
@@ -47,9 +43,7 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF000000),
     darkSurface: Color(0xFF0D1F12),
     lightAccent: Color(0xFF248A3D), // darker green for AA contrast
-    price: 500,
-    currency: ThemeCurrency.coins,
-  ),
+    price: 500,  ),
 
   // 4. Sunset — warm amber.
   AppThemeData(
@@ -62,9 +56,7 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF000000),
     darkSurface: Color(0xFF1F1508),
     lightAccent: Color(0xFFC76E00),
-    price: 500,
-    currency: ThemeCurrency.coins,
-  ),
+    price: 500,  ),
 
   // 5. Crimson — red.
   AppThemeData(
@@ -77,9 +69,7 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF000000),
     darkSurface: Color(0xFF1F0C0A),
     lightAccent: Color(0xFFC2261B),
-    price: 750,
-    currency: ThemeCurrency.coins,
-  ),
+    price: 750,  ),
 
   // 6. Ocean — aqua / cyan.
   AppThemeData(
@@ -92,9 +82,7 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF000000),
     darkSurface: Color(0xFF0A1520),
     lightAccent: Color(0xFF0080A8),
-    price: 750,
-    currency: ThemeCurrency.coins,
-  ),
+    price: 750,  ),
 
   // 7. Lavender — purple.
   AppThemeData(
@@ -107,9 +95,7 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF000000),
     darkSurface: Color(0xFF150A22),
     lightAccent: Color(0xFF8E2BC2),
-    price: 1000,
-    currency: ThemeCurrency.coins,
-  ),
+    price: 1000,  ),
 
   // 8. Neon Pulse — premium, magenta + indigo.
   AppThemeData(
@@ -122,8 +108,7 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF0F0F14),
     darkSurface: Color(0xFF12101A),
     lightAccent: Color(0xFFD60036),
-    price: 50,
-    currency: ThemeCurrency.gems,
+    price: 2000,
     isPremium: true,
   ),
 
@@ -138,8 +123,7 @@ const List<AppThemeData> themeRegistry = [
     darkBackground: Color(0xFF000000),
     darkSurface: Color(0xFF0A0A0A),
     lightAccent: Color(0xFF1C1C1E),
-    price: 50,
-    currency: ThemeCurrency.gems,
+    price: 2000,
     isPremium: true,
   ),
 ];
@@ -157,7 +141,6 @@ const AppThemeData defaultTheme = AppThemeData(
   darkSurface: Color(0xFF1C1C1E),
   lightAccent: Color(0xFF007AFF),
   price: 0,
-  currency: ThemeCurrency.coins,
 );
 
 /// Resolves a theme by ID, falling back to [defaultTheme] when the ID isn't

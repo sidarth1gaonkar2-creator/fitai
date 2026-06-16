@@ -1,16 +1,16 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// In-app coin economy. Backed by SharedPreferences (two ints — `coins` and
-/// `gems`) plus a small append-only log of recent transactions so the UI can
-/// surface "+10 coins — workout" toasts.
+/// In-app coin economy. Backed by SharedPreferences (a single `coins` int)
+/// plus a small append-only log of recent transactions so the UI can surface
+/// "+10 coins — workout" toasts.
 ///
-/// Not backed by Isar: the data is two scalars and a fixed-size ring buffer
-/// of strings — overkill to schema-evolve through Isar codegen.
+/// Coins are the app's single currency. Not backed by Isar: the data is a
+/// scalar and a fixed-size ring buffer of strings — overkill to schema-evolve
+/// through Isar codegen.
 class CurrencyService {
   CurrencyService(this._prefs);
 
   static const _kCoins = 'currency_coins';
-  static const _kGems = 'currency_gems';
   static const _kLog = 'currency_log';
   static const _logCapacity = 50;
 
@@ -27,7 +27,6 @@ class CurrencyService {
   final SharedPreferences _prefs;
 
   int get coins => _prefs.getInt(_kCoins) ?? 0;
-  int get gems => _prefs.getInt(_kGems) ?? 0;
 
   Future<int> awardCoins({required int amount, required String reason}) async {
     if (amount <= 0) return coins;
@@ -46,24 +45,6 @@ class CurrencyService {
     final next = current - amount;
     await _prefs.setInt(_kCoins, next);
     await _log('spend', 'coins', amount, reason);
-    return true;
-  }
-
-  Future<int> awardGems({required int amount, required String reason}) async {
-    if (amount <= 0) return gems;
-    final next = gems + amount;
-    await _prefs.setInt(_kGems, next);
-    await _log('earn', 'gems', amount, reason);
-    return next;
-  }
-
-  Future<bool> spendGems({required int amount, required String reason}) async {
-    if (amount <= 0) return true;
-    final current = gems;
-    if (current < amount) return false;
-    final next = current - amount;
-    await _prefs.setInt(_kGems, next);
-    await _log('spend', 'gems', amount, reason);
     return true;
   }
 
@@ -99,7 +80,7 @@ class CurrencyTransaction {
   /// `'earn'` or `'spend'`.
   final String type;
 
-  /// `'coins'` or `'gems'`.
+  /// Always `'coins'` — the app's single currency.
   final String currency;
   final int amount;
   final String reason;

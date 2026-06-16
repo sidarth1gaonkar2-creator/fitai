@@ -19,7 +19,6 @@ class ThemeStoreScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = AppColors.of(context);
     final coins = ref.watch(coinBalanceProvider);
-    final gems = ref.watch(gemBalanceProvider);
     final equippedId = ref.watch(activeThemeProvider).id;
     final owned = ref.watch(ownedThemesProvider);
 
@@ -29,21 +28,10 @@ class ThemeStoreScreen extends ConsumerWidget {
         middle: const Text('Theme Store'),
         backgroundColor: palette.background.withValues(alpha: 0.85),
         border: null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _CurrencyChip(
-              icon: Icons.monetization_on,
-              color: palette.warning,
-              amount: coins,
-            ),
-            const SizedBox(width: 8),
-            _CurrencyChip(
-              icon: Icons.diamond,
-              color: palette.accent,
-              amount: gems,
-            ),
-          ],
+        trailing: _CurrencyChip(
+          icon: Icons.monetization_on,
+          color: palette.warning,
+          amount: coins,
         ),
       ),
       child: SafeArea(
@@ -128,8 +116,8 @@ class _ThemeCard extends StatelessWidget {
                           background:
                               CupertinoColors.black.withValues(alpha: 0.55),
                           textColor: CupertinoColors.white,
-                          icon: Icons.diamond,
-                          iconColor: palette.accent,
+                          icon: Icons.star,
+                          iconColor: palette.warning,
                         ),
                       ),
                     if (isEquipped)
@@ -319,13 +307,12 @@ class _PriceLabel extends StatelessWidget {
         ),
       );
     }
-    final isCoins = theme.currency == ThemeCurrency.coins;
     return Row(
       children: [
         Icon(
-          isCoins ? Icons.monetization_on : Icons.diamond,
+          Icons.monetization_on,
           size: 11,
-          color: isCoins ? palette.warning : palette.accent,
+          color: palette.warning,
         ),
         const SizedBox(width: 3),
         Text(
