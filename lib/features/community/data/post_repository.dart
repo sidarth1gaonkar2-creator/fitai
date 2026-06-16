@@ -43,53 +43,69 @@ class PostRepository {
     await _posts.doc(postId).delete();
   }
 
-  /// Fetch feed posts from followed users + own posts, paginated.
-  Future<(List<Post>, DocumentSnapshot?)> getFeedPosts({
-    required String userId,
-    required Set<String> followingIds,
+  /// Global public feed — every public post, newest first, paginated. Replaces
+  /// the old follow-graph feed so a brand-new user (and the App Store reviewer)
+  /// sees content immediately. Relies on the `isPublic + createdAt` composite
+  /// index (firestore.indexes.json). Blocked authors and locally-reported posts
+  /// are filtered CLIENT-SIDE by the caller (Firestore can't combine a not-in
+  /// with the isPublic equality + orderBy in one query), so the returned list
+  /// may shrink after filtering while [DocumentSnapshot] still paginates the raw
+  /// query correctly.
+  Future<(List<Post>, DocumentSnapshot?)> getPublicFeed({
     DocumentSnapshot? startAfter,
     int limit = 20,
   }) async {
-    final allIds = {...followingIds, userId};
-    final idList = allIds.toList();
-
-    final batches = <List<String>>[];
-    for (var i = 0; i < idList.length; i += 30) {
-      batches.add(idList.sublist(i, (i + 30).clamp(0, idList.length)));
-    }
-
-    final allDocs = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
-    for (final batch in batches) {
-      Query<Map<String, dynamic>> q = _posts
-          .where('userId', whereIn: batch)
-          .orderBy('createdAt', descending: true)
-          .limit(limit);
-      if (startAfter != null) q = q.startAfterDocument(startAfter);
-      final snap = await q.get();
-      allDocs.addAll(snap.docs);
-    }
-
-    allDocs.sort((a, b) {
-      final aTime =
-          (a.data()['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
-      final bTime =
-          (b.data()['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
-      return bTime.compareTo(aTime);
-    });
-
-    final limited = allDocs.take(limit).toList();
-    final posts =
-        limited.map((d) => Post.fromMap(d.data(), doc: d)).toList();
-    final lastDoc = limited.isNotEmpty ? limited.last : null;
+    Query<Map<String, dynamic>> q = _posts
+        .where('isPublic', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .limit(limit);
+    if (startAfter != null) q = q.startAfterDocument(startAfter);
+    final snap = await q.get();
+    final docs = snap.docs;
+    final posts = docs.map((d) => Post.fromMap(d.data(), doc: d)).toList();
+    final lastDoc = docs.isNotEmpty ? docs.last : null;
     return (posts, lastDoc);
   }
 
-  Future<List<Post>> getUserPosts(String userId) async {
-    final snap = await _posts
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
-        .limit(50)
-        .get();
+  /// Files a moderation report against a post (Guideline 1.2). Write-only by
+  /// rule — the client can create but never read the `reports` collection.
+  Future<void> reportPost({
+    required String postId,
+    required String reportedUserId,
+    required String reporterId,
+    String reason = 'unspecified',
+  }) async {
+    await _firestore.collection('reports').add({
+      'postId': postId,
+      'reportedUserId': reportedUserId,
+      'reporterId': reporterId,
+      'reason': reason,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Posts authored by [userId], newest first.
+  ///
+  /// Pass [publicOnly] when the viewer is NOT the author: it adds a
+  /// `where('isPublic', isEqualTo: true)` clause so the query satisfies the
+  /// posts read rule's `isPublic == true` clause. Without it, a non-self
+  /// `userId ==` filter can't satisfy the rule and Firestore denies the whole
+  /// query ("rules are not filters"). Viewing your OWN profile leaves it
+  /// unfiltered — the rule permits `userId == you` regardless of visibility,
+  /// so you still see your private posts.
+  ///
+  /// NOTE: the [publicOnly] path needs the composite index
+  /// (userId ASC, isPublic ASC, createdAt DESC) — it must be Enabled in
+  /// Firestore or the query fails with FAILED_PRECONDITION.
+  Future<List<Post>> getUserPosts(String userId,
+      {bool publicOnly = false}) async {
+    Query<Map<String, dynamic>> q =
+        _posts.where('userId', isEqualTo: userId);
+    if (publicOnly) {
+      q = q.where('isPublic', isEqualTo: true);
+    }
+    final snap =
+        await q.orderBy('createdAt', descending: true).limit(50).get();
     return snap.docs.map((d) => Post.fromMap(d.data(), doc: d)).toList();
   }
 

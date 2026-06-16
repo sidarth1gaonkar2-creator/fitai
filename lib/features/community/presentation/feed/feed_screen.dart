@@ -6,11 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
 import '../../data/post_repository.dart';
 import '../../domain/post.dart';
 import '../profile/mini_profile_sheet.dart';
+import 'post_moderation.dart';
 import 'widgets/post_card.dart';
 
 // ─── Feed State ────────────────────────────────────────────────────────────
@@ -21,6 +23,7 @@ class FeedState {
     this.isLoading = false,
     this.hasMore = true,
     this.lastDocument,
+    this.error,
   });
 
   final List<Post> posts;
@@ -28,12 +31,20 @@ class FeedState {
   final bool hasMore;
   final DocumentSnapshot? lastDocument;
 
+  /// Non-null when the most recent load threw. Drives the feed's error/retry
+  /// state so a failed query is never silently rendered as an empty feed.
+  final Object? error;
+
+  bool get hasError => error != null;
+
   FeedState copyWith({
     List<Post>? posts,
     bool? isLoading,
     bool? hasMore,
     DocumentSnapshot? lastDocument,
     bool clearLastDocument = false,
+    Object? error,
+    bool clearError = false,
   }) {
     return FeedState(
       posts: posts ?? this.posts,
@@ -41,6 +52,7 @@ class FeedState {
       hasMore: hasMore ?? this.hasMore,
       lastDocument:
           clearLastDocument ? null : (lastDocument ?? this.lastDocument),
+      error: clearError ? null : (error ?? this.error),
     );
   }
 }
@@ -48,38 +60,30 @@ class FeedState {
 // ─── Feed Controller ───────────────────────────────────────────────────────
 
 class FeedController extends StateNotifier<FeedState> {
-  FeedController({
-    required this.postRepository,
-    required this.userId,
-    required this.followingIds,
-  }) : super(const FeedState()) {
+  FeedController({required this.postRepository}) : super(const FeedState()) {
     loadInitial();
   }
 
   final PostRepository postRepository;
-  final String userId;
-  final Set<String> followingIds;
 
   static const _pageSize = 20;
 
   Future<void> loadInitial() async {
     if (state.isLoading) return;
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final (posts, lastDoc) = await postRepository.getFeedPosts(
-        userId: userId,
-        followingIds: followingIds,
-        limit: _pageSize,
-      );
+      final (posts, lastDoc) =
+          await postRepository.getPublicFeed(limit: _pageSize);
       state = FeedState(
         posts: posts,
         isLoading: false,
         hasMore: posts.length >= _pageSize,
         lastDocument: lastDoc,
       );
-    } catch (_) {
-      state = state.copyWith(isLoading: false);
+    } catch (e, st) {
+      AppLogger.error('Feed load failed', error: e, stack: st);
+      state = state.copyWith(isLoading: false, error: e);
     }
   }
 
@@ -88,9 +92,7 @@ class FeedController extends StateNotifier<FeedState> {
     state = state.copyWith(isLoading: true);
 
     try {
-      final (posts, lastDoc) = await postRepository.getFeedPosts(
-        userId: userId,
-        followingIds: followingIds,
+      final (posts, lastDoc) = await postRepository.getPublicFeed(
         startAfter: state.lastDocument,
         limit: _pageSize,
       );
@@ -98,10 +100,12 @@ class FeedController extends StateNotifier<FeedState> {
         posts: [...state.posts, ...posts],
         isLoading: false,
         hasMore: posts.length >= _pageSize,
+        clearError: true,
         lastDocument: lastDoc,
       );
-    } catch (_) {
-      state = state.copyWith(isLoading: false);
+    } catch (e, st) {
+      AppLogger.error('Feed loadMore failed', error: e, stack: st);
+      state = state.copyWith(isLoading: false, error: e);
     }
   }
 
@@ -113,18 +117,12 @@ class FeedController extends StateNotifier<FeedState> {
 
 // ─── Provider ──────────────────────────────────────────────────────────────
 
+/// Global public feed. Blocked authors and locally-reported posts are filtered
+/// out in the widget layer (reactive to [blockedUserIdsProvider] /
+/// [hiddenPostsProvider]) so no re-fetch is needed when the user reports/blocks.
 final feedControllerProvider =
     StateNotifierProvider.autoDispose<FeedController, FeedState>((ref) {
-  final userId = ref.watch(currentUserIdProvider) ?? '';
-  final followingIds =
-      ref.watch(followingIdsProvider).valueOrNull ?? const <String>{};
-  final postRepo = ref.watch(postRepositoryProvider);
-
-  return FeedController(
-    postRepository: postRepo,
-    userId: userId,
-    followingIds: followingIds,
-  );
+  return FeedController(postRepository: ref.watch(postRepositoryProvider));
 });
 
 // ─── Feed Screen ───────────────────────────────────────────────────────────
@@ -167,17 +165,30 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final feedState = ref.watch(feedControllerProvider);
     final currentUserId = ref.watch(currentUserIdProvider);
 
+    // Client-side moderation filter layered on the global public query: drop
+    // blocked authors and posts the viewer reported/hid. Reactive — reporting
+    // or blocking updates these providers and the post disappears with no
+    // re-fetch. (Filtering shrinks the visible list; pagination still walks the
+    // raw query via lastDocument.)
+    final blocked =
+        ref.watch(blockedUserIdsProvider).valueOrNull ?? const <String>{};
+    final hidden = ref.watch(hiddenPostsProvider);
+    final visible = feedState.posts
+        .where((p) =>
+            !blocked.contains(p.userId) && !hidden.contains(p.postId))
+        .toList();
+
     return Scaffold(
       backgroundColor: palette.background,
       floatingActionButton: FloatingActionButton(
         backgroundColor: palette.accent,
         foregroundColor: CupertinoColors.white,
-        onPressed: () => context.push('/community/create-post'),
+        onPressed: _openComposer,
         tooltip: 'New post',
         child: const Icon(Icons.add),
       ),
-      body: feedState.posts.isEmpty && !feedState.isLoading
-          ? _buildEmptyState(palette)
+      body: visible.isEmpty
+          ? _buildPlaceholder(palette, feedState)
           : CustomScrollView(
               controller: _scrollController,
               slivers: [
@@ -190,7 +201,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
-                        if (index >= feedState.posts.length) {
+                        if (index >= visible.length) {
                           return feedState.hasMore
                               ? const Padding(
                                   padding: EdgeInsets.all(20),
@@ -201,20 +212,94 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                               : const SizedBox.shrink();
                         }
 
-                        final post = feedState.posts[index];
-
                         return _PostCardWrapper(
-                          post: post,
+                          post: visible[index],
                           currentUserId: currentUserId,
                         );
                       },
-                      childCount: feedState.posts.length +
-                          (feedState.hasMore ? 1 : 0),
+                      childCount: visible.length + (feedState.hasMore ? 1 : 0),
                     ),
                   ),
                 ),
               ],
             ),
+    );
+  }
+
+  /// Opens the composer, then refreshes so a just-created public post lands at
+  /// the top of the feed (otherwise the user posts and sees nothing change).
+  Future<void> _openComposer() async {
+    await context.push('/community/create-post');
+    if (mounted) ref.read(feedControllerProvider.notifier).refresh();
+  }
+
+  /// No posts to show: spinner while loading, a retry-able error state if the
+  /// load FAILED, or the friendly empty state only when the load genuinely
+  /// succeeded with zero posts. Never conflate a failed query with "no posts".
+  Widget _buildPlaceholder(Palette palette, FeedState feedState) {
+    if (feedState.isLoading) {
+      return const Center(child: CupertinoActivityIndicator());
+    }
+    if (feedState.hasError) {
+      return _buildErrorState(palette);
+    }
+    return _buildEmptyState(palette);
+  }
+
+  Widget _buildErrorState(Palette palette) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              CupertinoIcons.exclamationmark_triangle,
+              size: 48,
+              color: palette.textSecondary,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Couldn\'t load the feed',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                fontSize: 17,
+                color: palette.text,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Something went wrong. Check your connection and try again.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'LeagueSpartan',
+                fontSize: 14,
+                color: palette.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 18),
+            CupertinoButton(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              color: palette.accent,
+              borderRadius: BorderRadius.circular(10),
+              onPressed: () =>
+                  ref.read(feedControllerProvider.notifier).refresh(),
+              child: const Text(
+                'Retry',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: CupertinoColors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -243,7 +328,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Follow other soldiers to see their posts, or post your first workout.',
+              'Be the first to post — share a workout, ask a question, or '
+              'introduce yourself to the platoon.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'LeagueSpartan',
@@ -257,9 +343,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   horizontal: 20, vertical: 10),
               color: palette.accent,
               borderRadius: BorderRadius.circular(10),
-              onPressed: () => context.push('/community/create-post'),
+              onPressed: _openComposer,
               child: const Text(
-                'Share a workout',
+                'Create a post',
                 style: TextStyle(
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.w600,
@@ -307,6 +393,14 @@ class _PostCardWrapper extends ConsumerWidget {
         context.push('/community/post/${post.postId}');
       },
       onTapUser: () => showMiniProfileSheet(context, post.userId),
+      onReport: isOwner
+          ? null
+          : () => reportPostFlow(context, ref,
+              postId: post.postId, reportedUserId: post.userId),
+      onBlock: isOwner
+          ? null
+          : () => blockUserFlow(context, ref,
+              targetUserId: post.userId, username: post.username),
       onDelete: isOwner
           ? () async {
               final confirmed = await showCupertinoDialog<bool>(

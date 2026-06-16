@@ -20,6 +20,7 @@ import '../../data/follow_repository.dart';
 import '../../data/post_repository.dart';
 import '../../domain/firestore_user.dart';
 import '../../domain/post.dart';
+import '../feed/post_moderation.dart';
 import '../feed/widgets/post_card.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -1004,6 +1005,14 @@ class _PostCardWrapper extends ConsumerWidget {
       onTapUser: () {
         context.push('/profile/${post.userId}');
       },
+      onReport: isOwner
+          ? null
+          : () => reportPostFlow(context, ref,
+              postId: post.postId, reportedUserId: post.userId),
+      onBlock: isOwner
+          ? null
+          : () => blockUserFlow(context, ref,
+              targetUserId: post.userId, username: post.username),
       onDelete: isOwner
           ? () async {
               final confirmed = await showCupertinoDialog<bool>(

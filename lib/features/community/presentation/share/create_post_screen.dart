@@ -34,13 +34,27 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   void initState() {
     super.initState();
     _selectedWorkoutId = widget.initialWorkoutId;
+    // Rebuild on caption edits so Share enables/disables live (a caption alone
+    // is now postable).
+    _captionController.addListener(_onCaptionChanged);
+  }
+
+  void _onCaptionChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _captionController.removeListener(_onCaptionChanged);
     _captionController.dispose();
     super.dispose();
   }
+
+  /// Postable when there's something to post and we're not mid-send: a non-empty
+  /// caption OR a selected workout. Empty + no workout stays disabled.
+  bool get _canShare =>
+      !_isSharing &&
+      (_captionController.text.trim().isNotEmpty || _selectedWorkoutId != null);
 
   /// "Workout Share" template — one tap shares the most recent workout (with
   /// its stats; the rank badge is attached automatically on the post card).
@@ -53,43 +67,24 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
   Future<void> _share() async {
     if (_isSharing) return;
-    final workoutId = _selectedWorkoutId;
-    if (workoutId == null) return;
 
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) return;
 
+    final caption = _captionController.text.trim();
+    final workoutId = _selectedWorkoutId;
+    // Need at least a caption or a workout. The Share button already enforces
+    // this; guard anyway so an empty post can never be created.
+    if (caption.isEmpty && workoutId == null) return;
+
     setState(() => _isSharing = true);
 
     try {
-      final workout =
-          await ref.read(workoutByIdProvider(workoutId).future);
-      if (workout == null) {
-        throw StateError('Workout not found');
-      }
-      await workout.exercises.load();
-      final postExercises = <PostExercise>[];
-      int totalSets = 0;
-      double totalVolume = 0;
-      for (final ex in workout.exercises) {
-        await ex.sets.load();
-        double bestWeight = 0;
-        for (final s in ex.sets) {
-          totalSets += 1;
-          totalVolume += s.weight * s.reps;
-          if (s.weight > bestWeight) bestWeight = s.weight;
-        }
-        postExercises.add(PostExercise(
-          name: ex.name,
-          sets: ex.sets.length,
-          bestWeight: bestWeight,
-        ));
-      }
-
       final firestoreUser = ref.read(firestoreUserProvider).valueOrNull;
 
       // Embed the author's current rank so the feed badge needs no user-doc
       // lookup. Prefer the live computed rank; fall back to the mirrored value.
+      // Applies to caption-only posts too, so text posts still show a badge.
       int? rankIndex = firestoreUser?.rankIndex;
       String? rankName = firestoreUser?.rankName;
       try {
@@ -98,26 +93,65 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         rankName = rank.displayName;
       } catch (_) {}
 
-      final post = Post(
-        postId: _uuid.v4(),
-        userId: userId,
-        username: firestoreUser?.username ?? 'User',
-        userProfilePic: firestoreUser?.profilePictureUrl,
-        workoutName: workout.title,
-        duration: workout.durationMinutes ?? 0,
-        exercises: postExercises,
-        totalSets: totalSets,
-        totalVolume: totalVolume,
-        caption: _captionController.text.trim(),
-        isPublic: _isPublic,
-        createdAt: DateTime.now(),
-        workoutId: workoutId,
-        rankIndex: rankIndex,
-        rankName: rankName,
-      );
+      final Post post;
+      if (workoutId != null) {
+        final workout =
+            await ref.read(workoutByIdProvider(workoutId).future);
+        if (workout == null) {
+          throw StateError('Workout not found');
+        }
+        await workout.exercises.load();
+        final postExercises = <PostExercise>[];
+        int totalSets = 0;
+        double totalVolume = 0;
+        for (final ex in workout.exercises) {
+          await ex.sets.load();
+          double bestWeight = 0;
+          for (final s in ex.sets) {
+            totalSets += 1;
+            totalVolume += s.weight * s.reps;
+            if (s.weight > bestWeight) bestWeight = s.weight;
+          }
+          postExercises.add(PostExercise(
+            name: ex.name,
+            sets: ex.sets.length,
+            bestWeight: bestWeight,
+          ));
+        }
+        post = Post(
+          postId: _uuid.v4(),
+          userId: userId,
+          username: firestoreUser?.username ?? 'User',
+          userProfilePic: firestoreUser?.profilePictureUrl,
+          workoutName: workout.title,
+          duration: workout.durationMinutes ?? 0,
+          exercises: postExercises,
+          totalSets: totalSets,
+          totalVolume: totalVolume,
+          caption: caption,
+          isPublic: _isPublic,
+          createdAt: DateTime.now(),
+          workoutId: workoutId,
+          rankIndex: rankIndex,
+          rankName: rankName,
+        );
+      } else {
+        // Caption-only standalone post — no workout attachment.
+        post = Post(
+          postId: _uuid.v4(),
+          userId: userId,
+          username: firestoreUser?.username ?? 'User',
+          userProfilePic: firestoreUser?.profilePictureUrl,
+          caption: caption,
+          isPublic: _isPublic,
+          createdAt: DateTime.now(),
+          rankIndex: rankIndex,
+          rankName: rankName,
+        );
+      }
 
       await ref.read(postRepositoryProvider).createPost(post);
-      AppLogger.log('Post created (workout="${workout.title}")');
+      AppLogger.log('Post created (hasWorkout=${workoutId != null})');
 
       if (mounted) Navigator.of(context).pop(true);
     } catch (e, st) {
@@ -161,8 +195,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
-          onPressed:
-              (_selectedWorkoutId == null || _isSharing) ? null : _share,
+          onPressed: _canShare ? _share : null,
           child: _isSharing
               ? const CupertinoActivityIndicator()
               : Text(
@@ -170,9 +203,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w600,
-                    color: _selectedWorkoutId == null
-                        ? palette.textSecondary
-                        : palette.accent,
+                    color: _canShare ? palette.accent : palette.textSecondary,
                   ),
                 ),
         ),
@@ -200,7 +231,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             // Caption
             CupertinoTextField(
               controller: _captionController,
-              placeholder: 'Add a caption...',
+              placeholder: 'Share progress, ask a question, or introduce '
+                  'yourself…',
               maxLength: 500,
               maxLines: 4,
               style: TextStyle(
@@ -253,9 +285,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Attach Workout section
+            // Attach Workout section (optional — a caption alone is postable)
             Text(
-              'Attach Workout',
+              'Attach a workout (optional)',
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontWeight: FontWeight.w600,
@@ -285,7 +317,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Text(
-                      'No workouts yet. Finish a workout first, then share it here.',
+                      'No workouts to attach yet — your caption alone will post.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: 'LeagueSpartan',

@@ -54,6 +54,15 @@ service cloud.firestore {
         allow update, delete: if request.auth.uid == resource.data.userId;
       }
     }
+    // Moderation reports (Guideline 1.2). Any signed-in user can FILE a report
+    // (create-only); the client can never read, edit, or delete them — review
+    // happens out-of-band (console/backend). Blocking needs no rule here: it
+    // writes to the owner-only users/{uid}/private/blocked doc, already covered
+    // by the /users/{userId}/private/{document} rule above.
+    match /reports/{reportId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if false;
+    }
     match /follows/{followId} {
       allow read, write: if request.auth != null;
     }

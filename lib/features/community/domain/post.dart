@@ -6,8 +6,8 @@ class Post {
     required this.userId,
     required this.username,
     this.userProfilePic,
-    required this.workoutName,
-    required this.duration,
+    this.workoutName,
+    this.duration,
     this.exercises = const [],
     this.totalSets = 0,
     this.totalVolume = 0,
@@ -26,8 +26,13 @@ class Post {
   final String userId;
   final String username;
   final String? userProfilePic;
-  final String workoutName;
-  final int duration;
+
+  /// Null/empty on a caption-only (standalone) post. Use [hasWorkout] to decide
+  /// whether to render the workout attachment.
+  final String? workoutName;
+
+  /// Workout duration in minutes; null on a caption-only post.
+  final int? duration;
   final List<PostExercise> exercises;
   final int totalSets;
   final double totalVolume;
@@ -52,6 +57,11 @@ class Post {
   /// Firestore document snapshot for pagination cursor.
   DocumentSnapshot? documentSnapshot;
 
+  /// True when this post carries a workout attachment (vs. a caption-only post).
+  /// Drives whether the feed renders the workout card.
+  bool get hasWorkout =>
+      workoutId != null || (workoutName != null && workoutName!.trim().isNotEmpty);
+
   factory Post.fromMap(Map<String, dynamic> map, {DocumentSnapshot? doc}) {
     final exercises = (map['exercises'] as List<dynamic>?)
             ?.map((e) => PostExercise.fromMap(e as Map<String, dynamic>))
@@ -62,8 +72,10 @@ class Post {
       userId: map['userId'] as String? ?? '',
       username: map['username'] as String? ?? '',
       userProfilePic: map['userProfilePic'] as String?,
-      workoutName: map['workoutName'] as String? ?? '',
-      duration: (map['duration'] as num?)?.toInt() ?? 0,
+      // Nullable now: caption-only posts omit these. Legacy/workout posts still
+      // carry them and parse exactly as before.
+      workoutName: map['workoutName'] as String?,
+      duration: (map['duration'] as num?)?.toInt(),
       exercises: exercises,
       totalSets: (map['totalSets'] as num?)?.toInt() ?? 0,
       totalVolume: (map['totalVolume'] as num?)?.toDouble() ?? 0,
@@ -89,11 +101,6 @@ class Post {
       'userId': userId,
       'username': username,
       'userProfilePic': userProfilePic,
-      'workoutName': workoutName,
-      'duration': duration,
-      'exercises': exercises.map((e) => e.toMap()).toList(),
-      'totalSets': totalSets,
-      'totalVolume': totalVolume,
       'caption': caption,
       'isPublic': isPublic,
       'likesCount': likesCount,
@@ -102,9 +109,18 @@ class Post {
           ? Timestamp.fromDate(createdAt!)
           : FieldValue.serverTimestamp(),
       'allowedUsers': allowedUsers ?? [],
-      if (workoutId != null) 'workoutId': workoutId,
       if (rankIndex != null) 'rankIndex': rankIndex,
       if (rankName != null) 'rankName': rankName,
+      // Workout attachment — written ONLY for workout-backed posts. Caption-only
+      // posts omit these keys entirely (fromMap reads them back as null/empty).
+      if (hasWorkout) ...{
+        'workoutName': workoutName,
+        'duration': duration,
+        'exercises': exercises.map((e) => e.toMap()).toList(),
+        'totalSets': totalSets,
+        'totalVolume': totalVolume,
+        if (workoutId != null) 'workoutId': workoutId,
+      },
     };
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../features/community/data/block_repository.dart';
 import '../features/community/data/challenge_repository.dart';
 import '../features/community/data/follow_repository.dart';
 import '../features/community/data/leaderboard_repository.dart';
@@ -12,6 +14,7 @@ import '../features/community/domain/leaderboard_entry.dart';
 import '../features/community/domain/notification.dart';
 import '../features/community/domain/post.dart';
 import 'auth_provider.dart';
+import 'unit_system_provider.dart' show sharedPreferencesProvider;
 
 // ─── User Profile Providers ─────────────────────────────────────────────────
 
@@ -85,7 +88,59 @@ final postCommentsProvider =
 
 final userPostsProvider =
     FutureProvider.family<List<Post>, String>((ref, userId) async {
-  return ref.watch(postRepositoryProvider).getUserPosts(userId);
+  // Viewing another user's profile → request only their PUBLIC posts so the
+  // query satisfies the posts read rule (isPublic == true). Your own profile
+  // stays unfiltered: the rule permits userId == you regardless of visibility,
+  // so you still see your private posts.
+  final currentUserId = ref.watch(currentUserIdProvider);
+  final publicOnly = currentUserId != userId;
+  return ref
+      .watch(postRepositoryProvider)
+      .getUserPosts(userId, publicOnly: publicOnly);
+});
+
+// ─── Moderation (Guideline 1.2: report + block) ─────────────────────────────
+
+/// Uids the current account has blocked. The feed filters these out client-side
+/// on top of the global public query. Invalidate after a block/unblock.
+final blockedUserIdsProvider = FutureProvider<Set<String>>((ref) async {
+  final uid = ref.watch(currentUserIdProvider);
+  if (uid == null) return const {};
+  return ref.watch(blockRepositoryProvider).blockedIds(uid);
+});
+
+/// Post ids the current user has reported and chosen to hide. Persisted locally
+/// (uid-scoped) so a reported post stays gone across launches; the feed filters
+/// these out client-side. Reporting does not delete the post for everyone — it
+/// files a [reports] doc and hides it for the reporter.
+class HiddenPostsNotifier extends StateNotifier<Set<String>> {
+  HiddenPostsNotifier(this._prefs, this._uid)
+      : super(_load(_prefs, _uid));
+
+  final SharedPreferences _prefs;
+  final String? _uid;
+
+  static String _key(String uid) => 'hidden_posts_$uid';
+
+  static Set<String> _load(SharedPreferences prefs, String? uid) {
+    if (uid == null) return <String>{};
+    return (prefs.getStringList(_key(uid)) ?? const <String>[]).toSet();
+  }
+
+  Future<void> hide(String postId) async {
+    final uid = _uid;
+    if (uid == null || state.contains(postId)) return;
+    final next = {...state, postId};
+    state = next;
+    await _prefs.setStringList(_key(uid), next.toList());
+  }
+}
+
+final hiddenPostsProvider =
+    StateNotifierProvider<HiddenPostsNotifier, Set<String>>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final uid = ref.watch(currentUserIdProvider);
+  return HiddenPostsNotifier(prefs, uid);
 });
 
 // ─── Leaderboard Providers ──────────────────────────────────────────────────

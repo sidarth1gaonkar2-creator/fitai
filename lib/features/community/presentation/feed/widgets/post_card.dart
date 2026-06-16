@@ -32,6 +32,8 @@ class PostCard extends ConsumerStatefulWidget {
     this.isOwner = false,
     this.onEdit,
     this.onDelete,
+    this.onReport,
+    this.onBlock,
   });
 
   final Post post;
@@ -43,6 +45,11 @@ class PostCard extends ConsumerStatefulWidget {
   final bool isOwner;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+
+  /// Non-owner moderation actions (Guideline 1.2). When set, the header menu
+  /// surfaces "Report post" / "Block @user" for posts the viewer doesn't own.
+  final VoidCallback? onReport;
+  final VoidCallback? onBlock;
 
   /// The five reaction emoji choices shown in the long-press picker.
   static const reactionChoices = ['💪', '🔥', '🏆', '👏', '😤'];
@@ -128,6 +135,8 @@ class _PostCardState extends ConsumerState<PostCard>
             isOwner: widget.isOwner,
             onEdit: widget.onEdit,
             onDelete: widget.onDelete,
+            onReport: widget.onReport,
+            onBlock: widget.onBlock,
           ),
           if (post.caption.isNotEmpty) ...[
             const SizedBox(height: 9),
@@ -141,7 +150,7 @@ class _PostCardState extends ConsumerState<PostCard>
               ),
             ),
           ],
-          if (post.workoutId != null || post.workoutName.isNotEmpty) ...[
+          if (post.hasWorkout) ...[
             const SizedBox(height: 10),
             _WorkoutAttachment(post: post, palette: palette),
           ],
@@ -180,6 +189,8 @@ class _Header extends ConsumerWidget {
     required this.isOwner,
     this.onEdit,
     this.onDelete,
+    this.onReport,
+    this.onBlock,
   });
 
   final Post post;
@@ -188,6 +199,8 @@ class _Header extends ConsumerWidget {
   final bool isOwner;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final VoidCallback? onReport;
+  final VoidCallback? onBlock;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -276,7 +289,7 @@ class _Header extends ConsumerWidget {
             ),
           ),
         ),
-        if (isOwner && (onEdit != null || onDelete != null))
+        if (_hasMenu)
           CupertinoButton(
             padding: EdgeInsets.zero,
             minimumSize: const Size(28, 28),
@@ -291,28 +304,53 @@ class _Header extends ConsumerWidget {
     );
   }
 
+  /// Owners get Edit/Delete; everyone else gets Report/Block (Guideline 1.2).
+  bool get _hasMenu => isOwner
+      ? (onEdit != null || onDelete != null)
+      : (onReport != null || onBlock != null);
+
   void _openMenu(BuildContext context) {
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
         actions: [
-          if (onEdit != null)
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                onEdit!();
-              },
-              child: const Text('Edit post'),
-            ),
-          if (onDelete != null)
-            CupertinoActionSheetAction(
-              isDestructiveAction: true,
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                onDelete!();
-              },
-              child: const Text('Delete post'),
-            ),
+          if (isOwner) ...[
+            if (onEdit != null)
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  onEdit!();
+                },
+                child: const Text('Edit post'),
+              ),
+            if (onDelete != null)
+              CupertinoActionSheetAction(
+                isDestructiveAction: true,
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  onDelete!();
+                },
+                child: const Text('Delete post'),
+              ),
+          ] else ...[
+            if (onReport != null)
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  onReport!();
+                },
+                child: const Text('Report post'),
+              ),
+            if (onBlock != null)
+              CupertinoActionSheetAction(
+                isDestructiveAction: true,
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  onBlock!();
+                },
+                child: Text('Block @${post.username}'),
+              ),
+          ],
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.of(ctx).pop(),
@@ -396,7 +434,7 @@ class _WorkoutAttachment extends ConsumerWidget {
       '$exerciseCount ex',
       '${post.totalSets} sets',
       volumeStr,
-      if (post.duration > 0) '${post.duration}m',
+      if ((post.duration ?? 0) > 0) '${post.duration}m',
     ];
 
     return Container(
@@ -429,7 +467,9 @@ class _WorkoutAttachment extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  post.workoutName.isEmpty ? 'Workout' : post.workoutName,
+                  (post.workoutName?.isEmpty ?? true)
+                      ? 'Workout'
+                      : post.workoutName!,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

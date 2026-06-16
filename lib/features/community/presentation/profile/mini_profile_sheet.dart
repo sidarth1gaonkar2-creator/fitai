@@ -16,6 +16,7 @@ import '../../../ranks/presentation/widgets/rank_badge.dart';
 import '../../data/follow_repository.dart';
 import '../../domain/firestore_user.dart';
 import '../../domain/leaderboard_entry.dart';
+import '../feed/post_moderation.dart';
 
 /// Shows a compact rank-showcase profile for [userId] as a bottom sheet — the
 /// quick-look you get by tapping a username in the feed.
@@ -222,6 +223,31 @@ class _Content extends ConsumerWidget {
             ),
           ],
         ),
+        // Block (Guideline 1.2) — only for other users.
+        if (!isSelf && currentUserId != null) ...[
+          const SizedBox(height: 4),
+          CupertinoButton(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            onPressed: () async {
+              final blocked = await blockUserFlow(
+                context,
+                ref,
+                targetUserId: user.userId,
+                username: user.username,
+              );
+              if (blocked && context.mounted) Navigator.of(context).pop();
+            },
+            child: Text(
+              'Block @${user.username}',
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: CupertinoColors.systemRed,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

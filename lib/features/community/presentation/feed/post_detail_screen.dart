@@ -9,6 +9,7 @@ import '../../../../providers/community_providers.dart';
 import '../../data/post_repository.dart';
 import '../../domain/comment.dart';
 import '../../domain/post.dart';
+import 'post_moderation.dart';
 import 'widgets/comment_tile.dart';
 import 'widgets/post_card.dart';
 
@@ -119,6 +120,16 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                       onTapUser: () {
                         context.push('/profile/${post.userId}');
                       },
+                      onReport: post.userId == currentUserId
+                          ? null
+                          : () => reportPostFlow(context, ref,
+                              postId: post.postId,
+                              reportedUserId: post.userId),
+                      onBlock: post.userId == currentUserId
+                          ? null
+                          : () => blockUserFlow(context, ref,
+                              targetUserId: post.userId,
+                              username: post.username),
                       onDelete: post.userId == currentUserId
                           ? () async {
                               final confirmed =
