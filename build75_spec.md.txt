@@ -1,0 +1,38 @@
+# Build 75 — AI Coach tool use: nutrition goal edits + workout generation
+
+CONTEXT: Flutter app at repo root (Riverpod, Isar, Firebase). AI Coach streams chat through the aiProxy Cloud Function (functions/index.js → Anthropic Messages API, SSE). All Build 74 tests pass. New feature: AI Coach gains two ACTIONS via Anthropic tool use — (1) propose nutrition-goal edits, (2) generate a usable workout from lift history. The model NEVER applies changes: it emits tool_use, the client renders a confirmation card, and only an explicit user tap writes data through existing repositories.
+
+## TASK 1 — Server (functions/index.js, aiProxy)
+1. Define two tools passed to the Anthropic API on every request:
+   - update_nutrition_goals: { calories: int, proteinG: int, carbsG: int, fatG: int, rationale: string }
+   - create_workout: { name: string, focus: string, exercises: [ { exerciseName: string, sets: int, reps: int, suggestedWeightKg: number|null, restSeconds: int, notes: string|null } ], rationale: string }
+2. Forward tool_use content blocks through the SSE stream alongside text deltas (pass through content_block_start/delta/stop incl. input_json_delta). Do not buffer the whole response.
+3. Server-side validation before forwarding a completed tool_use: whitelist the two tool names; clamp/reject update_nutrition_goals outside bounds (calories 1200–6000, protein 30–400g, carbs 0–800g, fat 20–300g); reject create_workout with >12 exercises or sets>10/reps>50. On rejection, log and convert to a text apology event instead of forwarding.
+4. Keep existing auth, rate limit, input caps unchanged. Tool-bearing responses count as 1 of the 30/day.
+
+## TASK 2 — Context enrichment (client, before sending)
+Build a compact context block (cap ~2000 chars) appended to the system prompt: current nutrition goals (calories/macros/goal type/TDEE), body-weight trend (latest 5 entries with dates), recent lift data (up to 10 most-trained exercises: best recent set weight×reps, last performed date, current PR). Pull from existing Isar repositories. Truncate gracefully for sparse data. System prompt must state: suggestedWeightKg derives from the user's actual history (working weight ≈ 80–90% of recent best for the rep range) and is null for exercises with no history.
+
+## TASK 3 — Client: tool_use handling + confirmation cards
+1. Extend the stream parser to accumulate tool_use blocks (name + streamed JSON input). Text before/after renders as normal chat.
+2. update_nutrition_goals → inline confirmation card: current vs proposed side by side (user's unit/display conventions), rationale, Apply / Dismiss. Apply writes through the SAME repository path the manual goal editor uses (find it; do not duplicate logic), then card shows "Applied ✓" and a confirmation message appends to history. Dismiss keeps the card in a declined state.
+3. create_workout → workout preview card: name, focus, exercises with sets×reps and suggested weights (display in user's units, store kg). Apply saves via the existing workout-creation path as a ready-to-start workout/template visible in the Workouts tab. Map exerciseName to our exercise database; unmatched names become custom exercises, never a failure.
+4. Cards survive the 50-message persistence: store proposals + applied/dismissed status in AIMessage, per-uid.
+5. Applied changes invalidate relevant providers so Home/Nutrition/Workouts update immediately.
+
+## TASK 4 — Safety + UX rules
+1. NEVER write without the explicit Apply tap. No auto-apply setting.
+2. Client-side validation mirrors server clamps; out-of-bounds proposals render an error card, not an applyable one.
+3. System prompt: propose tool calls only when the user asks for changes/plans; one tool call per response; rationale stays in drill-sergeant character.
+4. Card error states distinguish "request rejected" (auth/rate-limit → actionable message) from "couldn't reach the coach" (network/IAM-class → retry message).
+5. If AI_PROXY_URL is missing/empty at startup in a release build: Crashlytics non-fatal ("AI Coach disabled by configuration") + explicit "unavailable — configuration" UI state. A misbuilt .env must be loud.
+6. Signed-out or failed writes → retry-able error card (mounted checks, try/catch, AppLogger.error — house rules).
+
+## SAFETY RULES
+mounted checks after awaits; try/catch all async; do not touch HealthKit/health_check channel or Firestore rules; Isar schema changes via dart run build_runner build --delete-conflicting-outputs; no git push.
+
+## VERIFY
+1. flutter analyze zero errors; functions build/check zero errors.
+2. Report files modified with one-line summaries.
+3. List the deploy + test sequence: firebase deploy --only functions FIRST, then curl -X POST https://aiproxy-e6juwmqhiq-uc.a.run.app → expect JSON 401 "Missing auth token"; Google HTML 403 means the invoker binding dropped (known gotcha — fix in Cloud Run console), then app-side tests.
+4. Manual test script: (a) "set my protein higher, I want to bulk" → sane proposal card → Apply → Nutrition tab reflects it; (b) "build me a push day based on my lifts" → workout card with weights from actual history → Apply → appears in Workouts tab → start it, log a set; (c) dismiss flow; (d) signed-out and airplane-mode failure states; (e) cards persist across app restart.
