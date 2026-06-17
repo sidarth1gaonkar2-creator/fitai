@@ -260,34 +260,51 @@ class AIChatController extends StateNotifier<ChatState> {
         isWaitingForStream: false,
         streamingContent: '',
       );
-    } on SocketException {
+    } on SocketException catch (e, st) {
       if (!mounted) return;
+      // DIAGNOSTIC (temporary — REVERT before final build): show the raw socket
+      // error instead of the generic "no internet" so a TLS/DNS/connection-reset
+      // failure is distinguishable from a true offline state.
+      AppLogger.error('AI Coach SocketException', error: e, stack: st);
       state = state.copyWith(
         isStreaming: false,
         isWaitingForStream: false,
         streamingContent: '',
-        errorMessage: () =>
-            'No internet connection. Connect to the network and try again.',
+        errorMessage: () => 'DIAG SocketException: $e',
       );
-    } on AnthropicException catch (e) {
+    } on AnthropicException catch (e, st) {
       if (!mounted) return;
-      // The daily-limit message is already user-friendly — show it verbatim.
-      state = state.copyWith(
-        isStreaming: false,
-        isWaitingForStream: false,
-        streamingContent: '',
-        errorMessage: () => e is AnthropicRateLimitException
-            ? e.message
-            : _friendlyError(e.message),
+      // DIAGNOSTIC (temporary — REVERT before final build): surface the RAW
+      // proxy failure — runtimeType, HTTP status code, message and response body
+      // verbatim — instead of routing through _friendlyError. Tells us if it's a
+      // 401 (auth/token/project mismatch), 500 (function error), a timeout, or a
+      // rate-limit.
+      AppLogger.error(
+        'AI Coach AnthropicException: runtimeType=${e.runtimeType} '
+        'status=${e.statusCode} message=${e.message} body=${e.body}',
+        error: e,
+        stack: st,
       );
-    } catch (e) {
-      if (!mounted) return;
       state = state.copyWith(
         isStreaming: false,
         isWaitingForStream: false,
         streamingContent: '',
-        errorMessage: () =>
-            "Couldn't reach the AI coach. Check your connection and try again.",
+        errorMessage: () => 'DIAG [${e.runtimeType}]\n'
+            'status=${e.statusCode ?? '(none)'}\n'
+            'message=${e.message}\n'
+            'body=${e.body ?? '(none)'}',
+      );
+    } catch (e, st) {
+      if (!mounted) return;
+      // DIAGNOSTIC (temporary — REVERT before final build): surface any other
+      // raw error rather than the generic "couldn't reach" string.
+      AppLogger.error('AI Coach unexpected error (${e.runtimeType})',
+          error: e, stack: st);
+      state = state.copyWith(
+        isStreaming: false,
+        isWaitingForStream: false,
+        streamingContent: '',
+        errorMessage: () => 'DIAG [${e.runtimeType}] $e',
       );
     }
   }
@@ -482,6 +499,10 @@ class AIChatController extends StateNotifier<ChatState> {
     state = state.copyWith(messages: _capInMemory([...state.messages, note]));
   }
 
+  // DIAGNOSTIC (temporary — REVERT before final build): bypassed while the raw
+  // error is shown in the catch blocks above; kept so revert is a one-line
+  // restore of the _friendlyError(e.message) call.
+  // ignore: unused_element
   String _friendlyError(String raw) {
     final lower = raw.toLowerCase();
     if (lower.contains('rate_limit') || lower.contains('rate limit')) {

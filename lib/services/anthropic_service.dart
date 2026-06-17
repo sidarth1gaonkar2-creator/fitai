@@ -127,7 +127,12 @@ class AnthropicService {
         if (response.statusCode == 429) {
           throw AnthropicRateLimitException(errorMsg);
         }
-        throw AnthropicException(errorMsg);
+        // DIAGNOSTIC (temporary — REVERT): include status code + raw body.
+        throw AnthropicException(
+          errorMsg,
+          statusCode: response.statusCode,
+          body: errorBody,
+        );
       }
 
       // Parse SSE stream with an idle-timeout so we never hang forever.
@@ -290,7 +295,12 @@ class AnthropicService {
         if (response.statusCode == 429) {
           throw AnthropicRateLimitException(errorMsg);
         }
-        throw AnthropicException(errorMsg);
+        // DIAGNOSTIC (temporary — REVERT): include status code + raw body.
+        throw AnthropicException(
+          errorMsg,
+          statusCode: response.statusCode,
+          body: body,
+        );
       }
 
       final json = jsonDecode(body) as Map<String, dynamic>;
@@ -339,8 +349,13 @@ class AnthropicService {
 }
 
 class AnthropicException implements Exception {
-  AnthropicException(this.message);
+  // DIAGNOSTIC (temporary — REVERT before final build): carry the raw HTTP
+  // status code and response body so the AI Coach error dialog can surface the
+  // real failure (401 vs 500 vs timeout) instead of a masked friendly string.
+  AnthropicException(this.message, {this.statusCode, this.body});
   final String message;
+  final int? statusCode;
+  final String? body;
 
   @override
   String toString() => message;
