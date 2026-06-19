@@ -193,8 +193,14 @@ Future<RankCalculation> _compute(
     );
     if (standard == null || !standard.rankable) continue;
 
+    // Score on the best attempt's ESTIMATED 1RM (Epley, rep-capped) rather than
+    // raw top weight, so heavier loads OR more reps both raise the score.
+    // `pr.weightKg` and the returned e1RM are both in KG; the single kg→lbs
+    // conversion still happens once, inside allometricScoreFromKg.
+    final estimatedOneRmKg =
+        estimatedOneRepMaxKg(weightKg: pr.weightKg, reps: pr.bestReps);
     final score = allometricScoreFromKg(
-      weightKg: pr.weightKg,
+      weightKg: estimatedOneRmKg,
       bodyWeightKg: bodyWeightKg,
       sex: sex,
       weightMultiplier: standard.weightMultiplier,

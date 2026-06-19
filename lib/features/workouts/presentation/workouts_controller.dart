@@ -26,6 +26,7 @@ import '../../community/data/leaderboard_repository.dart';
 import '../../community/data/user_repository.dart';
 import '../../community/domain/leaderboard_entry.dart';
 import '../../ranks/domain/exercise_standards.dart';
+import '../../ranks/domain/strength_calculator.dart';
 import '../../ranks/providers/rank_providers.dart';
 import '../domain/active_workout_state.dart';
 
@@ -153,20 +154,30 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
     // If completing (not un-completing), check for PR and start rest timer
     if (!set.isCompleted) {
       HapticFeedback.mediumImpact();
-      _checkPersonalRecord(exercise.name, set.weight);
+      _checkPersonalRecord(exercise.name, set.weight, set.reps);
       startRestTimer();
     }
   }
 
-  Future<void> _checkPersonalRecord(String exerciseName, double weight) async {
-    if (weight <= 0) return;
+  /// Live in-workout PR check that drives the transient "PR!" badge. Compares
+  /// ESTIMATED 1RM (Epley) so a higher-rep set at a slightly lower weight is
+  /// still recognised. All weights here are in KG (the canonical storage unit),
+  /// so the candidate and the stored best are computed and compared in KG.
+  Future<void> _checkPersonalRecord(
+      String exerciseName, double weight, int reps) async {
+    // A set only counts once it has real data — NOT gated on the ✓ checkmark.
+    if (weight <= 0 || reps <= 0) return;
     final isar = _ref.read(isarProvider);
     final existing = await isar.personalRecords
         .where()
         .exerciseNameEqualTo(exerciseName)
         .findAll();
-    final currentBest = existing.isNotEmpty ? existing.first.weightKg : 0.0;
-    if (weight > currentBest) {
+    final candidateE1rmKg = estimatedOneRepMaxKg(weightKg: weight, reps: reps);
+    final bestE1rmKg = existing.isNotEmpty
+        ? estimatedOneRepMaxKg(
+            weightKg: existing.first.weightKg, reps: existing.first.bestReps)
+        : 0.0;
+    if (candidateE1rmKg > bestE1rmKg) {
       state = state.copyWith(prExerciseName: () => exerciseName);
       Future.delayed(const Duration(seconds: 3), dismissPR);
     }
@@ -331,18 +342,29 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
         await workout.exercises.save();
       });
 
-      // Detect and persist new PRs
+      // Detect and persist new PRs. A "PR" is now the best ESTIMATED 1RM
+      // (Epley, rep-capped) ever achieved for the exercise — so heavier loads
+      // OR more reps can set one. All weights are in KG (canonical storage),
+      // so every e1RM below is computed and compared in KG.
       final newPRNames = <String>[];
       for (final activeExercise in state.exercises) {
+        // Pick the set with the best estimated 1RM — NOT the single heaviest
+        // set. A set counts as performed when it has real data (weight > 0 &&
+        // reps > 0); the ✓ checkmark is a rest-timer affordance and must NOT
+        // gate the ranking pipeline.
         double bestWeight = 0;
         int bestReps = 0;
+        double bestE1rmKg = 0;
         for (final s in activeExercise.sets) {
-          if (s.isCompleted && s.weight > bestWeight) {
+          if (s.weight <= 0 || s.reps <= 0) continue;
+          final e1rmKg = estimatedOneRepMaxKg(weightKg: s.weight, reps: s.reps);
+          if (e1rmKg > bestE1rmKg) {
+            bestE1rmKg = e1rmKg;
             bestWeight = s.weight;
             bestReps = s.reps;
           }
         }
-        if (bestWeight <= 0) continue;
+        if (bestE1rmKg <= 0) continue;
 
         final existingList = await isar.personalRecords
             .where()
@@ -350,7 +372,15 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
             .findAll();
         final existing = existingList.isNotEmpty ? existingList.first : null;
 
-        if (existing == null || bestWeight > existing.weightKg) {
+        // "Best ever, never decreases": overwrite only when this session's best
+        // estimated 1RM beats the stored one (both in KG). A lighter/deload day
+        // leaves the record — and therefore the rank — untouched.
+        final existingE1rmKg = existing == null
+            ? 0.0
+            : estimatedOneRepMaxKg(
+                weightKg: existing.weightKg, reps: existing.bestReps);
+
+        if (existing == null || bestE1rmKg > existingE1rmKg) {
           final muscle = exerciseLibrary
                   .where((e) =>
                       e.name.toLowerCase() ==

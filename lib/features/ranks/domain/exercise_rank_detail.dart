@@ -60,8 +60,13 @@ ExerciseRankDetail computeExerciseRankDetail({
   Sex? sex,
 }) {
   final hasData = bestWeightKg > 0 && bodyWeightKg > 0;
+  // Score on the ESTIMATED 1RM (Epley, rep-capped) of the best attempt, to
+  // match the calculator's basis. [bestWeightKg] and the e1RM are both in KG;
+  // allometricScoreFromKg performs the lone kg→lbs conversion internally.
+  final estimatedOneRmKg =
+      estimatedOneRepMaxKg(weightKg: bestWeightKg, reps: bestReps);
   final score = allometricScoreFromKg(
-    weightKg: bestWeightKg,
+    weightKg: estimatedOneRmKg,
     bodyWeightKg: bodyWeightKg,
     sex: sex,
     weightMultiplier: standard.weightMultiplier,
@@ -84,7 +89,10 @@ ExerciseRankDetail computeExerciseRankDetail({
       sex: sex,
       weightMultiplier: standard.weightMultiplier,
     );
-    final delta = needed - bestWeightKg;
+    // `needed` is the estimated-1RM (kg) required for the next rank, so measure
+    // the gap against the current estimated 1RM (kg) — not the raw logged
+    // weight — to keep both sides of the subtraction in the same metric.
+    final delta = needed - estimatedOneRmKg;
     weightToNextKg = delta > 0 ? delta : 0;
   }
 

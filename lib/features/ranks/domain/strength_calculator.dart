@@ -46,6 +46,44 @@ double allometricScoreFromKg({
   return raw * genderMultiplier(sex);
 }
 
+/// Maximum reps credited by [estimatedOneRepMaxKg]. The Epley formula (like
+/// every 1RM estimator) is only validated for low-to-moderate reps and badly
+/// over-estimates at very high reps — uncapped, a light 20-rep set would
+/// out-score a genuinely heavier low-rep lift. Capping keeps the ranking
+/// honest at the extremes: 12 covers the usual strength/hypertrophy working
+/// range, and anything beyond it scores as a 12-rep set.
+const int kOneRmRepCap = 12;
+
+/// Estimated one-rep max (kg) for a logged set via the Epley formula —
+/// `weight × (1 + reps/30)` — with [reps] capped at [kOneRmRepCap].
+///
+/// This is the value the ranking pipeline scores on (instead of raw top
+/// weight), so lifting heavier OR doing more reps both raise your score. A
+/// true single (reps ≤ 1) is its own 1RM, so it returns the weight unchanged
+/// rather than Epley's slight one-rep inflation. Returns 0 for a non-positive
+/// load so callers never feed garbage into the score (and never divide by a
+/// zero body weight downstream — that guard lives in [allometricScoreLbs]).
+double estimatedOneRepMaxKg({required double weightKg, required int reps}) {
+  if (weightKg <= 0) return 0;
+  if (reps <= 1) return weightKg;
+  final cappedReps = reps > kOneRmRepCap ? kOneRmRepCap : reps;
+  return weightKg * (1 + cappedReps / 30.0);
+}
+
+/// Representative working-set rep count the rank thresholds are anchored to.
+/// The pipeline now scores ESTIMATED 1RM, which for this rep count is
+/// [kCalibrationE1rmFactor]× the raw weight. The per-exercise thresholds (tuned
+/// for raw top weight) are scaled by that factor so a lifter who trains at
+/// ~[kCalibrationReps] reps keeps the SAME rank as before the e1RM switch —
+/// avoiding wholesale rank inflation. Heavy-single specialists then sit
+/// slightly lower and high-rep lifters slightly higher, which is the intended,
+/// fairer behaviour of estimated-1RM scoring.
+const int kCalibrationReps = 5;
+
+/// Epley multiplier for [kCalibrationReps] reps (= 1 + 5/30 ≈ 1.16667) — the
+/// factor the rank thresholds in exercise_standards.dart are scaled by.
+const double kCalibrationE1rmFactor = 1 + kCalibrationReps / 30;
+
 /// Inverse of [allometricScoreFromKg]: the per-implement weight (kg) needed to
 /// reach [targetScore] at the given body weight, sex, and dumbbell multiplier.
 /// Used to tell the user "X more lbs to the next rank". Returns 0 for

@@ -1,5 +1,6 @@
 import '../../../data/exercise_library.dart';
 import '../../../models/enums.dart';
+import 'strength_calculator.dart';
 
 /// The six muscle groups the ranking system aggregates into. Distinct from the
 /// app's finer-grained [MuscleGroup] enum — these are the buckets the overall
@@ -71,13 +72,21 @@ const _pushGeneric = [1.75, 2.45, 3.5, 4.2, 4.9, 5.6, 6.65, 7.7, 8.75, 9.8];
 const _pullGeneric = [1.4, 2.1, 3.15, 3.85, 4.55, 5.25, 5.95, 7.0, 8.05, 9.1];
 const _lowerGeneric = [2.1, 3.15, 4.2, 4.9, 5.6, 6.65, 7.7, 8.75, 9.8, 11.2];
 
+// The threshold sets above were calibrated against RAW top-set weight. Scoring
+// now runs on estimated 1RM, so every threshold is scaled by
+// [kCalibrationE1rmFactor] (the 5-rep Epley factor) before use — this keeps a
+// ~5-rep working lifter at the same rank as before. The raw numbers are kept
+// literal above so the original calibration stays legible.
+List<double> _cal(List<double> raw) =>
+    [for (final v in raw) v * kCalibrationE1rmFactor];
+
 // Convenience builders to keep the table readable.
 ExerciseStandard _c(List<double> t, RankGroup g, {double mult = 1.0}) =>
-    ExerciseStandard(thresholds: t, group: g, isCompound: true, weightMultiplier: mult);
+    ExerciseStandard(thresholds: _cal(t), group: g, isCompound: true, weightMultiplier: mult);
 ExerciseStandard _i(List<double> t, RankGroup g, {double mult = 1.0}) =>
-    ExerciseStandard(thresholds: t, group: g, isCompound: false, weightMultiplier: mult);
+    ExerciseStandard(thresholds: _cal(t), group: g, isCompound: false, weightMultiplier: mult);
 ExerciseStandard _skip(RankGroup g) =>
-    ExerciseStandard(thresholds: _curl, group: g, isCompound: false, rankable: false);
+    ExerciseStandard(thresholds: _cal(_curl), group: g, isCompound: false, rankable: false);
 
 /// Per-exercise standards keyed by the library's exercise **id**. Covers every
 /// exercise in [exerciseLibrary]; anything else resolves through the muscle-
