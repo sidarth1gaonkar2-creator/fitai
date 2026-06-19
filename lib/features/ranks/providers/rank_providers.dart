@@ -18,6 +18,23 @@ import '../domain/muscle_group_rank.dart';
 import '../domain/overall_rank.dart';
 import '../domain/strength_calculator.dart';
 
+/// A logged user-custom (off-library) exercise that scored, plus the rank
+/// group it was filed under. Its score / rank / best weight live in the
+/// [RankCalculation] maps keyed by [key] (the lowercased name), exactly like a
+/// built-in exercise keyed by its id — this just carries the display name and
+/// group, which aren't otherwise recoverable for an off-library exercise.
+class CustomExerciseRank {
+  const CustomExerciseRank({required this.name, required this.group});
+
+  /// Original-cased display name, taken from the PR.
+  final String name;
+  final RankGroup group;
+
+  /// Key into [RankCalculation.exerciseScores] / `exerciseRanks` /
+  /// `exerciseBestWeightKg` (matches `_compute`'s fallback key).
+  String get key => name.toLowerCase();
+}
+
 /// The fully-computed ranking for the current user — the in-memory result the
 /// read providers and (eventually) the UI derive from. Pure data: produced by
 /// [rankCalculatorProvider], which also persists a [UserRank] row.
@@ -31,6 +48,7 @@ class RankCalculation {
     required this.exerciseRanks,
     required this.exerciseBestWeightKg,
     required this.bodyWeightKg,
+    this.customExercises = const [],
   });
 
   final MilitaryRank overall;
@@ -50,6 +68,11 @@ class RankCalculation {
   final Map<String, double> exerciseBestWeightKg;
 
   final double bodyWeightKg;
+
+  /// Logged user-custom (off-library) exercises that scored, with the group
+  /// they were filed under. Lets the Ranks screen list them — built-in rows
+  /// come from [exerciseLibrary], which customs aren't part of.
+  final List<CustomExerciseRank> customExercises;
 
   static const empty = RankCalculation(
     overall: MilitaryRank.private_e1,
@@ -184,6 +207,9 @@ Future<RankCalculation> _compute(
   final bestScore = <String, double>{};
   final bestScored = <String, ScoredExercise>{};
   final bestWeight = <String, double>{};
+  // Off-library (user-custom) exercises that scored, keyed by their fallback
+  // key, so the Ranks screen can list them under their chosen group.
+  final customByKey = <String, CustomExerciseRank>{};
 
   for (final pr in prs) {
     if (pr.weightKg <= 0 || bodyWeightKg <= 0) continue;
@@ -214,6 +240,13 @@ Future<RankCalculation> _compute(
       bestScore[key] = score;
       bestScored[key] = ScoredExercise(standard: standard, score: score);
       bestWeight[key] = pr.weightKg;
+      // No library def → a user-custom exercise. Record its display name and
+      // resolved group so the Ranks screen can surface it (built-in rows come
+      // from the library, which customs aren't in).
+      if (def == null) {
+        customByKey[key] =
+            CustomExerciseRank(name: pr.exerciseName, group: standard.group);
+      }
     }
   }
 
@@ -235,6 +268,7 @@ Future<RankCalculation> _compute(
     exerciseRanks: exerciseRanks,
     exerciseBestWeightKg: bestWeight,
     bodyWeightKg: bodyWeightKg,
+    customExercises: customByKey.values.toList(),
   );
 }
 

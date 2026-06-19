@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../features/ranks/domain/exercise_standards.dart';
 import '../../../models/enums.dart';
+import '../../../providers/custom_exercise_provider.dart';
 import '../../../providers/workout_providers.dart';
 import 'widgets/exercise_picker_card.dart';
 
@@ -70,6 +72,51 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
 
   void _onSearchChanged(String value) {
     ref.read(exerciseFilterProvider.notifier).setQuery(value);
+  }
+
+  /// Asks which of the six rank groups a new custom exercise belongs to, so it
+  /// can count toward the user's ranks. Returns null if dismissed.
+  Future<RankGroup?> _promptForRankGroup(String name) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return showModalBottomSheet<RankGroup>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 4),
+              child: Text(
+                'Which muscle group is "$name"?',
+                textAlign: TextAlign.center,
+                style: textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: Text(
+                'So it counts toward your ranks.',
+                textAlign: TextAlign.center,
+                style: textTheme.bodySmall
+                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+              ),
+            ),
+            const Divider(height: 1),
+            for (final group in RankGroup.values)
+              ListTile(
+                title: Text(group.label),
+                trailing: const Icon(Icons.chevron_right, size: 20),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  Navigator.pop(sheetContext, group);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _onGroupSelected(int index) {
@@ -263,10 +310,26 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                                 color: colorScheme.onSurfaceVariant,
                               ),
                             ),
-                            onTap: () {
+                            onTap: () async {
                               HapticFeedback.lightImpact();
-                              Navigator.pop(
-                                  context, _searchController.text.trim());
+                              final name = _searchController.text.trim();
+                              if (name.isEmpty) return;
+                              // Capture the navigator before any async gap so
+                              // we never touch BuildContext after an await.
+                              final navigator = Navigator.of(context);
+                              final registry =
+                                  ref.read(customExerciseRegistryProvider);
+                              // Re-categorising an existing custom isn't needed
+                              // — reuse its stored group. A brand-new custom
+                              // must pick a group so it can be ranked; bail if
+                              // the user dismisses the picker (don't create an
+                              // uncategorised exercise).
+                              if (!registry.isKnown(name)) {
+                                final group = await _promptForRankGroup(name);
+                                if (group == null) return;
+                                await registry.setGroup(name, group);
+                              }
+                              navigator.pop(name);
                             },
                           );
                         }

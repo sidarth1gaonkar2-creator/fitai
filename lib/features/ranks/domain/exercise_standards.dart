@@ -242,18 +242,48 @@ RankGroup? rankGroupForMuscle(MuscleGroup muscle) {
   }
 }
 
-/// Generic standard for a [RankGroup] when no bespoke entry exists — used for
-/// custom / off-library exercises (spec §3 fallback).
+/// Representative [MuscleGroup] for a [RankGroup] — the inverse of
+/// [rankGroupForMuscle]. Used to stamp a user-chosen rank group onto a custom
+/// exercise's [PersonalRecord], whose field is a fine-grained [MuscleGroup].
+/// Each value round-trips back through [rankGroupForMuscle] to its [RankGroup].
+MuscleGroup representativeMuscleForRankGroup(RankGroup group) {
+  switch (group) {
+    case RankGroup.chest:
+      return MuscleGroup.chest;
+    case RankGroup.back:
+      return MuscleGroup.upperBack;
+    case RankGroup.legs:
+      return MuscleGroup.quads;
+    case RankGroup.shoulders:
+      return MuscleGroup.shoulders;
+    case RankGroup.arms:
+      return MuscleGroup.biceps;
+    case RankGroup.core:
+      return MuscleGroup.abs;
+  }
+}
+
+/// Generic standard for a [RankGroup] when no bespoke entry exists. With the
+/// library fully covered by [exerciseStandards] (no orphans), this is reached
+/// only for USER-CUSTOM / off-library exercises via [standardForExercise].
+///
+/// Such movements are unknown, so they're treated as ISOLATION (1× group
+/// weight) — an unknown exercise shouldn't carry a compound's 2× influence on
+/// its group average. The thresholds stay the conservative group-generic lists
+/// (push/pull/lower-generic, or curl for arms/core), so a custom is scored on a
+/// sensible bar for its group (e.g. a custom Shoulders move uses press-level
+/// thresholds, never squat-level) and is biased toward under-rating rather than
+/// inflating a rank.
 ExerciseStandard _genericForGroup(RankGroup group) {
   switch (group) {
     case RankGroup.chest:
-      return _c(_pushGeneric, RankGroup.chest);
+      return _i(_pushGeneric, RankGroup.chest);
     case RankGroup.back:
-      return _c(_pullGeneric, RankGroup.back);
+      return _i(_pullGeneric, RankGroup.back);
     case RankGroup.legs:
-      return _c(_lowerGeneric, RankGroup.legs);
+      return _i(_lowerGeneric, RankGroup.legs);
     case RankGroup.shoulders:
-      return _c(_pushGeneric, RankGroup.shoulders);
+      return _i(_pushGeneric, RankGroup.shoulders);
     case RankGroup.arms:
       return _i(_curl, RankGroup.arms);
     case RankGroup.core:

@@ -259,6 +259,49 @@ void main() {
     });
   });
 
+  group('custom exercise mapping (PR2)', () {
+    test('representativeMuscleForRankGroup round-trips through '
+        'rankGroupForMuscle for every group', () {
+      for (final g in RankGroup.values) {
+        expect(rankGroupForMuscle(representativeMuscleForRankGroup(g)), g);
+      }
+    });
+
+    test('a custom exercise resolves to a rankable, isolation standard in its '
+        'chosen group', () {
+      // A custom exercise has no id/name match — only the muscle group that
+      // saveWorkout stamps from the user's choice. It must still rank.
+      final std = standardForExercise(
+        name: 'Totally Made Up Movement',
+        muscleGroup: MuscleGroup.shoulders,
+      );
+      expect(std, isNotNull);
+      expect(std!.rankable, isTrue);
+      expect(std.group, RankGroup.shoulders);
+      // Customs default to isolation (1× group weight) — an unknown movement
+      // shouldn't carry a compound's 2× influence.
+      expect(std.isCompound, isFalse);
+    });
+
+    test('a custom uses group-appropriate thresholds, not another group\'s',
+        () {
+      final shoulders = standardForExercise(
+          name: 'X', muscleGroup: MuscleGroup.shoulders)!;
+      final legs =
+          standardForExercise(name: 'Y', muscleGroup: MuscleGroup.quads)!;
+      // A Shoulders custom must not inherit the much heavier Legs thresholds.
+      expect(shoulders.thresholds, isNot(equals(legs.thresholds)));
+      expect(shoulders.thresholds.first, lessThan(legs.thresholds.first));
+    });
+
+    test('a cardio-only signal stays unrankable (no group)', () {
+      expect(
+        standardForExercise(name: 'Z', muscleGroup: MuscleGroup.cardio),
+        isNull,
+      );
+    });
+  });
+
   group('unit safety', () {
     test('the same physical lift entered in kg vs lbs yields the same score',
         () {

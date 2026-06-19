@@ -7,13 +7,13 @@ import 'package:isar/isar.dart';
 import '../../../core/utils/logger.dart';
 import '../../../data/exercise_library.dart';
 import '../../../services/notification_service.dart';
-import '../../../models/enums.dart';
 import '../../../models/personal_record.dart';
 import '../../../models/workout.dart';
 import '../../../models/workout_exercise.dart';
 import '../../../models/workout_set.dart';
 import '../../../providers/dashboard_providers.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/custom_exercise_provider.dart';
 import '../../../providers/drill_sergeant_providers.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/isar_provider.dart';
@@ -167,6 +167,18 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
       String exerciseName, double weight, int reps) async {
     // A set only counts once it has real data — NOT gated on the ✓ checkmark.
     if (weight <= 0 || reps <= 0) return;
+    // Don't flash a "PR!" banner for an exercise that won't rank. An off-library
+    // exercise with no chosen/declared group is left unranked at save (Tier 3),
+    // so a PR claim here would be a small lie. It's rankable iff it's a library
+    // exercise or carries a registry group (picker-chosen or AI-declared) —
+    // mirrors the resolution in saveWorkout.
+    final isLibraryExercise = exerciseLibrary
+        .any((e) => e.name.toLowerCase() == exerciseName.toLowerCase());
+    final hasGroup = _ref
+            .read(customExerciseRegistryProvider)
+            .groupFor(exerciseName) !=
+        null;
+    if (!isLibraryExercise && !hasGroup) return;
     final isar = _ref.read(isarProvider);
     final existing = await isar.personalRecords
         .where()
@@ -381,14 +393,26 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
                 weightKg: existing.weightKg, reps: existing.bestReps);
 
         if (existing == null || bestE1rmKg > existingE1rmKg) {
-          final muscle = exerciseLibrary
-                  .where((e) =>
-                      e.name.toLowerCase() ==
-                      activeExercise.name.toLowerCase())
-                  .firstOrNull
-                  ?.primaryMuscles
-                  .firstOrNull ??
-              MuscleGroup.chest;
+          // Resolve the muscle group for this PR. A library exercise uses its
+          // primary muscle; an off-library exercise (user-custom from the
+          // picker OR AI-proposed) uses the group chosen/declared at creation,
+          // recorded in the custom-exercise registry. If NEITHER resolves, the
+          // exercise is left UNRANKED rather than silently filed as Chest —
+          // re-logging it through the exercise picker categorises it.
+          final libraryMuscle = exerciseLibrary
+              .where((e) =>
+                  e.name.toLowerCase() == activeExercise.name.toLowerCase())
+              .firstOrNull
+              ?.primaryMuscles
+              .firstOrNull;
+          final customGroup = _ref
+              .read(customExerciseRegistryProvider)
+              .groupFor(activeExercise.name);
+          final muscle = libraryMuscle ??
+              (customGroup != null
+                  ? representativeMuscleForRankGroup(customGroup)
+                  : null);
+          if (muscle == null) continue;
 
           await isar.writeTxn(() async {
             if (existing != null) {

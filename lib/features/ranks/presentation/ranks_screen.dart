@@ -378,11 +378,16 @@ class _MuscleGroupGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Count ranked exercises per group from the calc.
+    // Count ranked exercises per group from the calc. Built-in exercises map
+    // their id → group via the standards table; custom (off-library) keys
+    // aren't in that table, so they're counted from [customExercises].
     final counts = <RankGroup, int>{};
     for (final id in calc.exerciseScores.keys) {
       final group = exerciseStandards[id]?.group;
       if (group != null) counts[group] = (counts[group] ?? 0) + 1;
+    }
+    for (final custom in calc.customExercises) {
+      counts[custom.group] = (counts[custom.group] ?? 0) + 1;
     }
 
     final cards = [
@@ -571,8 +576,8 @@ class _DrillSergeantCard extends StatelessWidget {
 // ─── All exercises (expandable per group) ───────────────────────────────────
 
 class _ExerciseRow {
-  const _ExerciseRow(this.def, this.score, this.rank, this.weightKg);
-  final ExerciseDefinition def;
+  const _ExerciseRow(this.name, this.score, this.rank, this.weightKg);
+  final String name;
   final double? score; // null → not yet ranked
   final MilitaryRank? rank;
   final double? weightKg;
@@ -598,12 +603,24 @@ class _AllExerciseRanksState extends ConsumerState<_AllExerciseRanks> {
       final score = calc.exerciseScores[def.id];
       final rankIdx = calc.exerciseRanks[def.id];
       final row = _ExerciseRow(
-        def,
+        def.name,
         score,
         rankIdx == null ? null : rankFromIndex(rankIdx),
         calc.exerciseBestWeightKg[def.id],
       );
       byGroup.putIfAbsent(std.group, () => []).add(row);
+    }
+    // User-custom (off-library) exercises that scored — surface them under the
+    // group the user chose at creation. They aren't in [exerciseLibrary], so
+    // the loop above never reaches them.
+    for (final custom in calc.customExercises) {
+      final rankIdx = calc.exerciseRanks[custom.key];
+      byGroup.putIfAbsent(custom.group, () => []).add(_ExerciseRow(
+            custom.name,
+            calc.exerciseScores[custom.key],
+            rankIdx == null ? null : rankFromIndex(rankIdx),
+            calc.exerciseBestWeightKg[custom.key],
+          ));
     }
     // Sort: ranked (highest score first), then unranked alphabetically.
     for (final list in byGroup.values) {
@@ -611,7 +628,7 @@ class _AllExerciseRanksState extends ConsumerState<_AllExerciseRanks> {
         if (a.score != null && b.score != null) return b.score!.compareTo(a.score!);
         if (a.score != null) return -1;
         if (b.score != null) return 1;
-        return a.def.name.toLowerCase().compareTo(b.def.name.toLowerCase());
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
     }
     return byGroup;
@@ -738,7 +755,7 @@ class _GroupExpansion extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  row.def.name,
+                  row.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

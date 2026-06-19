@@ -7,10 +7,12 @@ import '../../../core/utils/logger.dart';
 import '../../../models/ai_message.dart';
 import '../data/coach_actions.dart';
 import '../../../models/enums.dart';
+import '../../../providers/custom_exercise_provider.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/unit_system_provider.dart';
 import '../../../services/anthropic_service.dart';
 import '../domain/coach_context_builder.dart';
+import '../domain/coach_exercise_resolver.dart';
 
 const _systemPrompt =
     'You are DrillFit Coach, a knowledgeable and supportive fitness and '
@@ -169,6 +171,8 @@ class AIChatController extends StateNotifier<ChatState> {
       // Build user context
       final context = await CoachContextBuilder.build(_ref);
       final systemWithContext = '$_systemPrompt\n\n'
+          '$coachWorkoutSelectionGuidance\n\n'
+          '$coachExerciseCatalogue\n\n'
           'Current user context:\n$context';
 
       // Prepare message history (last 20 messages)
@@ -248,6 +252,13 @@ class AIChatController extends StateNotifier<ChatState> {
         ..content = buffer.toString()
         ..timestamp = DateTime.now();
       if (capturedTool != null) {
+        // Ground a workout proposal in the fine-muscle library before showing
+        // it: snap names to canonical exercises (T1) and register any declared
+        // off-library muscle (T2) so the workout ranks under the right group
+        // instead of falling through to Chest.
+        if (capturedTool.name == 'create_workout') {
+          capturedTool = await _resolveWorkoutProposal(capturedTool);
+        }
         _attachProposal(assistantMsg, capturedTool);
       }
 
@@ -356,6 +367,40 @@ class AIChatController extends StateNotifier<ChatState> {
     msg.proposalJson = jsonEncode(tool.input);
     msg.proposalStatus =
         _proposalWithinBounds(kind, tool.input) ? 'proposed' : 'error';
+  }
+
+  /// Grounds a create_workout proposal in the fine-muscle library before it's
+  /// shown/applied. For each exercise: snap its name to a canonical library
+  /// exercise (Tier 1); else, if the model declared a valid off-library muscle
+  /// in `notes`, record that group in the custom-exercise registry (Tier 2) so
+  /// it ranks under the right group; else leave it untouched (Tier 3 — stays
+  /// unranked at save, never silently filed as Chest). Returns a new tool with
+  /// canonicalised names + cleaned notes.
+  Future<CoachToolUse> _resolveWorkoutProposal(CoachToolUse tool) async {
+    final input = Map<String, dynamic>.from(tool.input);
+    final exercises = input['exercises'];
+    if (exercises is! List) return tool;
+
+    final registry = _ref.read(customExerciseRegistryProvider);
+    final resolved = <Map<String, dynamic>>[];
+    for (final raw in exercises) {
+      if (raw is! Map) continue;
+      final e = Map<String, dynamic>.from(raw);
+      final proposed = (e['exerciseName'] as String?)?.trim() ?? '';
+      if (proposed.isEmpty) {
+        resolved.add(e);
+        continue;
+      }
+      final r = resolveProposedExercise(proposed, notes: e['notes'] as String?);
+      e['exerciseName'] = r.name;
+      e['notes'] = r.notes;
+      if (r.tier == 2 && r.group != null) {
+        await registry.setGroup(r.name, r.group!);
+      }
+      resolved.add(e);
+    }
+    input['exercises'] = resolved;
+    return CoachToolUse(tool.name, input);
   }
 
   bool _proposalWithinBounds(String kind, Map<String, dynamic> input) {
