@@ -104,7 +104,6 @@ class _OverallSection extends StatelessWidget {
     final color = rank.color;
     final progress = _progress(calc.overallPoints);
     final next = _next(calc.overallPoints);
-    final toNext = next == null ? 0.0 : (rank.index + 1) - calc.overallPoints;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -144,7 +143,7 @@ class _OverallSection extends StatelessWidget {
           Text(
             next == null
                 ? 'Top rank achieved, soldier. 🎖️'
-                : '${toNext.toStringAsFixed(1)} points to ${next.displayName}',
+                : '${(progress * 100).round()}% to ${next.displayName}',
             style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 12,
@@ -767,7 +766,7 @@ class _GroupExpansion extends StatelessWidget {
                 ),
                 if (ranked)
                   Text(
-                    '${weight!.toStringAsFixed(0)} $unit · score ${row.score!.toStringAsFixed(1)}',
+                    '${weight!.toStringAsFixed(0)} $unit',
                     style: TextStyle(
                       fontFamily: 'LeagueSpartan',
                       fontSize: 11,

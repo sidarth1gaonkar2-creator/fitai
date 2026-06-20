@@ -563,22 +563,11 @@ class _RankSection extends ConsumerWidget {
           Row(
             children: [
               RankBadge(rank: detail.rank, size: 30),
-              const Spacer(),
-              Text(
-                'Score ${detail.score.toStringAsFixed(1)}',
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: palette.textSecondary,
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 10),
           Text(
-            'Your best: ${best.toStringAsFixed(0)} $unit '
-            '(Score: ${detail.score.toStringAsFixed(1)})',
+            'Your best: ${best.toStringAsFixed(0)} $unit',
             style: textTheme.bodyMedium?.copyWith(color: palette.text),
           ),
           const SizedBox(height: 12),
@@ -594,7 +583,13 @@ class _RankSection extends ConsumerWidget {
           const SizedBox(height: 6),
           if (detail.nextRank != null)
             Text(
-              _nextRankText(detail.weightToNextKg, units, detail.nextRank!),
+              _nextRankText(
+                weightToNextKg: detail.weightToNextKg,
+                targetWeightKg: detail.targetWeightKg,
+                targetReps: detail.targetReps,
+                next: detail.nextRank!,
+                units: units,
+              ),
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 12,
@@ -617,13 +612,23 @@ class _RankSection extends ConsumerWidget {
     );
   }
 
-  String _nextRankText(double? toNextKg, UnitSystem units, MilitaryRank next) {
-    if (toNextKg == null || toNextKg <= 0) {
+  /// The concrete rank-up target: "195 lbs × 5 → Corporal". Holds the user's PR
+  /// reps constant and shows the weight that reaches the next rank at those
+  /// reps. [targetWeightKg] is in kg; convert ONCE here for display.
+  String _nextRankText({
+    required double? weightToNextKg,
+    required double? targetWeightKg,
+    required int targetReps,
+    required MilitaryRank next,
+    required UnitSystem units,
+  }) {
+    // Already at/over the threshold (no weight to add) → ready to promote.
+    if (weightToNextKg == null || weightToNextKg <= 0 || targetWeightKg == null) {
       return 'Ready to rank up to ${next.displayName}!';
     }
-    final display = UnitConverter.kgToDisplayWeight(toNextKg, units);
+    final target = UnitConverter.kgToDisplayWeight(targetWeightKg, units);
     final unit = UnitConverter.weightUnit(units);
-    return '${display.toStringAsFixed(0)} more $unit to ${next.displayName}';
+    return '${target.toStringAsFixed(0)} $unit × $targetReps → ${next.displayName}';
   }
 }
 

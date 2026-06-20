@@ -70,6 +70,22 @@ double estimatedOneRepMaxKg({required double weightKg, required int reps}) {
   return weightKg * (1 + cappedReps / 30.0);
 }
 
+/// Inverse of [estimatedOneRepMaxKg]: the working weight (kg) that, lifted for
+/// [reps], yields [oneRepMaxKg] as its estimated 1RM. Used by the rank-up target
+/// — "to hit the next rank, lift X for your usual reps" — holding the user's PR
+/// rep count constant and solving back for the weight. Pure kg in / kg out (the
+/// kg→display-unit conversion happens once, at the UI). Mirrors the cap and the
+/// reps≤1 special-case so it round-trips with [estimatedOneRepMaxKg].
+double workingWeightForOneRepMaxKg({
+  required double oneRepMaxKg,
+  required int reps,
+}) {
+  if (oneRepMaxKg <= 0) return 0;
+  if (reps <= 1) return oneRepMaxKg;
+  final cappedReps = reps > kOneRmRepCap ? kOneRmRepCap : reps;
+  return oneRepMaxKg / (1 + cappedReps / 30.0);
+}
+
 /// Representative working-set rep count the rank thresholds are anchored to.
 /// The pipeline now scores ESTIMATED 1RM, which for this rep count is
 /// [kCalibrationE1rmFactor]× the raw weight. The per-exercise thresholds (tuned

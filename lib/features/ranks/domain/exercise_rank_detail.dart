@@ -16,6 +16,8 @@ class ExerciseRankDetail {
     required this.progressToNext,
     required this.nextRank,
     required this.weightToNextKg,
+    required this.targetWeightKg,
+    required this.targetReps,
     required this.hasData,
   });
 
@@ -44,6 +46,15 @@ class ExerciseRankDetail {
   /// Additional per-implement weight (kg) needed to reach [nextRank], or null
   /// when maxed.
   final double? weightToNextKg;
+
+  /// Per-implement weight (kg) that — lifted for [targetReps] — reaches
+  /// [nextRank]. The concrete "lift X for your usual reps" target. Null when
+  /// maxed. Converted to the user's unit at the UI.
+  final double? targetWeightKg;
+
+  /// Rep count the [targetWeightKg] target is anchored to — the user's PR-set
+  /// reps, so the target reads in their actual rep scheme ("195 × 5").
+  final int targetReps;
 
   /// False when the exercise is rankable but has no logged PR yet — the UI
   /// shows the "log this to earn your rank" empty state.
@@ -81,6 +92,7 @@ ExerciseRankDetail computeExerciseRankDetail({
   final progress = isMaxed ? 1.0 : (points - rankIndex).clamp(0.0, 1.0);
 
   double? weightToNextKg;
+  double? targetWeightKg;
   if (nextRank != null) {
     final nextThreshold = standard.thresholds[rankIndex + 1];
     final needed = weightKgForScore(
@@ -94,6 +106,12 @@ ExerciseRankDetail computeExerciseRankDetail({
     // weight — to keep both sides of the subtraction in the same metric.
     final delta = needed - estimatedOneRmKg;
     weightToNextKg = delta > 0 ? delta : 0;
+    // Concrete target: the working weight that hits `needed` at the user's PR
+    // reps (≥1 whenever there's data), so the hint reads "195 × 5 → Corporal".
+    targetWeightKg = workingWeightForOneRepMaxKg(
+      oneRepMaxKg: needed,
+      reps: bestReps,
+    );
   }
 
   return ExerciseRankDetail(
@@ -105,6 +123,8 @@ ExerciseRankDetail computeExerciseRankDetail({
     progressToNext: progress,
     nextRank: nextRank,
     weightToNextKg: weightToNextKg,
+    targetWeightKg: targetWeightKg,
+    targetReps: bestReps,
     hasData: hasData,
   );
 }

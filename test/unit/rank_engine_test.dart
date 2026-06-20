@@ -302,6 +302,74 @@ void main() {
     });
   });
 
+  group('rank-up target (PR3 Part B)', () {
+    final bench = exerciseStandards['barbell_bench_press']!;
+
+    test('workingWeightForOneRepMaxKg inverts estimatedOneRepMaxKg (rep cap)',
+        () {
+      for (final reps in [1, 3, 5, 12, 20]) {
+        final e1rm = estimatedOneRepMaxKg(weightKg: 120, reps: reps);
+        expect(workingWeightForOneRepMaxKg(oneRepMaxKg: e1rm, reps: reps),
+            closeTo(120, 1e-9));
+      }
+      expect(workingWeightForOneRepMaxKg(oneRepMaxKg: 0, reps: 5), 0);
+    });
+
+    test('target weight at the PR reps reaches the next rank threshold', () {
+      final d = computeExerciseRankDetail(
+        standard: bench,
+        bestWeightKg: 100,
+        bestReps: 5,
+        bodyWeightKg: 80,
+        sex: Sex.male,
+      );
+      expect(d.nextRank, isNotNull);
+      expect(d.targetReps, 5);
+      expect(d.targetWeightKg, isNotNull);
+      // Lifting the target weight for the PR reps lands a score AT the next
+      // rank's threshold — the definition of the target.
+      final scoreAtTarget = allometricScoreFromKg(
+        weightKg:
+            estimatedOneRepMaxKg(weightKg: d.targetWeightKg!, reps: d.targetReps),
+        bodyWeightKg: 80,
+        sex: Sex.male,
+        weightMultiplier: bench.weightMultiplier,
+      );
+      expect(scoreAtTarget, closeTo(bench.thresholds[d.nextRank!.index], 0.05));
+      // You must add weight to rank up, so the target exceeds the current best.
+      expect(d.targetWeightKg!, greaterThan(100));
+    });
+
+    test('target weight is kg-internal and converts once for display', () {
+      final d = computeExerciseRankDetail(
+        standard: bench,
+        bestWeightKg: 100,
+        bestReps: 5,
+        bodyWeightKg: 80,
+        sex: Sex.male,
+      );
+      final kg = d.targetWeightKg!;
+      // Same physical target for both users; metric shows kg, imperial shows
+      // lbs = kg × 2.20462 — a single display-time conversion.
+      expect(UnitConverter.kgToDisplayWeight(kg, UnitSystem.metric),
+          closeTo(kg, 1e-9));
+      expect(UnitConverter.kgToDisplayWeight(kg, UnitSystem.imperial),
+          closeTo(kg * 2.20462, 1e-6));
+    });
+
+    test('maxed lift has no target', () {
+      final d = computeExerciseRankDetail(
+        standard: bench,
+        bestWeightKg: 400,
+        bestReps: 1,
+        bodyWeightKg: 80,
+        sex: Sex.male,
+      );
+      expect(d.nextRank, isNull);
+      expect(d.targetWeightKg, isNull);
+    });
+  });
+
   group('unit safety', () {
     test('the same physical lift entered in kg vs lbs yields the same score',
         () {
