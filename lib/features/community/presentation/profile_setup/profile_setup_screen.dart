@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
 import '../../../../providers/firestore_provider.dart';
@@ -126,7 +127,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   String _describeFirebaseError(String code) {
     switch (code) {
       case 'permission-denied':
-        return 'permission denied — Firestore rules are blocking this read';
+        return 'permission denied — Firestore rules are blocking this request';
       case 'unavailable':
         return 'Firestore unreachable — check your connection';
       case 'unauthenticated':
@@ -160,12 +161,25 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     setState(() => _isSaving = true);
 
     try {
+      // Avatar upload is best-effort and MUST NOT block account creation. The
+      // public bucket rules can reject an upload (e.g. they expired in May 2026,
+      // which silently broke every avatar upload → "Failed to create profile").
+      // If the upload throws, log it and continue with a null picture URL — the
+      // user can add a photo later from Edit Profile. createUser then writes the
+      // users/{uid} doc with profilePictureUrl == null, which the rules allow.
       String? profilePictureUrl;
-
       if (_imageFile != null) {
-        profilePictureUrl = await ref
-            .read(storageServiceProvider)
-            .uploadProfilePicture(userId, _imageFile!);
+        try {
+          profilePictureUrl = await ref
+              .read(storageServiceProvider)
+              .uploadProfilePicture(userId, _imageFile!);
+        } catch (e, st) {
+          AppLogger.error(
+            'ProfileSetup: avatar upload failed — continuing without photo',
+            error: e,
+            stack: st,
+          );
+        }
       }
 
       // Use the Isar user profile display name if available.
@@ -189,7 +203,27 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
       if (!mounted) return;
       context.go('/dashboard');
-    } catch (e) {
+    } on FirebaseException catch (e, st) {
+      // Surface the real cause instead of swallowing it: log the code+stack to
+      // Crashlytics (the previous catch-all discarded it, leaving the App Store
+      // rejection undiagnosable) and decode the code for the user, mirroring the
+      // username-availability path above.
+      AppLogger.error(
+        'ProfileSetup: createUser failed (code=${e.code})',
+        error: e,
+        stack: st,
+      );
+      if (!mounted) return;
+      _showError(
+        'Failed to create profile: ${_describeFirebaseError(e.code)}. '
+        'Please try again.',
+      );
+    } catch (e, st) {
+      AppLogger.error(
+        'ProfileSetup: createUser failed',
+        error: e,
+        stack: st,
+      );
       if (!mounted) return;
       _showError('Failed to create profile. Please try again.');
     } finally {
