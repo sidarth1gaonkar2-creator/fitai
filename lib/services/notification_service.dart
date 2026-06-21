@@ -380,13 +380,18 @@ class NotificationService {
   static const _streakSoftId = 800;
   static const _streakHardId = 801;
 
+  /// [restDays] must be in the 0-based notification form (Mon = 0 … Sun = 6) —
+  /// callers convert from the app's canonical 1-based model via
+  /// `restDaysToNotificationWeekdays` (notification_providers.dart). Do NOT pass
+  /// raw 1-based model values here. (Currently unused; reserved for PR4b's smart
+  /// streak reminders.)
   Future<void> scheduleStreakReminderSmart({
     required int currentStreak,
     required DateTime? lastWorkoutDate,
     required Set<int> restDays,
   }) async {
     final now = DateTime.now();
-    final todayWeekday = now.weekday - 1; // 0=Mon..6=Sun
+    final todayWeekday = now.weekday - 1; // 0=Mon..6=Sun (matches restDays form)
 
     // Always start by clearing — we may end up scheduling nothing on rest
     // days or when there is no streak to protect.
@@ -543,7 +548,9 @@ class NotificationService {
   /// keep the slots fresh.
   ///
   /// [restDays] uses 0-indexed weekdays (Mon = 0 … Sun = 6). On a rest day
-  /// nothing is scheduled — even the Drill Sergeant respects recovery.
+  /// nothing is scheduled — even the Drill Sergeant respects recovery. Callers
+  /// convert from the canonical 1-based model via `restDaysToNotificationWeekdays`
+  /// (notification_providers.dart); never pass raw 1-based model values here.
   Future<void> scheduleDrillSergeantReminders({
     required int currentStreak,
     required DateTime? lastWorkoutDate,
@@ -555,7 +562,7 @@ class NotificationService {
     }
 
     final now = DateTime.now();
-    final todayWeekday = now.weekday - 1;
+    final todayWeekday = now.weekday - 1; // 0=Mon..6=Sun (matches restDays form)
     if (restDays.contains(todayWeekday)) {
       AppLogger.log('[notif] drill sergeant: rest day — nothing scheduled');
       return;

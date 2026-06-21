@@ -48,7 +48,15 @@ class NotificationSettings {
   final bool supplementEnabled;
 
   /// Weekdays the user wants left alone — no workout or streak reminders.
-  /// 0 = Monday … 6 = Sunday. Empty = remind every day.
+  ///
+  /// Canonical **1 = Monday … 7 = Sunday** convention (matches [workoutDays] and
+  /// [DateTime.weekday]); empty = remind every day. The low-level notification
+  /// schedulers compare in a 0-based form, so this is converted at that edge via
+  /// [restDaysToNotificationWeekdays] — the 0-based form never lives in state.
+  ///
+  /// No migration is needed for the 0-based→1-based convention change: no UI
+  /// populates this set today, so the stored value (`notif_rest_days`) is only
+  /// ever empty, which is identical in both encodings.
   final Set<int> restDays;
 
   /// Master toggle for challenge-related notifications (daily check-ins,
@@ -259,3 +267,16 @@ final notificationsAuthorizedProvider =
     FutureProvider.autoDispose<bool>((ref) async {
   return NotificationService.instance.hasPermission();
 });
+
+/// Converts rest-day weekdays from the app's canonical 1-based convention
+/// (1=Mon..7=Sun — see [NotificationSettings.restDays] and TrainingSchedule) to
+/// the 0-based form (Mon = 0 … Sun = 6) that the low-level notification
+/// schedulers compare against (`DateTime.now().weekday - 1` in
+/// [NotificationService.scheduleDrillSergeantReminders] and
+/// [NotificationService.scheduleStreakReminderSmart]).
+///
+/// This is the ONLY sanctioned bridge between the two conventions: pass model
+/// rest-days through here AT the notification call site so the 0-based form
+/// never escapes the notification API edge. Out-of-range values are dropped.
+Set<int> restDaysToNotificationWeekdays(Iterable<int> oneBasedRestDays) =>
+    {for (final d in oneBasedRestDays) if (d >= 1 && d <= 7) d - 1};

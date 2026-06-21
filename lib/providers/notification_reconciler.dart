@@ -72,7 +72,10 @@ class NotificationReconciler {
       await ns.scheduleDrillSergeantReminders(
         currentStreak: streak,
         lastWorkoutDate: lastWorkoutDate,
-        // Rest-day awareness isn't wired to a user-facing pref yet.
+        // Rest-day awareness isn't wired to a user-facing pref yet. When it is
+        // (PR4b), convert the 1-based model rest-days to this scheduler's 0-based
+        // form via restDaysToNotificationWeekdays (notification_providers.dart) —
+        // the only sanctioned crossing of the two conventions.
         restDays: const <int>{},
         intensity: drill.intensity,
       );
