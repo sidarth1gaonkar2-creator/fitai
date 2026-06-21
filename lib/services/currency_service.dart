@@ -15,9 +15,12 @@ class CurrencyService {
   static const _logCapacity = 50;
 
   // ── Award amounts ────────────────────────────────────────────────────
-  static const int coinsPerWorkout = 10;
-  static const int coinsPerStreak7 = 50;
-  static const int coinsPerStreak30 = 200;
+  // NOTE: the gym-day streak reward (base × multiplier) lives in
+  // streak_rewards.dart, not here — it replaced the old per-workout coin and the
+  // streak7/30 milestone bonuses (removed). coinsPerPR is still awarded on a new
+  // PR. The remaining challenge/nutrition/weight constants are pre-existing dead
+  // code (never awarded); their removal is part of the separate "CurrencyService
+  // instance is never wired" cleanup, deliberately out of scope here.
   static const int coinsPerChallengeDay = 5;
   static const int coinsPerChallengeComplete = 100;
   static const int coinsPerNutritionDay = 5;

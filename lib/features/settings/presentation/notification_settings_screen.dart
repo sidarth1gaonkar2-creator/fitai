@@ -3,7 +3,9 @@ import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../providers/gym_streak_provider.dart';
 import '../../../providers/notification_providers.dart';
+import '../../../providers/training_schedule_provider.dart';
 import '../../../services/notification_service.dart';
 
 class NotificationSettingsScreen extends ConsumerWidget {
@@ -15,6 +17,10 @@ class NotificationSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(notificationSettingsProvider);
     final notifier = ref.read(notificationSettingsProvider.notifier);
+    // Training schedule (drives the gym-streak coin economy) + current streak,
+    // surfaced under the day picker below.
+    final schedule = ref.watch(trainingScheduleProvider);
+    final gymStreak = ref.watch(gymStreakProvider);
 
     final palette = AppColors.of(context);
     final authorized =
@@ -74,65 +80,106 @@ class NotificationSettingsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
             ],
-            // ─── Workout Reminders ──────────────────────────────────────
-            _SectionHeader(title: 'Workout Reminders', icon: Icons.fitness_center),
-            _ToggleRow(
-              label: 'Workout Days',
-              value: settings.workoutEnabled,
-              onChanged: (v) => notifier.update((s) => s.copyWith(workoutEnabled: v)),
+            // ─── Training Schedule ──────────────────────────────────────
+            // The day chips ARE the training schedule — they drive the
+            // gym-streak coin economy, so they're ALWAYS editable: setting a
+            // schedule must not require turning on reminders. The reminder
+            // toggle + time picker below are an optional layer on these days.
+            _SectionHeader(
+                title: 'Training Schedule', icon: Icons.fitness_center),
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: Text(
+                'Pick your gym days to track your streak',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  color: palette.textSecondary,
+                ),
+              ),
             ),
-            if (settings.workoutEnabled) ...[
-              const SizedBox(height: 8),
-              // Day chips
-              Wrap(
-                spacing: 6,
-                children: List.generate(7, (i) {
-                  final day = i + 1;
-                  final isSelected = settings.workoutDays.contains(day);
-                  return GestureDetector(
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      final days = List<int>.from(settings.workoutDays);
-                      if (isSelected) {
-                        days.remove(day);
-                      } else {
-                        days.add(day);
-                      }
-                      notifier.update((s) => s.copyWith(workoutDays: days));
-                    },
-                    child: Container(
-                      width: 42,
-                      height: 36,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: isSelected ? palette.accent : palette.surface,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isSelected ? palette.accent : palette.border,
-                        ),
-                      ),
-                      child: Text(
-                        _dayLabels[i],
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: isSelected
-                              ? palette.text
-                              : palette.textSecondary,
-                        ),
+            // Day chips — always visible (no longer gated behind reminders).
+            Wrap(
+              spacing: 6,
+              children: List.generate(7, (i) {
+                final day = i + 1;
+                final isSelected = settings.workoutDays.contains(day);
+                return GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    final days = List<int>.from(settings.workoutDays);
+                    if (isSelected) {
+                      days.remove(day);
+                    } else {
+                      days.add(day);
+                    }
+                    notifier.update((s) => s.copyWith(workoutDays: days));
+                    // Deliberate user edit → opt into the gym-streak mechanic.
+                    // The [1,3,5] default alone never sets this; only an active
+                    // tap flips isConfigured (preserves PR4a's no-infer rule).
+                    ref
+                        .read(trainingScheduleConfiguredProvider.notifier)
+                        .markConfigured();
+                  },
+                  child: Container(
+                    width: 42,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: isSelected ? palette.accent : palette.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected ? palette.accent : palette.border,
                       ),
                     ),
-                  );
-                }),
+                    child: Text(
+                      _dayLabels[i],
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color:
+                            isSelected ? palette.text : palette.textSecondary,
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+            // Minimal confirmation the mechanic is live once the user opts in.
+            // (A richer multiplier/coins display can land on the dashboard later.)
+            if (schedule.isConfigured)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  gymStreak.currentStreak > 0
+                      ? '🔥 ${gymStreak.currentStreak}-day gym streak'
+                      : 'Streak tracking on — log a workout on a gym day',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: palette.accent,
+                  ),
+                ),
               ),
+            const SizedBox(height: 12),
+            // Optional reminders for the chosen days — independent of the
+            // schedule itself.
+            _ToggleRow(
+              label: 'Remind me on these days',
+              value: settings.workoutEnabled,
+              onChanged: (v) =>
+                  notifier.update((s) => s.copyWith(workoutEnabled: v)),
+            ),
+            if (settings.workoutEnabled) ...[
               const SizedBox(height: 8),
               _TimePickerRow(
                 label: 'Time',
                 hour: settings.workoutHour,
                 minute: settings.workoutMinute,
-                onChanged: (h, m) =>
-                    notifier.update((s) => s.copyWith(workoutHour: h, workoutMinute: m)),
+                onChanged: (h, m) => notifier
+                    .update((s) => s.copyWith(workoutHour: h, workoutMinute: m)),
               ),
             ],
             const SizedBox(height: 24),

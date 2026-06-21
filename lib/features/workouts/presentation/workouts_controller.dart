@@ -17,9 +17,9 @@ import '../../../providers/custom_exercise_provider.dart';
 import '../../../providers/drill_sergeant_providers.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/isar_provider.dart';
+import '../../../providers/gym_streak_provider.dart';
 import '../../../providers/personal_records_hall_providers.dart';
 import '../../themes/providers/theme_providers.dart';
-import '../../../providers/unit_system_provider.dart';
 import '../../../providers/workout_providers.dart';
 import '../../../services/currency_service.dart';
 import '../../community/data/leaderboard_repository.dart';
@@ -486,22 +486,16 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
   Future<void> _awardCoinsForWorkout({required int prCount}) async {
     final coins = _ref.read(userThemeStateProvider.notifier);
     try {
-      await coins.awardCoins(CurrencyService.coinsPerWorkout);
+      // PR bonus — an independent earn, kept from the old model.
       if (prCount > 0) {
         await coins.awardCoins(CurrencyService.coinsPerPR * prCount);
       }
-      final streak = await _ref.read(streakProvider.future);
-      final prefs = _ref.read(sharedPreferencesProvider);
-      const k7 = 'currency_streak7_awarded';
-      const k30 = 'currency_streak30_awarded';
-      if (streak >= 7 && !(prefs.getBool(k7) ?? false)) {
-        await coins.awardCoins(CurrencyService.coinsPerStreak7);
-        await prefs.setBool(k7, true);
-      }
-      if (streak >= 30 && !(prefs.getBool(k30) ?? false)) {
-        await coins.awardCoins(CurrencyService.coinsPerStreak30);
-        await prefs.setBool(k30, true);
-      }
+      // Gym-day streak reward: awarded ONCE per completed scheduled gym day and
+      // scaled by the streak multiplier. Replaces the old per-workout coin (the
+      // farm) and the streak7/30 milestone bonuses. Self-gates on the training
+      // schedule being configured + a scheduled day + once-per-day, and catches
+      // up any streak break before awarding (see streak_rewards.dart).
+      await _ref.read(gymStreakProvider.notifier).recordCompletedWorkout();
     } catch (e, st) {
       AppLogger.error('Coin award failed', error: e, stack: st);
     }

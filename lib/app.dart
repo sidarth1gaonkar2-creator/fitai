@@ -7,6 +7,7 @@ import 'core/theme/app_theme.dart';
 import 'features/themes/providers/theme_providers.dart';
 import 'features/tutorial/presentation/tutorial_overlay.dart';
 import 'providers/auth_provider.dart';
+import 'providers/gym_streak_provider.dart';
 import 'providers/notification_reconciler.dart';
 import 'providers/settings_providers.dart';
 import 'routing/app_router.dart';
@@ -25,6 +26,10 @@ class DrillFitApp extends ConsumerWidget {
       final reconciler = ref.read(notificationReconcilerProvider);
       if (next != null && next != prev) {
         reconciler.reconcile();
+        // Catch up the gym streak after time away: BREAK-DETECTION ONLY — this
+        // resets a streak broken by a missed scheduled gym day while the app was
+        // closed. It must NOT award coins; awards happen only on workout finish.
+        ref.read(gymStreakProvider.notifier).reconcile();
       } else if (next == null && prev != null) {
         reconciler.cancelPersonal();
       }
