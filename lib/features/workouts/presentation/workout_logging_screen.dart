@@ -14,12 +14,13 @@ import '../../../models/saved_workout_template.dart';
 import '../../../providers/unit_system_provider.dart'
     show sharedPreferencesProvider;
 import '../../ranks/domain/drill_sergeant.dart';
-import '../../ranks/domain/military_ranks.dart';
 import '../../ranks/presentation/widgets/rank_celebration_overlay.dart';
 import '../../ranks/providers/rank_providers.dart';
 import '../domain/active_workout_state.dart';
+import '../domain/workout_results.dart';
 import 'exercise_picker_sheet.dart';
 import 'widgets/exercise_card.dart';
+import 'widgets/workout_complete_overlay.dart';
 import '../../progress/presentation/widgets/pr_confetti_overlay.dart';
 import 'widgets/interval_timer_sheet.dart';
 import 'widgets/pr_banner.dart';
@@ -179,13 +180,14 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
       return;
     }
 
-    // Capture the current overall rank BEFORE saving so we can detect a
-    // promotion once the new PRs land. Best-effort — a failure just disables
-    // the promotion celebration.
-    MilitaryRank? rankBefore;
+    // Full rank snapshot BEFORE saving, so the after-diff is a genuine
+    // before-vs-after (never value-vs-itself). RankCalculation is immutable, so
+    // this stays frozen even after the post-save recompute. Best-effort — a
+    // failure just disables the deltas and the promotion celebration.
+    RankCalculation? calcBefore;
     try {
-      rankBefore = (await ref.read(rankCalculatorProvider.future)).overall;
-    } catch (_) {/* promotion detection disabled */}
+      calcBefore = await ref.read(rankCalculatorProvider.future);
+    } catch (_) {/* diff + promotion detection disabled */}
     if (!mounted) return;
 
     int? savedWorkoutId;
@@ -202,23 +204,29 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
       return;
     }
 
-    final prNames = ref.read(activeWorkoutProvider).newPRs;
+    final state = ref.read(activeWorkoutProvider);
+    final prNames = state.newPRs;
 
-    // Only a new PR can change a rank, so recompute only then.
-    MilitaryRank? rankAfter;
-    if (prNames.isNotEmpty && rankBefore != null) {
+    // Only a new PR can move a score (PR1), so a recompute is meaningful only
+    // then. No PR ⇒ after == before ⇒ no deltas, no fake improvement, and no
+    // needless extra Firestore rank write.
+    RankCalculation? calcAfter = calcBefore;
+    if (prNames.isNotEmpty) {
       ref.invalidate(rankCalculatorProvider);
       try {
-        rankAfter = (await ref.read(rankCalculatorProvider.future)).overall;
-      } catch (_) {/* leave null */}
+        calcAfter = await ref.read(rankCalculatorProvider.future);
+      } catch (_) {
+        calcAfter = calcBefore; // fall back to the snapshot
+      }
     }
     if (!mounted) return;
-    final promoted =
-        rankBefore != null && rankAfter != null && rankAfter.index > rankBefore.index;
 
+    final promoted = calcBefore != null &&
+        calcAfter != null &&
+        calcAfter.overall.index > calcBefore.overall.index;
+
+    // PR confetti first (its own flourish), then the results screen below.
     if (prNames.isNotEmpty) {
-      // Show confetti then continue. Wrapped in try so a failed dialog
-      // can't block the rest of the finish flow.
       try {
         await showCupertinoDialog(
           context: context,
@@ -234,19 +242,46 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
     }
     if (!mounted) return;
 
-    // Drill-sergeant feedback: a promotion gets its own full-screen
-    // celebration; otherwise a random line of praise (the only completion
-    // feedback for non-PR workouts, which previously had none).
+    // Results screen — shown after EVERY finish. Diff the captured before/after
+    // (no fake deltas — see computeWorkoutResults), then present as a
+    // full-screen overlay on the CURRENT navigator. This is a dialog, NOT a
+    // go_router route: it adds no GoRoute and never pushes across the shell, so
+    // it cannot clone the StatefulShellRoute / dup-GlobalKey → no black screen.
+    final results = computeWorkoutResults(
+      before: calcBefore,
+      after: calcAfter ?? calcBefore ?? RankCalculation.empty,
+      summary: _buildWorkoutSummary(state),
+      sessionExerciseNames: [for (final e in state.exercises) e.name],
+      prNames: prNames,
+    );
+    try {
+      await showGeneralDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        barrierColor: Colors.black.withValues(alpha: 0.92),
+        transitionDuration: const Duration(milliseconds: 250),
+        pageBuilder: (ctx, _, _) => WorkoutCompleteOverlay(
+          results: results,
+          onDismiss: () => Navigator.of(ctx).pop(),
+        ),
+      );
+    } catch (e, st) {
+      AppLogger.error('Workout complete overlay failed', error: e, stack: st);
+    }
+    if (!mounted) return;
+
+    // An OVERALL promotion gets its own full-screen celebration on top, fired
+    // at most ONCE per rank — the SharedPreferences marker stops it
+    // re-triggering on later recomputes or launches. (Stored in prefs rather
+    // than Isar to avoid this project's broken Isar codegen; same once-only
+    // guarantee.) Per-muscle rank-ups surface as badges on the results screen,
+    // not a separate celebration.
     if (promoted) {
-      final newRank = rankAfter;
+      final newRank = calcAfter.overall;
 
       // 5B: scaffold the (not-yet-sent) promotion push-notification text.
       AppLogger.log(rankUpNotificationText(newRank));
 
-      // 5A: full-screen celebration, fired at most ONCE per rank — a
-      // SharedPreferences marker stops it re-triggering on later recomputes or
-      // launches. (Stored in prefs rather than Isar to avoid this project's
-      // broken Isar codegen; same once-only guarantee.)
       final prefs = ref.read(sharedPreferencesProvider);
       final lastCelebrated = prefs.getInt('last_celebrated_rank_index') ?? -1;
       if (newRank.index > lastCelebrated) {
@@ -267,8 +302,6 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
           AppLogger.error('Rank celebration failed', error: e, stack: st);
         }
       }
-    } else {
-      showCupertinoToast(context, randomWorkoutPraise());
     }
     if (!mounted) return;
 
@@ -304,6 +337,28 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
       if (!mounted) return;
       context.push('/community/create-post?workoutId=$savedWorkoutId');
     }
+  }
+
+  /// Builds the results-screen summary from the just-finished session: logged
+  /// working-set count (reps > 0), total tonnage in kg (Σ weight×reps over
+  /// weighted sets), and elapsed time.
+  WorkoutSummary _buildWorkoutSummary(ActiveWorkoutState state) {
+    var sets = 0;
+    var volumeKg = 0.0;
+    for (final exercise in state.exercises) {
+      for (final s in exercise.sets) {
+        if (s.reps <= 0) continue; // a logged working set
+        sets++;
+        if (s.weight > 0) volumeKg += s.weight * s.reps;
+      }
+    }
+    return WorkoutSummary(
+      title: state.title,
+      duration: DateTime.now().difference(state.startTime),
+      sets: sets,
+      exercises: state.exercises.length,
+      volumeKg: volumeKg,
+    );
   }
 
   @override
