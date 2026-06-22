@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth_service.dart';
 
@@ -7,7 +8,16 @@ final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
 });
 
 final authServiceProvider = Provider<AuthService>((ref) {
-  return AuthService(ref.watch(firebaseAuthProvider));
+  // Endpoint of the deployed `deleteAccount` Cloud Function. Read from
+  // assets/.env the same way AI_PROXY_URL is — null when unset, which disables
+  // account deletion gracefully (the method throws a user-safe message).
+  final deleteUrl = dotenv.env['DELETE_ACCOUNT_URL'];
+  return AuthService(
+    ref.watch(firebaseAuthProvider),
+    deleteAccountEndpoint: (deleteUrl == null || deleteUrl.isEmpty)
+        ? null
+        : Uri.parse(deleteUrl),
+  );
 });
 
 final authStateProvider = StreamProvider<User?>((ref) {

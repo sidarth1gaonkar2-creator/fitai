@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/logger.dart';
 import '../../../core/utils/unit_converter.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../core/widgets/error_card.dart';
@@ -29,6 +30,7 @@ import '../../../providers/unit_system_provider.dart';
 import '../../../providers/user_profile_provider.dart';
 import '../../../providers/workout_providers.dart';
 import '../../../providers/firestore_provider.dart';
+import '../../../services/auth_service.dart';
 import '../../../services/health_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../utils/seed_community.dart';
@@ -405,6 +407,45 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () => _confirmSignOut(context, ref),
                   ),
                 ),
+                const SizedBox(height: 12),
+                // Delete Account — the most severe destructive action. Given a
+                // tinted card + destructive border so it reads distinctly from
+                // "Reset All Data" below (which only wipes on-device data); this
+                // permanently erases the account AND all data, server-side.
+                Container(
+                  decoration: BoxDecoration(
+                    color: palette.destructive.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: palette.destructive.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: CupertinoListTile(
+                    leading: _SettingsIconBadge(
+                      icon: Icons.no_accounts,
+                      color: palette.destructive,
+                    ),
+                    title: Text(
+                      'Delete Account',
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: palette.destructive,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Permanently delete your account and all data',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.destructive.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    trailing: Icon(
+                      CupertinoIcons.chevron_right,
+                      color: palette.text,
+                      size: 18,
+                    ),
+                    onTap: () => _confirmDeleteAccount(context, ref),
+                  ),
+                ),
                 const SizedBox(height: 24),
 
                 // Data section
@@ -776,6 +817,84 @@ class SettingsScreen extends ConsumerWidget {
       await ref.read(authServiceProvider).signOut();
       if (context.mounted) context.go('/welcome');
     }
+  }
+
+  /// Permanent account deletion (App Store Guideline 5.1.1(v)). Requires the
+  /// user to type "DELETE" to confirm, then calls the server-side
+  /// `deleteAccount` Cloud Function which tears down the account + ALL data and
+  /// deletes the auth user. On success we clear on-device Isar + prefs (so the
+  /// next account on this device inherits nothing), sign out, and route to
+  /// /welcome. Failures show a friendly message; raw errors are logged.
+  Future<void> _confirmDeleteAccount(
+      BuildContext context, WidgetRef ref) async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (_) => const _DeleteAccountDialog(),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    HapticFeedback.heavyImpact();
+
+    // Capture everything we need BEFORE the teardown: once we sign out and
+    // navigate to /welcome this widget unmounts and `ref` becomes invalid.
+    final authService = ref.read(authServiceProvider);
+    final isar = ref.read(isarProvider);
+    final prefs = ref.read(sharedPreferencesProvider);
+
+    // Blocking progress dialog (dismissed via rootNavigator pop below).
+    showCupertinoDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const CupertinoAlertDialog(
+        title: Text('Deleting account…'),
+        content: Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: CupertinoActivityIndicator(),
+        ),
+      ),
+    );
+
+    // 1. Server-side teardown first. Only on success do we touch local state.
+    try {
+      await authService.deleteAccount();
+    } catch (e) {
+      // deleteAccount only throws AuthServiceException (user-safe message);
+      // anything else was already logged inside the service.
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // dismiss progress
+      final message = e is AuthServiceException
+          ? e.message
+          : "We couldn't delete your account. Please try again.";
+      await _showInfoDialog(context, title: 'Deletion failed', message: message);
+      return;
+    }
+
+    // 2. Account is gone server-side. Clear on-device data (required so a new
+    //    account on this device inherits nothing). Best-effort — a local-clear
+    //    failure must NOT be reported as "deletion failed", since the deletion
+    //    already succeeded.
+    try {
+      await isar.writeTxn(() => isar.clear());
+      await prefs.clear();
+    } catch (e, st) {
+      AppLogger.error(
+        'deleteAccount: clearing on-device data failed after server delete',
+        error: e,
+        stack: st,
+      );
+    }
+    ref.invalidate(userProfileProvider);
+
+    // Dismiss the progress dialog while this screen is still mounted. Once we
+    // sign out below, the router's auth listener redirects to /welcome and
+    // tears this screen down, after which `context` can't pop the dialog.
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+    await authService.signOut();
+    // signOut flips auth state → the router redirects to /welcome on its own;
+    // this is a belt-and-suspenders for the rare case it hasn't yet.
+    if (context.mounted) context.go('/welcome');
   }
 
   /// Debug-only — kicks off the community-feed seeder and surfaces the
@@ -2044,6 +2163,96 @@ class _IntensityPicker extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─── Delete account confirmation dialog ─────────────────────────────────────
+
+/// Type-to-confirm dialog for permanent account deletion. The destructive
+/// "Delete" action is disabled until the user types DELETE exactly — a stronger
+/// guard than a single tap for an irreversible action. Pops `true` only on an
+/// explicit confirmed delete; `false`/null on cancel or dismiss.
+class _DeleteAccountDialog extends StatefulWidget {
+  const _DeleteAccountDialog();
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  static const _confirmWord = 'DELETE';
+  final _controller = TextEditingController();
+
+  bool get _canDelete => _controller.text.trim() == _confirmWord;
+
+  @override
+  void initState() {
+    super.initState();
+    // Re-evaluate the button's enabled state as the user types.
+    _controller.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    return CupertinoAlertDialog(
+      title: const Text('Delete Account?'),
+      content: Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This permanently deletes your account and ALL of your data — '
+              'workouts, nutrition, progress, community posts, and profile. '
+              'This is irreversible and cannot be undone.',
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Type DELETE to confirm.',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            CupertinoTextField(
+              controller: _controller,
+              autofocus: true,
+              autocorrect: false,
+              enableSuggestions: false,
+              textCapitalization: TextCapitalization.characters,
+              placeholder: _confirmWord,
+              textInputAction: TextInputAction.done,
+              style: TextStyle(color: palette.text),
+              decoration: BoxDecoration(
+                color: palette.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: palette.border),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              onSubmitted: (_) {
+                if (_canDelete) Navigator.pop(context, true);
+              },
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        CupertinoDialogAction(
+          isDestructiveAction: true,
+          onPressed: _canDelete ? () => Navigator.pop(context, true) : null,
+          child: const Text('Delete'),
+        ),
+      ],
     );
   }
 }

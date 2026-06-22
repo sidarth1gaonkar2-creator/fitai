@@ -493,3 +493,249 @@ exports.aiProxy = onRequest(
       res.end();
     },
 );
+
+// ===========================================================================
+// Account deletion (App Store Guideline 5.1.1(v))
+//
+// Apple requires any app that offers account creation to also offer in-app
+// account deletion. This endpoint performs the FULL teardown the client SDK
+// can't do on its own: admin-only document deletes, recursive subcollection
+// removal, and the Firebase Auth user record itself (which the client SDK can
+// only delete after a *recent* re-login — the Admin SDK has no such
+// requirement, which is the whole reason this lives server-side).
+//
+// Guard rails:
+//   1. A valid Firebase ID token is required and the uid is taken FROM THE
+//      VERIFIED TOKEN, never from the request body — a caller can only ever
+//      delete their own account (same verification as aiProxy).
+//   2. Every data-deletion step is wrapped so a single failure logs and
+//      continues. A partial data-deletion failure must NEVER block the final
+//      auth-user deletion (the legally-required part).
+//   3. Errors are logged server-side but never forwarded raw to the client.
+//
+// What we delete (all keyed off the verified uid):
+//   - users/{uid}                    (recursive → private/, notifications/)
+//   - posts where userId==uid        (recursive → likes/, reactions/, comments/)
+//   - collectionGroup comments/reactions/likes where userId==uid
+//                                     (the user's strays on OTHER people's posts)
+//   - follows where followerId==uid AND where followingId==uid
+//   - leaderboard_entries/{uid}
+//   - aiUsage/{uid}
+//   - usernames where userId==uid     (releases the handle for reuse)
+//   - challenge_participants where userId==uid
+//   - challenges where creatorId==uid
+//   - reports where reporterId==uid   (only the reports the user FILED)
+//   - Storage profiles/{uid}.jpg + challenges/{cid}/proofs/{uid}/ (per joined
+//     challenge)
+//   - finally admin.auth().deleteUser(uid)
+//
+// What we DELIBERATELY RETAIN:
+//   - reports filed AGAINST this user (reportedUserId==uid). A user must not be
+//     able to erase moderation signals about themselves by deleting the account.
+//
+// Deploy:
+//   firebase deploy --only functions:deleteAccount,firestore:indexes
+//   (indexes too — the collectionGroup stray cleanup needs the COLLECTION_GROUP
+//    single-field overrides in firestore.indexes.json), then put the printed
+//   URL into assets/.env as DELETE_ACCOUNT_URL=... and rebuild.
+// ===========================================================================
+
+// One under the 500-write Firestore batch cap, leaving headroom.
+const FIRESTORE_BATCH_LIMIT = 400;
+
+// Deletes every doc matched by `query`, paginated so we never load an unbounded
+// result set into memory or exceed the batch cap. Re-running the same limited
+// query each pass works because the matched docs are removed each iteration.
+async function deleteByQuery(db, query, label) {
+  let total = 0;
+  for (;;) {
+    const snap = await query.limit(FIRESTORE_BATCH_LIMIT).get();
+    if (snap.empty) break;
+    const batch = db.batch();
+    for (const doc of snap.docs) batch.delete(doc.ref);
+    await batch.commit();
+    total += snap.size;
+    if (snap.size < FIRESTORE_BATCH_LIMIT) break;
+  }
+  logger.info(`deleteAccount: ${label} removed ${total}`);
+  return total;
+}
+
+// Runs one teardown step, swallowing (but logging) any failure so the rest of
+// the deletion — and crucially the final auth-user delete — still proceeds.
+async function step(label, fn) {
+  try {
+    await fn();
+  } catch (err) {
+    logger.error(`deleteAccount: step "${label}" failed`, err);
+  }
+}
+
+exports.deleteAccount = onRequest(
+    {
+      region: "us-central1",
+      // Generous: a power user with lots of posts/data can take a while to tear
+      // down. The client uses a shorter timeout and shows a friendly error if
+      // it gives up first; the server keeps going regardless.
+      timeoutSeconds: 300,
+      memory: "256MiB",
+      // Mobile clients only — no browser, so no CORS surface to open up.
+      cors: false,
+      maxInstances: 10,
+    },
+    async (req, res) => {
+      if (req.method !== "POST") {
+        res.status(405).json({error: {message: "Method not allowed"}});
+        return;
+      }
+
+      // 1. Verify the Firebase ID token and take the uid FROM IT (never from
+      //    the body) — a user can only delete their own account.
+      const authz = req.get("authorization") || "";
+      const match = authz.match(/^Bearer (.+)$/i);
+      if (!match) {
+        res.status(401).json({error: {message: "Missing auth token"}});
+        return;
+      }
+      let uid;
+      try {
+        const decoded = await admin.auth().verifyIdToken(match[1]);
+        uid = decoded.uid;
+      } catch (err) {
+        logger.warn("deleteAccount: rejected request with invalid ID token");
+        res.status(401).json({error: {message: "Invalid auth token"}});
+        return;
+      }
+
+      logger.info(`deleteAccount: starting teardown for ${uid}`);
+      const db = admin.firestore();
+      const bucket = admin.storage().bucket();
+
+      // Capture the challenges this user joined BEFORE deleting the participant
+      // rows — we need the ids to clean up their proof-photo folders in Storage.
+      let joinedChallengeIds = [];
+      await step("read joined challenges", async () => {
+        const snap = await db
+            .collection("challenge_participants")
+            .where("userId", "==", uid)
+            .get();
+        joinedChallengeIds = snap.docs
+            .map((d) => d.get("challengeId"))
+            .filter((id) => typeof id === "string" && id.length > 0);
+      });
+
+      // 2. Firestore teardown. Each step is independent and resilient.
+
+      // The user doc and its subcollections (private/, notifications/).
+      await step("users/{uid} (recursive)", () =>
+        db.recursiveDelete(db.collection("users").doc(uid)));
+
+      // Each post the user authored, recursively (its likes/reactions/comments).
+      await step("posts by user (recursive)", async () => {
+        const snap = await db
+            .collection("posts")
+            .where("userId", "==", uid)
+            .get();
+        for (const doc of snap.docs) {
+          await db.recursiveDelete(doc.ref);
+        }
+      });
+
+      // The user's strays on OTHER people's posts (own-post copies are already
+      // gone with the posts above; deleting an already-deleted doc is a no-op).
+      await step("stray comments", () =>
+        deleteByQuery(
+            db,
+            db.collectionGroup("comments").where("userId", "==", uid),
+            "comments",
+        ));
+      await step("stray reactions", () =>
+        deleteByQuery(
+            db,
+            db.collectionGroup("reactions").where("userId", "==", uid),
+            "reactions",
+        ));
+      await step("stray likes", () =>
+        deleteByQuery(
+            db,
+            db.collectionGroup("likes").where("userId", "==", uid),
+            "likes",
+        ));
+
+      // Follow edges in both directions.
+      await step("follows (follower)", () =>
+        deleteByQuery(
+            db,
+            db.collection("follows").where("followerId", "==", uid),
+            "follows.follower",
+        ));
+      await step("follows (following)", () =>
+        deleteByQuery(
+            db,
+            db.collection("follows").where("followingId", "==", uid),
+            "follows.following",
+        ));
+
+      // Doc-id == uid collections.
+      await step("leaderboard_entries/{uid}", () =>
+        db.collection("leaderboard_entries").doc(uid).delete());
+      await step("aiUsage/{uid}", () =>
+        db.collection("aiUsage").doc(uid).delete());
+
+      // Release the username handle.
+      await step("usernames", () =>
+        deleteByQuery(
+            db,
+            db.collection("usernames").where("userId", "==", uid),
+            "usernames",
+        ));
+
+      // Challenge participation + challenges the user created.
+      await step("challenge_participants", () =>
+        deleteByQuery(
+            db,
+            db.collection("challenge_participants").where("userId", "==", uid),
+            "challenge_participants",
+        ));
+      await step("challenges (creator)", () =>
+        deleteByQuery(
+            db,
+            db.collection("challenges").where("creatorId", "==", uid),
+            "challenges",
+        ));
+
+      // Reports the user FILED — delete. Reports filed AGAINST them
+      // (reportedUserId==uid) are intentionally RETAINED as a moderation signal.
+      await step("reports (filed by user)", () =>
+        deleteByQuery(
+            db,
+            db.collection("reports").where("reporterId", "==", uid),
+            "reports",
+        ));
+
+      // 3. Storage. Profile picture + every challenge proof folder this user
+      //    wrote into. deleteFiles is a no-op when the prefix has no objects.
+      await step("storage profile picture", () =>
+        bucket.file(`profiles/${uid}.jpg`).delete({ignoreNotFound: true}));
+      for (const cid of joinedChallengeIds) {
+        await step(`storage proofs ${cid}`, () =>
+          bucket.deleteFiles({prefix: `challenges/${cid}/proofs/${uid}/`}));
+      }
+
+      // 4. The auth user itself — the most important step, and the one the
+      //    client SDK can't do without a recent re-login. If THIS fails the
+      //    account still exists, so it's the only failure we surface as a 500.
+      try {
+        await admin.auth().deleteUser(uid);
+      } catch (err) {
+        logger.error("deleteAccount: auth().deleteUser failed", err);
+        res.status(500).json({
+          error: {message: "Account deletion failed. Please try again."},
+        });
+        return;
+      }
+
+      logger.info(`deleteAccount: completed for ${uid}`);
+      res.status(200).json({ok: true});
+    },
+);

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
@@ -10,7 +12,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../core/utils/logger.dart';
 
 class AuthService {
-  AuthService(this._auth) {
+  AuthService(this._auth, {this.deleteAccountEndpoint}) {
     // Keep Crashlytics' user identifier in lockstep with the current auth
     // state so crashes are attributed to the signed-in user (UID only — no
     // PII). This also covers session restoration on app launch.
@@ -35,6 +37,13 @@ class AuthService {
 
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  /// Endpoint of the server-side `deleteAccount` Cloud Function, injected from
+  /// `DELETE_ACCOUNT_URL` (assets/.env) by [authServiceProvider]. Null when the
+  /// URL isn't configured, in which case [deleteAccount] fails with a
+  /// user-safe message instead of hitting a bad URL. Mirrors how the AI proxy
+  /// endpoint is wired.
+  final Uri? deleteAccountEndpoint;
 
   User? get currentUser => _auth.currentUser;
 
@@ -165,4 +174,111 @@ class AuthService {
     await _googleSignIn.signOut();
     await _auth.signOut();
   }
+
+  /// Permanently deletes the signed-in user's account and ALL associated data
+  /// via the server-side `deleteAccount` Cloud Function (Admin SDK). The
+  /// function verifies the caller's Firebase ID token, tears down their
+  /// Firestore documents and Storage objects, then deletes the auth user
+  /// itself — work the client SDK can't do (admin-only deletes, and an auth
+  /// delete that would otherwise require a recent re-login).
+  ///
+  /// This does NOT sign out or clear on-device data — the caller is
+  /// responsible for clearing local Isar/SharedPreferences and signing out
+  /// after this completes (see the Settings delete flow).
+  ///
+  /// Authenticated exactly like the AI proxy: a Bearer Firebase ID token.
+  /// Throws [AuthServiceException] with a user-safe message on any failure;
+  /// raw errors are logged via [AppLogger] and never surfaced to the UI.
+  Future<void> deleteAccount() async {
+    final endpoint = deleteAccountEndpoint;
+    if (endpoint == null) {
+      AppLogger.error(
+        'deleteAccount called but DELETE_ACCOUNT_URL is not configured',
+      );
+      throw AuthServiceException(
+        'Account deletion is unavailable right now. Please try again later.',
+      );
+    }
+
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw AuthServiceException('You are not signed in.');
+    }
+
+    final client = HttpClient();
+    client.connectionTimeout = const Duration(seconds: 20);
+    try {
+      // Fetch the token BEFORE the server deletes the auth user.
+      final token = await user.getIdToken();
+      if (token == null || token.isEmpty) {
+        throw AuthServiceException(
+          "We couldn't verify your session. Please sign in again and retry.",
+        );
+      }
+
+      final request = await client.postUrl(endpoint);
+      request.headers
+        ..set(HttpHeaders.contentTypeHeader, 'application/json')
+        ..set(HttpHeaders.authorizationHeader, 'Bearer $token');
+      request.add(utf8.encode('{}'));
+
+      final response = await request.close().timeout(
+            const Duration(seconds: 60),
+            onTimeout: () => throw AuthServiceException(
+              'The request timed out. Please check your connection and '
+              'try again.',
+            ),
+          );
+      // Drain the body so the connection can be reused/closed cleanly; it also
+      // feeds server-side error detail into our logs (never to the user).
+      final body = await response.transform(utf8.decoder).join();
+
+      if (response.statusCode != 200) {
+        AppLogger.error(
+          'deleteAccount failed: HTTP ${response.statusCode} '
+          '${_truncate(body, 500)}',
+        );
+        throw AuthServiceException(
+          "We couldn't delete your account. Please try again.",
+        );
+      }
+    } on AuthServiceException {
+      rethrow;
+    } on SocketException catch (e, st) {
+      AppLogger.error('deleteAccount network error', error: e, stack: st);
+      throw AuthServiceException(
+        'No internet connection. Connect and try again.',
+      );
+    } on TimeoutException catch (e, st) {
+      AppLogger.error('deleteAccount timed out', error: e, stack: st);
+      throw AuthServiceException(
+        'The request timed out. Please try again.',
+      );
+    } catch (e, st) {
+      AppLogger.error(
+        'deleteAccount unexpected error (${e.runtimeType})',
+        error: e,
+        stack: st,
+      );
+      throw AuthServiceException(
+        "We couldn't delete your account. Please try again.",
+      );
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  static String _truncate(String s, int max) =>
+      s.length <= max ? s : '${s.substring(0, max)}…';
+}
+
+/// Thrown by [AuthService] operations that fail. [message] is always a
+/// user-safe string suitable for display — raw underlying errors are logged
+/// via [AppLogger], never carried here.
+class AuthServiceException implements Exception {
+  AuthServiceException(this.message);
+  final String message;
+
+  @override
+  String toString() => message;
 }
