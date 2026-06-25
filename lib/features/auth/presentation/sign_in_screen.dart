@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, Scaffold;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/logger.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../providers/auth_provider.dart';
 import 'apple_sign_in_button.dart';
@@ -39,7 +40,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     try {
       await ref.read(authServiceProvider).signInWithEmail(email, password);
       // Router redirect handles navigation
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.error('Email sign-in failed', error: e, stack: st);
       if (mounted) showAuthErrorDialog(context, e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -57,7 +59,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       if (mounted) {
         showCupertinoToast(context, 'Password reset email sent.');
       }
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.error('Password reset email failed', error: e, stack: st);
       if (mounted) showAuthErrorDialog(context, e);
     }
   }

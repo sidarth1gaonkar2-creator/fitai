@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, Scaffold;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/logger.dart';
 import '../../../providers/auth_provider.dart';
 import 'apple_sign_in_button.dart';
 import 'auth_error_dialog.dart';
@@ -72,7 +73,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             _passwordController.text,
           );
       // Router redirect handles navigation (→ /onboarding since no profile)
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.error('Email sign-up failed', error: e, stack: st);
       if (mounted) showAuthErrorDialog(context, e);
     } finally {
       if (mounted) setState(() => _isLoading = false);

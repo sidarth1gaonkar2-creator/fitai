@@ -618,7 +618,8 @@ class WorkoutsController extends StateNotifier<ActiveWorkoutState> {
       _ref.invalidate(streakProvider);
       _ref.invalidate(personalRecordsProvider);
       return true;
-    } catch (_) {
+    } catch (e, st) {
+      AppLogger.error('Delete workout failed', error: e, stack: st);
       return false;
     }
   }

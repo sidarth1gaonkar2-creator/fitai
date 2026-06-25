@@ -164,7 +164,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       if (mounted) {
         context.go('/settings');
       }
-    } catch (_) {
+    } catch (e, st) {
+      AppLogger.error('Profile save failed', error: e, stack: st);
       if (mounted) {
         showCupertinoToast(context, 'Could not save profile. Please try again.');
       }

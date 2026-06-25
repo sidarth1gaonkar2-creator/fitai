@@ -1,8 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, Scaffold;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/logger.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../providers/auth_provider.dart';
 import 'apple_sign_in_button.dart';
@@ -23,7 +25,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     try {
       await ref.read(authServiceProvider).signInWithGoogle();
       // Router redirect handles navigation automatically
-    } catch (e) {
+    } catch (e, st) {
+      // Don't error-log the benign Google cancel — only genuine failures.
+      if (e is! FirebaseAuthException ||
+          e.code != 'google-sign-in-cancelled') {
+        AppLogger.error('Google sign-in failed', error: e, stack: st);
+      }
       if (mounted) showAuthErrorDialog(context, e);
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);

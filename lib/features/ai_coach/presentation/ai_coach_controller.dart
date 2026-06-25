@@ -272,6 +272,8 @@ class AIChatController extends StateNotifier<ChatState> {
         streamingContent: '',
       );
     } on SocketException {
+      // Offline is expected, not a bug — info breadcrumb, not an error.
+      AppLogger.log('AI coach: network unreachable');
       if (!mounted) return;
       state = state.copyWith(
         isStreaming: false,
@@ -280,7 +282,11 @@ class AIChatController extends StateNotifier<ChatState> {
         errorMessage: () =>
             'No internet connection. Connect to the network and try again.',
       );
-    } on AnthropicException catch (e) {
+    } on AnthropicException catch (e, st) {
+      // Rate-limit / daily-cap is an expected 429, not a bug — don't error-log.
+      if (e is! AnthropicRateLimitException) {
+        AppLogger.error('AI coach: Anthropic error', error: e, stack: st);
+      }
       if (!mounted) return;
       // The daily-limit message is already user-friendly — show it verbatim.
       state = state.copyWith(
@@ -291,7 +297,8 @@ class AIChatController extends StateNotifier<ChatState> {
             ? e.message
             : _friendlyError(e.message),
       );
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.error('AI coach: unexpected send failure', error: e, stack: st);
       if (!mounted) return;
       state = state.copyWith(
         isStreaming: false,

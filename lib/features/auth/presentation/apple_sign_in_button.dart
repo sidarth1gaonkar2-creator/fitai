@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/logger.dart';
 import '../../../providers/auth_provider.dart';
 import 'auth_error_dialog.dart';
 
@@ -29,11 +30,13 @@ class _AppleSignInButtonState extends ConsumerState<AppleSignInButton> {
     try {
       await ref.read(authServiceProvider).signInWithApple();
       // Router redirect handles navigation (→ /onboarding for a fresh user).
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (e, st) {
       // User dismissed the Apple sheet → silent no-op, never an error dialog.
       if (e.code == 'apple-sign-in-cancelled') return;
+      AppLogger.error('Apple sign-in failed', error: e, stack: st);
       if (mounted) showAuthErrorDialog(context, e);
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.error('Apple sign-in failed', error: e, stack: st);
       if (mounted) showAuthErrorDialog(context, e);
     } finally {
       if (mounted) setState(() => _loading = false);
