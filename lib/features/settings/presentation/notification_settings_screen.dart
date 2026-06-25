@@ -7,11 +7,10 @@ import '../../../providers/gym_streak_provider.dart';
 import '../../../providers/notification_providers.dart';
 import '../../../providers/training_schedule_provider.dart';
 import '../../../services/notification_service.dart';
+import '../../workouts/presentation/widgets/training_days_picker.dart';
 
 class NotificationSettingsScreen extends ConsumerWidget {
   const NotificationSettingsScreen({super.key});
-
-  static const _dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -99,53 +98,9 @@ class NotificationSettingsScreen extends ConsumerWidget {
               ),
             ),
             // Day chips — always visible (no longer gated behind reminders).
-            Wrap(
-              spacing: 6,
-              children: List.generate(7, (i) {
-                final day = i + 1;
-                final isSelected = settings.workoutDays.contains(day);
-                return GestureDetector(
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    final days = List<int>.from(settings.workoutDays);
-                    if (isSelected) {
-                      days.remove(day);
-                    } else {
-                      days.add(day);
-                    }
-                    notifier.update((s) => s.copyWith(workoutDays: days));
-                    // Deliberate user edit → opt into the gym-streak mechanic.
-                    // The [1,3,5] default alone never sets this; only an active
-                    // tap flips isConfigured (preserves PR4a's no-infer rule).
-                    ref
-                        .read(trainingScheduleConfiguredProvider.notifier)
-                        .markConfigured();
-                  },
-                  child: Container(
-                    width: 42,
-                    height: 36,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: isSelected ? palette.accent : palette.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isSelected ? palette.accent : palette.border,
-                      ),
-                    ),
-                    child: Text(
-                      _dayLabels[i],
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color:
-                            isSelected ? palette.text : palette.textSecondary,
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
+            // Shared widget: identical toggle + markConfigured behaviour as the
+            // Workouts-tab Training Days card (single source of truth).
+            const TrainingDaysPicker(),
             // Minimal confirmation the mechanic is live once the user opts in.
             // (A richer multiplier/coins display can land on the dashboard later.)
             if (schedule.isConfigured)

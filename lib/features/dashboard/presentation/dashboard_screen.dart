@@ -13,6 +13,8 @@ import '../../../providers/dashboard_providers.dart';
 import '../../../providers/nutrition_providers.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/insight_providers.dart';
+import '../../../providers/gym_streak_provider.dart';
+import '../../../providers/training_schedule_provider.dart';
 import '../../../providers/user_profile_provider.dart';
 import '../../../services/insight_service.dart';
 import '../../ranks/domain/drill_sergeant.dart';
@@ -23,6 +25,7 @@ import 'widgets/activity_row.dart';
 import 'widgets/calorie_ring.dart';
 import 'widgets/dashboard_skeleton.dart';
 import 'widgets/fitness_workouts_card.dart';
+import 'widgets/gym_streak_card.dart';
 import 'widgets/macro_row.dart';
 import 'widgets/saved_meals_quick_log.dart';
 import 'widgets/streak_counter.dart';
@@ -71,6 +74,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final nutritionAsync = ref.watch(todayNutritionProvider);
     final workoutAsync = ref.watch(todayWorkoutProvider);
     final streakAsync = ref.watch(streakProvider);
+    // Schedule-aware gym streak (PR4b). When the user has configured a training
+    // schedule, the dashboard's streak slot shows THIS (with its coin
+    // multiplier) instead of the any-activity streak. Both are synchronous
+    // providers, so no async/shimmer handling is needed for the gym streak.
+    final scheduleConfigured =
+        ref.watch(trainingScheduleProvider).isConfigured;
+    final gymStreak = ref.watch(gymStreakProvider);
     final glasses = ref.watch(waterIntakeProvider);
     // Drill-sergeant greeting addresses the soldier by rank. Falls back to
     // Private while the rank is still computing.
@@ -263,20 +273,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: isStreakLoading
-                            ? const ShimmerBox(
-                                key: ValueKey('streak-loading'),
-                                width: double.infinity,
-                                height: 120,
-                                borderRadius: 12,
-                              )
-                            : StreakCounter(
-                                key: const ValueKey('streak-loaded'),
-                                streak: streak,
-                              ),
-                      ),
+                      // Configured → schedule-aware GYM streak (with its coin
+                      // multiplier), clearly relabeled so the meaning switch
+                      // from the any-activity streak is explicit. Not
+                      // configured → the existing any-activity streak,
+                      // unchanged (zero regression for users who haven't set a
+                      // schedule).
+                      child: scheduleConfigured
+                          ? GymStreakCard(streak: gymStreak.currentStreak)
+                          : AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              child: isStreakLoading
+                                  ? const ShimmerBox(
+                                      key: ValueKey('streak-loading'),
+                                      width: double.infinity,
+                                      height: 120,
+                                      borderRadius: 12,
+                                    )
+                                  : StreakCounter(
+                                      key: const ValueKey('streak-loaded'),
+                                      streak: streak,
+                                    ),
+                            ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

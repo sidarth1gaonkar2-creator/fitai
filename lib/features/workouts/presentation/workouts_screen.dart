@@ -9,6 +9,7 @@ import '../../../core/widgets/shimmer_loading.dart';
 import '../../../providers/workout_providers.dart';
 import '../../tutorial/presentation/tutorial_anchor.dart';
 import 'template_picker_sheet.dart';
+import 'widgets/training_days_card.dart';
 import 'widgets/workout_calendar.dart';
 import 'widgets/workout_list_tile.dart';
 
@@ -214,6 +215,14 @@ class _HistoryTab extends ConsumerWidget {
 
     return CustomScrollView(
       slivers: [
+        // Training days — set/adjust your gym schedule where it lives mentally
+        // (drives the gym streak + multiplier). Same picker as Notifications.
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: TrainingDaysCard(),
+          ),
+        ),
         // Calendar
         SliverToBoxAdapter(
           child: Padding(
