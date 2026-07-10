@@ -105,23 +105,29 @@ Future<BootstrapResult> _bootstrap() async {
   // timeout so a hung auth backend can't stall startup; we fall back to the
   // synchronously-cached currentUser if the stream is slow.
   var isSignedIn = false;
+  String? bootUid;
   try {
     final user = await FirebaseAuth.instance
         .authStateChanges()
         .first
         .timeout(const Duration(seconds: 8));
     isSignedIn = user != null;
+    bootUid = user?.uid;
   } catch (e, st) {
     AppLogger.error('Auth state resolve failed/timed out', error: e, stack: st);
-    isSignedIn = FirebaseAuth.instance.currentUser != null;
+    final cached = FirebaseAuth.instance.currentUser;
+    isSignedIn = cached != null;
+    bootUid = cached?.uid;
   }
 
-  // Isar — hard requirement.
+  // Isar — hard requirement. Opens the signed-in account's own instance
+  // (u_<uid>) — or the anon scratch instance when signed out — so local data
+  // is isolated per account from the first read (uid-scoping batch).
   Isar? isar;
   Object? initError;
   StackTrace? initStack;
   try {
-    isar = await IsarService.initialize();
+    isar = await IsarService.openForUid(bootUid);
   } catch (e, st) {
     initError = e;
     initStack = st;
@@ -189,7 +195,9 @@ void _onBootstrapComplete(BootstrapResult result) {
     _StartupFadeIn(
       child: ProviderScope(
         overrides: [
-          isarProvider.overrideWithValue(result.isar!),
+          // Seed the ACTIVE instance; isarProvider is a facade over it and the
+          // session coordinator swaps it on auth transitions (app.dart).
+          activeIsarProvider.overrideWith((ref) => result.isar!),
           sharedPreferencesProvider.overrideWithValue(result.prefs!),
           firebaseAuthProvider.overrideWithValue(FirebaseAuth.instance),
           firestoreProvider.overrideWithValue(FirebaseFirestore.instance),
