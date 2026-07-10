@@ -13,12 +13,14 @@ import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/database/isar_service.dart';
+import 'core/database/isar_uid_migration.dart';
 import 'core/utils/logger.dart';
 import 'core/utils/notif_diag_log.dart';
 import 'features/splash/presentation/splash_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/firestore_provider.dart';
 import 'providers/isar_provider.dart';
+import 'providers/onboarding_gate_provider.dart';
 import 'providers/unit_system_provider.dart';
 import 'services/notification_service.dart';
 import 'services/pr_migration_service.dart';
@@ -120,20 +122,6 @@ Future<BootstrapResult> _bootstrap() async {
     bootUid = cached?.uid;
   }
 
-  // Isar — hard requirement. Opens the signed-in account's own instance
-  // (u_<uid>) — or the anon scratch instance when signed out — so local data
-  // is isolated per account from the first read (uid-scoping batch).
-  Isar? isar;
-  Object? initError;
-  StackTrace? initStack;
-  try {
-    isar = await IsarService.openForUid(bootUid);
-  } catch (e, st) {
-    initError = e;
-    initStack = st;
-    AppLogger.error('Isar init FAILED', error: e, stack: st);
-  }
-
   final prefs = await SharedPreferences.getInstance();
 
   // Wire the persistent [notif] ring buffer NOW, before NotificationService
@@ -141,6 +129,42 @@ Future<BootstrapResult> _bootstrap() async {
   // schedule errors are captured and survive a restart (readable on-device
   // via the hidden Notification Diagnostics screen).
   NotifDiagLog.attach(prefs);
+
+  // One-time move of the legacy 'default' Isar DB into the per-account
+  // instance scheme. MUST run before the first Isar.open of the launch (no
+  // instance may hold the legacy file while it is renamed). On failure we
+  // open the legacy instance this launch — identical to v1.1.x behavior —
+  // and retry next launch.
+  var uidMigrationSettled = true;
+  try {
+    uidMigrationSettled = await IsarUidMigration.run(
+      prefs: prefs,
+      signedInUid: bootUid,
+      recordedOwnerUid: prefs.getString(localProfileOwnerKey),
+      directory: await IsarService.databaseDirectory(),
+    );
+  } catch (e, st) {
+    // run() catches internally; this is belt-and-suspenders for anything
+    // thrown before its own try (e.g. databaseDirectory).
+    uidMigrationSettled = false;
+    AppLogger.error('Isar uid migration wrapper failed', error: e, stack: st);
+  }
+
+  // Isar — hard requirement. Opens the signed-in account's own instance
+  // (u_<uid>) — or the anon scratch instance when signed out — so local data
+  // is isolated per account from the first read (uid-scoping batch).
+  Isar? isar;
+  Object? initError;
+  StackTrace? initStack;
+  try {
+    isar = uidMigrationSettled
+        ? await IsarService.openForUid(bootUid)
+        : await IsarService.openByName(Isar.defaultName);
+  } catch (e, st) {
+    initError = e;
+    initStack = st;
+    AppLogger.error('Isar init FAILED', error: e, stack: st);
+  }
 
   // One-time data migrations (best-effort).
   if (isar != null) {
