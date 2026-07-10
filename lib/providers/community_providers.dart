@@ -120,11 +120,10 @@ class HiddenPostsNotifier extends StateNotifier<Set<String>> {
   final SharedPreferences _prefs;
   final String? _uid;
 
-  static String _key(String uid) => 'hidden_posts_$uid';
-
   static Set<String> _load(SharedPreferences prefs, String? uid) {
     if (uid == null) return <String>{};
-    return (prefs.getStringList(_key(uid)) ?? const <String>[]).toSet();
+    return (prefs.getStringList(hiddenPostsPrefsKey(uid)) ?? const <String>[])
+        .toSet();
   }
 
   Future<void> hide(String postId) async {
@@ -132,9 +131,13 @@ class HiddenPostsNotifier extends StateNotifier<Set<String>> {
     if (uid == null || state.contains(postId)) return;
     final next = {...state, postId};
     state = next;
-    await _prefs.setStringList(_key(uid), next.toList());
+    await _prefs.setStringList(hiddenPostsPrefsKey(uid), next.toList());
   }
 }
+
+/// Prefs key of an account's hidden-post ids. Public so account deletion
+/// (settings) can remove exactly this account's key and nothing else.
+String hiddenPostsPrefsKey(String uid) => 'hidden_posts_$uid';
 
 final hiddenPostsProvider =
     StateNotifierProvider<HiddenPostsNotifier, Set<String>>((ref) {

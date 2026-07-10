@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'core/utils/logger.dart';
 import 'features/themes/providers/theme_providers.dart';
 import 'features/tutorial/presentation/tutorial_overlay.dart';
 import 'providers/auth_provider.dart';
 import 'providers/gym_streak_provider.dart';
+import 'providers/isar_provider.dart';
 import 'providers/notification_reconciler.dart';
 import 'providers/settings_providers.dart';
 import 'routing/app_router.dart';
@@ -19,20 +23,36 @@ class DrillFitApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
 
-    // Reconcile local notifications on launch (post-auth) and on sign-in;
-    // cancel personal ones on sign-out. Independent of the chat/routing auth
-    // listeners — separate subscriptions, no conflict.
+    // SESSION COORDINATOR (uid-scoping batch, audit §4): the single choke
+    // point every sign-in AND sign-out converges through — including passive
+    // ones (token expiry/revocation), which previously cleared nothing. On
+    // each account transition it swaps the active per-account Isar instance
+    // FIRST (publish-new-before-close-old, serialized inside the session
+    // manager), THEN runs the per-user reconcilers so they read the incoming
+    // account's data, not the outgoing one's.
     ref.listen(currentUserIdProvider, (prev, next) {
+      if (next == prev) return;
+      final session = ref.read(isarSessionManagerProvider);
       final reconciler = ref.read(notificationReconcilerProvider);
-      if (next != null && next != prev) {
-        reconciler.reconcile();
-        // Catch up the gym streak after time away: BREAK-DETECTION ONLY — this
-        // resets a streak broken by a missed scheduled gym day while the app was
-        // closed. It must NOT award coins; awards happen only on workout finish.
-        ref.read(gymStreakProvider.notifier).reconcile();
-      } else if (next == null && prev != null) {
-        reconciler.cancelPersonal();
-      }
+      unawaited(
+        session.switchToUid(next).then((_) async {
+          if (next != null) {
+            // reconcile() re-runs syncSchedules() for the incoming user
+            // internally (permission-gated) — no separate call needed.
+            await reconciler.reconcile();
+            // Catch up the gym streak after time away: BREAK-DETECTION ONLY —
+            // this resets a streak broken by a missed scheduled gym day while
+            // the app was closed. It must NOT award coins; awards happen only
+            // on workout finish.
+            await ref.read(gymStreakProvider.notifier).reconcile();
+          } else {
+            await reconciler.cancelPersonal();
+          }
+        }).catchError((Object e, StackTrace st) {
+          AppLogger.error('Session coordinator: account transition failed',
+              error: e, stack: st);
+        }),
+      );
     });
 
     final themeMode = ref.watch(themeModeProvider);

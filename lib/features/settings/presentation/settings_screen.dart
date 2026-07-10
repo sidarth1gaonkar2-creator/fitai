@@ -21,6 +21,7 @@ import '../../../providers/notification_providers.dart';
 import '../../../providers/notification_reconciler.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/isar_provider.dart';
+import '../../../providers/onboarding_gate_provider.dart';
 import '../../../providers/nutrition_providers.dart';
 import '../../../providers/progress_providers.dart';
 import '../../../providers/settings_providers.dart';
@@ -787,8 +788,8 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context) => CupertinoAlertDialog(
         title: const Text('Sign Out?'),
         content: const Text(
-          'Local data on this device will be cleared. You will need to sign '
-          'in again to continue.',
+          'Your data stays saved to your account on this device. You will '
+          'need to sign in again to continue.',
         ),
         actions: [
           CupertinoDialogAction(
@@ -806,14 +807,11 @@ class SettingsScreen extends ConsumerWidget {
 
     if (confirmed == true && context.mounted) {
       HapticFeedback.mediumImpact();
-      // Clear local data before sign-out so the next account that signs in
-      // on this device doesn't inherit this user's profile/workouts/etc.
-      // The router uses userProfileProvider (Isar) to gate onboarding —
-      // leaving stale data here causes a new account to skip onboarding
-      // and land in profile-setup with the previous user's stats.
-      final isar = ref.read(isarProvider);
-      await isar.writeTxn(() => isar.clear());
-      ref.invalidate(userProfileProvider);
+      // No local clearing here: per-account data lives in this account's OWN
+      // Isar instance (uid-scoping batch). The session coordinator (app.dart)
+      // reacts to the auth transition and swaps the active instance to the
+      // anon scratch DB — nothing leaks to the next account, and this
+      // account's data is restored on its next sign-in.
       await ref.read(authServiceProvider).signOut();
       if (context.mounted) context.go('/welcome');
     }
@@ -838,8 +836,9 @@ class SettingsScreen extends ConsumerWidget {
     // Capture everything we need BEFORE the teardown: once we sign out and
     // navigate to /welcome this widget unmounts and `ref` becomes invalid.
     final authService = ref.read(authServiceProvider);
-    final isar = ref.read(isarProvider);
+    final session = ref.read(isarSessionManagerProvider);
     final prefs = ref.read(sharedPreferencesProvider);
+    final uid = ref.read(currentUserIdProvider);
 
     // Blocking progress dialog (dismissed via rootNavigator pop below).
     showCupertinoDialog<void>(
@@ -869,13 +868,23 @@ class SettingsScreen extends ConsumerWidget {
       return;
     }
 
-    // 2. Account is gone server-side. Clear on-device data (required so a new
-    //    account on this device inherits nothing). Best-effort — a local-clear
-    //    failure must NOT be reported as "deletion failed", since the deletion
-    //    already succeeded.
+    // 2. Account is gone server-side. Tear down THIS account's on-device
+    //    data: its own Isar instance file (u_<uid>.isar) and its uid-keyed
+    //    prefs. Device-level settings (theme, units, tutorial, caches,
+    //    diagnostics) deliberately survive — they belong to the device, not
+    //    the account (audit §4; the remaining per-uid pref keys are scoped in
+    //    PR-B). Best-effort — a local-teardown failure must NOT be reported
+    //    as "deletion failed", since the deletion already succeeded.
     try {
-      await isar.writeTxn(() => isar.clear());
-      await prefs.clear();
+      if (uid != null) {
+        // Swaps the active instance to the anon scratch DB, then deletes
+        // u_<uid>.isar from disk.
+        await session.deleteAccountData(uid);
+        await prefs.remove(hiddenPostsPrefsKey(uid));
+      }
+      // Legacy owner marker (retired fully in PR-C) — must not survive the
+      // account it points to.
+      await prefs.remove(localProfileOwnerKey);
     } catch (e, st) {
       AppLogger.error(
         'deleteAccount: clearing on-device data failed after server delete',
@@ -883,7 +892,6 @@ class SettingsScreen extends ConsumerWidget {
         stack: st,
       );
     }
-    ref.invalidate(userProfileProvider);
 
     // Dismiss the progress dialog while this screen is still mounted. Once we
     // sign out below, the router's auth listener redirects to /welcome and
