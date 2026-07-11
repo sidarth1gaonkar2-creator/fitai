@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/utils/logger.dart';
+import '../core/utils/scoped_prefs.dart';
 import '../services/notification_service.dart';
+import 'auth_provider.dart';
 import 'unit_system_provider.dart';
 
 class NotificationSettings {
@@ -110,35 +112,49 @@ class NotificationSettings {
 }
 
 class NotificationSettingsNotifier extends StateNotifier<NotificationSettings> {
-  NotificationSettingsNotifier(this._prefs)
+  NotificationSettingsNotifier(this._prefs, this._uid)
       : super(const NotificationSettings()) {
     _load();
   }
 
   final SharedPreferences _prefs;
 
+  /// The account whose `notif_*_<uid>` keys back this notifier (PR-B). The
+  /// provider watches [currentUserIdProvider], so an account switch rebuilds
+  /// this notifier and the session coordinator's reconcile() then reads the
+  /// INCOMING account's settings. Null (signed out) = defaults, no persistence.
+  final String? _uid;
+
+  String _k(String base) => scopedKey(base, _uid!);
+
   void _load() {
+    if (_uid == null) {
+      // Signed out: defaults only — nothing user-scoped is read or written.
+      state = const NotificationSettings();
+      return;
+    }
     state = NotificationSettings(
-      workoutEnabled: _prefs.getBool('notif_workout_enabled') ?? false,
-      workoutDays: _loadIntList('notif_workout_days') ?? [1, 3, 5],
-      workoutHour: _prefs.getInt('notif_workout_hour') ?? 7,
-      workoutMinute: _prefs.getInt('notif_workout_minute') ?? 0,
-      breakfastEnabled: _prefs.getBool('notif_breakfast_enabled') ?? false,
-      breakfastHour: _prefs.getInt('notif_breakfast_hour') ?? 8,
-      breakfastMinute: _prefs.getInt('notif_breakfast_minute') ?? 0,
-      lunchEnabled: _prefs.getBool('notif_lunch_enabled') ?? false,
-      lunchHour: _prefs.getInt('notif_lunch_hour') ?? 12,
-      lunchMinute: _prefs.getInt('notif_lunch_minute') ?? 0,
-      dinnerEnabled: _prefs.getBool('notif_dinner_enabled') ?? false,
-      dinnerHour: _prefs.getInt('notif_dinner_hour') ?? 18,
-      dinnerMinute: _prefs.getInt('notif_dinner_minute') ?? 0,
-      waterEnabled: _prefs.getBool('notif_water_enabled') ?? false,
-      streakEnabled: _prefs.getBool('notif_streak_enabled') ?? false,
-      prEnabled: _prefs.getBool('notif_pr_enabled') ?? true,
-      supplementEnabled: _prefs.getBool('notif_supplement_enabled') ?? false,
-      restDays: (_loadIntList('notif_rest_days') ?? const <int>[]).toSet(),
+      workoutEnabled: _prefs.getBool(_k('notif_workout_enabled')) ?? false,
+      workoutDays: _loadIntList(_k('notif_workout_days')) ?? [1, 3, 5],
+      workoutHour: _prefs.getInt(_k('notif_workout_hour')) ?? 7,
+      workoutMinute: _prefs.getInt(_k('notif_workout_minute')) ?? 0,
+      breakfastEnabled: _prefs.getBool(_k('notif_breakfast_enabled')) ?? false,
+      breakfastHour: _prefs.getInt(_k('notif_breakfast_hour')) ?? 8,
+      breakfastMinute: _prefs.getInt(_k('notif_breakfast_minute')) ?? 0,
+      lunchEnabled: _prefs.getBool(_k('notif_lunch_enabled')) ?? false,
+      lunchHour: _prefs.getInt(_k('notif_lunch_hour')) ?? 12,
+      lunchMinute: _prefs.getInt(_k('notif_lunch_minute')) ?? 0,
+      dinnerEnabled: _prefs.getBool(_k('notif_dinner_enabled')) ?? false,
+      dinnerHour: _prefs.getInt(_k('notif_dinner_hour')) ?? 18,
+      dinnerMinute: _prefs.getInt(_k('notif_dinner_minute')) ?? 0,
+      waterEnabled: _prefs.getBool(_k('notif_water_enabled')) ?? false,
+      streakEnabled: _prefs.getBool(_k('notif_streak_enabled')) ?? false,
+      prEnabled: _prefs.getBool(_k('notif_pr_enabled')) ?? true,
+      supplementEnabled:
+          _prefs.getBool(_k('notif_supplement_enabled')) ?? false,
+      restDays: (_loadIntList(_k('notif_rest_days')) ?? const <int>[]).toSet(),
       challengeRemindersEnabled:
-          _prefs.getBool('notif_challenge_enabled') ?? true,
+          _prefs.getBool(_k('notif_challenge_enabled')) ?? true,
     );
   }
 
@@ -149,30 +165,33 @@ class NotificationSettingsNotifier extends StateNotifier<NotificationSettings> {
   }
 
   Future<void> _save() async {
-    await _prefs.setBool('notif_workout_enabled', state.workoutEnabled);
+    if (_uid == null) return; // signed out: dormant — no anon keys
+    await _prefs.setBool(_k('notif_workout_enabled'), state.workoutEnabled);
     await _prefs.setString(
-        'notif_workout_days', jsonEncode(state.workoutDays));
-    await _prefs.setInt('notif_workout_hour', state.workoutHour);
-    await _prefs.setInt('notif_workout_minute', state.workoutMinute);
-    await _prefs.setBool('notif_breakfast_enabled', state.breakfastEnabled);
-    await _prefs.setInt('notif_breakfast_hour', state.breakfastHour);
-    await _prefs.setInt('notif_breakfast_minute', state.breakfastMinute);
-    await _prefs.setBool('notif_lunch_enabled', state.lunchEnabled);
-    await _prefs.setInt('notif_lunch_hour', state.lunchHour);
-    await _prefs.setInt('notif_lunch_minute', state.lunchMinute);
-    await _prefs.setBool('notif_dinner_enabled', state.dinnerEnabled);
-    await _prefs.setInt('notif_dinner_hour', state.dinnerHour);
-    await _prefs.setInt('notif_dinner_minute', state.dinnerMinute);
-    await _prefs.setBool('notif_water_enabled', state.waterEnabled);
-    await _prefs.setBool('notif_streak_enabled', state.streakEnabled);
-    await _prefs.setBool('notif_pr_enabled', state.prEnabled);
-    await _prefs.setBool('notif_supplement_enabled', state.supplementEnabled);
+        _k('notif_workout_days'), jsonEncode(state.workoutDays));
+    await _prefs.setInt(_k('notif_workout_hour'), state.workoutHour);
+    await _prefs.setInt(_k('notif_workout_minute'), state.workoutMinute);
+    await _prefs.setBool(
+        _k('notif_breakfast_enabled'), state.breakfastEnabled);
+    await _prefs.setInt(_k('notif_breakfast_hour'), state.breakfastHour);
+    await _prefs.setInt(_k('notif_breakfast_minute'), state.breakfastMinute);
+    await _prefs.setBool(_k('notif_lunch_enabled'), state.lunchEnabled);
+    await _prefs.setInt(_k('notif_lunch_hour'), state.lunchHour);
+    await _prefs.setInt(_k('notif_lunch_minute'), state.lunchMinute);
+    await _prefs.setBool(_k('notif_dinner_enabled'), state.dinnerEnabled);
+    await _prefs.setInt(_k('notif_dinner_hour'), state.dinnerHour);
+    await _prefs.setInt(_k('notif_dinner_minute'), state.dinnerMinute);
+    await _prefs.setBool(_k('notif_water_enabled'), state.waterEnabled);
+    await _prefs.setBool(_k('notif_streak_enabled'), state.streakEnabled);
+    await _prefs.setBool(_k('notif_pr_enabled'), state.prEnabled);
+    await _prefs.setBool(
+        _k('notif_supplement_enabled'), state.supplementEnabled);
     await _prefs.setString(
-      'notif_rest_days',
+      _k('notif_rest_days'),
       jsonEncode(state.restDays.toList()..sort()),
     );
     await _prefs.setBool(
-      'notif_challenge_enabled',
+      _k('notif_challenge_enabled'),
       state.challengeRemindersEnabled,
     );
   }
@@ -253,7 +272,7 @@ class NotificationSettingsNotifier extends StateNotifier<NotificationSettings> {
 final notificationSettingsProvider = StateNotifierProvider<
     NotificationSettingsNotifier, NotificationSettings>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
-  return NotificationSettingsNotifier(prefs);
+  return NotificationSettingsNotifier(prefs, ref.watch(currentUserIdProvider));
 });
 
 final notificationPermissionProvider = FutureProvider<bool>((ref) async {

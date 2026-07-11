@@ -12,6 +12,7 @@ import '../features/community/domain/comment.dart';
 import '../features/community/domain/firestore_user.dart';
 import '../features/community/domain/leaderboard_entry.dart';
 import '../features/community/domain/notification.dart';
+import '../core/utils/scoped_prefs.dart';
 import '../features/community/domain/post.dart';
 import 'auth_provider.dart';
 import 'unit_system_provider.dart' show sharedPreferencesProvider;
@@ -135,9 +136,11 @@ class HiddenPostsNotifier extends StateNotifier<Set<String>> {
   }
 }
 
-/// Prefs key of an account's hidden-post ids. Public so account deletion
-/// (settings) can remove exactly this account's key and nothing else.
-String hiddenPostsPrefsKey(String uid) => 'hidden_posts_$uid';
+/// Prefs key of an account's hidden-post ids — the original instance of the
+/// [scopedKey] pattern the rest of the per-user prefs now follow. Public so
+/// account deletion (settings) can remove exactly this account's key and
+/// nothing else.
+String hiddenPostsPrefsKey(String uid) => scopedKey('hidden_posts', uid);
 
 final hiddenPostsProvider =
     StateNotifierProvider<HiddenPostsNotifier, Set<String>>((ref) {

@@ -7,10 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/logger.dart';
+import '../../../core/utils/scoped_prefs.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../data/exercise_library.dart';
 import '../../../data/workout_templates.dart';
 import '../../../models/saved_workout_template.dart';
+import '../../../providers/auth_provider.dart' show currentUserIdProvider;
 import '../../../providers/unit_system_provider.dart'
     show sharedPreferencesProvider;
 import '../../ranks/domain/drill_sergeant.dart';
@@ -282,10 +284,17 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
       // 5B: scaffold the (not-yet-sent) promotion push-notification text.
       AppLogger.log(rankUpNotificationText(newRank));
 
+      // The once-only marker is per-account (`..._<uid>`, PR-B). Signed out
+      // (passive revocation mid-workout): skip — without an account key the
+      // once-only guarantee can't hold, and nothing user-scoped is written
+      // while signed out.
       final prefs = ref.read(sharedPreferencesProvider);
-      final lastCelebrated = prefs.getInt('last_celebrated_rank_index') ?? -1;
-      if (newRank.index > lastCelebrated) {
-        await prefs.setInt('last_celebrated_rank_index', newRank.index);
+      final uid = ref.read(currentUserIdProvider);
+      final celebratedKey =
+          uid == null ? null : scopedKey('last_celebrated_rank_index', uid);
+      if (celebratedKey != null &&
+          newRank.index > (prefs.getInt(celebratedKey) ?? -1)) {
+        await prefs.setInt(celebratedKey, newRank.index);
         if (!mounted) return;
         try {
           await showGeneralDialog<void>(

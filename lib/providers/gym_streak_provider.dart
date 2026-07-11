@@ -2,8 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/utils/logger.dart';
+import '../core/utils/scoped_prefs.dart';
 import '../features/themes/providers/theme_providers.dart';
 import '../features/workouts/domain/streak_rewards.dart';
+import 'auth_provider.dart';
 import 'training_schedule_provider.dart';
 import 'unit_system_provider.dart';
 import 'workout_providers.dart';
@@ -12,32 +14,42 @@ import 'workout_providers.dart';
 /// economy. DISTINCT from [streakProvider] (the any-activity streak used by the
 /// dashboard and notifications, which stays untouched).
 ///
-/// State is SharedPreferences-backed (2 fields, no Isar change); it will be
-/// uid-scoped together with the wallet (`UserThemeState.coins`) in the planned
-/// migration batch. All decision logic lives in the pure functions in
+/// State is SharedPreferences-backed (2 fields, no Isar change), uid-scoped
+/// per account (`<key>_<uid>`, uid-scoping PR-B): the provider watches
+/// [currentUserIdProvider], so an account switch rebuilds this notifier over
+/// the incoming account's keys. Signed out it holds [GymStreakData.initial]
+/// and persists nothing. All decision logic lives in the pure functions in
 /// streak_rewards.dart — this notifier only wires storage + providers + the
 /// wallet to them.
 class GymStreakNotifier extends StateNotifier<GymStreakData> {
-  GymStreakNotifier(this._ref, this._prefs) : super(_load(_prefs));
+  GymStreakNotifier(this._ref, this._prefs, this._uid)
+      : super(_load(_prefs, _uid));
 
   final Ref _ref;
   final SharedPreferences _prefs;
+  final String? _uid;
 
-  static const _kStreak = 'gym_streak_current';
-  static const _kLastAwarded = 'gym_streak_last_awarded_epoch_day';
+  static const _kStreakBase = 'gym_streak_current';
+  static const _kLastAwardedBase = 'gym_streak_last_awarded_epoch_day';
 
-  static GymStreakData _load(SharedPreferences prefs) => GymStreakData(
-        currentStreak: prefs.getInt(_kStreak) ?? 0,
-        lastAwardedEpochDay: prefs.getInt(_kLastAwarded),
-      );
+  static GymStreakData _load(SharedPreferences prefs, String? uid) {
+    if (uid == null) return GymStreakData.initial;
+    return GymStreakData(
+      currentStreak: prefs.getInt(scopedKey(_kStreakBase, uid)) ?? 0,
+      lastAwardedEpochDay: prefs.getInt(scopedKey(_kLastAwardedBase, uid)),
+    );
+  }
 
   Future<void> _persist(GymStreakData data) async {
     state = data;
-    await _prefs.setInt(_kStreak, data.currentStreak);
+    final uid = _uid;
+    if (uid == null) return; // signed out: dormant — no anon keys
+    await _prefs.setInt(scopedKey(_kStreakBase, uid), data.currentStreak);
     if (data.lastAwardedEpochDay == null) {
-      await _prefs.remove(_kLastAwarded);
+      await _prefs.remove(scopedKey(_kLastAwardedBase, uid));
     } else {
-      await _prefs.setInt(_kLastAwarded, data.lastAwardedEpochDay!);
+      await _prefs.setInt(
+          scopedKey(_kLastAwardedBase, uid), data.lastAwardedEpochDay!);
     }
   }
 
@@ -94,5 +106,9 @@ class GymStreakNotifier extends StateNotifier<GymStreakData> {
 
 final gymStreakProvider =
     StateNotifierProvider<GymStreakNotifier, GymStreakData>((ref) {
-  return GymStreakNotifier(ref, ref.watch(sharedPreferencesProvider));
+  return GymStreakNotifier(
+    ref,
+    ref.watch(sharedPreferencesProvider),
+    ref.watch(currentUserIdProvider),
+  );
 });

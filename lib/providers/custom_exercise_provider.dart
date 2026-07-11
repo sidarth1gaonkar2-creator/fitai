@@ -3,9 +3,13 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/utils/logger.dart';
+import '../core/utils/scoped_prefs.dart';
 import '../features/ranks/domain/exercise_standards.dart';
+import 'auth_provider.dart';
 import 'unit_system_provider.dart' show sharedPreferencesProvider;
 
+// Base key — stored uid-scoped as `custom_exercise_groups_v1_<uid>` (PR-B).
 const _kCustomExerciseGroupsKey = 'custom_exercise_groups_v1';
 
 /// Persistent registry mapping a user-created custom exercise NAME (original
@@ -18,12 +22,18 @@ const _kCustomExerciseGroupsKey = 'custom_exercise_groups_v1';
 /// the exercise scores consistently. Without this, a custom exercise had no
 /// group and silently scored as Chest.
 class CustomExerciseRegistry {
-  CustomExerciseRegistry(this._prefs);
+  CustomExerciseRegistry(this._prefs, this._uid);
 
   final SharedPreferences _prefs;
 
+  /// The account whose registry this is; null (signed out) reads empty and
+  /// writes nothing — custom exercises can only be created signed in.
+  final String? _uid;
+
   Map<String, RankGroup> _read() {
-    final raw = _prefs.getString(_kCustomExerciseGroupsKey);
+    final uid = _uid;
+    if (uid == null) return {};
+    final raw = _prefs.getString(scopedKey(_kCustomExerciseGroupsKey, uid));
     if (raw == null || raw.isEmpty) return {};
     try {
       final decoded = jsonDecode(raw);
@@ -34,8 +44,10 @@ class CustomExerciseRegistry {
         if (group != null) result[name as String] = group;
       });
       return result;
-    } catch (_) {
+    } catch (e, st) {
       // Corrupt/legacy value — treat as empty rather than crash.
+      AppLogger.error('Custom exercise registry: corrupt stored value',
+          error: e, stack: st);
       return {};
     }
   }
@@ -65,18 +77,23 @@ class CustomExerciseRegistry {
   /// Records [group] for the custom exercise [name]. Overwrites any prior
   /// entry for the same (case-insensitive) name so a re-categorisation sticks.
   Future<void> setGroup(String name, RankGroup group) async {
+    final uid = _uid;
+    if (uid == null) return; // signed out: dormant — no anon keys
     final trimmed = name.trim();
     final lower = trimmed.toLowerCase();
     final map = _read()
       ..removeWhere((k, _) => k.toLowerCase().trim() == lower);
     map[trimmed] = group;
     await _prefs.setString(
-      _kCustomExerciseGroupsKey,
+      scopedKey(_kCustomExerciseGroupsKey, uid),
       jsonEncode({for (final e in map.entries) e.key: e.value.name}),
     );
   }
 }
 
 final customExerciseRegistryProvider = Provider<CustomExerciseRegistry>((ref) {
-  return CustomExerciseRegistry(ref.watch(sharedPreferencesProvider));
+  return CustomExerciseRegistry(
+    ref.watch(sharedPreferencesProvider),
+    ref.watch(currentUserIdProvider),
+  );
 });

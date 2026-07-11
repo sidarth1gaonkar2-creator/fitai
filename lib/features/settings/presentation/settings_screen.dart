@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/logger.dart';
+import '../../../core/utils/scoped_prefs.dart';
 import '../../../core/utils/unit_converter.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../core/widgets/error_card.dart';
@@ -880,6 +881,10 @@ class SettingsScreen extends ConsumerWidget {
         // Swaps the active instance to the anon scratch DB, then deletes
         // u_<uid>.isar from disk.
         await session.deleteAccountData(uid);
+        // Every uid-scoped pref the account owns (streak, schedule, notif_*,
+        // quick-adds, custom exercises, drill sergeant, rank celebration) —
+        // device-level settings deliberately survive (audit §4).
+        await removeUidScopedPrefs(prefs, uid);
         await prefs.remove(hiddenPostsPrefsKey(uid));
       }
       // Legacy owner marker (retired fully in PR-C) — must not survive the

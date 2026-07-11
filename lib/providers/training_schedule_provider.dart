@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/utils/scoped_prefs.dart';
+import 'auth_provider.dart';
 import 'notification_providers.dart';
 import 'unit_system_provider.dart';
 
@@ -58,31 +60,41 @@ class TrainingSchedule {
       Object.hash(isConfigured, Object.hashAllUnordered(scheduledWeekdays));
 }
 
-/// SharedPreferences key recording that the user deliberately chose a training
-/// schedule. Stored separately from [NotificationSettings] so the mere existence
-/// of the `[1, 3, 5]` notification default is never mistaken for an opt-in.
+/// BASE SharedPreferences key (stored uid-scoped as `<key>_<uid>`, PR-B)
+/// recording that the user deliberately chose a training schedule. Stored
+/// separately from [NotificationSettings] so the mere existence of the
+/// `[1, 3, 5]` notification default is never mistaken for an opt-in.
 const String trainingScheduleConfiguredKey = 'training_schedule_configured';
 
-/// Owns the "has the user chosen a schedule?" flag. SharedPreferences-backed for
-/// PR4a (storage parity with [NotificationSettings.workoutDays]); the planned
-/// Isar uid-scoping migration can move this without touching consumers.
+/// Owns the "has the user chosen a schedule?" flag, per account. The provider
+/// watches [currentUserIdProvider], so an account switch rebuilds this over
+/// the incoming account's key; signed out the flag is false and nothing is
+/// persisted — the streak mechanic stays dormant.
 class TrainingScheduleConfiguredNotifier extends StateNotifier<bool> {
-  TrainingScheduleConfiguredNotifier(this._prefs)
-      : super(_prefs.getBool(trainingScheduleConfiguredKey) ?? false);
+  TrainingScheduleConfiguredNotifier(this._prefs, this._uid)
+      : super(_uid != null &&
+            (_prefs.getBool(scopedKey(trainingScheduleConfiguredKey, _uid)) ??
+                false));
 
   final SharedPreferences _prefs;
+  final String? _uid;
 
   /// Marks the schedule as deliberately configured. PR4b's setup UI calls this
   /// after persisting the chosen days (which back onto
   /// [NotificationSettings.workoutDays]).
   Future<void> markConfigured() async {
-    await _prefs.setBool(trainingScheduleConfiguredKey, true);
+    final uid = _uid;
+    if (uid == null) return; // signed out: nothing user-scoped to arm
+    await _prefs.setBool(scopedKey(trainingScheduleConfiguredKey, uid), true);
     state = true;
   }
 
   /// Clears the opt-in (account switch / sign-out / tests).
   Future<void> reset() async {
-    await _prefs.remove(trainingScheduleConfiguredKey);
+    final uid = _uid;
+    if (uid != null) {
+      await _prefs.remove(scopedKey(trainingScheduleConfiguredKey, uid));
+    }
     state = false;
   }
 }
@@ -90,7 +102,9 @@ class TrainingScheduleConfiguredNotifier extends StateNotifier<bool> {
 final trainingScheduleConfiguredProvider =
     StateNotifierProvider<TrainingScheduleConfiguredNotifier, bool>((ref) {
   return TrainingScheduleConfiguredNotifier(
-      ref.watch(sharedPreferencesProvider));
+    ref.watch(sharedPreferencesProvider),
+    ref.watch(currentUserIdProvider),
+  );
 });
 
 /// THE single source of truth for "is weekday W a scheduled gym day."

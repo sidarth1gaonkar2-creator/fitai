@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:fitai/core/utils/scoped_prefs.dart';
+import 'package:fitai/providers/auth_provider.dart';
 import 'package:fitai/providers/notification_providers.dart';
 import 'package:fitai/providers/training_schedule_provider.dart';
 import 'package:fitai/providers/unit_system_provider.dart';
@@ -103,14 +105,18 @@ void main() {
   });
 
   group('trainingScheduleProvider — configured-flag gating', () {
+    // Providers are uid-scoped (PR-B): pin a signed-in test uid.
     ProviderContainer makeContainer(SharedPreferences prefs) => ProviderContainer(
-          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            currentUserIdProvider.overrideWithValue('u1'),
+          ],
         );
 
     test('not configured by default → notConfigured, no scheduled days', () async {
       SharedPreferences.setMockInitialValues({
         // The notification default exists, but the user never opted in.
-        'notif_workout_days': jsonEncode([1, 3, 5]),
+        scopedKey('notif_workout_days', 'u1'): jsonEncode([1, 3, 5]),
       });
       final prefs = await SharedPreferences.getInstance();
       final container = makeContainer(prefs);
@@ -125,7 +131,7 @@ void main() {
 
     test('after markConfigured() → reflects workoutDays (Mon/Wed/Fri)', () async {
       SharedPreferences.setMockInitialValues({
-        'notif_workout_days': jsonEncode([1, 3, 5]),
+        scopedKey('notif_workout_days', 'u1'): jsonEncode([1, 3, 5]),
       });
       final prefs = await SharedPreferences.getInstance();
       final container = makeContainer(prefs);
@@ -142,22 +148,40 @@ void main() {
       expect(schedule.isScheduledGymDay(dayOfWeek(2)), isFalse); // Tue
     });
 
-    test('configured flag persists to prefs and reset() clears it', () async {
+    test('configured flag persists to prefs (uid-scoped) and reset() clears it',
+        () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
-      final notifier = TrainingScheduleConfiguredNotifier(prefs);
+      final notifier = TrainingScheduleConfiguredNotifier(prefs, 'u1');
 
       expect(notifier.state, isFalse);
       await notifier.markConfigured();
       expect(notifier.state, isTrue);
-      expect(prefs.getBool(trainingScheduleConfiguredKey), isTrue);
+      expect(
+          prefs.getBool(scopedKey(trainingScheduleConfiguredKey, 'u1')), isTrue);
+      // The global (unscoped) key is never written.
+      expect(prefs.getBool(trainingScheduleConfiguredKey), isNull);
 
-      // A fresh notifier over the same prefs reads the persisted opt-in.
-      expect(TrainingScheduleConfiguredNotifier(prefs).state, isTrue);
+      // A fresh notifier over the same prefs reads the persisted opt-in —
+      // but only for the same account.
+      expect(TrainingScheduleConfiguredNotifier(prefs, 'u1').state, isTrue);
+      expect(TrainingScheduleConfiguredNotifier(prefs, 'u2').state, isFalse);
 
       await notifier.reset();
       expect(notifier.state, isFalse);
-      expect(prefs.getBool(trainingScheduleConfiguredKey), isNull);
+      expect(prefs.getBool(scopedKey(trainingScheduleConfiguredKey, 'u1')),
+          isNull);
+    });
+
+    test('signed out: flag is false and markConfigured writes nothing', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final notifier = TrainingScheduleConfiguredNotifier(prefs, null);
+
+      expect(notifier.state, isFalse);
+      await notifier.markConfigured();
+      expect(notifier.state, isFalse);
+      expect(prefs.getKeys(), isEmpty); // no anon keys
     });
   });
 }
