@@ -15,6 +15,7 @@ import 'app.dart';
 import 'core/database/isar_service.dart';
 import 'core/database/isar_uid_migration.dart';
 import 'core/utils/logger.dart';
+import 'core/utils/scoped_prefs.dart';
 import 'core/utils/notif_diag_log.dart';
 import 'features/splash/presentation/splash_screen.dart';
 import 'providers/auth_provider.dart';
@@ -148,6 +149,22 @@ Future<BootstrapResult> _bootstrap() async {
     // thrown before its own try (e.g. databaseDirectory).
     uidMigrationSettled = false;
     AppLogger.error('Isar uid migration wrapper failed', error: e, stack: st);
+  }
+
+  // One-time move of the legacy GLOBAL per-user prefs (streak, schedule
+  // opt-in, notif_*, quick-adds, custom exercises, drill sergeant, rank
+  // celebration) to <key>_<owner> — the same §3 owner rule as the Isar move
+  // above (PR-B). On failure the done flag stays unset and it retries next
+  // launch; until then the scoped readers just see defaults, and the global
+  // values are still in place.
+  try {
+    await PrefsUidMigration.run(
+      prefs: prefs,
+      signedInUid: bootUid,
+      recordedOwnerUid: prefs.getString(localProfileOwnerKey),
+    );
+  } catch (e, st) {
+    AppLogger.error('Prefs uid migration failed', error: e, stack: st);
   }
 
   // Isar — hard requirement. Opens the signed-in account's own instance
