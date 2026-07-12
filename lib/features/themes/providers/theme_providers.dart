@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 
 import '../../../models/user_theme_state.dart';
+import '../../../providers/entitlement_providers.dart';
 import '../../../providers/isar_provider.dart';
 import '../domain/app_theme_data.dart';
+import '../domain/theme_gate.dart';
 import '../domain/theme_registry.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -27,10 +29,23 @@ final activeThemeProvider = Provider<AppThemeData>((ref) {
   return themeById(state.equippedThemeId);
 });
 
-/// Set of all owned theme IDs (including the implicit default).
+/// Set of all owned theme IDs (including the implicit default). Ownership ==
+/// bought with coins (or granted free); see [unlockedThemesProvider] for what
+/// the user can actually equip.
 final ownedThemesProvider = Provider<Set<String>>((ref) {
   final state = ref.watch(userThemeStateProvider);
   return {defaultTheme.id, ...state.ownedThemeIds};
+});
+
+/// Everything the user can equip right now: coin-owned themes plus — while
+/// Airborne is active — every standard coin theme. Airborne bypasses the coin
+/// price only; it never writes ownership or touches the wallet, so a lapsed
+/// subscription re-locks whatever wasn't bought with coins.
+final unlockedThemesProvider = Provider<Set<String>>((ref) {
+  return unlockedThemeIds(
+    owned: ref.watch(ownedThemesProvider),
+    airborneActive: ref.watch(airborneActiveProvider),
+  );
 });
 
 /// Coin balance shortcut — watch this for the chip in the store header.
@@ -62,14 +77,19 @@ class UserThemeStateNotifier extends StateNotifier<UserThemeState> {
     return UserThemeState.defaults();
   }
 
-  /// Marks [themeId] as owned (no-op if already owned) and equips it. Returns
-  /// true on success, false if the theme isn't in the registry.
-  Future<bool> equip(String themeId) async {
+  /// Equips [themeId] and — when [markOwned] — records it as owned (no-op if
+  /// already owned). Returns true on success, false if the theme isn't in the
+  /// registry.
+  ///
+  /// Pass `markOwned: false` for Airborne-unlocked equips: the subscription
+  /// bypasses the coin price but must never grant permanent ownership, or a
+  /// lapsed subscription would leave the theme unlocked forever.
+  Future<bool> equip(String themeId, {bool markOwned = true}) async {
     if (!_existsInRegistry(themeId)) return false;
     final next = _clone(state)
       ..equippedThemeId = themeId
       ..updatedAt = DateTime.now();
-    if (!next.ownedThemeIds.contains(themeId)) {
+    if (markOwned && !next.ownedThemeIds.contains(themeId)) {
       next.ownedThemeIds = [...next.ownedThemeIds, themeId];
     }
     await _persist(next);
