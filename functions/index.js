@@ -14,8 +14,10 @@
  *      your Anthropic credits).
  *   2. Payload validation — non-empty messages array, combined content
  *      <= 50,000 chars, system prompt <= 10,000 chars.
- *   3. Per-user daily rate limit (30/day) enforced in a Firestore transaction
- *      BEFORE the upstream call, so concurrent requests can't race past the cap.
+ *   3. Per-user daily rate limit (30/day free, 100/day Airborne — resolved
+ *      from entitlements/{uid}, written by rcWebhook) enforced in a Firestore
+ *      transaction BEFORE the upstream call, so concurrent requests can't
+ *      race past the cap.
  *   4. Anthropic errors are logged server-side but NEVER forwarded raw to the
  *      client — the app only ever sees a generic message.
  *
@@ -28,6 +30,7 @@
  *   5. Put the printed URL into assets/.env as AI_PROXY_URL=... and rebuild.
  */
 
+const crypto = require("crypto");
 const {onRequest} = require("firebase-functions/v2/https");
 const {defineSecret} = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
@@ -39,7 +42,12 @@ const ANTHROPIC_API_KEY = defineSecret("ANTHROPIC_API_KEY");
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 
 // Abuse / cost controls.
-const DAILY_LIMIT = 30; // max AI Coach calls per user per UTC day
+const DAILY_LIMIT = 30; // max AI Coach calls per user per UTC day (free tier)
+const AIRBORNE_DAILY_LIMIT = 100; // cap for active Airborne subscribers
+// Renewal webhooks can lag past the moment a subscription period rolls over.
+// Honor the paid cap for a grace window past expiresAt rather than dropping a
+// paying user to the free cap while RevenueCat retries the RENEWAL event.
+const ENTITLEMENT_GRACE_MS = 24 * 60 * 60 * 1000;
 const MAX_TOTAL_CONTENT_CHARS = 50000; // combined length of all message content
 const MAX_SYSTEM_CHARS = 10000;
 
@@ -301,6 +309,26 @@ exports.aiProxy = onRequest(
       //    count=29 and both proceed — the cap holds under parallelism. We
       //    increment BEFORE calling Anthropic so the slot is consumed up front.
       const db = admin.firestore();
+
+      // 3a. Resolve this user's cap. Airborne subscribers (ground truth in
+      //     entitlements/{uid}, written by rcWebhook) get the higher cap while
+      //     the entitlement is unexpired, +24h grace for renewal-webhook lag.
+      //     Missing doc = free tier; a read FAILURE also falls back to the
+      //     free tier and logs — never fail the request over the lookup (a
+      //     paying user degraded to 30/day beats an outage for everyone).
+      let dailyLimit = DAILY_LIMIT;
+      try {
+        const entSnap = await db.collection("entitlements").doc(uid).get();
+        const expiresAt = entSnap.exists ? entSnap.get("expiresAt") : null;
+        if (entSnap.exists && entSnap.get("airborne") === true &&
+            typeof expiresAt === "number" &&
+            expiresAt + ENTITLEMENT_GRACE_MS > Date.now()) {
+          dailyLimit = AIRBORNE_DAILY_LIMIT;
+        }
+      } catch (err) {
+        logger.error("entitlements read failed; using free-tier limit", err);
+      }
+
       const usageRef = db.collection("aiUsage").doc(uid);
       const today = utcDay();
       try {
@@ -308,7 +336,7 @@ exports.aiProxy = onRequest(
           const snap = await tx.get(usageRef);
           const sameDay = snap.exists && snap.get("date") === today;
           const count = sameDay ? (snap.get("count") || 0) : 0;
-          if (count >= DAILY_LIMIT) {
+          if (count >= dailyLimit) {
             throw new RateLimitError();
           }
           // Plain set (no merge): on a new day this overwrites the stale date
@@ -736,6 +764,146 @@ exports.deleteAccount = onRequest(
       }
 
       logger.info(`deleteAccount: completed for ${uid}`);
+      res.status(200).json({ok: true});
+    },
+);
+
+// ===========================================================================
+// RevenueCat webhook → Airborne entitlement ground truth
+//
+// RevenueCat calls this endpoint for every subscription lifecycle event
+// (INITIAL_PURCHASE, RENEWAL, CANCELLATION, UNCANCELLATION, EXPIRATION,
+// NON_RENEWING_PURCHASE, ...). On EVERY event we (re)write the ground truth:
+//
+//   entitlements/{app_user_id} = {airborne, expiresAt, updatedAt, lastEvent,
+//                                 lastEventMs}
+//
+// derived from the event's own entitlement/expiry fields — deliberately NOT a
+// per-event-type state machine. A CANCELLATION therefore keeps airborne=true
+// until the already-paid period actually lapses (its expiration_at_ms is
+// still in the future — cancelling only flags intent), and an EXPIRATION
+// flips it off, with zero special-casing.
+//
+// app_user_id IS the Firebase uid, because the app calls Purchases.logIn(uid)
+// on every auth transition (session coordinator, app.dart) — the same uid
+// aiProxy meters on. That's what lets aiProxy trust this collection.
+//
+// Auth: RevenueCat can't do IAM, so the dashboard is configured to send a
+// fixed Authorization header which must match the RC_WEBHOOK_SECRET secret
+// (constant-time compare). The function needs PUBLIC (unauthenticated) Cloud
+// Run invoker access — the shared secret IS the auth layer.
+//
+// Idempotent + retry-safe: replaying an event rewrites identical values, and
+// events older than the last applied one are skipped (lastEventMs guard in a
+// transaction) so delayed out-of-order retries can't regress the doc. Handled
+// AND irrelevant events both return 200 — RevenueCat retries any non-2xx, so
+// only a genuine write failure (worth retrying) returns 500.
+//
+// Deploy:
+//   1. firebase functions:secrets:set RC_WEBHOOK_SECRET  (same value goes in
+//      RevenueCat dashboard → Projects → Integrations → Webhooks →
+//      Authorization header)
+//   2. firebase deploy --only functions:rcWebhook
+//   3. Verify public invoker access (Cloud Run console → rcWebhook → allow
+//      unauthenticated), then paste the function URL into the RC dashboard.
+//   4. Smoke test aiProxy afterwards (see repo deploy notes): a JSON 401
+//      "Missing auth token" from curl -X POST means healthy; a Google HTML
+//      403 means the invoker binding was dropped by the redeploy.
+// ===========================================================================
+
+const RC_WEBHOOK_SECRET = defineSecret("RC_WEBHOOK_SECRET");
+const AIRBORNE_ENTITLEMENT_ID = "airborne";
+
+// Constant-time string comparison. Both sides are hashed first so unequal
+// lengths neither leak timing nor make timingSafeEqual throw.
+function secureEquals(a, b) {
+  const ha = crypto.createHash("sha256").update(String(a)).digest();
+  const hb = crypto.createHash("sha256").update(String(b)).digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
+
+exports.rcWebhook = onRequest(
+    {
+      secrets: [RC_WEBHOOK_SECRET],
+      region: "us-central1",
+      timeoutSeconds: 30,
+      memory: "256MiB",
+      // Server-to-server only (RevenueCat) — no browser, no CORS surface.
+      cors: false,
+      maxInstances: 5,
+    },
+    async (req, res) => {
+      if (req.method !== "POST") {
+        res.status(405).json({error: {message: "Method not allowed"}});
+        return;
+      }
+
+      // 1. Shared-secret auth. RevenueCat sends the configured Authorization
+      //    header verbatim on every delivery.
+      const provided = req.get("authorization") || "";
+      if (!provided || !secureEquals(provided, RC_WEBHOOK_SECRET.value())) {
+        logger.warn("rcWebhook: rejected request with bad/missing secret");
+        res.status(401).json({error: {message: "Unauthorized"}});
+        return;
+      }
+
+      // 2. Extract the event. Anything unattributable (no app_user_id, e.g.
+      //    TRANSFER) is acknowledged with 200 so RC doesn't retry it forever.
+      const event = (req.body && req.body.event) || null;
+      const appUserId = event && typeof event.app_user_id === "string" &&
+        event.app_user_id.length > 0 ? event.app_user_id : null;
+      if (!event || !appUserId) {
+        logger.info("rcWebhook: ignoring unattributable event", {
+          type: event && event.type,
+        });
+        res.status(200).json({ok: true, ignored: true});
+        return;
+      }
+
+      // 3. Ground truth straight from the event's own fields (never from the
+      //    event TYPE): entitled iff the event grants the airborne
+      //    entitlement AND its expiry is still in the future.
+      const entitlementIds = Array.isArray(event.entitlement_ids) ?
+        event.entitlement_ids :
+        (typeof event.entitlement_id === "string" ?
+          [event.entitlement_id] : []);
+      const expiresAt = typeof event.expiration_at_ms === "number" ?
+        event.expiration_at_ms : null;
+      const airborne = entitlementIds.includes(AIRBORNE_ENTITLEMENT_ID) &&
+        expiresAt !== null && expiresAt > Date.now();
+      const eventMs = typeof event.event_timestamp_ms === "number" ?
+        event.event_timestamp_ms : 0;
+
+      // 4. Transactional write with an out-of-order guard: an event older
+      //    than the last applied one is skipped; a replay of the SAME event
+      //    passes (>=) and rewrites identical values — idempotent either way.
+      try {
+        const db = admin.firestore();
+        const ref = db.collection("entitlements").doc(appUserId);
+        await db.runTransaction(async (tx) => {
+          const snap = await tx.get(ref);
+          const lastMs = snap.exists ? (snap.get("lastEventMs") || 0) : 0;
+          if (eventMs < lastMs) return;
+          tx.set(ref, {
+            airborne,
+            expiresAt,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastEvent: typeof event.type === "string" ? event.type : "UNKNOWN",
+            lastEventMs: eventMs,
+          });
+        });
+      } catch (err) {
+        logger.error("rcWebhook: entitlement write failed", err);
+        res.status(500).json({error: {message: "Write failed"}});
+        return;
+      }
+
+      logger.info("rcWebhook: applied", {
+        type: event.type,
+        appUserId,
+        airborne,
+        expiresAt,
+      });
       res.status(200).json({ok: true});
     },
 );
