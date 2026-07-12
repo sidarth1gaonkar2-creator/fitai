@@ -5,7 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
+import '../../../providers/entitlement_providers.dart';
+import '../../paywall/presentation/airborne_paywall.dart';
 import '../domain/app_theme_data.dart';
+import '../domain/theme_gate.dart';
 import '../providers/theme_providers.dart';
 
 /// Bottom sheet shown when a theme card is tapped. Previews the theme on a
@@ -20,10 +23,15 @@ class ThemePreviewSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = AppColors.of(context);
     final owned = ref.watch(ownedThemesProvider);
+    final unlocked = ref.watch(unlockedThemesProvider);
+    final airborne = ref.watch(airborneActiveProvider);
     final state = ref.watch(userThemeStateProvider);
     final coins = state.coins;
 
+    // Owned = bought with coins; unlocked additionally includes standard coin
+    // themes while Airborne is active (price bypass only — never ownership).
     final isOwned = owned.contains(theme.id);
+    final isUnlocked = unlocked.contains(theme.id);
     final isEquipped = state.equippedThemeId == theme.id;
     final canAfford = coins >= theme.price;
 
@@ -62,13 +70,18 @@ class ThemePreviewSheet extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 4),
-            _PriceLine(theme: theme, isOwned: isOwned, palette: palette),
+            _PriceLine(
+              theme: theme,
+              isOwned: isOwned,
+              isAirborneUnlock: isUnlocked && !isOwned,
+              palette: palette,
+            ),
             const SizedBox(height: 18),
             _MockDashboard(theme: theme),
             const SizedBox(height: 22),
             _ActionButton(
               theme: theme,
-              isOwned: isOwned,
+              isUnlocked: isUnlocked,
               isEquipped: isEquipped,
               canAfford: canAfford,
               palette: palette,
@@ -76,11 +89,30 @@ class ThemePreviewSheet extends ConsumerWidget {
                 context: context,
                 ref: ref,
                 isOwned: isOwned,
+                isUnlocked: isUnlocked,
                 isEquipped: isEquipped,
                 canAfford: canAfford,
               ),
             ),
-            if (!isOwned && !canAfford) ...[
+            // Airborne affordance on locked STANDARD themes — premium themes
+            // stay coin-only, and subscribers see no upsell.
+            if (!airborne && !isOwned && isStandardCoinTheme(theme)) ...[
+              const SizedBox(height: 8),
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                onPressed: () => _handleAirborneTap(context, ref),
+                child: Text(
+                  'Or unlock instantly with Airborne',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: palette.accent,
+                  ),
+                ),
+              ),
+            ],
+            if (!isUnlocked && !canAfford) ...[
               const SizedBox(height: 10),
               Text(
                 'Not enough coins — finish more workouts to earn more.',
@@ -98,18 +130,28 @@ class ThemePreviewSheet extends ConsumerWidget {
     );
   }
 
+  /// Opens the Airborne paywall; on success the sheet's providers rebuild and
+  /// the theme flips to unlocked in place.
+  Future<void> _handleAirborneTap(BuildContext context, WidgetRef ref) async {
+    HapticFeedback.selectionClick();
+    await presentAirbornePaywall(context, ref);
+  }
+
   Future<void> _handlePress({
     required BuildContext context,
     required WidgetRef ref,
     required bool isOwned,
+    required bool isUnlocked,
     required bool isEquipped,
     required bool canAfford,
   }) async {
     if (isEquipped) return;
     final notifier = ref.read(userThemeStateProvider.notifier);
-    if (isOwned) {
+    if (isUnlocked) {
       HapticFeedback.lightImpact();
-      await notifier.equip(theme.id);
+      // markOwned only for true coin ownership: an Airborne-unlocked equip
+      // must not grant the theme permanently (it re-locks if the sub lapses).
+      await notifier.equip(theme.id, markOwned: isOwned);
       if (!context.mounted) return;
       Navigator.of(context).pop();
       showCupertinoToast(context, 'Equipped “${theme.name}”');
@@ -151,11 +193,15 @@ class _PriceLine extends StatelessWidget {
   const _PriceLine({
     required this.theme,
     required this.isOwned,
+    required this.isAirborneUnlock,
     required this.palette,
   });
 
   final AppThemeData theme;
   final bool isOwned;
+
+  /// Equippable via the Airborne subscription rather than coin ownership.
+  final bool isAirborneUnlock;
   final Palette palette;
 
   @override
@@ -168,6 +214,18 @@ class _PriceLine extends StatelessWidget {
           fontFamily: 'Poppins',
           fontSize: 13,
           color: palette.textSecondary,
+        ),
+      );
+    }
+    if (isAirborneUnlock) {
+      return Text(
+        'Included with Airborne',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+          color: palette.accent,
         ),
       );
     }
@@ -197,7 +255,7 @@ class _PriceLine extends StatelessWidget {
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.theme,
-    required this.isOwned,
+    required this.isUnlocked,
     required this.isEquipped,
     required this.canAfford,
     required this.palette,
@@ -205,7 +263,7 @@ class _ActionButton extends StatelessWidget {
   });
 
   final AppThemeData theme;
-  final bool isOwned;
+  final bool isUnlocked;
   final bool isEquipped;
   final bool canAfford;
   final Palette palette;
@@ -218,7 +276,7 @@ class _ActionButton extends StatelessWidget {
     if (isEquipped) {
       label = 'Equipped ✓';
       enabled = false;
-    } else if (isOwned) {
+    } else if (isUnlocked) {
       label = 'Equip';
       enabled = true;
     } else if (!canAfford) {

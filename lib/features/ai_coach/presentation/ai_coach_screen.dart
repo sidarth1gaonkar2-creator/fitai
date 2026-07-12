@@ -5,6 +5,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/logger.dart';
 import '../../../models/enums.dart';
 import '../../../providers/ai_coach_providers.dart';
+import '../../../providers/entitlement_providers.dart';
+import '../../paywall/presentation/airborne_paywall.dart';
 import 'widgets/chat_bubble.dart';
 import 'widgets/chat_input_bar.dart';
 import 'widgets/coach_proposal_card.dart';
@@ -76,28 +78,38 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
     final chatState = ref.watch(aiChatControllerProvider);
 
     // Show errors as a Cupertino alert so the typing indicator is never
-    // left spinning silently.
+    // left spinning silently. The daily-cap 429 gets the Airborne upsell
+    // instead — but only for free-tier users; a subscriber who exhausts the
+    // higher cap sees the plain limit notice (nothing left to sell them).
     ref.listen<String?>(
       aiChatControllerProvider.select((s) => s.errorMessage),
       (prev, next) {
         if (next == null) return;
-        showCupertinoDialog<void>(
-          context: context,
-          builder: (ctx) => CupertinoAlertDialog(
-            title: const Text('AI Coach unavailable'),
-            content: Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(next),
-            ),
-            actions: [
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
+        final isDailyLimit =
+            ref.read(aiChatControllerProvider).errorIsDailyLimit;
+        final airborne = ref.read(airborneActiveProvider);
+        if (isDailyLimit && !airborne) {
+          _showDailyLimitUpsell(next);
+        } else {
+          showCupertinoDialog<void>(
+            context: context,
+            builder: (ctx) => CupertinoAlertDialog(
+              title: Text(
+                  isDailyLimit ? 'Daily limit reached' : 'AI Coach unavailable'),
+              content: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(next),
               ),
-            ],
-          ),
-        );
+              actions: [
+                CupertinoDialogAction(
+                  isDefaultAction: true,
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
         ref.read(aiChatControllerProvider.notifier).clearError();
       },
     );
@@ -189,6 +201,38 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
         ],
       ),
     );
+  }
+
+  /// Daily-cap dialog for free-tier users: the server's limit notice plus the
+  /// Airborne pitch. "Not now" is the quiet default; GO AIRBORNE opens the
+  /// RevenueCat paywall.
+  Future<void> _showDailyLimitUpsell(String message) async {
+    final goAirborne = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('Daily limit reached'),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            '$message\n\nAirborne raises your limit to 100 messages a day.',
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Not now'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('GO AIRBORNE'),
+          ),
+        ],
+      ),
+    );
+    if (goAirborne == true && mounted) {
+      await presentAirbornePaywall(context, ref);
+    }
   }
 
   Future<void> _showActions() async {

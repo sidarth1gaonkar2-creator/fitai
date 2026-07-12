@@ -48,6 +48,7 @@ class ChatState {
     this.isWaitingForStream = false,
     this.streamingContent = '',
     this.errorMessage,
+    this.errorIsDailyLimit = false,
   });
 
   final List<AIMessage> messages;
@@ -56,12 +57,18 @@ class ChatState {
   final String streamingContent;
   final String? errorMessage;
 
+  /// True when [errorMessage] is the server's daily-cap 429 — the screen
+  /// shows the Airborne upsell for it (free tier only) instead of the generic
+  /// error dialog.
+  final bool errorIsDailyLimit;
+
   ChatState copyWith({
     List<AIMessage>? messages,
     bool? isStreaming,
     bool? isWaitingForStream,
     String? streamingContent,
     String? Function()? errorMessage,
+    bool? errorIsDailyLimit,
   }) {
     return ChatState(
       messages: messages ?? this.messages,
@@ -70,6 +77,7 @@ class ChatState {
       streamingContent: streamingContent ?? this.streamingContent,
       errorMessage:
           errorMessage != null ? errorMessage() : this.errorMessage,
+      errorIsDailyLimit: errorIsDailyLimit ?? this.errorIsDailyLimit,
     );
   }
 }
@@ -281,6 +289,7 @@ class AIChatController extends StateNotifier<ChatState> {
         streamingContent: '',
         errorMessage: () =>
             'No internet connection. Connect to the network and try again.',
+        errorIsDailyLimit: false,
       );
     } on AnthropicException catch (e, st) {
       // Rate-limit / daily-cap is an expected 429, not a bug — don't error-log.
@@ -296,6 +305,7 @@ class AIChatController extends StateNotifier<ChatState> {
         errorMessage: () => e is AnthropicRateLimitException
             ? e.message
             : _friendlyError(e.message),
+        errorIsDailyLimit: e is AnthropicRateLimitException,
       );
     } catch (e, st) {
       AppLogger.error('AI coach: unexpected send failure', error: e, stack: st);
@@ -306,12 +316,16 @@ class AIChatController extends StateNotifier<ChatState> {
         streamingContent: '',
         errorMessage: () =>
             "Couldn't reach the AI coach. Check your connection and try again.",
+        errorIsDailyLimit: false,
       );
     }
   }
 
   void clearError() {
-    state = state.copyWith(errorMessage: () => null);
+    state = state.copyWith(
+      errorMessage: () => null,
+      errorIsDailyLimit: false,
+    );
   }
 
   Future<void> clearHistory() async {

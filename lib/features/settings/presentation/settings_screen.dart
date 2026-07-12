@@ -18,6 +18,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/community_providers.dart';
 import '../../../providers/dashboard_providers.dart';
 import '../../../providers/drill_sergeant_providers.dart';
+import '../../../providers/entitlement_providers.dart';
 import '../../../providers/notification_providers.dart';
 import '../../../providers/notification_reconciler.dart';
 import '../../../providers/health_providers.dart';
@@ -39,6 +40,7 @@ import '../../../utils/seed_community.dart';
 import '../../../utils/seed_nutrition.dart';
 import '../../../utils/seed_workouts.dart';
 import '../../community/data/leaderboard_repository.dart';
+import '../../paywall/presentation/airborne_paywall.dart';
 import '../../ranks/domain/military_ranks.dart';
 import '../../ranks/presentation/widgets/rank_badge.dart';
 import '../../ranks/providers/rank_providers.dart';
@@ -203,6 +205,14 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 24),
+
+                // Airborne section — subscription entry point + restore. No
+                // launch nags anywhere; this row and the in-context prompts
+                // (AI Coach limit, locked themes) are the only paywall doors.
+                _SectionLabel(label: 'Airborne', textTheme: textTheme),
+                const SizedBox(height: 8),
+                const _AirborneSection(),
                 const SizedBox(height: 24),
 
                 // Units section
@@ -1429,6 +1439,100 @@ class _SettingsCard extends StatelessWidget {
         border: Border.all(color: palette.border),
       ),
       child: child,
+    );
+  }
+}
+
+// ─── Airborne section ─────────────────────────────────────────────────────────
+
+/// Subscription entry point (a "GO AIRBORNE" row that opens the RevenueCat
+/// paywall) plus the App-Review-required Restore Purchases action. When the
+/// entitlement is active the row flips to a quiet status tile — subscribers
+/// never see an upsell.
+class _AirborneSection extends ConsumerWidget {
+  const _AirborneSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = AppColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final airborne = ref.watch(airborneActiveProvider);
+
+    return Column(
+      children: [
+        _SettingsCard(
+          child: CupertinoListTile(
+            leading: _SettingsIconBadge(
+              icon: CupertinoIcons.airplane,
+              color: palette.accent,
+            ),
+            title: Text(
+              airborne ? 'Airborne' : 'GO AIRBORNE',
+              style: textTheme.bodyLarge?.copyWith(
+                color: airborne ? palette.text : palette.accent,
+                fontWeight: FontWeight.w600,
+                letterSpacing: airborne ? null : 0.5,
+              ),
+            ),
+            subtitle: Text(
+              airborne
+                  ? 'Active · 100 coach messages a day + all standard themes'
+                  : '100 AI Coach messages a day + every standard theme',
+              style: textTheme.bodySmall?.copyWith(
+                color: palette.textSecondary,
+              ),
+            ),
+            trailing: airborne
+                ? Icon(
+                    CupertinoIcons.checkmark_seal_fill,
+                    color: palette.success,
+                    size: 20,
+                  )
+                : Icon(
+                    CupertinoIcons.chevron_right,
+                    color: palette.text,
+                    size: 18,
+                  ),
+            onTap: airborne
+                ? null
+                : () {
+                    HapticFeedback.selectionClick();
+                    presentAirbornePaywall(context, ref);
+                  },
+          ),
+        ),
+        const SizedBox(height: 8),
+        _SettingsCard(
+          child: CupertinoListTile(
+            leading: _SettingsIconBadge(
+              icon: CupertinoIcons.arrow_clockwise,
+              color: palette.accent,
+            ),
+            title: Text(
+              'Restore Purchases',
+              style: textTheme.bodyLarge?.copyWith(
+                color: palette.text,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            subtitle: Text(
+              'Already subscribed? Bring it to this device',
+              style: textTheme.bodySmall?.copyWith(
+                color: palette.textSecondary,
+              ),
+            ),
+            trailing: Icon(
+              CupertinoIcons.chevron_right,
+              color: palette.text,
+              size: 18,
+            ),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              restoreAirbornePurchases(context, ref);
+            },
+          ),
+        ),
+      ],
     );
   }
 }

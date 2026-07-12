@@ -21,6 +21,8 @@ class ThemeStoreScreen extends ConsumerWidget {
     final coins = ref.watch(coinBalanceProvider);
     final equippedId = ref.watch(activeThemeProvider).id;
     final owned = ref.watch(ownedThemesProvider);
+    // Owned ∪ Airborne-included standard themes — what's equippable today.
+    final unlocked = ref.watch(unlockedThemesProvider);
 
     return CupertinoPageScaffold(
       backgroundColor: palette.background,
@@ -48,7 +50,9 @@ class ThemeStoreScreen extends ConsumerWidget {
             final theme = themeRegistry[index];
             return _ThemeCard(
               theme: theme,
-              isOwned: owned.contains(theme.id),
+              isOwned: unlocked.contains(theme.id),
+              isAirborneUnlock:
+                  unlocked.contains(theme.id) && !owned.contains(theme.id),
               isEquipped: theme.id == equippedId,
               onTap: () => _openPreview(context, theme),
             );
@@ -71,12 +75,17 @@ class _ThemeCard extends StatelessWidget {
   const _ThemeCard({
     required this.theme,
     required this.isOwned,
+    required this.isAirborneUnlock,
     required this.isEquipped,
     required this.onTap,
   });
 
   final AppThemeData theme;
   final bool isOwned;
+
+  /// Equippable via the Airborne subscription (not coin-owned) — badged
+  /// "Included" so it never masquerades as permanent ownership.
+  final bool isAirborneUnlock;
   final bool isEquipped;
   final VoidCallback onTap;
 
@@ -135,7 +144,7 @@ class _ThemeCard extends StatelessWidget {
                         top: 8,
                         left: 8,
                         child: _Badge(
-                          label: 'Owned',
+                          label: isAirborneUnlock ? 'Included' : 'Owned',
                           background:
                               CupertinoColors.black.withValues(alpha: 0.55),
                           textColor: CupertinoColors.white,
