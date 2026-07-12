@@ -25,6 +25,7 @@ import 'providers/onboarding_gate_provider.dart';
 import 'providers/unit_system_provider.dart';
 import 'services/notification_service.dart';
 import 'services/pr_migration_service.dart';
+import 'services/revenuecat_service.dart';
 import 'services/weight_migration_service.dart';
 
 void main() {
@@ -122,6 +123,14 @@ Future<BootstrapResult> _bootstrap() async {
     isSignedIn = cached != null;
     bootUid = cached?.uid;
   }
+
+  // RevenueCat (Airborne subscription) — best-effort: a missing/invalid
+  // RC_APPLE_API_KEY logs and leaves the app fully usable in the free tier.
+  // Runs after dotenv (the key source) and after the auth resolve above so a
+  // signed-in launch binds purchases to the Firebase uid immediately — no
+  // anonymous-purchases window. Later transitions ride the session
+  // coordinator in app.dart.
+  await RevenueCatService.instance.configure(initialUid: bootUid);
 
   final prefs = await SharedPreferences.getInstance();
 

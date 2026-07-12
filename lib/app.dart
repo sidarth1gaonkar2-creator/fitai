@@ -15,6 +15,7 @@ import 'providers/isar_provider.dart';
 import 'providers/notification_reconciler.dart';
 import 'providers/settings_providers.dart';
 import 'routing/app_router.dart';
+import 'services/revenuecat_service.dart';
 
 class DrillFitApp extends ConsumerWidget {
   const DrillFitApp({super.key});
@@ -34,6 +35,12 @@ class DrillFitApp extends ConsumerWidget {
       if (next == prev) return;
       final session = ref.read(isarSessionManagerProvider);
       final reconciler = ref.read(notificationReconcilerProvider);
+      // RevenueCat identity rides the same transition (never a per-call-site
+      // concern): bind purchases to the incoming uid, or back to an anonymous
+      // id on sign-out — so purchases can never land under an anonymous
+      // RevenueCat id while a Firebase user is signed in. Independent of the
+      // Isar swap below; runs concurrently and never throws (logs internally).
+      unawaited(RevenueCatService.instance.setFirebaseUid(next));
       unawaited(
         session.switchToUid(next).then((_) async {
           if (next != null) {
