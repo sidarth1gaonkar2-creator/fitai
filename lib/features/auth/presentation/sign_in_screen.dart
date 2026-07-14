@@ -7,6 +7,7 @@ import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../providers/auth_provider.dart';
 import 'apple_sign_in_button.dart';
 import 'auth_error_dialog.dart';
+import 'forgot_password_sheet.dart';
 
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
@@ -48,21 +49,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     }
   }
 
-  Future<void> _forgotPassword() async {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      showCupertinoToast(context, 'Enter your email first.');
-      return;
-    }
-    try {
-      await ref.read(authServiceProvider).sendPasswordResetEmail(email);
-      if (mounted) {
-        showCupertinoToast(context, 'Password reset email sent.');
-      }
-    } catch (e, st) {
-      AppLogger.error('Password reset email failed', error: e, stack: st);
-      if (mounted) showAuthErrorDialog(context, e);
-    }
+  void _forgotPassword() {
+    showForgotPasswordSheet(context, initialEmail: _emailController.text);
   }
 
   @override

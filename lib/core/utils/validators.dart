@@ -1,3 +1,19 @@
+/// Pragmatic email shape check: local part, @, domain with a dot and a TLD of
+/// at least 2 chars. Deliberately NOT full RFC 5322 — Firebase is the final
+/// arbiter; this just catches obvious typos before a round-trip.
+final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]{2,}$');
+
+String? validateEmail(String? value) {
+  final trimmed = value?.trim() ?? '';
+  if (trimmed.isEmpty) {
+    return 'Email is required.';
+  }
+  if (!_emailPattern.hasMatch(trimmed)) {
+    return "That doesn't look like a real email address";
+  }
+  return null;
+}
+
 String? validateRequired(String? value, String fieldName) {
   if (value == null || value.trim().isEmpty) {
     return '$fieldName is required';
