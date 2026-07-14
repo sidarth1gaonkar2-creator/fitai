@@ -1,8 +1,12 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, Scaffold;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/logger.dart';
+import '../../../core/utils/validators.dart';
 import '../../../providers/auth_provider.dart';
 import 'apple_sign_in_button.dart';
 import 'auth_error_dialog.dart';
@@ -19,6 +23,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _emailFocus = FocusNode();
+  Timer? _emailDebounce;
 
   bool _isLoading = false;
   String? _nameError;
@@ -27,12 +33,43 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   String? _confirmError;
 
   @override
+  void initState() {
+    super.initState();
+    _emailFocus.addListener(_onEmailFocusChanged);
+  }
+
+  @override
   void dispose() {
+    _emailDebounce?.cancel();
+    _emailFocus.removeListener(_onEmailFocusChanged);
+    _emailFocus.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _onEmailFocusChanged() {
+    // Validate on blur — but an untouched empty field stays quiet until
+    // submit flags it.
+    if (_emailFocus.hasFocus) return;
+    _emailDebounce?.cancel();
+    if (_emailController.text.trim().isEmpty) return;
+    setState(() => _emailError = validateEmail(_emailController.text));
+  }
+
+  void _onEmailChanged(String value) {
+    _emailDebounce?.cancel();
+    // Clear the error the moment the input becomes valid.
+    if (_emailError != null && validateEmail(value) == null) {
+      setState(() => _emailError = null);
+      return;
+    }
+    _emailDebounce = Timer(const Duration(milliseconds: 700), () {
+      if (!mounted || value.trim().isEmpty) return;
+      setState(() => _emailError = validateEmail(value));
+    });
   }
 
   bool _validate() {
@@ -43,11 +80,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
     setState(() {
       _nameError = name.isEmpty ? 'Name is required.' : null;
-      _emailError = email.isEmpty
-          ? 'Email is required.'
-          : !email.contains('@')
-              ? 'Enter a valid email address.'
-              : null;
+      _emailError = validateEmail(email);
       _passwordError = password.isEmpty
           ? 'Password is required.'
           : password.length < 6
@@ -73,6 +106,27 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             _passwordController.text,
           );
       // Router redirect handles navigation (→ /onboarding since no profile)
+    } on FirebaseAuthException catch (e, st) {
+      AppLogger.error('Email sign-up failed (${e.code})', error: e, stack: st);
+      if (!mounted) return;
+      switch (e.code) {
+        case 'invalid-email':
+          setState(
+            () => _emailError = "That doesn't look like a real email address",
+          );
+        case 'email-already-in-use':
+          setState(
+            () => _emailError =
+                "That email's already enlisted. Sign in instead.",
+          );
+        case 'weak-password':
+          setState(
+            () => _passwordError =
+                'Password must be at least 6 characters. Give it some muscle.',
+          );
+        default:
+          showAuthErrorDialog(context, e);
+      }
     } catch (e, st) {
       AppLogger.error('Email sign-up failed', error: e, stack: st);
       if (mounted) showAuthErrorDialog(context, e);
@@ -134,10 +188,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               // Email field
               _AuthTextField(
                 controller: _emailController,
+                focusNode: _emailFocus,
                 placeholder: 'Email',
                 keyboardType: TextInputType.emailAddress,
                 autocorrect: false,
                 textInputAction: TextInputAction.next,
+                onChanged: _onEmailChanged,
                 error: _emailError,
               ),
               const SizedBox(height: 14),
@@ -202,22 +258,26 @@ class _AuthTextField extends StatelessWidget {
   const _AuthTextField({
     required this.controller,
     required this.placeholder,
+    this.focusNode,
     this.keyboardType,
     this.obscureText = false,
     this.autocorrect = true,
     this.textCapitalization = TextCapitalization.none,
     this.textInputAction,
+    this.onChanged,
     this.onSubmitted,
     this.error,
   });
 
   final TextEditingController controller;
   final String placeholder;
+  final FocusNode? focusNode;
   final TextInputType? keyboardType;
   final bool obscureText;
   final bool autocorrect;
   final TextCapitalization textCapitalization;
   final TextInputAction? textInputAction;
+  final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final String? error;
 
@@ -228,12 +288,14 @@ class _AuthTextField extends StatelessWidget {
       children: [
         CupertinoTextField(
           controller: controller,
+          focusNode: focusNode,
           placeholder: placeholder,
           keyboardType: keyboardType,
           obscureText: obscureText,
           autocorrect: autocorrect,
           textCapitalization: textCapitalization,
           textInputAction: textInputAction,
+          onChanged: onChanged,
           onSubmitted: onSubmitted,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
