@@ -56,3 +56,15 @@ flutter test                                              # unit + widget tests
 flutter analyze
 dart run build_runner build --delete-conflicting-outputs  # Isar codegen
 ```
+
+## Design Context
+
+Read `PRODUCT.md` (strategy: register, users, positioning, design principles) and
+`DESIGN.md` (visual spec) before any UI work. **DESIGN.md is the TARGET spec** —
+the Field Manual direction (ink/field/bone/brass, mono readouts, Oswald-class
+display), not the current iOS-generic look. New/reworked screens build to it. It
+supersedes the "persona lives in MESSAGES only" rule in
+`lib/features/ranks/domain/drill_sergeant.dart`: the drill sergeant now lives in
+the paint AND the copy. Non-negotiables: rank UI never shows purchase
+affordances; data-entry ergonomics beat theme; WCAG AA + Dynamic Type + reduced
+motion on all new UI.

@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-14T00:00:00Z",
+  "title": "Design System: DrillFit iOS App (Field Manual target spec)",
+  "extensions": {
+    "colorMeta": {
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#1A1C1A", "tonalRamp": ["#0D0E0D", "#1A1C1A", "#2E312E", "#454845", "#5E625E", "#7A7E7A", "#A3A6A3", "#D6D8D6"] },
+      "field": { "role": "neutral", "displayName": "Field", "canonical": "#21241F", "tonalRamp": ["#101210", "#21241F", "#33372F", "#484D42", "#5F6557", "#7C8272", "#A5AA9B", "#D4D7CC"] },
+      "field-raised": { "role": "neutral", "displayName": "Field Raised", "canonical": "#2A2E26" },
+      "bone": { "role": "neutral", "displayName": "Bone", "canonical": "#E8E4D8", "tonalRamp": ["#3A382F", "#565446", "#73705E", "#918D77", "#AFAB93", "#CCC8B4", "#E8E4D8", "#F7F5EE"] },
+      "muted-bone": { "role": "neutral", "displayName": "Muted Bone", "canonical": "#CDC8BA" },
+      "brass": { "role": "primary", "displayName": "Brass", "canonical": "#C8A24B", "tonalRamp": ["#2E2410", "#4A3A1D", "#66512A", "#846937", "#A38443", "#C8A24B", "#DDBE7E", "#F2E3C0"] },
+      "brass-pressed": { "role": "primary", "displayName": "Brass Pressed", "canonical": "#A38443" },
+      "olive": { "role": "secondary", "displayName": "Olive", "canonical": "#6B7257", "tonalRamp": ["#1C1E16", "#2F3325", "#434834", "#575E44", "#6B7257", "#8B9174", "#B0B49A", "#D8DACA"] },
+      "alert": { "role": "secondary", "displayName": "Alert Red", "canonical": "#C24A38", "tonalRamp": ["#33110C", "#571E15", "#7A2C1F", "#9E3A2A", "#C24A38", "#D67260", "#E69C8F", "#F5CFC8"] },
+      "rank-pvt": { "role": "tertiary", "displayName": "Rank — Private", "canonical": "#D14B3A" },
+      "rank-pfc": { "role": "tertiary", "displayName": "Rank — Private First Class", "canonical": "#E0A93A" },
+      "rank-spc": { "role": "tertiary", "displayName": "Rank — Specialist", "canonical": "#D4882A" },
+      "rank-cpl": { "role": "tertiary", "displayName": "Rank — Corporal", "canonical": "#8E6FD0" },
+      "rank-sgt": { "role": "tertiary", "displayName": "Rank — Sergeant", "canonical": "#A05FC9" },
+      "rank-ssg": { "role": "tertiary", "displayName": "Rank — Staff Sergeant", "canonical": "#4A90D9" },
+      "rank-sfc": { "role": "tertiary", "displayName": "Rank — Sergeant First Class", "canonical": "#3B6FC4" },
+      "rank-msg": { "role": "tertiary", "displayName": "Rank — Master Sergeant", "canonical": "#3FBF4A" },
+      "rank-1sg": { "role": "tertiary", "displayName": "Rank — First Sergeant", "canonical": "#C9B97A" },
+      "rank-sma": { "role": "tertiary", "displayName": "Rank — Sergeant Major", "canonical": "#A8A06A" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Screen titles, ceremony headlines, rank names. Uppercase commands only. Dynamic Type scaled." },
+      "headline": { "displayName": "Headline", "purpose": "Section headers and card group titles. Uppercase." },
+      "title": { "displayName": "Title", "purpose": "Card headings, exercise names, list row leads. Uppercase." },
+      "body": { "displayName": "Body", "purpose": "Coach chat, descriptions, settings, notes. Sentence case, never uppercase." },
+      "label": { "displayName": "Label / Readout", "purpose": "Weights, reps, streaks, targets, timers, rank abbreviations. Mono, tabular figures, arm's-length legible." }
+    },
+    "shadows": [
+      { "name": "ceremony-glow", "value": "drop-shadow in the rank tier color at ~45% alpha, brass bloom on CTAs", "purpose": "Earned moments only — PROMOTED overlays, rank-ups, streak milestones. Chrome itself casts no shadows." }
+    ],
+    "motion": [
+      { "name": "standard-transition", "value": "ease-out (quart/quint), 150-300ms, transform/opacity only", "purpose": "Screen pushes and state changes. Quiet chrome — no bounce, no elastic." },
+      { "name": "ceremony", "value": "orchestrated entrance: insignia scale-in with tier-color glow, headline rise; ~600-900ms total", "purpose": "Promotion and milestone overlays. Loud, theatrical, earned, skippable." },
+      { "name": "reduced-motion", "value": "MediaQuery.disableAnimations → crossfade or instant everywhere, including ceremonies", "purpose": "Hard requirement on all new work; currently absent from the codebase (known gap)." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Brass command button. Informational reference — the app is Flutter/iOS; snippets approximate the target look.",
+      "html": "<button class=\"ds-btn-primary\">Log Set</button>",
+      "css": ".ds-btn-primary { font-family: 'Oswald', 'Arial Narrow', sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-size: 1rem; background: #C8A24B; color: #1A1C1A; padding: 14px 24px; border-radius: 4px; border: none; min-height: 44px; cursor: pointer; } .ds-btn-primary:active { background: #A38443; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Quiet hairline secondary action.",
+      "html": "<button class=\"ds-btn-secondary\">Skip Rest</button>",
+      "css": ".ds-btn-secondary { font-family: 'Oswald', 'Arial Narrow', sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-size: 1rem; background: transparent; color: #E8E4D8; padding: 14px 24px; border-radius: 4px; border: 1px solid rgba(232,228,216,0.16); min-height: 44px; cursor: pointer; } .ds-btn-secondary:active { background: #2A2E26; }"
+    },
+    {
+      "name": "Stat Readout",
+      "kind": "custom",
+      "refersTo": "stat-readout",
+      "description": "Instrument-panel stat: olive mono label over a bone mono value.",
+      "html": "<div class=\"ds-readout\"><span class=\"ds-readout-label\">Bench Press</span><span class=\"ds-readout-value\">225 LB × 5</span></div>",
+      "css": ".ds-readout { display: inline-flex; flex-direction: column; gap: 4px; background: #21241F; border: 1px solid rgba(232,228,216,0.1); border-radius: 8px; padding: 16px; } .ds-readout-label { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #6B7257; } .ds-readout-value { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 1.4rem; font-weight: 700; color: #E8E4D8; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Rank Row",
+      "kind": "custom",
+      "refersTo": "card-surface",
+      "description": "List row with tier-colored insignia, mono abbreviation, and condensed rank name.",
+      "html": "<div class=\"ds-rank-row\"><svg class=\"ds-rank-insignia\" viewBox=\"0 0 40 48\" fill=\"none\" stroke=\"#4A90D9\" stroke-width=\"3.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 20 L20 11 L34 20\"/><path d=\"M6 30 L20 21 L34 30\"/><path d=\"M6 40 L20 31 L34 40\"/></svg><span class=\"ds-rank-abbr\">SSG</span><span class=\"ds-rank-name\">Staff Sergeant</span></div>",
+      "css": ".ds-rank-row { display: flex; align-items: center; gap: 14px; background: #21241F; border: 1px solid rgba(232,228,216,0.08); border-radius: 8px; padding: 12px 16px; } .ds-rank-insignia { width: 28px; height: 34px; flex: none; } .ds-rank-abbr { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 0.82rem; font-weight: 700; color: #4A90D9; min-width: 42px; } .ds-rank-name { font-family: 'Oswald', 'Arial Narrow', sans-serif; font-weight: 600; font-size: 1.1rem; letter-spacing: 0.02em; text-transform: uppercase; color: #E8E4D8; }"
+    },
+    {
+      "name": "Numeric Input",
+      "kind": "input",
+      "refersTo": "card-surface",
+      "description": "Set-logging field: mono numerals, big steppers, accent focus border.",
+      "html": "<div class=\"ds-set-input\"><button class=\"ds-step\">−</button><input class=\"ds-num\" value=\"225\" inputmode=\"numeric\" aria-label=\"Weight in pounds\"><button class=\"ds-step\">+</button></div>",
+      "css": ".ds-set-input { display: inline-flex; align-items: stretch; gap: 8px; } .ds-num { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 1.3rem; font-weight: 700; color: #E8E4D8; background: #2A2E26; border: 1px solid rgba(232,228,216,0.16); border-radius: 4px; width: 96px; text-align: center; font-variant-numeric: tabular-nums; } .ds-num:focus { outline: none; border-color: #C8A24B; } .ds-step { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 1.2rem; font-weight: 700; color: #E8E4D8; background: #21241F; border: 1px solid rgba(232,228,216,0.16); border-radius: 4px; min-width: 44px; min-height: 44px; cursor: pointer; } .ds-step:active { background: #2A2E26; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Field Manual",
+    "overview": "DrillFit should look like military field equipment, not like a fitness app. The design language extends drillfit.com's Field Manual aesthetic into a daily-use tool: near-black ink and field surfaces, bone text, brass as the primary accent, olive for secondary structure, alert red used sparingly. Weights, streaks, and targets read like instrument panels — monospace readouts on dark equipment panels. Rank insignia are first-class UI citizens, color-coded per tier. Texture cues from the manual — stamped labels, thin rules, mono eyebrows — are used with restraint: regulation equipment, not cosplay. Chrome is quiet; ceremonies are not. Ergonomics outrank theme: logging a set mid-workout stays fast, legible at arm's length, WCAG AA, and Dynamic-Type safe. This is the TARGET spec — the shipping app still wears an iOS-generic skin that new and reworked screens migrate away from.",
+    "keyCharacteristics": [
+      "Ink/field dark equipment surfaces with bone text and one brass voice",
+      "Monospace instrument readouts for every number the user trains against",
+      "Condensed uppercase display type for headers, rank names, and commands",
+      "Rank insignia as color-coded, first-class UI citizens",
+      "Quiet chrome, loud earned ceremonies"
+    ],
+    "rules": [
+      { "name": "The Accent Swap Rule", "body": "Theme packs survive as accent swaps inside Field Manual chrome: surfaces, text, type, and insignia are constant; a pack replaces brass with its accent and pressed variant. Brass is the default issue. The coin/Airborne economy is untouched.", "section": "colors" },
+      { "name": "The One Voice Rule", "body": "Exactly one accent is live at a time. Rank colors belong to insignia and ceremonies; alert red belongs to consequences. No screen mixes accents.", "section": "colors" },
+      { "name": "The Olive Floor Rule", "body": "Olive never carries reading text. Secondary copy is Muted Bone (≥4.5:1 on ink); olive is for large labels and structure only.", "section": "colors" },
+      { "name": "The Instrument Panel Rule", "body": "Every number the user trains against — weight, reps, streak, target, timer — sets in mono, sized to be read at arm's length mid-set.", "section": "typography" },
+      { "name": "The Bark Budget Rule", "body": "Uppercase display type is for commands, designations, and ceremonies. Body copy and coach chat stay sentence-case — the sergeant shouts headlines, not paragraphs.", "section": "typography" },
+      { "name": "The Quiet Chrome / Loud Ceremony Rule", "body": "Resting surfaces are flat and shadowless. Glow and spectacle are reserved for earned moments — PROMOTED, rank-up, streak milestone — and end when the moment does.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do build new screens to this spec and migrate reworked screens toward it; the iOS-generic look is the outgoing state, not a second theme.",
+      "Do set every trained-against number in mono at arm's-length sizes.",
+      "Do keep logging a set fast, one-handed, and ≥44pt per target — ergonomics outrank theme every time they conflict.",
+      "Do scale all type with Dynamic Type and ship a reduced-motion alternative with every animation — both are hard requirements on new work.",
+      "Do keep ceremonies loud and earned: rank-ups and streak milestones get spectacle; nothing else does.",
+      "Do keep theme packs as accent swaps only — surfaces, type, and insignia never change with a pack."
+    ],
+    "donts": [
+      "Don't use Apple Fitness as a reference — no ring lineage, no vivid-accents-on-black system look.",
+      "Don't ship generic Material trackers, pastel wellness apps, or Inter-and-purple-gradient AI slop.",
+      "Don't use system blue (#0A84FF) as a brand color or default Apple grouped surfaces as chrome.",
+      "Don't show purchase affordances anywhere in rank progression UI — rank is sacred; Airborne never touches rank, coins, or streaks.",
+      "Don't let olive carry body text, or any text fall below 4.5:1 on its surface.",
+      "Don't play the military theme as cosplay — no camo textures, no gratuitous stamps. One stamp is a mark; five is a costume.",
+      "Don't celebrate the unearned — no confetti for opening the app, no praise for incomplete work."
+    ]
+  }
+}
