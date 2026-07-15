@@ -6,11 +6,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/utils/scoped_prefs.dart';
 import '../../../core/utils/unit_converter.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../core/widgets/error_card.dart';
+import '../../../core/widgets/jump_wings.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../data/motivator_messages.dart';
 import '../../../models/enums.dart';
@@ -1462,14 +1464,25 @@ class _AirborneSection extends ConsumerWidget {
       children: [
         _SettingsCard(
           child: CupertinoListTile(
-            leading: _SettingsIconBadge(
-              icon: CupertinoIcons.airplane,
-              color: palette.accent,
+            // Airborne wears its own insignia and brass — the one accent the
+            // equipped theme never swaps (DESIGN.md, Accent Swap Rule).
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                color: FieldManual.brass,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: JumpWings(width: 26, color: FieldManual.ink),
+              ),
             ),
             title: Text(
               airborne ? 'Airborne' : 'GO AIRBORNE',
               style: textTheme.bodyLarge?.copyWith(
-                color: airborne ? palette.text : palette.accent,
+                color: airborne
+                    ? palette.text
+                    : FieldManual.brassOn(palette.background),
                 fontWeight: FontWeight.w600,
                 letterSpacing: airborne ? null : 0.5,
               ),

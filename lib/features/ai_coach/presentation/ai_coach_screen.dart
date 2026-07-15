@@ -214,7 +214,8 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
         content: Padding(
           padding: const EdgeInsets.only(top: 8),
           child: Text(
-            '$message\n\nAirborne raises your limit to 100 messages a day.',
+            '$message\n\n15 a day is standard issue. '
+            'Airborne raises it to 100.',
           ),
         ),
         actions: [

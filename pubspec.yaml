@@ -42,7 +42,7 @@ dependencies:
   sign_in_with_apple: ^8.1.0
   crypto: ^3.0.7
   purchases_flutter: ^10.4.1
-  purchases_ui_flutter: ^10.4.1
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -79,3 +79,14 @@ flutter:
           weight: 500
         - asset: assets/fonts/LeagueSpartan-Bold.ttf
           weight: 700
+    # Field Manual faces (variable fonts; weights selected via
+    # FontVariation in FieldManual text styles, not the weight: axis here).
+    - family: Oswald
+      fonts:
+        - asset: assets/fonts/Oswald-Variable.ttf
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Variable.ttf

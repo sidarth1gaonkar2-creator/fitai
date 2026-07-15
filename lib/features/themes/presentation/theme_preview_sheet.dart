@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
+import '../../../core/widgets/jump_wings.dart';
 import '../../../providers/entitlement_providers.dart';
 import '../../paywall/presentation/airborne_paywall.dart';
 import '../domain/app_theme_data.dart';
@@ -101,14 +103,26 @@ class ThemePreviewSheet extends ConsumerWidget {
               CupertinoButton(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 onPressed: () => _handleAirborneTap(context, ref),
-                child: Text(
-                  'Or unlock instantly with Airborne',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: palette.accent,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    JumpWings(
+                      width: 24,
+                      color: FieldManual.brassOn(palette.surface),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Or go Airborne — every standard theme, issued.',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: FieldManual.brassOn(palette.surface),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
