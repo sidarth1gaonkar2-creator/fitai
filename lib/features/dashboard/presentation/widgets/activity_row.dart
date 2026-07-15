@@ -5,10 +5,9 @@ import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/unit_converter.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
-import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../providers/health_providers.dart';
 import '../../../../providers/unit_system_provider.dart';
 import '../../../../services/health_service.dart';
@@ -91,53 +90,45 @@ class _ConnectBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-    return CupertinoCard(
-      onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: palette.accent.withValues(alpha: 0.18),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.favorite, color: palette.accent, size: 18),
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: FieldManual.field,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: FieldManual.hairline),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Connect Apple Health',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: palette.text,
-                  ),
+          child: Row(
+            children: [
+              const Icon(Icons.favorite, color: FieldManual.olive, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Connect Apple Health',
+                        style: FieldManual.body(fontSize: 14)),
+                    Text(
+                      'Sync steps, calories, heart rate and sleep',
+                      style: FieldManual.body(
+                          color: FieldManual.mutedBone, fontSize: 12),
+                    ),
+                  ],
                 ),
-                Text(
-                  'Sync steps, calories, heart rate and sleep',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    color: palette.textSecondary,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const Icon(
+                CupertinoIcons.chevron_right,
+                size: 16,
+                color: FieldManual.mutedBone,
+              ),
+            ],
           ),
-          Icon(
-            CupertinoIcons.chevron_right,
-            size: 16,
-            color: palette.textSecondary,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -272,39 +263,29 @@ class _ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return Container(
       width: 90,
       height: 80,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: palette.border),
+        color: FieldManual.field,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: FieldManual.hairline),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, size: 18, color: palette.accent),
+          Icon(icon, size: 15, color: FieldManual.olive),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-              color: palette.text,
-            ),
+            style: FieldManual.readout(fontSize: 14),
           ),
           Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 11,
-              color: palette.textSecondary,
-            ),
+            label.toUpperCase(),
+            style: FieldManual.label(fontSize: 8),
           ),
         ],
       ),
@@ -320,10 +301,14 @@ class _LoadingRow extends StatelessWidget {
       padding: EdgeInsets.zero,
       itemCount: 6,
       separatorBuilder: (_, _) => const SizedBox(width: 8),
-      itemBuilder: (_, _) => const ShimmerBox(
+      itemBuilder: (_, _) => Container(
         width: 90,
         height: 80,
-        borderRadius: 14,
+        decoration: BoxDecoration(
+          color: FieldManual.field,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: FieldManual.hairline),
+        ),
       ),
     );
   }
@@ -346,7 +331,7 @@ class _ErrorRow extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               'Retry Apple Health',
-              style: TextStyle(color: AppColors.of(context).text),
+              style: FieldManual.body(fontSize: 14),
             ),
           ],
         ),

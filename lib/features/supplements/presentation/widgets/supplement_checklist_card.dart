@@ -1,14 +1,13 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/logger.dart';
-import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../models/enums.dart';
 import '../../../../providers/supplement_providers.dart';
 
+/// Daily supplements as a Field Manual checklist panel. Dashboard-only.
 class SupplementChecklistCard extends ConsumerWidget {
   const SupplementChecklistCard({super.key});
 
@@ -16,63 +15,47 @@ class SupplementChecklistCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final checklistAsync = ref.watch(supplementChecklistProvider);
 
-    final palette = AppColors.of(context);
     return checklistAsync.when(
       data: (items) {
-        // Empty state — always show the card
+        // Empty state — always show the card, teaching the feature.
         if (items.isEmpty) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: palette.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: palette.border),
-            ),
+          return _panel(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    Icon(CupertinoIcons.capsule,
-                        color: palette.accent, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Supplements',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: palette.text,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
+                Text('SUPPLEMENTS', style: FieldManual.label(fontSize: 9)),
+                const SizedBox(height: 10),
                 Text(
-                  'Add supplements to track your daily intake',
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
+                  'Add supplements to track your daily intake.',
+                  style: FieldManual.body(
+                    color: FieldManual.mutedBone,
                     fontSize: 13,
-                    color: palette.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: CupertinoButton(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    color: palette.accent,
-                    borderRadius: BorderRadius.circular(10),
-                    onPressed: () {
+                Semantics(
+                  button: true,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
                       HapticFeedback.selectionClick();
                       context.push('/supplements');
                     },
-                    child: const Text(
-                      '+ Add Supplements',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        color: Colors.white,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: FieldManual.brass.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Text(
+                        '+ ADD SUPPLEMENTS',
+                        style: FieldManual.label(
+                          color: FieldManual.brass,
+                          fontSize: 10,
+                        ),
                       ),
                     ),
                   ),
@@ -82,50 +65,36 @@ class SupplementChecklistCard extends ConsumerWidget {
           );
         }
 
-        // Active checklist
+        // Active checklist.
         final takenCount = items.where((i) => i.taken).length;
+        final complete = takenCount == items.length;
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: palette.border),
-          ),
+        return _panel(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(CupertinoIcons.capsule,
-                      color: palette.accent, size: 20),
-                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Supplements',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: palette.text,
-                      ),
+                      'SUPPLEMENTS',
+                      style: FieldManual.label(fontSize: 9),
                     ),
                   ),
                   Text(
                     '$takenCount/${items.length}',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
+                    style: FieldManual.readout(
                       fontSize: 13,
-                      color: takenCount == items.length
-                          ? palette.success
-                          : palette.textSecondary,
+                      color: complete
+                          ? FieldManual.brass
+                          : FieldManual.mutedBone,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               ...items.map((item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.only(bottom: 10),
                     child: GestureDetector(
                       onTap: () {
                         HapticFeedback.selectionClick();
@@ -137,54 +106,54 @@ class SupplementChecklistCard extends ConsumerWidget {
                         children: [
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            width: 24,
-                            height: 24,
+                            width: 22,
+                            height: 22,
                             decoration: BoxDecoration(
-                              color: item.taken
-                                  ? palette.accent
-                                  : palette.surface,
-                              borderRadius: BorderRadius.circular(6),
+                              color: item.taken ? FieldManual.brass : null,
+                              borderRadius: BorderRadius.circular(4),
                               border: item.taken
                                   ? null
                                   : Border.all(
-                                      color: palette.accent, width: 1.5),
+                                      color: FieldManual.hairlineStrong,
+                                      width: 1.5,
+                                    ),
                             ),
                             child: item.taken
-                                ? const Icon(CupertinoIcons.checkmark,
-                                    size: 14, color: Colors.white)
+                                ? const Icon(
+                                    CupertinoIcons.checkmark,
+                                    size: 13,
+                                    color: FieldManual.ink,
+                                  )
                                 : null,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               item.supplement.name,
-                              style: TextStyle(
-                                fontFamily: 'LeagueSpartan',
+                              style: FieldManual.body(
                                 fontSize: 14,
                                 color: item.taken
-                                    ? palette.textSecondary
-                                    : palette.text,
+                                    ? FieldManual.mutedBone
+                                    : FieldManual.bone,
+                              ).copyWith(
                                 decoration: item.taken
                                     ? TextDecoration.lineThrough
                                     : null,
+                                decorationColor: FieldManual.mutedBone,
                               ),
                             ),
                           ),
                           Text(
-                            '${item.supplement.dosage} ${item.supplement.unit}',
-                            style: TextStyle(
-                              fontFamily: 'LeagueSpartan',
-                              fontSize: 12,
-                              color: palette.textSecondary,
-                            ),
+                            '${item.supplement.dosage} ${item.supplement.unit}'
+                                .toUpperCase(),
+                            style: FieldManual.label(fontSize: 8),
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            item.supplement.timing.label,
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 11,
-                              color: palette.accent.withValues(alpha: 0.7),
+                            item.supplement.timing.label.toUpperCase(),
+                            style: FieldManual.label(
+                              color: FieldManual.mutedBone,
+                              fontSize: 8,
                             ),
                           ),
                         ],
@@ -195,52 +164,42 @@ class SupplementChecklistCard extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const ShimmerBox(
-          width: double.infinity, height: 100, borderRadius: 16),
+      loading: () => Container(
+        height: 100,
+        decoration: BoxDecoration(
+          color: FieldManual.field,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: FieldManual.hairline),
+        ),
+      ),
       error: (e, st) {
         AppLogger.error(
           'Supplement checklist load failed',
           error: e,
           stack: st,
         );
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: palette.border),
-          ),
+        return _panel(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(CupertinoIcons.exclamationmark_circle,
-                  size: 28, color: palette.destructive),
-              const SizedBox(height: 8),
-              Text(
-                'Could not load supplements',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: palette.text,
-                ),
+              const Icon(
+                CupertinoIcons.exclamationmark_circle,
+                size: 24,
+                color: FieldManual.alert,
               ),
               const SizedBox(height: 8),
+              Text(
+                'Could not load supplements.',
+                style: FieldManual.body(fontSize: 14),
+              ),
+              const SizedBox(height: 10),
               CupertinoButton(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 6),
-                color: palette.accent,
-                borderRadius: BorderRadius.circular(8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                color: FieldManual.fieldRaised,
+                borderRadius: BorderRadius.circular(4),
                 onPressed: () => ref.invalidate(supplementChecklistProvider),
-                child: const Text(
-                  'Retry',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
+                child: Text('RETRY', style: FieldManual.title()),
               ),
             ],
           ),
@@ -248,4 +207,14 @@ class SupplementChecklistCard extends ConsumerWidget {
       },
     );
   }
+
+  static Widget _panel({required Widget child}) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: FieldManual.field,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: FieldManual.hairline),
+        ),
+        child: child,
+      );
 }
