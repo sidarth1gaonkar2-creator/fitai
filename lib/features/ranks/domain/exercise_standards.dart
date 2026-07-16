@@ -9,13 +9,13 @@ enum RankGroup { chest, back, legs, shoulders, arms, core }
 
 extension RankGroupLabel on RankGroup {
   String get label => switch (this) {
-        RankGroup.chest => 'Chest',
-        RankGroup.back => 'Back',
-        RankGroup.legs => 'Legs',
-        RankGroup.shoulders => 'Shoulders',
-        RankGroup.arms => 'Arms',
-        RankGroup.core => 'Core',
-      };
+    RankGroup.chest => 'Chest',
+    RankGroup.back => 'Back',
+    RankGroup.legs => 'Legs',
+    RankGroup.shoulders => 'Shoulders',
+    RankGroup.arms => 'Arms',
+    RankGroup.core => 'Core',
+  };
 }
 
 /// Strength standard for one exercise: the 10 allometric rank thresholds plus
@@ -77,16 +77,31 @@ const _lowerGeneric = [2.1, 3.15, 4.2, 4.9, 5.6, 6.65, 7.7, 8.75, 9.8, 11.2];
 // [kCalibrationE1rmFactor] (the 5-rep Epley factor) before use — this keeps a
 // ~5-rep working lifter at the same rank as before. The raw numbers are kept
 // literal above so the original calibration stays legible.
-List<double> _cal(List<double> raw) =>
-    [for (final v in raw) v * kCalibrationE1rmFactor];
+List<double> _cal(List<double> raw) => [
+  for (final v in raw) v * kCalibrationE1rmFactor,
+];
 
 // Convenience builders to keep the table readable.
 ExerciseStandard _c(List<double> t, RankGroup g, {double mult = 1.0}) =>
-    ExerciseStandard(thresholds: _cal(t), group: g, isCompound: true, weightMultiplier: mult);
+    ExerciseStandard(
+      thresholds: _cal(t),
+      group: g,
+      isCompound: true,
+      weightMultiplier: mult,
+    );
 ExerciseStandard _i(List<double> t, RankGroup g, {double mult = 1.0}) =>
-    ExerciseStandard(thresholds: _cal(t), group: g, isCompound: false, weightMultiplier: mult);
-ExerciseStandard _skip(RankGroup g) =>
-    ExerciseStandard(thresholds: _cal(_curl), group: g, isCompound: false, rankable: false);
+    ExerciseStandard(
+      thresholds: _cal(t),
+      group: g,
+      isCompound: false,
+      weightMultiplier: mult,
+    );
+ExerciseStandard _skip(RankGroup g) => ExerciseStandard(
+  thresholds: _cal(_curl),
+  group: g,
+  isCompound: false,
+  rankable: false,
+);
 
 /// Per-exercise standards keyed by the library's exercise **id**. Covers every
 /// exercise in [exerciseLibrary]; anything else resolves through the muscle-
@@ -159,7 +174,10 @@ final Map<String, ExerciseStandard> exerciseStandards = {
   'rear_delt_fly': _i(_lateralRaise, RankGroup.shoulders, mult: 2.0),
   'arnold_press': _c(_ohp, RankGroup.shoulders, mult: 2.0),
   'upright_row': _c(_ohp, RankGroup.shoulders),
-  'face_pull': _i(_facePull, RankGroup.shoulders), // spec groups face pulls → shoulders
+  'face_pull': _i(
+    _facePull,
+    RankGroup.shoulders,
+  ), // spec groups face pulls → shoulders
   'cable_lateral_raise': _i(_lateralRaise, RankGroup.shoulders),
   'landmine_press': _c(_ohp, RankGroup.shoulders),
   'seated_dumbbell_shoulder_press': _c(_ohp, RankGroup.shoulders, mult: 2.0),
@@ -312,7 +330,9 @@ ExerciseStandard? standardForExercise({
     if (byLibId != null) return byLibId;
     // Library knows it but it's not in the table — derive a group from its
     // primary muscle and use the generic standard.
-    final primary = def.primaryMuscles.isNotEmpty ? def.primaryMuscles.first : null;
+    final primary = def.primaryMuscles.isNotEmpty
+        ? def.primaryMuscles.first
+        : null;
     final group = primary != null ? rankGroupForMuscle(primary) : null;
     if (group != null) return _genericForGroup(group);
   }

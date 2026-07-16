@@ -43,34 +43,37 @@ class RankInfo {
   final bool hasStar;
 }
 
+// Rank colours are the canonical Field Manual rank ramp from drillfit.com
+// (DESIGN.md §Colors, mapped positionally: app tier N wears ramp colour N).
+// They belong to insignia and ceremonies only — never to app chrome.
 const Map<MilitaryRank, RankInfo> _rankInfo = {
   MilitaryRank.private_e1: RankInfo(
     name: 'Private',
     abbreviation: 'PVT',
     chevronCount: 1,
     minimumScore: 0,
-    color: Color(0xFF8E8E93), // gray
+    color: Color(0xFFD14B3A), // ramp: rank-pvt
   ),
   MilitaryRank.privateFc_e2: RankInfo(
     name: 'Private First Class',
     abbreviation: 'PFC',
     chevronCount: 2,
     minimumScore: 1,
-    color: Color(0xFF7C8A5C), // olive green
+    color: Color(0xFFE0A93A), // ramp: rank-pfc
   ),
   MilitaryRank.corporal_e3: RankInfo(
     name: 'Corporal',
     abbreviation: 'CPL',
     chevronCount: 3,
     minimumScore: 2,
-    color: Color(0xFF30D158), // green
+    color: Color(0xFFD4882A), // ramp: tier 3
   ),
   MilitaryRank.specialist_e4: RankInfo(
     name: 'Specialist',
     abbreviation: 'SPC',
     chevronCount: 0,
     minimumScore: 3,
-    color: Color(0xFF5AC8FA), // teal / cyan
+    color: Color(0xFF8E6FD0), // ramp: tier 4
     hasEagle: true, // specialist "eagle" / shield badge
   ),
   MilitaryRank.sergeant_e5: RankInfo(
@@ -78,35 +81,35 @@ const Map<MilitaryRank, RankInfo> _rankInfo = {
     abbreviation: 'SGT',
     chevronCount: 3,
     minimumScore: 4,
-    color: Color(0xFF0A84FF), // blue
+    color: Color(0xFFA05FC9), // ramp: rank-sgt
   ),
   MilitaryRank.staffSergeant_e6: RankInfo(
     name: 'Staff Sergeant',
     abbreviation: 'SSG',
     chevronCount: 4,
     minimumScore: 5,
-    color: Color(0xFF5856D6), // indigo
+    color: Color(0xFF4A90D9), // ramp: rank-ssg
   ),
   MilitaryRank.sergeantFc_e7: RankInfo(
     name: 'Sergeant First Class',
     abbreviation: 'SFC',
     chevronCount: 5,
     minimumScore: 6,
-    color: Color(0xFFAF52DE), // purple
+    color: Color(0xFF3B6FC4), // ramp: rank-sfc
   ),
   MilitaryRank.masterSergeant_e8: RankInfo(
     name: 'Master Sergeant',
     abbreviation: 'MSG',
     chevronCount: 6,
     minimumScore: 7,
-    color: Color(0xFFFFD60A), // yellow / gold
+    color: Color(0xFF3FBF4A), // ramp: rank-msg
   ),
   MilitaryRank.sergeantMajor_e9: RankInfo(
     name: 'Sergeant Major',
     abbreviation: 'SGM',
     chevronCount: 3,
     minimumScore: 8,
-    color: Color(0xFFFF9F0A), // amber / gold
+    color: Color(0xFFC9B97A), // ramp: tier 9
     hasStar: true, // 3 chevrons + 3 rockers + star
   ),
   MilitaryRank.sgmArmy_e10: RankInfo(
@@ -114,7 +117,7 @@ const Map<MilitaryRank, RankInfo> _rankInfo = {
     abbreviation: 'SMA',
     chevronCount: 3,
     minimumScore: 9,
-    color: Color(0xFFFF453A), // crimson — the apex
+    color: Color(0xFFA8A06A), // ramp: rank-sma — the apex, aged brass
     hasStar: true,
     hasEagle: true, // eagle + stars + chevrons
   ),
@@ -127,6 +130,13 @@ extension MilitaryRankX on MilitaryRank {
   int get chevronCount => info.chevronCount;
   double get minimumScore => info.minimumScore;
   Color get color => info.color;
+
+  /// Readable text tone of the rank colour: the ramp colour lifted 35%
+  /// toward bone so it holds ≥4.5:1 on ink/field at small sizes. Rank colour
+  /// itself is a material (insignia, fills, borders, stamps) — below
+  /// large-text sizes, text wears THIS tone instead.
+  Color get textColor => Color.lerp(color, const Color(0xFFE8E4D8), 0.35)!;
+
   bool get hasEagle => info.hasEagle;
   bool get hasStar => info.hasStar;
 
@@ -143,8 +153,10 @@ MilitaryRank rankFromIndex(int index) =>
 /// anything below `thresholds[0]` stays Private (0). Equivalent to "how many
 /// thresholds, counting up from the bottom, has this score cleared".
 int rankIndexForScore(double score, List<double> thresholds) {
-  assert(thresholds.length == MilitaryRank.values.length,
-      'each exercise needs exactly 10 rank thresholds');
+  assert(
+    thresholds.length == MilitaryRank.values.length,
+    'each exercise needs exactly 10 rank thresholds',
+  );
   var rank = 0;
   for (var i = 0; i < thresholds.length; i++) {
     if (score >= thresholds[i]) {
@@ -177,14 +189,13 @@ double rankPointsForScore(double score, List<double> thresholds) {
 }
 
 /// Maps composite rank-points (0–9) to a [MilitaryRank] by flooring.
-MilitaryRank rankFromPoints(double points) =>
-    rankFromIndex(points.floor());
+MilitaryRank rankFromPoints(double points) => rankFromIndex(points.floor());
 
 /// Heat-map colour for a muscle group's rank: the rank's own distinct insignia
 /// colour (so each rank reads clearly apart on the body, matching the rank
 /// ladder), or a dim neutral when the group is unranked (null).
 Color heatColorForRank(MilitaryRank? rank) =>
-    rank?.color ?? const Color(0xFF3A3A3C);
+    rank?.color ?? const Color(0xFF2A2E26); // field-raised when unranked
 
 /// Leaderboard-facing 0–900 integer "rank score" for continuous rank [points]
 /// (0–9). Each 100 points spans exactly one rank tier, so 4.5 points → 450,

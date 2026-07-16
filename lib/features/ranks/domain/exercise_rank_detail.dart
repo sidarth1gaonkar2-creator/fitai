@@ -74,8 +74,10 @@ ExerciseRankDetail computeExerciseRankDetail({
   // Score on the ESTIMATED 1RM (Epley, rep-capped) of the best attempt, to
   // match the calculator's basis. [bestWeightKg] and the e1RM are both in KG;
   // allometricScoreFromKg performs the lone kg→lbs conversion internally.
-  final estimatedOneRmKg =
-      estimatedOneRepMaxKg(weightKg: bestWeightKg, reps: bestReps);
+  final estimatedOneRmKg = estimatedOneRepMaxKg(
+    weightKg: bestWeightKg,
+    reps: bestReps,
+  );
   final score = allometricScoreFromKg(
     weightKg: estimatedOneRmKg,
     bodyWeightKg: bodyWeightKg,

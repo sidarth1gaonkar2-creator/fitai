@@ -36,5 +36,8 @@ Map<RankGroup, double> muscleGroupRankPoints(Iterable<ScoredExercise> scored) {
 }
 
 /// Floors each group's rank points to a concrete [MilitaryRank].
-Map<RankGroup, MilitaryRank> muscleGroupRanks(Map<RankGroup, double> points) =>
-    {for (final entry in points.entries) entry.key: rankFromPoints(entry.value)};
+Map<RankGroup, MilitaryRank> muscleGroupRanks(
+  Map<RankGroup, double> points,
+) => {
+  for (final entry in points.entries) entry.key: rankFromPoints(entry.value),
+};

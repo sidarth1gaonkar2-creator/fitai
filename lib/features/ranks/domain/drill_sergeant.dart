@@ -83,8 +83,7 @@ const Map<RankGroup, String> _weakPointLines = {
   RankGroup.chest: 'Chest is falling behind your back. More bench press!',
   RankGroup.back:
       'Your back is slacking, soldier. Get on those rows and pull-ups!',
-  RankGroup.shoulders:
-      "Weak shoulders won't cut it, recruit. Press overhead!",
+  RankGroup.shoulders: "Weak shoulders won't cut it, recruit. Press overhead!",
   RankGroup.core: 'A soldier needs a rock-solid core. Lock it in!',
 };
 

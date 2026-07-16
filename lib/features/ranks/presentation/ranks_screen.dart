@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -40,9 +42,9 @@ class RanksScreen extends ConsumerWidget {
           padding: EdgeInsets.all(16),
           child: Column(
             children: [
-              ShimmerBox(width: double.infinity, height: 120, borderRadius: 16),
+              ShimmerBox(width: double.infinity, height: 120, borderRadius: 8),
               SizedBox(height: 16),
-              ShimmerBox(width: double.infinity, height: 220, borderRadius: 16),
+              ShimmerBox(width: double.infinity, height: 220, borderRadius: 8),
             ],
           ),
         ),
@@ -63,11 +65,21 @@ class RanksScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               _SectionLabel('Strength Map'),
               const SizedBox(height: 10),
-              MuscleHighlightWidget.rankHeatMap(
-                muscleGroupRanks: {
-                  for (final e in calc.muscleGroupRanks.entries)
-                    e.key.name: e.value,
-                },
+              // The heat map is a silent painting to VoiceOver — give it a
+              // one-sentence spoken summary of what it shows.
+              Semantics(
+                image: true,
+                label: calc.muscleGroupRanks.isEmpty
+                    ? 'Strength map. No muscle groups ranked yet.'
+                    : 'Strength map. ${calc.muscleGroupRanks.entries.map((e) => '${e.key.label}: ${e.value.displayName}').join(', ')}.',
+                child: ExcludeSemantics(
+                  child: MuscleHighlightWidget.rankHeatMap(
+                    muscleGroupRanks: {
+                      for (final e in calc.muscleGroupRanks.entries)
+                        e.key.name: e.value,
+                    },
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
               _SectionLabel('Muscle Groups'),
@@ -109,7 +121,7 @@ class _OverallSection extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withValues(alpha: 0.45)),
       ),
       child: Column(
@@ -125,17 +137,33 @@ class _OverallSection extends StatelessWidget {
             child: RankInsignia(rank: rank, size: 56),
           ),
           const SizedBox(height: 12),
+          // The rank designation — the sergeant's bark.
           Text(
-            rank.displayName,
+            rank.displayName.toUpperCase(),
+            textAlign: TextAlign.center,
             style: textTheme.titleLarge?.copyWith(
-              fontFamily: 'Poppins',
+              fontFamily: 'Oswald',
+              fontVariations: const [FontVariation('wght', 700)],
               fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
               color: color,
             ),
           ),
+          const SizedBox(height: 3),
           Text(
-            hasData ? 'Overall Strength Rank · E${rank.tier}' : 'Log lifts to earn your rank',
-            style: textTheme.bodySmall?.copyWith(color: palette.textSecondary),
+            hasData
+                ? 'OVERALL RANK · E${rank.tier}'
+                : 'Log lifts to earn your rank',
+            style: hasData
+                ? TextStyle(
+                    fontFamily: 'JetBrainsMono',
+                    fontVariations: const [FontVariation('wght', 700)],
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                    letterSpacing: 1.2,
+                    color: palette.textSecondary,
+                  )
+                : textTheme.bodySmall?.copyWith(color: palette.textSecondary),
           ),
           const SizedBox(height: 14),
           _RankProgressBar(value: progress, color: color),
@@ -143,13 +171,22 @@ class _OverallSection extends StatelessWidget {
           Text(
             next == null
                 ? 'Top rank achieved, soldier. 🎖️'
-                : '${(progress * 100).round()}% to ${next.displayName}',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: palette.textSecondary,
-            ),
+                : '${(progress * 100).round()}% TO ${next.displayName.toUpperCase()}',
+            style: next == null
+                ? TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: palette.textSecondary,
+                  )
+                : TextStyle(
+                    fontFamily: 'JetBrainsMono',
+                    fontVariations: const [FontVariation('wght', 500)],
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.5,
+                    color: palette.textSecondary,
+                  ),
           ),
         ],
       ),
@@ -180,7 +217,19 @@ class _RankLadderState extends State<_RankLadder>
     _pulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1100),
-    )..repeat(reverse: true);
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reduced motion: the current-rank node holds steady instead of pulsing.
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pulse.stop();
+      _pulse.value = 0;
+    } else if (!_pulse.isAnimating) {
+      _pulse.repeat(reverse: true);
+    }
   }
 
   @override
@@ -196,22 +245,31 @@ class _RankLadderState extends State<_RankLadder>
     return Container(
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: palette.border),
       ),
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-      child: Column(
-        children: [
-          for (var i = 0; i < ranks.length; i++)
-            _RankLadderRow(
-              rank: ranks[i],
-              current: widget.current,
-              isFirst: i == 0,
-              isLast: i == ranks.length - 1,
-              pulse: _pulse,
-              palette: palette,
-            ),
-        ],
+      // Ladder text rides Dynamic Type clamped at 1.35× and each row grows
+      // with the scale, so rank names never clip at AX sizes.
+      child: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.35,
+        child: Builder(
+          builder: (context) {
+            return Column(
+              children: [
+                for (var i = 0; i < ranks.length; i++)
+                  _RankLadderRow(
+                    rank: ranks[i],
+                    current: widget.current,
+                    isFirst: i == 0,
+                    isLast: i == ranks.length - 1,
+                    pulse: _pulse,
+                    palette: palette,
+                  ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -234,127 +292,162 @@ class _RankLadderRow extends StatelessWidget {
   final Animation<double> pulse;
   final Palette palette;
 
-  static const double _rowHeight = 34;
-
   @override
   Widget build(BuildContext context) {
+    // 34pt at default text size, growing with the (clamped) scaler.
+    final double rowHeight = math.max(
+      34.0,
+      MediaQuery.textScalerOf(context).scale(13) + 21,
+    );
     final isCurrent = rank == current;
     final isEarned = rank.index < current.index; // already passed
+    // One spoken sentence per row — earned state is otherwise conveyed by
+    // colour/opacity alone, which VoiceOver cannot perceive.
+    final semanticsLabel = isCurrent
+        ? '${rank.displayName}, E${rank.tier} — current rank'
+        : isEarned
+        ? '${rank.displayName}, E${rank.tier} — earned'
+        : '${rank.displayName}, E${rank.tier} — not yet earned';
     final color = rank.color;
+    // The current row's name reads in bone — the rank colour already speaks
+    // through the insignia, node, border and stamp, and several ramp colours
+    // sit below 4.5:1 on ink at 13pt.
     final nameColor = isCurrent
-        ? color
+        ? palette.text
         : (isEarned
-            ? palette.textSecondary
-            : palette.text.withValues(alpha: 0.55));
+              ? palette.textSecondary
+              : palette.text.withValues(alpha: 0.55));
 
-    return Container(
-      height: _rowHeight,
-      decoration: isCurrent
-          ? BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: color.withValues(alpha: 0.5)),
-            )
-          : null,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: Row(
-        children: [
-          // Connecting rail + node.
-          SizedBox(
-            width: 22,
-            height: _rowHeight,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Positioned(
-                  top: isFirst ? _rowHeight / 2 : 0,
-                  bottom: isLast ? _rowHeight / 2 : 0,
-                  child: Container(width: 2, color: palette.border),
-                ),
-                if (isCurrent)
-                  AnimatedBuilder(
-                    animation: pulse,
-                    builder: (_, _) => Container(
-                      width: 10 + 5 * pulse.value,
-                      height: 10 + 5 * pulse.value,
-                      decoration: BoxDecoration(
-                        color: color
-                            .withValues(alpha: 0.30 * (1 - pulse.value) + 0.10),
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration:
-                            BoxDecoration(color: color, shape: BoxShape.circle),
-                      ),
-                    ),
-                  )
-                else
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: isEarned ? palette.textSecondary : palette.surface,
-                      shape: BoxShape.circle,
-                      border: isEarned
-                          ? null
-                          : Border.all(color: palette.border, width: 1.5),
-                    ),
+    return Semantics(
+      label: semanticsLabel,
+      excludeSemantics: true,
+      child: Container(
+        height: rowHeight,
+        decoration: isCurrent
+            ? BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: color.withValues(alpha: 0.5)),
+              )
+            : null,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: Row(
+          children: [
+            // Connecting rail + node.
+            SizedBox(
+              width: 22,
+              height: rowHeight,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned(
+                    top: isFirst ? rowHeight / 2 : 0,
+                    bottom: isLast ? rowHeight / 2 : 0,
+                    child: Container(width: 2, color: palette.border),
                   ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Opacity(
-            opacity: isCurrent ? 1.0 : (isEarned ? 0.9 : 0.55),
-            child: RankInsignia(rank: rank, size: 16),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              rank.displayName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
-                fontSize: 13,
-                color: nameColor,
+                  if (isCurrent)
+                    AnimatedBuilder(
+                      animation: pulse,
+                      builder: (_, _) => Container(
+                        width: 10 + 5 * pulse.value,
+                        height: 10 + 5 * pulse.value,
+                        decoration: BoxDecoration(
+                          color: color.withValues(
+                            alpha: 0.30 * (1 - pulse.value) + 0.10,
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: isEarned
+                            ? palette.textSecondary
+                            : palette.surface,
+                        shape: BoxShape.circle,
+                        border: isEarned
+                            ? null
+                            : Border.all(color: palette.border, width: 1.5),
+                      ),
+                    ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          if (isCurrent)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'YOU ARE HERE',
+            const SizedBox(width: 8),
+            Opacity(
+              opacity: isCurrent ? 1.0 : (isEarned ? 0.9 : 0.55),
+              // 20pt floor — MSG's six chevrons turn to mush below it.
+              child: RankInsignia(rank: rank, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                rank.displayName.toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 9,
-                  color: Colors.white,
+                  fontFamily: 'Oswald',
+                  fontVariations: [
+                    FontVariation('wght', isCurrent ? 600 : 500),
+                  ],
+                  fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: 13,
                   letterSpacing: 0.5,
+                  color: nameColor,
                 ),
               ),
-            )
-          else
-            Text(
-              rank.abbreviation,
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 11,
-                color: palette.textSecondary
-                    .withValues(alpha: isEarned ? 0.9 : 0.5),
-              ),
             ),
-        ],
+            const SizedBox(width: 8),
+            if (isCurrent)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: Text(
+                  'YOU ARE HERE',
+                  style: TextStyle(
+                    fontFamily: 'JetBrainsMono',
+                    fontVariations: const [FontVariation('wght', 700)],
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10,
+                    // Black/white split at L 0.175 clears 4.5:1 on every ramp
+                    // colour (ink falls short on the mid-luminance purples).
+                    color: color.computeLuminance() >= 0.175
+                        ? Colors.black
+                        : Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              )
+            else
+              Text(
+                rank.abbreviation,
+                style: TextStyle(
+                  fontFamily: 'JetBrainsMono',
+                  fontVariations: const [FontVariation('wght', 500)],
+                  fontSize: 11,
+                  letterSpacing: 0.5,
+                  color: palette.textSecondary.withValues(
+                    alpha: isEarned ? 0.9 : 0.7,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -367,13 +460,13 @@ class _MuscleGroupGrid extends StatelessWidget {
   final RankCalculation calc;
 
   static IconData _icon(RankGroup g) => switch (g) {
-        RankGroup.chest => Icons.fitness_center,
-        RankGroup.back => Icons.rowing,
-        RankGroup.legs => Icons.directions_walk,
-        RankGroup.shoulders => Icons.sports_gymnastics,
-        RankGroup.arms => Icons.sports_mma,
-        RankGroup.core => Icons.self_improvement,
-      };
+    RankGroup.chest => Icons.fitness_center,
+    RankGroup.back => Icons.rowing,
+    RankGroup.legs => Icons.directions_walk,
+    RankGroup.shoulders => Icons.sports_gymnastics,
+    RankGroup.arms => Icons.sports_mma,
+    RankGroup.core => Icons.self_improvement,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -455,7 +548,7 @@ class _MuscleGroupCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: palette.border),
       ),
       child: Column(
@@ -467,13 +560,15 @@ class _MuscleGroupCard extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  group.label,
+                  group.label.toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Oswald',
+                    fontVariations: const [FontVariation('wght', 600)],
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
+                    letterSpacing: 0.5,
                     color: palette.text,
                   ),
                 ),
@@ -487,7 +582,7 @@ class _MuscleGroupCard extends StatelessWidget {
             Text(
               'Unranked',
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Inter',
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
                 color: palette.textSecondary,
@@ -497,10 +592,13 @@ class _MuscleGroupCard extends StatelessWidget {
           _RankProgressBar(value: progress, color: color),
           const SizedBox(height: 5),
           Text(
-            '$rankedCount exercise${rankedCount == 1 ? '' : 's'} ranked',
+            // Ranked-count is a readout.
+            '$rankedCount RANKED',
             style: TextStyle(
-              fontFamily: 'LeagueSpartan',
+              fontFamily: 'JetBrainsMono',
+              fontVariations: const [FontVariation('wght', 500)],
               fontSize: 11,
+              letterSpacing: 0.6,
               color: palette.textSecondary,
             ),
           ),
@@ -521,13 +619,16 @@ class _DrillSergeantCard extends StatelessWidget {
     final palette = AppColors.of(context);
     final textTheme = Theme.of(context).textTheme;
     final message = weakPointMessage(calc.muscleGroupPoints);
+    // FM alert, not iOS system red — this is a consequence callout
+    // (DESIGN.md); the Oswald title qualifies as large text.
+    const alert = Color(0xFFC24A38);
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: palette.destructive.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: palette.destructive.withValues(alpha: 0.4)),
+        color: alert.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: alert.withValues(alpha: 0.4)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,8 +637,8 @@ class _DrillSergeantCard extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: palette.destructive.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(10),
+              color: alert.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(4),
             ),
             alignment: Alignment.center,
             child: const Text('🪖', style: TextStyle(fontSize: 18)),
@@ -548,11 +649,13 @@ class _DrillSergeantCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Drill Sergeant Says',
+                  'DRILL SERGEANT SAYS',
                   style: textTheme.titleSmall?.copyWith(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w700,
-                    color: palette.destructive,
+                    fontFamily: 'Oswald',
+                    fontVariations: const [FontVariation('wght', 600)],
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                    color: alert,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -614,17 +717,23 @@ class _AllExerciseRanksState extends ConsumerState<_AllExerciseRanks> {
     // the loop above never reaches them.
     for (final custom in calc.customExercises) {
       final rankIdx = calc.exerciseRanks[custom.key];
-      byGroup.putIfAbsent(custom.group, () => []).add(_ExerciseRow(
-            custom.name,
-            calc.exerciseScores[custom.key],
-            rankIdx == null ? null : rankFromIndex(rankIdx),
-            calc.exerciseBestWeightKg[custom.key],
-          ));
+      byGroup
+          .putIfAbsent(custom.group, () => [])
+          .add(
+            _ExerciseRow(
+              custom.name,
+              calc.exerciseScores[custom.key],
+              rankIdx == null ? null : rankFromIndex(rankIdx),
+              calc.exerciseBestWeightKg[custom.key],
+            ),
+          );
     }
     // Sort: ranked (highest score first), then unranked alphabetically.
     for (final list in byGroup.values) {
       list.sort((a, b) {
-        if (a.score != null && b.score != null) return b.score!.compareTo(a.score!);
+        if (a.score != null && b.score != null) {
+          return b.score!.compareTo(a.score!);
+        }
         if (a.score != null) return -1;
         if (b.score != null) return 1;
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
@@ -683,45 +792,60 @@ class _GroupExpansion extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: palette.border),
       ),
       child: Column(
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onToggle,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                children: [
-                  Text(
-                    group.label,
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      color: palette.text,
-                    ),
+          Semantics(
+            button: true,
+            label:
+                '${group.label}, $rankedCount of ${rows.length} ranked, '
+                '${expanded ? 'expanded' : 'collapsed'}',
+            child: ExcludeSemantics(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onToggle,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '$rankedCount/${rows.length} ranked',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontSize: 12,
-                      color: palette.textSecondary,
-                    ),
+                  child: Row(
+                    children: [
+                      Text(
+                        group.label.toUpperCase(),
+                        style: TextStyle(
+                          fontFamily: 'Oswald',
+                          fontVariations: const [FontVariation('wght', 600)],
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          letterSpacing: 0.5,
+                          color: palette.text,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$rankedCount/${rows.length}',
+                        style: TextStyle(
+                          fontFamily: 'JetBrainsMono',
+                          fontVariations: const [FontVariation('wght', 500)],
+                          fontSize: 11,
+                          letterSpacing: 0.5,
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      const Spacer(),
+                      Icon(
+                        expanded
+                            ? CupertinoIcons.chevron_up
+                            : CupertinoIcons.chevron_down,
+                        size: 16,
+                        color: palette.textSecondary,
+                      ),
+                    ],
                   ),
-                  const Spacer(),
-                  Icon(
-                    expanded
-                        ? CupertinoIcons.chevron_up
-                        : CupertinoIcons.chevron_down,
-                    size: 16,
-                    color: palette.textSecondary,
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -729,9 +853,7 @@ class _GroupExpansion extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
               child: Column(
-                children: [
-                  for (final row in rows) _exerciseTile(row),
-                ],
+                children: [for (final row in rows) _exerciseTile(row)],
               ),
             ),
         ],
@@ -758,7 +880,7 @@ class _GroupExpansion extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Inter',
                     fontWeight: FontWeight.w500,
                     fontSize: 13,
                     color: ranked ? palette.text : palette.textSecondary,
@@ -766,10 +888,14 @@ class _GroupExpansion extends StatelessWidget {
                 ),
                 if (ranked)
                   Text(
-                    '${weight!.toStringAsFixed(0)} $unit',
+                    // Best lift — a trained-against number, so mono.
+                    '${weight!.toStringAsFixed(0)} ${unit.toUpperCase()}',
                     style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
+                      fontFamily: 'JetBrainsMono',
+                      fontVariations: const [FontVariation('wght', 700)],
+                      fontWeight: FontWeight.w700,
                       fontSize: 11,
+                      letterSpacing: 0.5,
                       color: palette.textSecondary,
                     ),
                   )
@@ -777,7 +903,7 @@ class _GroupExpansion extends StatelessWidget {
                   Text(
                     'Not yet ranked',
                     style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
+                      fontFamily: 'Inter',
                       fontSize: 11,
                       color: palette.textSecondary.withValues(alpha: 0.7),
                     ),
@@ -789,8 +915,11 @@ class _GroupExpansion extends StatelessWidget {
           if (ranked)
             RankBadge(rank: row.rank!, compact: true, size: 16)
           else
-            Icon(CupertinoIcons.minus,
-                size: 14, color: palette.textSecondary.withValues(alpha: 0.5)),
+            Icon(
+              CupertinoIcons.minus,
+              size: 14,
+              color: palette.textSecondary.withValues(alpha: 0.5),
+            ),
         ],
       ),
     );
@@ -807,24 +936,33 @@ class _ShareRankButton extends ConsumerWidget {
     final palette = AppColors.of(context);
     return SizedBox(
       width: double.infinity,
-      child: CupertinoButton(
-        color: palette.accent,
-        borderRadius: BorderRadius.circular(14),
-        onPressed: () => openRankCardPreview(context),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(CupertinoIcons.share, size: 18, color: Colors.white),
-            SizedBox(width: 8),
-            Text(
-              'Share My Rank',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
+      child: Semantics(
+        label: 'Share my rank',
+        button: true,
+        child: ExcludeSemantics(
+          child: CupertinoButton(
+            color: palette.accent,
+            borderRadius: BorderRadius.circular(4),
+            onPressed: () => openRankCardPreview(context),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.share, size: 18, color: Color(0xFF1A1C1A)),
+                SizedBox(width: 8),
+                Text(
+                  'SHARE MY RANK',
+                  style: TextStyle(
+                    fontFamily: 'Oswald',
+                    fontVariations: [FontVariation('wght', 600)],
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    letterSpacing: 0.6,
+                    color: Color(0xFF1A1C1A), // ink on accent
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -839,13 +977,17 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Section headers wear the display face in bone — the One Voice Rule
+    // keeps the accent for actions and the rank colours for insignia.
     return Text(
-      label,
+      label.toUpperCase(),
       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: AppColors.of(context).accent,
-          ),
+        fontFamily: 'Oswald',
+        fontVariations: const [FontVariation('wght', 600)],
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.6,
+        color: AppColors.of(context).text,
+      ),
     );
   }
 }
@@ -865,6 +1007,8 @@ class _RankProgressBar extends StatelessWidget {
         minHeight: 7,
         backgroundColor: palette.surfaceElevated,
         valueColor: AlwaysStoppedAnimation(color),
+        // Otherwise VoiceOver announces a naked percentage.
+        semanticsLabel: 'Progress to next rank',
       ),
     );
   }

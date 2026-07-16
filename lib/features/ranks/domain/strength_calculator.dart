@@ -116,7 +116,8 @@ double weightKgForScore({
   final bwLbs = bodyWeightKg * _kgToLbs;
   // score = (weightKg * mult * kgToLbs / bwLbs^0.67) * g
   //   ⇒ weightKg = targetScore * bwLbs^0.67 / (g * mult * kgToLbs)
-  final perImplementKg = targetScore *
+  final perImplementKg =
+      targetScore *
       math.pow(bwLbs, kAllometricExponent) /
       (g * weightMultiplier * _kgToLbs);
   return perImplementKg.isFinite ? perImplementKg : 0;

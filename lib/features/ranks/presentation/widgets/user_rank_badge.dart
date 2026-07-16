@@ -26,8 +26,11 @@ class UserRankBadge extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: rank.color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: rank.color.withValues(alpha: 0.5), width: 0.8),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: rank.color.withValues(alpha: 0.5),
+          width: 0.8,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -37,11 +40,13 @@ class UserRankBadge extends ConsumerWidget {
           Text(
             rank.abbreviation,
             style: TextStyle(
-              fontFamily: 'LeagueSpartan',
+              fontFamily: 'JetBrainsMono',
+              fontVariations: const [FontVariation('wght', 700)],
               fontWeight: FontWeight.w700,
               fontSize: size * 0.78,
-              color: rank.color,
-              letterSpacing: 0.3,
+              // AA-safe text tone; the pill's tint/border carry the colour.
+              color: rank.textColor,
+              letterSpacing: 0.5,
             ),
           ),
         ],

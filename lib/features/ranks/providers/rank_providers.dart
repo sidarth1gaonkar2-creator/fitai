@@ -141,16 +141,19 @@ final overallRankProvider = FutureProvider<MilitaryRank>((ref) async {
 });
 
 /// Rank for a single muscle group, or null when that group has no rankable data.
-final muscleGroupRankProvider =
-    FutureProvider.family<MilitaryRank?, RankGroup>((ref, group) async {
-  final calc = await ref.watch(rankCalculatorProvider.future);
-  return calc.muscleGroupRanks[group];
-});
+final muscleGroupRankProvider = FutureProvider.family<MilitaryRank?, RankGroup>(
+  (ref, group) async {
+    final calc = await ref.watch(rankCalculatorProvider.future);
+    return calc.muscleGroupRanks[group];
+  },
+);
 
 /// Rank for a specific exercise (by canonical id or lowercased name), or null
 /// when there's no rankable PR for it.
-final exerciseRankProvider =
-    FutureProvider.family<MilitaryRank?, String>((ref, exerciseId) async {
+final exerciseRankProvider = FutureProvider.family<MilitaryRank?, String>((
+  ref,
+  exerciseId,
+) async {
   final calc = await ref.watch(rankCalculatorProvider.future);
   final idx = calc.exerciseRanks[exerciseId];
   return idx == null ? null : rankFromIndex(idx);
@@ -163,35 +166,39 @@ final exerciseRankProvider =
 ///   * `hasData == false` → rankable but no PR yet — show the empty state
 ///   * a full detail otherwise
 final exerciseRankDetailProvider =
-    FutureProvider.family<ExerciseRankDetail?, String>(
-        (ref, exerciseName) async {
-  final standard = standardForExercise(name: exerciseName);
-  if (standard == null || !standard.rankable) return null;
+    FutureProvider.family<ExerciseRankDetail?, String>((
+      ref,
+      exerciseName,
+    ) async {
+      final standard = standardForExercise(name: exerciseName);
+      if (standard == null || !standard.rankable) return null;
 
-  final profile = await ref.watch(userProfileProvider.future);
-  // Re-run whenever a new PR lands.
-  await ref.watch(personalRecordsProvider.future);
-  final isar = ref.watch(isarProvider);
+      final profile = await ref.watch(userProfileProvider.future);
+      // Re-run whenever a new PR lands.
+      await ref.watch(personalRecordsProvider.future);
+      final isar = ref.watch(isarProvider);
 
-  final bodyWeightKg = profile?.weight ?? 0;
-  final sex = profile?.sex;
+      final bodyWeightKg = profile?.weight ?? 0;
+      final sex = profile?.sex;
 
-  // Best PR for this exercise (PRs are best-per-exercise; dedupe defensively).
-  final prs = await isar.personalRecords.where().findAll();
-  PersonalRecord? best;
-  for (final pr in prs) {
-    if (pr.exerciseName.toLowerCase() != exerciseName.toLowerCase()) continue;
-    if (best == null || pr.weightKg > best.weightKg) best = pr;
-  }
+      // Best PR for this exercise (PRs are best-per-exercise; dedupe defensively).
+      final prs = await isar.personalRecords.where().findAll();
+      PersonalRecord? best;
+      for (final pr in prs) {
+        if (pr.exerciseName.toLowerCase() != exerciseName.toLowerCase()) {
+          continue;
+        }
+        if (best == null || pr.weightKg > best.weightKg) best = pr;
+      }
 
-  return computeExerciseRankDetail(
-    standard: standard,
-    bestWeightKg: best?.weightKg ?? 0,
-    bestReps: best?.bestReps ?? 0,
-    bodyWeightKg: bodyWeightKg,
-    sex: sex,
-  );
-});
+      return computeExerciseRankDetail(
+        standard: standard,
+        bestWeightKg: best?.weightKg ?? 0,
+        bestReps: best?.bestReps ?? 0,
+        bodyWeightKg: bodyWeightKg,
+        sex: sex,
+      );
+    });
 
 // ─── Internals ──────────────────────────────────────────────────────────────
 
@@ -223,8 +230,10 @@ Future<RankCalculation> _compute(
     // raw top weight, so heavier loads OR more reps both raise the score.
     // `pr.weightKg` and the returned e1RM are both in KG; the single kg→lbs
     // conversion still happens once, inside allometricScoreFromKg.
-    final estimatedOneRmKg =
-        estimatedOneRepMaxKg(weightKg: pr.weightKg, reps: pr.bestReps);
+    final estimatedOneRmKg = estimatedOneRepMaxKg(
+      weightKg: pr.weightKg,
+      reps: pr.bestReps,
+    );
     final score = allometricScoreFromKg(
       weightKg: estimatedOneRmKg,
       bodyWeightKg: bodyWeightKg,
@@ -244,15 +253,20 @@ Future<RankCalculation> _compute(
       // resolved group so the Ranks screen can surface it (built-in rows come
       // from the library, which customs aren't in).
       if (def == null) {
-        customByKey[key] =
-            CustomExerciseRank(name: pr.exerciseName, group: standard.group);
+        customByKey[key] = CustomExerciseRank(
+          name: pr.exerciseName,
+          group: standard.group,
+        );
       }
     }
   }
 
   final exerciseRanks = <String, int>{
     for (final entry in bestScored.entries)
-      entry.key: rankIndexForScore(entry.value.score, entry.value.standard.thresholds),
+      entry.key: rankIndexForScore(
+        entry.value.score,
+        entry.value.standard.thresholds,
+      ),
   };
 
   final groupPoints = muscleGroupRankPoints(bestScored.values);
@@ -301,7 +315,9 @@ Future<int?> _persist(Isar isar, RankCalculation calc) async {
     final history = [...row.rankHistory];
     final lastRankIndex = history.isNotEmpty ? history.last.rankIndex : null;
     if (lastRankIndex != calc.overall.index) {
-      history.add(RankSnapshot(date: DateTime.now(), rankIndex: calc.overall.index));
+      history.add(
+        RankSnapshot(date: DateTime.now(), rankIndex: calc.overall.index),
+      );
       row.rankHistory = history;
     }
 

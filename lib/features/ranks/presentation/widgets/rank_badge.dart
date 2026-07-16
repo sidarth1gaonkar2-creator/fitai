@@ -26,11 +26,34 @@ class RankBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = rank.color;
     final icon = RankInsignia(rank: rank, size: size);
 
     final label = compact ? rank.abbreviation : rank.displayName;
-    final fontSize = compact ? size * 0.46 : size * 0.52;
+    // 10px text floor regardless of insignia size — tiny abbreviations are
+    // unreadable and fail AA.
+    final fontSize = math.max(10.0, compact ? size * 0.46 : size * 0.52);
+    // Rank colour is a material; text wears the lifted, AA-safe tone.
+    final textColor = rank.textColor;
+
+    // Field Manual type roles: abbreviations are mono designations
+    // (Instrument Panel), full rank names wear the condensed display face.
+    final style = compact
+        ? TextStyle(
+            fontFamily: 'JetBrainsMono',
+            fontVariations: const [FontVariation('wght', 700)],
+            fontWeight: FontWeight.w700,
+            fontSize: fontSize,
+            color: textColor,
+            letterSpacing: 0.6,
+          )
+        : TextStyle(
+            fontFamily: 'Oswald',
+            fontVariations: const [FontVariation('wght', 600)],
+            fontWeight: FontWeight.w600,
+            fontSize: fontSize,
+            color: textColor,
+            letterSpacing: 0.3,
+          );
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -42,13 +65,7 @@ class RankBadge extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: fontSize,
-              color: color,
-              letterSpacing: compact ? 0.3 : 0,
-            ),
+            style: style,
           ),
         ),
       ],
@@ -128,7 +145,11 @@ _Insignia _insigniaFor(MilitaryRank rank) {
 /// [color]. Extracted as a free function so the [RankInsignia] widget (used both
 /// in-app and inside the captured rank card) draws from one source of truth.
 void paintRankInsignia(
-    Canvas canvas, Size size, MilitaryRank rank, Color color) {
+  Canvas canvas,
+  Size size,
+  MilitaryRank rank,
+  Color color,
+) {
   final cfg = _insigniaFor(rank);
   final w = size.width;
   final h = size.height;
@@ -214,10 +235,18 @@ void _drawEagle(Canvas canvas, Paint paint, Offset c, double width) {
   final wings = Path()
     ..moveTo(c.dx - hw, c.dy)
     ..quadraticBezierTo(
-        c.dx - hw * 0.4, c.dy - width * 0.20, c.dx, c.dy + width * 0.04)
+      c.dx - hw * 0.4,
+      c.dy - width * 0.20,
+      c.dx,
+      c.dy + width * 0.04,
+    )
     ..quadraticBezierTo(c.dx + hw * 0.4, c.dy - width * 0.20, c.dx + hw, c.dy)
     ..quadraticBezierTo(
-        c.dx + hw * 0.4, c.dy + width * 0.12, c.dx, c.dy + width * 0.20)
+      c.dx + hw * 0.4,
+      c.dy + width * 0.12,
+      c.dx,
+      c.dy + width * 0.20,
+    )
     ..quadraticBezierTo(c.dx - hw * 0.4, c.dy + width * 0.12, c.dx - hw, c.dy)
     ..close();
   canvas.drawPath(wings, paint);

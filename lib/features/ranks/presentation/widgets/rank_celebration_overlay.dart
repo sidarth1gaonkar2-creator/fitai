@@ -103,8 +103,7 @@ class _RankCelebrationOverlayState extends State<RankCelebrationOverlay>
                   final insigniaScale = _reduceMotion
                       ? 1.0
                       : Curves.elasticOut.transform(t.clamp(0.0, 1.0));
-                  final contentOpacity =
-                      ((t - 0.35) / 0.4).clamp(0.0, 1.0);
+                  final contentOpacity = ((t - 0.35) / 0.4).clamp(0.0, 1.0);
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -143,7 +142,7 @@ class _RankCelebrationOverlayState extends State<RankCelebrationOverlay>
                               style: TextStyle(
                                 fontFamily: 'Oswald',
                                 fontVariations: const [
-                                  FontVariation('wght', 700)
+                                  FontVariation('wght', 700),
                                 ],
                                 fontWeight: FontWeight.w700,
                                 fontSize: 34,
@@ -179,8 +178,9 @@ class _RankCelebrationOverlayState extends State<RankCelebrationOverlay>
                             ),
                             const SizedBox(height: 18),
                             Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 44),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 44,
+                              ),
                               child: Text(
                                 promotionCelebrationLine(),
                                 textAlign: TextAlign.center,
@@ -267,11 +267,11 @@ class CupertinoButtonLike extends StatelessWidget {
 /// One floating chevron particle — randomised start column, phase and speed.
 class _Chevron {
   _Chevron(Random r)
-      : x = r.nextDouble(),
-        phase = r.nextDouble(),
-        speed = 0.6 + r.nextDouble() * 0.8,
-        size = 7 + r.nextDouble() * 11,
-        drift = (r.nextDouble() - 0.5) * 0.12;
+    : x = r.nextDouble(),
+      phase = r.nextDouble(),
+      speed = 0.6 + r.nextDouble() * 0.8,
+      size = 7 + r.nextDouble() * 11,
+      drift = (r.nextDouble() - 0.5) * 0.12;
 
   final double x; // base column, 0..1
   final double phase; // cycle offset, 0..1
@@ -296,7 +296,8 @@ class _ChevronParticlePainter extends CustomPainter {
     for (final c in chevrons) {
       final p = (progress * c.speed + c.phase) % 1.0; // 0..1 rise cycle
       final y = (1.1 - p * 1.2) * size.height; // bottom → top
-      final x = (c.x + sin(p * 2 * pi + c.phase * 2 * pi) * c.drift) * size.width;
+      final x =
+          (c.x + sin(p * 2 * pi + c.phase * 2 * pi) * c.drift) * size.width;
       final opacity = (sin(p * pi)).clamp(0.0, 1.0) * 0.7; // fade in then out
       if (opacity <= 0) continue;
 

@@ -21,7 +21,8 @@ import 'widgets/rank_badge.dart';
 
 const _benchId = 'barbell_bench_press';
 const _squatId = 'barbell_back_squat';
-const _bg = Color(0xFF0E0E12);
+// Field Manual ink — the preview backdrop matches app chrome.
+const _bg = Color(0xFF1A1C1A);
 
 /// Opens the rank-card preview with a fade transition. Replaces the old
 /// straight-to-share-sheet flow — the user now sees the rendered card first.
@@ -89,19 +90,25 @@ class _RankCardPreviewScreenState extends ConsumerState<RankCardPreviewScreen> {
       }
 
       final dir = await getTemporaryDirectory();
-      final file =
-          await File('${dir.path}/drillfit_rank.png').writeAsBytes(bytes);
+      final file = await File(
+        '${dir.path}/drillfit_rank.png',
+      ).writeAsBytes(bytes);
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
-        text: 'My DrillFit rank 🎖️',
+        text: 'Earned, not given. drillfit.app',
         sharePositionOrigin: origin,
       );
     } catch (e, st) {
-      AppLogger.error('Rank card share failed; sharing text instead',
-          error: e, stack: st);
+      AppLogger.error(
+        'Rank card share failed; sharing text instead',
+        error: e,
+        stack: st,
+      );
       try {
-        await Share.share(_plainSummary(rank, statsLine),
-            subject: 'My DrillFit rank');
+        await Share.share(
+          _plainSummary(rank, statsLine),
+          subject: 'My DrillFit rank',
+        );
       } catch (_) {
         if (mounted) {
           showCupertinoToast(context, "Couldn't share your rank card.");
@@ -140,8 +147,9 @@ class _RankCardPreviewScreenState extends ConsumerState<RankCardPreviewScreen> {
       color: _bg,
       child: SafeArea(
         child: async.when(
-          loading: () =>
-              const Center(child: CupertinoActivityIndicator(color: Colors.white)),
+          loading: () => const Center(
+            child: CupertinoActivityIndicator(color: Colors.white),
+          ),
           error: (_, _) => _MessageState(
             message: "Couldn't load your rank.",
             onClose: () => Navigator.of(context).maybePop(),
@@ -169,10 +177,12 @@ class _RankCardPreviewScreenState extends ConsumerState<RankCardPreviewScreen> {
                     child: CupertinoButton(
                       padding: const EdgeInsets.all(10),
                       onPressed: () => Navigator.of(context).maybePop(),
-                      child: const Icon(CupertinoIcons.xmark,
-                          color: Colors.white,
-                          size: 24,
-                          semanticLabel: 'Close'),
+                      child: const Icon(
+                        CupertinoIcons.xmark,
+                        color: Colors.white,
+                        size: 24,
+                        semanticLabel: 'Close',
+                      ),
                     ),
                   ),
                 ),
@@ -220,20 +230,26 @@ class _RankCardPreviewScreenState extends ConsumerState<RankCardPreviewScreen> {
                       Expanded(
                         child: CupertinoButton(
                           color: palette.accent,
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(4),
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          onPressed:
-                              _busy ? null : () => _share(rank, statsLine),
+                          onPressed: _busy
+                              ? null
+                              : () => _share(rank, statsLine),
                           child: _busy
                               ? const CupertinoActivityIndicator(
-                                  color: Colors.white)
+                                  color: Color(0xFF1A1C1A),
+                                )
                               : const Text(
-                                  'Share',
+                                  'SHARE',
                                   style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                    color: Colors.white,
+                                    fontFamily: 'Oswald',
+                                    fontVariations: [
+                                      FontVariation('wght', 600),
+                                    ],
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                    letterSpacing: 0.6,
+                                    color: Color(0xFF1A1C1A), // ink on accent
                                   ),
                                 ),
                         ),
@@ -251,8 +267,11 @@ class _RankCardPreviewScreenState extends ConsumerState<RankCardPreviewScreen> {
 }
 
 /// Plain-text rank summary used when the image can't be captured/shared.
+/// Sergeant's voice — earned, not given.
 String _plainSummary(MilitaryRank rank, String? statsLine) {
-  final b = StringBuffer("I'm ${rank.displayName} (E${rank.tier}) on DrillFit 🎖️");
+  final b = StringBuffer(
+    'Earned, not given — ${rank.displayName} (E${rank.tier}) on DrillFit.',
+  );
   if (statsLine != null) b.write('\n$statsLine');
   b.write('\ndrillfit.app');
   return b.toString();
@@ -286,15 +305,13 @@ class RankCardWidget extends StatelessWidget {
       height: width * 1.42,
       padding: EdgeInsets.all(width * 0.07),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.circular(width * 0.08),
+        // Field on ink — the card is Field Manual equipment, not Apple-dark.
+        color: const Color(0xFF21241F),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.55), width: 2.5),
+        // A whisper of the rank colour, not the vivid-on-black glow lineage.
         boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.25),
-            blurRadius: 24,
-            spreadRadius: 1,
-          ),
+          BoxShadow(color: color.withValues(alpha: 0.12), blurRadius: 20),
         ],
       ),
       child: Column(
@@ -314,12 +331,14 @@ class RankCardWidget extends StatelessWidget {
               ),
               SizedBox(width: width * 0.028),
               Text(
-                'DrillFit',
+                'DRILLFIT',
                 style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Oswald',
+                  fontVariations: const [FontVariation('wght', 700)],
                   fontWeight: FontWeight.w700,
                   fontSize: width * 0.062,
-                  color: Colors.white,
+                  letterSpacing: 1.5,
+                  color: const Color(0xFFE8E4D8), // bone
                 ),
               ),
             ],
@@ -340,13 +359,14 @@ class RankCardWidget extends StatelessWidget {
           SizedBox(height: width * 0.05),
           // Rank name.
           Text(
-            rank.displayName,
+            rank.displayName.toUpperCase(),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w800,
+              fontFamily: 'Oswald',
+              fontVariations: const [FontVariation('wght', 700)],
+              fontWeight: FontWeight.w700,
               fontSize: width * 0.11,
               height: 1.05,
               color: color,
@@ -354,12 +374,15 @@ class RankCardWidget extends StatelessWidget {
           ),
           SizedBox(height: width * 0.015),
           Text(
-            'Overall Strength Rank · E${rank.tier}',
+            'OVERALL RANK · E${rank.tier}',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontSize: width * 0.04,
-              color: Colors.white.withValues(alpha: 0.6),
+              fontFamily: 'JetBrainsMono',
+              fontVariations: const [FontVariation('wght', 700)],
+              fontWeight: FontWeight.w700,
+              fontSize: width * 0.034,
+              letterSpacing: width * 0.004,
+              color: const Color(0xFFCDC8BA), // muted bone
             ),
           ),
           const Spacer(),
@@ -370,25 +393,29 @@ class RankCardWidget extends StatelessWidget {
             hasData && statsLine != null
                 ? statsLine!
                 : (hasData
-                    ? 'Keep logging lifts to fill out your card'
-                    : 'Start training to earn your rank'),
+                      ? 'Keep logging lifts to fill out your card'
+                      : 'Start training to earn your rank'),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontFamily: 'LeagueSpartan',
+              fontFamily: 'Inter',
               fontSize: width * 0.044,
-              color: Colors.white.withValues(alpha: 0.92),
+              height: 1.35,
+              color: const Color(0xFFE8E4D8), // bone
             ),
           ),
           SizedBox(height: width * 0.04),
           Text(
-            'drillfit.app',
+            'DRILLFIT.APP',
             style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontSize: width * 0.036,
-              letterSpacing: 1.5,
-              color: color.withValues(alpha: 0.85),
+              fontFamily: 'JetBrainsMono',
+              fontVariations: const [FontVariation('wght', 700)],
+              fontWeight: FontWeight.w700,
+              fontSize: width * 0.032,
+              letterSpacing: 2,
+              // Lifted, AA-safe tone of the rank colour.
+              color: rank.textColor,
             ),
           ),
         ],
@@ -410,23 +437,32 @@ class _OutlinedButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      onPressed: onPressed,
-      child: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-            color: Colors.white,
+    // Secondary FM button: hairline border, sharp corners, bark case.
+    return Semantics(
+      label: label,
+      button: true,
+      child: ExcludeSemantics(
+        child: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: onPressed,
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: const Color(0x29E8E4D8)), // hairline
+            ),
+            child: Text(
+              label.toUpperCase(),
+              style: const TextStyle(
+                fontFamily: 'Oswald',
+                fontVariations: [FontVariation('wght', 600)],
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                letterSpacing: 0.6,
+                color: Color(0xFFE8E4D8), // bone
+              ),
+            ),
           ),
         ),
       ),
@@ -448,9 +484,10 @@ class _MessageState extends StatelessWidget {
           child: Text(
             message,
             style: const TextStyle(
-              fontFamily: 'LeagueSpartan',
+              fontFamily: 'Inter',
               fontSize: 15,
-              color: Colors.white70,
+              height: 1.45,
+              color: Color(0xFFCDC8BA), // muted bone
             ),
           ),
         ),
@@ -460,8 +497,12 @@ class _MessageState extends StatelessWidget {
           child: CupertinoButton(
             padding: const EdgeInsets.all(10),
             onPressed: onClose,
-            child: const Icon(CupertinoIcons.xmark,
-                color: Colors.white, size: 24, semanticLabel: 'Close'),
+            child: const Icon(
+              CupertinoIcons.xmark,
+              color: Colors.white,
+              size: 24,
+              semanticLabel: 'Close',
+            ),
           ),
         ),
       ],

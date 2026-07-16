@@ -44,7 +44,7 @@ class RankCard extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: palette.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: rank.color.withValues(alpha: 0.4)),
         ),
         child: Row(
@@ -67,11 +67,15 @@ class RankCard extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    title,
+                    title.toUpperCase(),
                     style: textTheme.titleMedium?.copyWith(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w700,
-                      color: rank.color,
+                      fontFamily: 'Oswald',
+                      fontVariations: const [FontVariation('wght', 600)],
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                      // AA-safe text tone at 16pt; the insignia, disc and
+                      // border carry the true rank colour.
+                      color: rank.textColor,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -84,19 +88,25 @@ class RankCard extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     hasData
-                        ? '${rank.abbreviation} · tier E${rank.tier} · View Ranks'
-                        : 'View Ranks',
+                        ? '${rank.abbreviation} · E${rank.tier} · VIEW RANKS'
+                        : 'VIEW RANKS',
                     style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontSize: 12,
+                      fontFamily: 'JetBrainsMono',
+                      fontVariations: const [FontVariation('wght', 700)],
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                      letterSpacing: 1,
                       color: palette.accent,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(CupertinoIcons.chevron_right,
-                size: 18, color: palette.textSecondary),
+            Icon(
+              CupertinoIcons.chevron_right,
+              size: 18,
+              color: palette.textSecondary,
+            ),
           ],
         ),
       ),
