@@ -311,7 +311,9 @@ class _IssueManifest extends StatelessWidget {
               TextSpan(
                 style: FieldManual.readout(color: FieldManual.mutedBone),
                 children: const [
-                  TextSpan(text: '15'),
+                  // Free-tier figure mirrors the server's DAILY_LIMIT in
+                  // functions/index.js — keep the two in lockstep.
+                  TextSpan(text: '30'),
                   TextSpan(
                     text: '  →  ',
                     style: TextStyle(color: FieldManual.olive),
