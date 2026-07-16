@@ -1,0 +1,9 @@
+{
+  "name": "drillfit-app-icon",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic generator for the DrillFit iOS app icon (SVG -> PNG). Run: npm install && node generate.mjs",
+  "dependencies": {
+    "sharp": "^0.34.2"
+  }
+}
