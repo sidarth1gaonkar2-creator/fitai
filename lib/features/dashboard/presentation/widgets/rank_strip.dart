@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
 import '../../../ranks/domain/military_ranks.dart';
 import '../../../ranks/presentation/widgets/rank_badge.dart';
@@ -109,7 +110,8 @@ class RankStrip extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              // Promotion progress — thin rule, brass fill.
+              // Promotion progress — thin rule, live-accent fill (brass on
+              // the default issue).
               ClipRRect(
                 borderRadius: BorderRadius.circular(1.5),
                 child: SizedBox(
@@ -119,7 +121,8 @@ class RankStrip extends ConsumerWidget {
                       Container(color: FieldManual.hairline),
                       FractionallySizedBox(
                         widthFactor: hasData ? progressFraction : 0.0,
-                        child: Container(color: FieldManual.brass),
+                        child:
+                            Container(color: AppColors.of(context).accent),
                       ),
                     ],
                   ),

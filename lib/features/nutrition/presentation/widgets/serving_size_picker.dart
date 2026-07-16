@@ -406,6 +406,7 @@ class _ServingModeBody extends StatelessWidget {
           children: [
             _StepperButton(
               icon: CupertinoIcons.minus,
+              semanticLabel: 'Decrease quantity',
               onTap: () {
                 final next = (quantity - 0.25).clamp(0.25, 99.0);
                 onQuantityChanged(next);
@@ -444,6 +445,7 @@ class _ServingModeBody extends StatelessWidget {
             const SizedBox(width: 16),
             _StepperButton(
               icon: CupertinoIcons.plus,
+              semanticLabel: 'Increase quantity',
               onTap: () {
                 final next = (quantity + 0.25).clamp(0.25, 99.0);
                 onQuantityChanged(next);
@@ -627,29 +629,38 @@ class _WeightModeBody extends StatelessWidget {
 }
 
 class _StepperButton extends StatelessWidget {
-  const _StepperButton({required this.icon, required this.onTap});
+  const _StepperButton({
+    required this.icon,
+    required this.onTap,
+    required this.semanticLabel,
+  });
 
   final IconData icon;
   final VoidCallback onTap;
+  final String semanticLabel;
 
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: palette.surfaceElevated,
-          shape: BoxShape.circle,
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: palette.surfaceElevated,
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 20, color: palette.text),
         ),
-        alignment: Alignment.center,
-        child: Icon(icon, size: 20, color: palette.text),
       ),
     );
   }

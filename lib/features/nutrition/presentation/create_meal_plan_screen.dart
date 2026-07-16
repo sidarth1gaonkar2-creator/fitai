@@ -299,12 +299,16 @@ class _MealSection extends StatelessWidget {
                       ],
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () => onRemoveFood(i),
-                    child: Icon(
-                      CupertinoIcons.minus_circle_fill,
-                      color: AppColors.of(context).destructive,
-                      size: 20,
+                  Semantics(
+                    button: true,
+                    label: 'Remove food',
+                    child: GestureDetector(
+                      onTap: () => onRemoveFood(i),
+                      child: Icon(
+                        CupertinoIcons.minus_circle_fill,
+                        color: AppColors.of(context).destructive,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],

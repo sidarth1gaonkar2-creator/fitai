@@ -209,6 +209,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                   IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(context),
+                    tooltip: 'Close',
                   ),
                 ],
               ),

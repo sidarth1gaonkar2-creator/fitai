@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
 
 /// Field Manual water counter — a horizontal mono instrument with ≥44pt
@@ -41,7 +42,9 @@ class CanteenCard extends StatelessWidget {
                   TextSpan(
                     style: FieldManual.readout(
                       fontSize: 20,
-                      color: goalMet ? FieldManual.brass : FieldManual.bone,
+                      color: goalMet
+                          ? AppColors.of(context).accent
+                          : FieldManual.bone,
                     ),
                     children: [
                       TextSpan(text: '$glasses'),

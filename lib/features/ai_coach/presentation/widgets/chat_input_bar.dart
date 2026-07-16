@@ -102,6 +102,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                     Colors.white.withValues(alpha: 0.5),
               ),
               icon: const Icon(Icons.send, size: 20),
+              tooltip: 'Send',
             ),
           ],
         ),

@@ -524,13 +524,17 @@ class _PresetChip extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            GestureDetector(
-              onTap: onDelete,
-              behavior: HitTestBehavior.opaque,
-              child: Icon(
-                CupertinoIcons.xmark_circle_fill,
-                size: 16,
-                color: palette.textSecondary.withValues(alpha: 0.5),
+            Semantics(
+              button: true,
+              label: 'Remove entry',
+              child: GestureDetector(
+                onTap: onDelete,
+                behavior: HitTestBehavior.opaque,
+                child: Icon(
+                  CupertinoIcons.xmark_circle_fill,
+                  size: 16,
+                  color: palette.textSecondary.withValues(alpha: 0.5),
+                ),
               ),
             ),
           ],

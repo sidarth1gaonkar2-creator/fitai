@@ -59,6 +59,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
               child: Icon(
                 CupertinoIcons.square_pencil,
                 color: palette.accent,
+                semanticLabel: 'New post',
               ),
             ),
           ],

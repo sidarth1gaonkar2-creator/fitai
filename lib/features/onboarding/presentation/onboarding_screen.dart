@@ -116,6 +116,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 child: Icon(
                   CupertinoIcons.back,
                   color: palette.text,
+                  semanticLabel: 'Back',
                 ),
               )
             : null,

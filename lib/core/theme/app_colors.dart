@@ -20,7 +20,8 @@ abstract final class AppColors {
   /// theme. When the [ProviderScope] is unavailable (e.g. early in startup
   /// before `runApp`), falls back to the default theme.
   static Palette of(BuildContext context) {
-    final brightness = CupertinoTheme.of(context).brightness ??
+    final brightness =
+        CupertinoTheme.of(context).brightness ??
         MediaQuery.platformBrightnessOf(context);
     final theme = _readActiveTheme(context);
     return brightness == Brightness.light
@@ -42,8 +43,10 @@ abstract final class AppColors {
 
   static AppThemeData _readActiveTheme(BuildContext context) {
     try {
-      return ProviderScope.containerOf(context, listen: false)
-          .read(activeThemeProvider);
+      return ProviderScope.containerOf(
+        context,
+        listen: false,
+      ).read(activeThemeProvider);
     } catch (_) {
       // ProviderScope not in the tree — only happens in unit/widget tests
       // that pump a Cupertino app without Riverpod. Default is fine.
@@ -53,45 +56,46 @@ abstract final class AppColors {
 
   // ───────────────────────────────────────────────────────────────
   //  Legacy aliases — kept as compile-time constants pointing at the
-  //  default-theme dark palette. These are referenced from places
-  //  that need a colour at compile time (e.g. const widgets). Anything
-  //  that *can* take a Palette should call `AppColors.of(context)`
-  //  instead so it picks up the equipped theme.
+  //  default-theme dark palette (the Field Manual since reskin batch
+  //  #2). These are referenced from places that need a colour at
+  //  compile time (e.g. const widgets). Anything that *can* take a
+  //  Palette should call `AppColors.of(context)` instead so it picks
+  //  up the equipped theme.
   // ───────────────────────────────────────────────────────────────
-  static const Color darkBackground = Color(0xFF000000);
-  static const Color darkSurface = Color(0xFF1C1C1E);
-  static const Color darkSurfaceBorder = Color(0x1FFFFFFF);
-  static const Color darkSearchField = Color(0xFF2C2C2E);
+  static const Color darkBackground = Color(0xFF1A1C1A); // ink
+  static const Color darkSurface = Color(0xFF21241F); // field
+  static const Color darkSurfaceBorder = Color(0x1FE8E4D8); // bone hairline
+  static const Color darkSearchField = Color(0xFF2A2E26); // field-raised
 
-  /// Was purple — now the iOS dark mode system blue accent.
-  static const Color purple = Color(0xFF0A84FF);
-  static const Color purpleLight = Color(0xFF64B5FF);
-  static const Color purpleDark = Color(0xFF0050A0);
+  /// Was purple, then system blue — now Field Manual brass.
+  static const Color purple = Color(0xFFC8A24B);
+  static const Color purpleLight = Color(0xFFE0C27E);
+  static const Color purpleDark = Color(0xFFA38443);
 
-  /// Was lime — now white text in dark mode.
-  static const Color lime = Color(0xFFFFFFFF);
+  /// Was lime — now bone (primary text on dark).
+  static const Color lime = Color(0xFFE8E4D8);
 
-  static const Color darkText = Color(0xFFFFFFFF);
-  static const Color darkTextSecondary = Color(0xFF8E8E93);
+  static const Color darkText = Color(0xFFE8E4D8); // bone
+  static const Color darkTextSecondary = Color(0xFFCDC8BA); // muted bone
 
   // ─── Light mode legacy aliases ──────────────────────────────
   static const Color lightBackground = Color(0xFFF2F2F7);
   static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightPrimary = Color(0xFF007AFF);
-  static const Color lightCta = Color(0xFF007AFF);
+  static const Color lightPrimary = Color(0xFF8A6937); // brass-ink
+  static const Color lightCta = Color(0xFF8A6937);
   static const Color lightText = Color(0xFF000000);
 
   // ─── Shared accents ─────────────────────────────────────────
   static const Color error = Color(0xFFFF453A);
   static const Color warning = Color(0xFFFF9F0A);
-  static const Color success = Color(0xFF32D74B);
+  static const Color success = Color(0xFF3FBF4A);
 
   // ─── Bottom nav ─────────────────────────────────────────────
-  static const Color bottomNavBar = Color(0xFF000000);
+  static const Color bottomNavBar = Color(0xFF1A1C1A); // ink
 
   // ─── Accent tints ────────────────────────────────────────────
-  static const Color accentPressed = Color(0xFF0050A0);
-  static const Color accentTint = Color(0x2E0A84FF);
+  static const Color accentPressed = Color(0xFFA38443); // brass-pressed
+  static const Color accentTint = Color(0x2EC8A24B);
 
   // ─── Activity rings (Apple Fitness inspired) ────────────────
   static const Color ringMove = Color(0xFFFA114F);
@@ -124,80 +128,92 @@ class Palette {
     required this.separator,
     required this.text,
     required this.textSecondary,
+    required this.textTertiary,
     required this.accent,
+    required this.accentPressed,
     required this.accentLight,
     required this.success,
     required this.destructive,
     required this.warning,
   });
 
-  // Dark mode mapping. Background and surface come from the theme directly;
-  // surfaceElevated is a slightly-tinted shade of surface so cards "lift"
-  // visually. Destructive/warning stay fixed to iOS system reds/oranges so
-  // semantic alerts don't fade into accent-colour soup.
+  // Dark mode mapping. Background and surface come from the theme directly.
+  // Chrome tokens (text, borders, elevated surface) come from the theme when
+  // it defines them — the Field Manual default does — and otherwise fall back
+  // to the classic iOS values so legacy packs render exactly as before.
+  // Destructive/warning stay fixed to iOS system reds/oranges so semantic
+  // alerts don't fade into accent-colour soup.
   //
   // Not `const` — the initializers read from a runtime [AppThemeData].
   Palette._dark(AppThemeData theme)
-      : background = theme.darkBackground,
-        surface = theme.darkSurface,
-        surfaceElevated = const Color(0xFF2C2C2E),
-        border = const Color(0x1FFFFFFF),
-        separator = const Color(0x14FFFFFF),
-        text = const Color(0xFFFFFFFF),
-        textSecondary = const Color(0xFF8E8E93),
-        accent = theme.accent,
-        accentLight = theme.accentLight,
-        success = theme.success,
-        destructive = const Color(0xFFFF453A),
-        warning = const Color(0xFFFF9F0A);
+    : background = theme.darkBackground,
+      surface = theme.darkSurface,
+      surfaceElevated = theme.darkSurfaceElevated ?? const Color(0xFF2C2C2E),
+      border = theme.darkBorder ?? const Color(0x1FFFFFFF),
+      separator = theme.darkSeparator ?? const Color(0x14FFFFFF),
+      text = theme.darkText ?? const Color(0xFFFFFFFF),
+      textSecondary = theme.darkTextSecondary ?? const Color(0xFF8E8E93),
+      textTertiary = theme.darkTextTertiary ?? const Color(0xFF8E8E93),
+      accent = theme.accent,
+      accentPressed = theme.accentPressed ?? theme.accent,
+      accentLight = theme.accentLight,
+      success = theme.success,
+      destructive = const Color(0xFFFF453A),
+      warning = const Color(0xFFFF9F0A);
 
   // Light mode mapping. Background/surface stay fixed (Apple grouped-light
   // tokens — themes don't override these because most themes are dark-mode
   // optimised). Only the accent shifts to the theme's contrast-safe variant.
   Palette._light(AppThemeData theme)
-      : background = const Color(0xFFF2F2F7),
-        surface = const Color(0xFFFFFFFF),
-        surfaceElevated = const Color(0xFFF2F2F7),
-        border = const Color(0x1A000000),
-        separator = const Color(0x0F000000),
-        text = const Color(0xFF000000),
-        textSecondary = const Color(0xFF8E8E93),
-        accent = theme.lightAccent,
-        accentLight = theme.accentLight,
-        success = theme.success,
-        destructive = const Color(0xFFFF3B30),
-        warning = const Color(0xFFFF9500);
+    : background = const Color(0xFFF2F2F7),
+      surface = const Color(0xFFFFFFFF),
+      surfaceElevated = const Color(0xFFF2F2F7),
+      border = const Color(0x1A000000),
+      separator = const Color(0x0F000000),
+      text = const Color(0xFF000000),
+      textSecondary = const Color(0xFF8E8E93),
+      textTertiary = const Color(0xFF3C3C43),
+      accent = theme.lightAccent,
+      accentPressed = theme.lightAccent,
+      accentLight = theme.accentLight,
+      success = theme.success,
+      destructive = const Color(0xFFFF3B30),
+      warning = const Color(0xFFFF9500);
 
-  // Compile-time-constant fallbacks. Mirror the original midnight-blue
-  // palette so any const-context use of `AppColors.dark`/`.light` still
-  // resolves to a sensible colour.
+  // Compile-time-constant fallbacks. Mirror the default Field Manual palette
+  // so any const-context use of `AppColors.dark`/`.light` still resolves to
+  // a sensible colour.
   const Palette._defaultDark()
-      : background = const Color(0xFF000000),
-        surface = const Color(0xFF1C1C1E),
-        surfaceElevated = const Color(0xFF2C2C2E),
-        border = const Color(0x1FFFFFFF),
-        separator = const Color(0x14FFFFFF),
-        text = const Color(0xFFFFFFFF),
-        textSecondary = const Color(0xFF8E8E93),
-        accent = const Color(0xFF0A84FF),
-        accentLight = const Color(0xFF64B5FF),
-        success = const Color(0xFF32D74B),
-        destructive = const Color(0xFFFF453A),
-        warning = const Color(0xFFFF9F0A);
+    : background = const Color(0xFF1A1C1A),
+      surface = const Color(0xFF21241F),
+      surfaceElevated = const Color(0xFF2A2E26),
+      border = const Color(0x1FE8E4D8),
+      separator = const Color(0x14E8E4D8),
+      text = const Color(0xFFE8E4D8),
+      textSecondary = const Color(0xFFCDC8BA),
+      textTertiary = const Color(0xFF8C9377), // lifted olive, ≥4.5:1 on ink
+      accent = const Color(0xFFC8A24B),
+      accentPressed = const Color(0xFFA38443),
+      accentLight = const Color(0xFFE0C27E),
+      success = const Color(0xFF3FBF4A),
+      destructive = const Color(0xFFFF453A),
+      warning = const Color(0xFFFF9F0A);
 
   const Palette._defaultLight()
-      : background = const Color(0xFFF2F2F7),
-        surface = const Color(0xFFFFFFFF),
-        surfaceElevated = const Color(0xFFF2F2F7),
-        border = const Color(0x1A000000),
-        separator = const Color(0x0F000000),
-        text = const Color(0xFF000000),
-        textSecondary = const Color(0xFF8E8E93),
-        accent = const Color(0xFF007AFF),
-        accentLight = const Color(0xFF64B5FF),
-        success = const Color(0xFF34C759),
-        destructive = const Color(0xFFFF3B30),
-        warning = const Color(0xFFFF9500);
+    : background = const Color(0xFFF2F2F7),
+      surface = const Color(0xFFFFFFFF),
+      surfaceElevated = const Color(0xFFF2F2F7),
+      border = const Color(0x1A000000),
+      separator = const Color(0x0F000000),
+      text = const Color(0xFF000000),
+      textSecondary = const Color(0xFF8E8E93),
+      textTertiary = const Color(0xFF3C3C43),
+      accent = const Color(0xFF8A6937),
+      accentPressed = const Color(0xFF8A6937),
+      accentLight = const Color(0xFFE0C27E),
+      success = const Color(0xFF34C759),
+      destructive = const Color(0xFFFF3B30),
+      warning = const Color(0xFFFF9500);
 
   final Color background;
   final Color surface;
@@ -206,7 +222,15 @@ class Palette {
   final Color separator;
   final Color text;
   final Color textSecondary;
+
+  /// Tertiary/inactive structure — inactive tab items, disabled meta. On the
+  /// Field Manual default this is olive, which never carries reading text
+  /// (the Olive Floor Rule).
+  final Color textTertiary;
   final Color accent;
+
+  /// Pressed/held state of accent-filled controls.
+  final Color accentPressed;
   final Color accentLight;
   final Color success;
   final Color destructive;

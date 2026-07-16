@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
 
 /// Field Manual replacement for the Apple-style calorie ring: a tick-marked
@@ -68,7 +69,11 @@ class _KcalGaugeState extends State<KcalGauge> {
                   : const Duration(milliseconds: 600),
               curve: Curves.easeOutQuart,
               builder: (_, animated, _) => CustomPaint(
-                painter: _GaugePainter(fraction: animated),
+                painter: _GaugePainter(
+                  fraction: animated,
+                  // The live accent sweep — brass on the default issue.
+                  accent: AppColors.of(context).accent,
+                ),
               ),
             ),
           ),
@@ -121,9 +126,10 @@ class _KcalGaugeState extends State<KcalGauge> {
 }
 
 class _GaugePainter extends CustomPainter {
-  const _GaugePainter({required this.fraction});
+  const _GaugePainter({required this.fraction, required this.accent});
 
   final double fraction;
+  final Color accent;
 
   // 240° arc, opening at the bottom: 150° → 390°.
   static final _start = _rad(150);
@@ -163,18 +169,18 @@ class _GaugePainter extends CustomPainter {
       canvas.drawLine(from, to, isMajor ? majorTick : minorTick);
     }
 
-    // Progress arc — the brass needle-sweep.
+    // Progress arc — the accent needle-sweep (brass on the default issue).
     if (fraction > 0) {
       final progress = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 6
         ..strokeCap = StrokeCap.round
-        ..color = FieldManual.brass;
+        ..color = accent;
       canvas.drawArc(rect, _start, _sweep * fraction, false, progress);
     }
   }
 
   @override
   bool shouldRepaint(_GaugePainter oldDelegate) =>
-      oldDelegate.fraction != fraction;
+      oldDelegate.fraction != fraction || oldDelegate.accent != accent;
 }

@@ -1346,13 +1346,17 @@ class _RunningTotalBar extends StatelessWidget {
                       _macro('F', fat, palette.success),
                       const SizedBox(width: 10),
                       // Save the current configuration as a reusable meal.
-                      GestureDetector(
-                        onTap: isSaving ? null : onSaveAsMeal,
-                        behavior: HitTestBehavior.opaque,
-                        child: Icon(
-                          CupertinoIcons.bookmark,
-                          size: 20,
-                          color: palette.textSecondary,
+                      Semantics(
+                        button: true,
+                        label: 'Save as reusable meal',
+                        child: GestureDetector(
+                          onTap: isSaving ? null : onSaveAsMeal,
+                          behavior: HitTestBehavior.opaque,
+                          child: Icon(
+                            CupertinoIcons.bookmark,
+                            size: 20,
+                            color: palette.textSecondary,
+                          ),
                         ),
                       ),
                     ],

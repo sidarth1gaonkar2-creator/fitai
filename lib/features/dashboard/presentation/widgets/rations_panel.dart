@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
 import '../../../tutorial/presentation/tutorial_anchor.dart';
 import 'kcal_gauge.dart';
@@ -37,6 +38,9 @@ class RationsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The live accent — brass by default, the equipped pack's accent
+    // otherwise (DESIGN.md Accent Swap Rule).
+    final accent = AppColors.of(context).accent;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -61,13 +65,13 @@ class RationsPanel extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                        color: FieldManual.brass.withValues(alpha: 0.4),
+                        color: accent.withValues(alpha: 0.4),
                       ),
                     ),
                     child: Text(
                       '+ LOG MEAL',
                       style: FieldManual.label(
-                        color: FieldManual.brass,
+                        color: accent,
                         fontSize: 10,
                       ),
                     ),

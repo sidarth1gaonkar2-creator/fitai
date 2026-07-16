@@ -73,8 +73,9 @@ class DrillFitApp extends ConsumerWidget {
     // sits above the ProviderScope's CupertinoApp and can't go through
     // `AppColors.of(context)` for itself.
     final palette = AppColors.resolve(theme: activeTheme, brightness: brightness);
-    final textColor =
-        isLight ? CupertinoColors.black : CupertinoColors.white;
+    // Bone on the Field Manual default, white on legacy packs, black in
+    // light mode — all via the palette's text token.
+    final textColor = palette.text;
 
     return CupertinoApp.router(
       title: 'DrillFit',
@@ -94,27 +95,35 @@ class DrillFitApp extends ConsumerWidget {
         primaryContrastingColor: palette.text,
         scaffoldBackgroundColor: palette.background,
         barBackgroundColor: palette.background.withValues(alpha: 0.8),
+        // Field Manual faces (DESIGN.md): Inter carries reading text, Oswald
+        // carries nav titles (the bark). Colours track the equipped palette.
         textTheme: CupertinoTextThemeData(
           primaryColor: palette.accent,
           textStyle: TextStyle(
-            fontFamily: 'Poppins',
+            fontFamily: 'Inter',
             color: textColor,
             fontSize: 15,
+            height: 1.45,
           ),
           navTitleTextStyle: TextStyle(
-            fontFamily: 'Poppins',
+            fontFamily: 'Oswald',
+            fontVariations: const [FontVariation('wght', 600)],
             fontWeight: FontWeight.w600,
             fontSize: 17,
+            letterSpacing: 0.4,
             color: textColor,
           ),
           navLargeTitleTextStyle: TextStyle(
-            fontFamily: 'Poppins',
+            fontFamily: 'Oswald',
+            fontVariations: const [FontVariation('wght', 700)],
             fontWeight: FontWeight.w700,
-            fontSize: 32,
+            fontSize: 30,
+            height: 1.05,
+            letterSpacing: 0.3,
             color: textColor,
           ),
           navActionTextStyle: TextStyle(
-            fontFamily: 'Poppins',
+            fontFamily: 'Inter',
             fontWeight: FontWeight.w500,
             fontSize: 15,
             color: palette.accent,

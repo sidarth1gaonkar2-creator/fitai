@@ -408,7 +408,8 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
               context.go('/workouts');
             }
           },
-          child: const Icon(CupertinoIcons.xmark, size: 22),
+          child: const Icon(CupertinoIcons.xmark,
+              size: 22, semanticLabel: 'Discard workout'),
         ),
         middle: Text(elapsedStr),
         trailing: CupertinoButton(

@@ -117,6 +117,7 @@ class ExerciseCard extends ConsumerWidget {
                   onPressed: onRemove,
                   icon: Icon(Icons.close, size: 20, color: colorScheme.error),
                   visualDensity: VisualDensity.compact,
+                  tooltip: 'Remove exercise',
                 ),
               ],
             ),

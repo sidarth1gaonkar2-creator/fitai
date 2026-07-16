@@ -15,6 +15,12 @@ import 'package:flutter/painting.dart';
 ///                     to "show through" on cards
 ///   darkBackground  → Palette.background (dark mode)
 ///   darkSurface     → Palette.surface (dark mode)
+///
+/// The optional chrome tokens below let a theme restyle the fixed parts of
+/// the dark palette (text, borders, elevated surfaces). They exist so the
+/// default Field Manual theme can carry bone text and hairline bone borders
+/// while every legacy pack keeps its original iOS values via the fallbacks
+/// in `Palette._dark` — packs stay accent swaps, per DESIGN.md.
 class AppThemeData {
   const AppThemeData({
     required this.id,
@@ -28,6 +34,13 @@ class AppThemeData {
     required this.lightAccent,
     required this.price,
     this.isPremium = false,
+    this.accentPressed,
+    this.darkText,
+    this.darkTextSecondary,
+    this.darkTextTertiary,
+    this.darkSurfaceElevated,
+    this.darkBorder,
+    this.darkSeparator,
   });
 
   final String id;
@@ -41,6 +54,28 @@ class AppThemeData {
   final Color darkBackground;
   final Color darkSurface;
   final Color lightAccent;
+
+  // ── Optional chrome tokens (null → Palette's classic iOS fallbacks) ─────
+  /// Pressed/held state of accent-filled controls.
+  final Color? accentPressed;
+
+  /// Primary text and icons on dark surfaces.
+  final Color? darkText;
+
+  /// Secondary text that must still be read.
+  final Color? darkTextSecondary;
+
+  /// Tertiary/inactive structure — inactive tabs, disabled meta.
+  final Color? darkTextTertiary;
+
+  /// The rare second surface step: active inputs, pressed cards.
+  final Color? darkSurfaceElevated;
+
+  /// Card/panel borders.
+  final Color? darkBorder;
+
+  /// Row separators (weaker than [darkBorder]).
+  final Color? darkSeparator;
 
   // ── Commerce ─────────────────────────────────────────────────────────────
   /// Price in coins — the app's single currency, earned in-app (workouts,

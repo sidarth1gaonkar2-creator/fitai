@@ -54,7 +54,8 @@ class _WorkoutsScreenState extends ConsumerState<WorkoutsScreen>
         trailing: CupertinoButton(
           padding: const EdgeInsets.all(8),
           onPressed: () => context.push('/settings'),
-          child: const Icon(CupertinoIcons.gear, size: 22),
+          child: const Icon(CupertinoIcons.gear,
+              size: 22, semanticLabel: 'Settings'),
         ),
       ),
       body: Column(

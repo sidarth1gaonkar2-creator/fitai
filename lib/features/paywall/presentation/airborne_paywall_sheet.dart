@@ -188,6 +188,7 @@ class _AirbornePaywallSheetState extends State<AirbornePaywallSheet> {
               CupertinoIcons.xmark,
               size: 20,
               color: FieldManual.mutedBone,
+              semanticLabel: 'Close',
             ),
           ),
         ),

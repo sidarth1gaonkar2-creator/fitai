@@ -136,7 +136,8 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
         trailing: CupertinoButton(
           padding: const EdgeInsets.all(8),
           onPressed: _showActions,
-          child: const Icon(CupertinoIcons.ellipsis, size: 22),
+          child: const Icon(CupertinoIcons.ellipsis,
+              size: 22, semanticLabel: 'Chat options'),
         ),
       ),
       body: Column(

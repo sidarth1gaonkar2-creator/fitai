@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
 import '../../../../models/workout.dart';
 import '../../../ranks/domain/drill_sergeant.dart';
@@ -94,7 +95,9 @@ class _Train extends StatelessWidget {
         const SizedBox(height: 14),
         CupertinoButton(
           padding: const EdgeInsets.symmetric(vertical: 13),
-          color: FieldManual.brass,
+          // The live accent — brass on the default issue, the equipped
+          // pack's accent otherwise (DESIGN.md Accent Swap Rule).
+          color: AppColors.of(context).accent,
           borderRadius: BorderRadius.circular(4),
           onPressed: () => context.go('/workouts'),
           child: Text(
@@ -158,10 +161,10 @@ class _Complete extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Icon(
+            Icon(
               CupertinoIcons.checkmark_seal_fill,
               size: 18,
-              color: FieldManual.brass,
+              color: AppColors.of(context).accent,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -207,6 +210,7 @@ class _StreakChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = AppColors.of(context).accent;
     final label = multiplier != null
         ? 'DAY $streak · ×${multiplier!.toStringAsFixed(1)}'
         : 'DAY $streak';
@@ -219,12 +223,12 @@ class _StreakChip extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(3),
           border: Border.all(
-            color: FieldManual.brass.withValues(alpha: 0.4),
+            color: accent.withValues(alpha: 0.4),
           ),
         ),
         child: Text(
           label,
-          style: FieldManual.label(color: FieldManual.brass, fontSize: 10),
+          style: FieldManual.label(color: accent, fontSize: 10),
         ),
       ),
     );

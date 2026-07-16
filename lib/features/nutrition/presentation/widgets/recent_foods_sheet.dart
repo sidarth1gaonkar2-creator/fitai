@@ -167,6 +167,7 @@ class RecentFoodsSheet extends ConsumerWidget {
                   IconButton(
                     icon: const Icon(CupertinoIcons.xmark, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
+                    tooltip: 'Close',
                     color: palette.textSecondary,
                   ),
                 ],

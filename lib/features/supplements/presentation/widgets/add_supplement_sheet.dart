@@ -398,13 +398,17 @@ class _ApiSupplementCard extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             // Add button
-            GestureDetector(
-              onTap: onAdd,
-              behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Icon(CupertinoIcons.add_circled,
-                    color: palette.accent, size: 24),
+            Semantics(
+              button: true,
+              label: 'Add supplement',
+              child: GestureDetector(
+                onTap: onAdd,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(CupertinoIcons.add_circled,
+                      color: palette.accent, size: 24),
+                ),
               ),
             ),
           ],

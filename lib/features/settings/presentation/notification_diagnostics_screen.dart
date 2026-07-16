@@ -236,7 +236,8 @@ class _NotificationDiagnosticsScreenState
             : CupertinoButton(
                 padding: EdgeInsets.zero,
                 onPressed: _refresh,
-                child: const Icon(CupertinoIcons.refresh, size: 20),
+                child: const Icon(CupertinoIcons.refresh,
+                    size: 20, semanticLabel: 'Refresh'),
               ),
       ),
       child: SafeArea(

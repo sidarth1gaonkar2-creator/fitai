@@ -284,6 +284,7 @@ class _CustomPlanCard extends ConsumerWidget {
                 child: IconButton(
                   onPressed: () => _delete(context, ref),
                   icon: const Icon(CupertinoIcons.trash, size: 18),
+                  tooltip: 'Delete meal plan',
                   color: palette.destructive,
                   style: IconButton.styleFrom(
                     backgroundColor: palette.destructive.withValues(alpha: 0.15),

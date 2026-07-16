@@ -30,7 +30,8 @@ class SupplementsScreen extends ConsumerWidget {
               builder: (_) => const AddSupplementSheet(),
             );
           },
-          child: const Icon(CupertinoIcons.add, size: 22),
+          child: const Icon(CupertinoIcons.add,
+              size: 22, semanticLabel: 'Add supplement'),
         ),
       ),
       child: SafeArea(
@@ -263,6 +264,8 @@ class _SupplementTile extends StatelessWidget {
                   : CupertinoIcons.play_circle,
               color: isActive ? palette.warning : palette.success,
               size: 22,
+              semanticLabel:
+                  isActive ? 'Pause supplement' : 'Resume supplement',
             ),
           ),
           CupertinoButton(
@@ -272,6 +275,7 @@ class _SupplementTile extends StatelessWidget {
               CupertinoIcons.trash,
               color: palette.destructive,
               size: 20,
+              semanticLabel: 'Delete supplement',
             ),
           ),
         ],

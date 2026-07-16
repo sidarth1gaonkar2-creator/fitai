@@ -17,12 +17,15 @@ class CupertinoCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(16),
     this.color,
     this.onTap,
+    // Field Manual cards are 8px; sheets are the 12px surface (DESIGN.md).
+    this.borderRadius = 8,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final Color? color;
   final VoidCallback? onTap;
+  final double borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +34,7 @@ class CupertinoCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: color ?? palette.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(color: palette.border),
       ),
       child: child,
@@ -149,7 +152,7 @@ class _CupertinoExpansionTileState extends State<CupertinoExpansionTile>
                       children: [
                         DefaultTextStyle(
                           style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Inter',
                             color: AppColors.of(context).text,
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
@@ -160,7 +163,7 @@ class _CupertinoExpansionTileState extends State<CupertinoExpansionTile>
                           const SizedBox(height: 2),
                           DefaultTextStyle(
                             style: TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Inter',
                               color: AppColors.of(context).textSecondary,
                               fontSize: 12,
                             ),
@@ -172,11 +175,13 @@ class _CupertinoExpansionTileState extends State<CupertinoExpansionTile>
                   ),
                   AnimatedRotation(
                     turns: _expanded ? 0.25 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: const Icon(
+                    duration: MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 200),
+                    child: Icon(
                       CupertinoIcons.chevron_right,
                       size: 16,
-                      color: CupertinoColors.systemGrey,
+                      color: AppColors.of(context).textSecondary,
                     ),
                   ),
                 ],
@@ -186,7 +191,9 @@ class _CupertinoExpansionTileState extends State<CupertinoExpansionTile>
           AnimatedCrossFade(
             crossFadeState:
                 _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 200),
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 200),
             firstChild: const SizedBox(width: double.infinity),
             secondChild: Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
@@ -278,10 +285,21 @@ class _ToastWidget extends StatefulWidget {
 
 class _ToastWidgetState extends State<_ToastWidget>
     with SingleTickerProviderStateMixin {
+  // Duration is resolved against Reduce Motion in didChangeDependencies —
+  // context isn't safe to read here.
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 200),
   )..forward();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.duration = Duration.zero;
+      _controller.value = 1.0;
+    }
+  }
 
   @override
   void initState() {
@@ -316,59 +334,57 @@ class _ToastWidgetState extends State<_ToastWidget>
             CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
           ),
           child: Center(
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xE6242424),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0x29FFFFFF)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x66000000),
-                    blurRadius: 20,
-                    offset: Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: Text(
-                      widget.message,
-                      style: const TextStyle(
-                        color: CupertinoColors.white,
-                        fontFamily: 'Poppins',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  if (widget.actionLabel != null &&
-                      widget.onAction != null) ...[
-                    const SizedBox(width: 12),
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: widget.onAction,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 4),
-                        child: Text(
-                          widget.actionLabel!,
-                          style: const TextStyle(
-                            color: Color(0xFFCCFF00),
-                            fontFamily: 'Poppins',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
+            child: Builder(builder: (context) {
+              final palette = AppColors.of(context);
+              // Field Manual chrome: raised field surface, hairline border,
+              // no shadow (the Quiet Chrome rule).
+              return Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                decoration: BoxDecoration(
+                  color: palette.surfaceElevated.withValues(alpha: 0.97),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: palette.border),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        widget.message,
+                        style: TextStyle(
+                          color: palette.text,
+                          fontFamily: 'Inter',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
+                    if (widget.actionLabel != null &&
+                        widget.onAction != null) ...[
+                      const SizedBox(width: 12),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: widget.onAction,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 4),
+                          child: Text(
+                            widget.actionLabel!,
+                            style: TextStyle(
+                              color: palette.accent,
+                              fontFamily: 'Inter',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
-              ),
-            ),
+                ),
+              );
+            }),
           ),
         ),
       ),
@@ -380,7 +396,15 @@ class _ToastWidgetState extends State<_ToastWidget>
 // Convenience buttons
 // ---------------------------------------------------------------------------
 
-/// Filled lime primary CTA.
+/// Readable label color for text sitting ON an accent fill: ink for bright
+/// accents (brass and most packs), white for the dark ones (e.g. Stealth).
+Color _onAccent(Color accent) =>
+    accent.computeLuminance() >= 0.18
+        ? const Color(0xFF1A1C1A) // ink
+        : Colors.white;
+
+/// Filled primary CTA — Field Manual issue: accent fill, ink label,
+/// condensed uppercase, sharp 4px corners (DESIGN.md §Buttons).
 class CupertinoPrimaryButton extends StatelessWidget {
   const CupertinoPrimaryButton({
     super.key,
@@ -397,36 +421,48 @@ class CupertinoPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = AppColors.of(context).accent;
+    final onAccent = _onAccent(accent);
     final content = Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
       children: [
         if (icon != null) ...[
-          Icon(icon, color: Colors.white, size: 18),
+          Icon(icon, color: onAccent, size: 18),
           const SizedBox(width: 8),
         ],
         Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
+          label.toUpperCase(),
+          style: TextStyle(
+            fontFamily: 'Oswald',
+            fontVariations: const [FontVariation('wght', 600)],
             fontWeight: FontWeight.w600,
             fontSize: 15,
-            color: Colors.white,
+            letterSpacing: 0.6,
+            color: onAccent,
           ),
         ),
       ],
     );
-    return CupertinoButton(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-      color: AppColors.of(context).accent,
-      borderRadius: BorderRadius.circular(12),
-      onPressed: onPressed,
-      child: content,
+    // Spoken label stays sentence case; the uppercase is visual only.
+    return Semantics(
+      label: label,
+      button: true,
+      child: ExcludeSemantics(
+        child: CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          color: accent,
+          borderRadius: BorderRadius.circular(4),
+          onPressed: onPressed,
+          child: content,
+        ),
+      ),
     );
   }
 }
 
-/// Outlined secondary button.
+/// Outlined secondary button — transparent with hairline border, sharp 4px
+/// (DESIGN.md §Buttons).
 class CupertinoSecondaryButton extends StatelessWidget {
   const CupertinoSecondaryButton({
     super.key,
@@ -442,33 +478,41 @@ class CupertinoSecondaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onPressed,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: palette.border),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 18, color: palette.text),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-                color: palette.text,
-              ),
+    return Semantics(
+      label: label,
+      button: true,
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onPressed,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: palette.border),
             ),
-          ],
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 18, color: palette.text),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  label.toUpperCase(),
+                  style: TextStyle(
+                    fontFamily: 'Oswald',
+                    fontVariations: const [FontVariation('wght', 600)],
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    letterSpacing: 0.6,
+                    color: palette.text,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

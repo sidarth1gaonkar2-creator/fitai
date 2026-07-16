@@ -298,6 +298,7 @@ class _Header extends ConsumerWidget {
               CupertinoIcons.ellipsis,
               size: 18,
               color: palette.textSecondary,
+              semanticLabel: 'Post options',
             ),
           ),
       ],
@@ -618,13 +619,17 @@ class _ReactionBar extends ConsumerWidget {
           ),
           if (onShare != null) ...[
             const SizedBox(width: 14),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onShare,
-              child: Icon(
-                CupertinoIcons.share,
-                size: 17,
-                color: palette.textSecondary,
+            Semantics(
+              button: true,
+              label: 'Share post',
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onShare,
+                child: Icon(
+                  CupertinoIcons.share,
+                  size: 17,
+                  color: palette.textSecondary,
+                ),
               ),
             ),
           ],

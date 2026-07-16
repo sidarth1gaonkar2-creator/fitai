@@ -6,6 +6,7 @@ import 'package:flutter/material.dart' show Scaffold, CircularProgressIndicator;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/field_manual.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/widgets/error_card.dart';
@@ -277,6 +278,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 CupertinoIcons.chat_bubble_fill,
                 size: 22,
                 color: FieldManual.bone,
+                semanticLabel: 'AI Coach',
               ),
             ),
             TutorialAnchor(
@@ -288,6 +290,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   CupertinoIcons.gear,
                   size: 22,
                   color: FieldManual.bone,
+                  semanticLabel: 'Settings',
                 ),
               ),
             ),
@@ -385,8 +388,9 @@ class _InsightCard extends StatelessWidget {
 
   final Insight insight;
 
-  Color get _iconColor => switch (insight.type) {
-        InsightType.positive => FieldManual.brass,
+  Color _iconColor(BuildContext context) => switch (insight.type) {
+        // Positive wears the live accent (brass on the default issue).
+        InsightType.positive => AppColors.of(context).accent,
         InsightType.warning => FieldManual.alert,
         InsightType.suggestion => FieldManual.olive,
       };
@@ -404,7 +408,7 @@ class _InsightCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(insight.icon, color: _iconColor, size: 18),
+          Icon(insight.icon, color: _iconColor(context), size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

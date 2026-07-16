@@ -83,6 +83,7 @@ class CommentTile extends StatelessWidget {
                 CupertinoIcons.trash,
                 size: 16,
                 color: palette.destructive,
+                semanticLabel: 'Delete comment',
               ),
             ),
         ],

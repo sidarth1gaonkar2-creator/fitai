@@ -219,12 +219,14 @@ class _SetRowState extends State<SetRow> {
                     icon: Icon(Icons.check_circle,
                         color: colorScheme.primary, size: 22),
                     visualDensity: VisualDensity.compact,
+                    tooltip: 'Mark set incomplete',
                   )
                 : IconButton(
                     onPressed: widget.onComplete,
                     icon: Icon(Icons.check_circle_outline,
                         color: colorScheme.onSurfaceVariant, size: 22),
                     visualDensity: VisualDensity.compact,
+                    tooltip: 'Mark set complete',
                   ),
           ),
         ],

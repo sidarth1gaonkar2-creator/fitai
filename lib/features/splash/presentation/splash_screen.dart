@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -16,14 +17,14 @@ class BootstrapResult {
     Isar this.isar,
     SharedPreferences this.prefs, {
     required this.isSignedIn,
-  })  : phase = null,
-        error = null,
-        stack = null;
+  }) : phase = null,
+       error = null,
+       stack = null;
 
   const BootstrapResult.failed(StartupPhase this.phase, this.error, this.stack)
-      : isar = null,
-        prefs = null,
-        isSignedIn = false;
+    : isar = null,
+      prefs = null,
+      isSignedIn = false;
 
   final Isar? isar;
   final SharedPreferences? prefs;
@@ -41,10 +42,11 @@ class BootstrapResult {
 
 /// The dark background every launch starts on — matches the iOS
 /// LaunchScreen.storyboard so there is no flash when Flutter takes over.
-const splashBackground = Color(0xFF0E0E12);
+/// Field Manual ink since reskin batch #2 (storyboard updated in lockstep).
+const splashBackground = Color(0xFF1A1C1A);
 
-/// DrillFit brand blue, used for the chevrons and dumbbell.
-const _brandBlue = Color(0xFF0A84FF);
+/// DrillFit brand brass (Field Manual), used for the chevrons and dumbbell.
+const _brandBrass = Color(0xFFC8A24B);
 
 /// Per-chevron opacity, bottom (index 0) → top (index 4). Matches the app
 /// icon's fade so the splash mark reads as the same logo.
@@ -55,11 +57,7 @@ const _chevronOpacities = <double>[1.0, 0.88, 0.76, 0.64, 0.52];
 /// very first frame — the real app (with ProviderScope) is swapped in by
 /// [onReady] once initialization AND the intro animation have both finished.
 class SplashApp extends StatelessWidget {
-  const SplashApp({
-    super.key,
-    required this.bootstrap,
-    required this.onReady,
-  });
+  const SplashApp({super.key, required this.bootstrap, required this.onReady});
 
   final Future<BootstrapResult> bootstrap;
   final ValueChanged<BootstrapResult> onReady;
@@ -70,7 +68,7 @@ class SplashApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        fontFamily: 'Poppins',
+        fontFamily: 'Inter',
         scaffoldBackgroundColor: splashBackground,
       ),
       home: SplashScreen(bootstrap: bootstrap, onReady: onReady),
@@ -109,16 +107,32 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    _intro =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 1300));
-    _outro =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 280));
-    _dot =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 750));
+    _intro = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1300),
+    );
+    _outro = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _dot = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 750),
+    );
     _run();
   }
 
   Future<void> _run() async {
+    // Reduce Motion: land on the settled logo instantly and hand off with a
+    // cut instead of choreography. Read from the platform dispatcher because
+    // this runs before a MediaQuery ancestor is reliable.
+    final reduceMotion = WidgetsBinding
+        .instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+    if (reduceMotion) {
+      _intro.value = 1.0;
+      _outro.duration = Duration.zero;
+    }
+
     // Play the intro and wait for initialization — concurrently. We never
     // block the animation on init: the controller drives the UI thread while
     // the bootstrap future resolves off it. Critically we wait for BOTH the
@@ -128,12 +142,18 @@ class _SplashScreenState extends State<SplashScreen>
     // If the intro finishes while bootstrap is still pending, reveal a subtle
     // pulsing dot below the tagline so the held final frame doesn't read as a
     // freeze.
-    unawaited(intro.then((_) {
-      if (mounted && !_bootstrapDone) {
-        setState(() => _showWaitDot = true);
-        _dot.repeat(reverse: true);
-      }
-    }));
+    unawaited(
+      intro.then((_) {
+        if (mounted && !_bootstrapDone) {
+          setState(() => _showWaitDot = true);
+          if (reduceMotion) {
+            _dot.value = 1.0; // static dot, no pulse
+          } else {
+            _dot.repeat(reverse: true);
+          }
+        }
+      }),
+    );
 
     final result = await widget.bootstrap;
     _bootstrapDone = true;
@@ -158,8 +178,12 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   /// Eased progress of a sub-interval of [_intro], clamped to 0..1.
-  double _seg(double v, double start, double end,
-      [Curve curve = Curves.easeOut]) {
+  double _seg(
+    double v,
+    double start,
+    double end, [
+    Curve curve = Curves.easeOut,
+  ]) {
     if (end <= start) return v >= end ? 1 : 0;
     final t = ((v - start) / (end - start)).clamp(0.0, 1.0);
     return curve.transform(t);
@@ -167,102 +191,111 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: splashBackground,
-      body: Center(
-        child: AnimatedBuilder(
-          animation: Listenable.merge([_intro, _outro, _dot]),
-          builder: (context, _) {
-            final v = _intro.value;
+    // The splash owns the first frames — force light status-bar icons over
+    // the ink background regardless of the device's appearance setting.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: splashBackground,
+        body: Center(
+          child: AnimatedBuilder(
+            animation: Listenable.merge([_intro, _outro, _dot]),
+            builder: (context, _) {
+              final v = _intro.value;
 
-            // Whole icon scales 80% → 100% with a subtle overshoot.
-            final groupScale = 0.8 + 0.2 * _seg(v, 0.0, 0.46, Curves.easeOutBack);
+              // Whole icon scales 80% → 100% with a subtle overshoot.
+              final groupScale =
+                  0.8 + 0.2 * _seg(v, 0.0, 0.46, Curves.easeOutBack);
 
-            // Chevrons stagger in bottom → top, 100ms apart, rising as they fade.
-            final chevronOpacities = <double>[];
-            final chevronSlides = <double>[];
-            for (var i = 0; i < 5; i++) {
-              final start = i * 0.075;
-              final p = _seg(v, start, start + 0.23);
-              chevronOpacities.add(_chevronOpacities[i] * p);
-              chevronSlides.add((1 - p) * 6); // px, settles to 0
-            }
+              // Chevrons stagger in bottom → top, 100ms apart, rising as they fade.
+              final chevronOpacities = <double>[];
+              final chevronSlides = <double>[];
+              for (var i = 0; i < 5; i++) {
+                final start = i * 0.075;
+                final p = _seg(v, start, start + 0.23);
+                chevronOpacities.add(_chevronOpacities[i] * p);
+                chevronSlides.add((1 - p) * 6); // px, settles to 0
+              }
 
-            // Dumbbell last (≈200ms after the top chevron starts).
-            final dumbbellOpacity = _seg(v, 0.44, 0.64);
-            final textOpacity = _seg(v, 0.62, 0.82);
-            final taglineOpacity = _seg(v, 0.80, 0.97);
+              // Dumbbell last (≈200ms after the top chevron starts).
+              final dumbbellOpacity = _seg(v, 0.44, 0.64);
+              final textOpacity = _seg(v, 0.62, 0.82);
+              final taglineOpacity = _seg(v, 0.80, 0.97);
 
-            // Exit: fade the whole group out so the real app crossfades in.
-            final groupOpacity = 1 - _outro.value;
+              // Exit: fade the whole group out so the real app crossfades in.
+              final groupOpacity = 1 - _outro.value;
 
-            return Opacity(
-              opacity: groupOpacity.clamp(0.0, 1.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Transform.scale(
-                    scale: groupScale,
-                    child: SizedBox(
-                      width: 120,
-                      height: 124,
-                      child: CustomPaint(
-                        painter: _SplashMarkPainter(
-                          chevronOpacities: chevronOpacities,
-                          chevronSlides: chevronSlides,
-                          dumbbellOpacity: dumbbellOpacity,
-                          color: _brandBlue,
+              return Opacity(
+                opacity: groupOpacity.clamp(0.0, 1.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Transform.scale(
+                      scale: groupScale,
+                      child: SizedBox(
+                        width: 120,
+                        height: 124,
+                        child: CustomPaint(
+                          painter: _SplashMarkPainter(
+                            chevronOpacities: chevronOpacities,
+                            chevronSlides: chevronSlides,
+                            dumbbellOpacity: dumbbellOpacity,
+                            color: _brandBrass,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 22),
-                  Opacity(
-                    opacity: textOpacity,
-                    child: const Text(
-                      'DrillFit',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 28,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Opacity(
-                    opacity: taglineOpacity,
-                    child: const Text(
-                      'Your Drill Sergeant',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                        color: Color(0xFF8E8E93),
-                      ),
-                    ),
-                  ),
-                  // Pulsing wait-dot — only while bootstrap (incl. auth)
-                  // outlasts the intro animation.
-                  if (_showWaitDot) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 22),
                     Opacity(
-                      opacity: 0.3 + 0.7 * _dot.value,
-                      child: Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF8E8E93),
-                          shape: BoxShape.circle,
+                      opacity: textOpacity,
+                      child: const Text(
+                        'DRILLFIT',
+                        style: TextStyle(
+                          fontFamily: 'Oswald',
+                          fontVariations: [FontVariation('wght', 700)],
+                          fontWeight: FontWeight.w700,
+                          fontSize: 28,
+                          color: Color(0xFFE8E4D8), // bone
+                          letterSpacing: 2,
                         ),
                       ),
                     ),
+                    const SizedBox(height: 6),
+                    Opacity(
+                      opacity: taglineOpacity,
+                      child: const Text(
+                        'YOUR DRILL SERGEANT',
+                        style: TextStyle(
+                          fontFamily: 'JetBrainsMono',
+                          fontVariations: [FontVariation('wght', 700)],
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                          letterSpacing: 1.3,
+                          color: Color(0xFFCDC8BA), // muted bone
+                        ),
+                      ),
+                    ),
+                    // Pulsing wait-dot — only while bootstrap (incl. auth)
+                    // outlasts the intro animation.
+                    if (_showWaitDot) ...[
+                      const SizedBox(height: 16),
+                      Opacity(
+                        opacity: 0.3 + 0.7 * _dot.value,
+                        child: Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFCDC8BA), // muted bone
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
-              ),
-            );
-          },
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -270,7 +303,7 @@ class _SplashScreenState extends State<SplashScreen>
 }
 
 /// Draws the DrillFit mark: five stacked sergeant chevrons (each a thick ^
-/// stroke) above a small dumbbell, all in brand blue. Every chevron's opacity
+/// stroke) above a small dumbbell, all in brand brass. Every chevron's opacity
 /// and vertical offset is supplied per-frame so they can animate independently.
 class _SplashMarkPainter extends CustomPainter {
   _SplashMarkPainter({

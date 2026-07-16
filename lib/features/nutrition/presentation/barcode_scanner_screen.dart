@@ -81,6 +81,9 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
                     ? CupertinoIcons.bolt_fill
                     : CupertinoIcons.bolt_slash,
                 size: 22,
+                semanticLabel: state.torchState == TorchState.on
+                    ? 'Turn torch off'
+                    : 'Turn torch on',
               );
             },
           ),

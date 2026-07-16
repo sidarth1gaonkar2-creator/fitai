@@ -84,6 +84,7 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
                 onPressed: _previousMonth,
                 icon: Icon(Icons.chevron_left, color: palette.accent),
                 visualDensity: VisualDensity.compact,
+                tooltip: 'Previous month',
               ),
               Text(
                 '$monthName $year',
@@ -97,6 +98,7 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
                 onPressed: _nextMonth,
                 icon: Icon(Icons.chevron_right, color: palette.accent),
                 visualDensity: VisualDensity.compact,
+                tooltip: 'Next month',
               ),
             ],
           ),

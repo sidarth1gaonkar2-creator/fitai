@@ -73,6 +73,7 @@ class _TemplatePickerContentState extends ConsumerState<TemplatePickerContent> {
                 IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => Navigator.pop(context),
+                  tooltip: 'Close',
                 ),
               ],
             ),
@@ -393,6 +394,7 @@ class _CoachTemplateCard extends StatelessWidget {
                     icon: Icon(Icons.delete_outline,
                         size: 20, color: colorScheme.onSurfaceVariant),
                     onPressed: onDelete,
+                    tooltip: 'Delete template',
                   ),
                 ],
               ),

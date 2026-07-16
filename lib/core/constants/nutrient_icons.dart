@@ -10,7 +10,7 @@ class NutrientIcons {
 
   // --- Macros ---
   static const IconData caloriesIcon = CupertinoIcons.flame_fill;
-  static const Color caloriesColor = Color(0xFF0A84FF);
+  static const Color caloriesColor = Color(0xFFC8A24B); // Field Manual brass
 
   static const IconData proteinIcon = Icons.lunch_dining;
   static const Color proteinColor = Color(0xFFE55B5B);

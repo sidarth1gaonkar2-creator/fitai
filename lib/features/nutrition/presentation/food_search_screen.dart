@@ -92,7 +92,8 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
           padding: const EdgeInsets.all(8),
           onPressed: () =>
               context.go('/nutrition/scan/${widget.mealType.name}'),
-          child: const Icon(CupertinoIcons.qrcode_viewfinder, size: 22),
+          child: const Icon(CupertinoIcons.qrcode_viewfinder,
+              size: 22, semanticLabel: 'Scan barcode'),
         ),
       ),
       body: _buildBody(
