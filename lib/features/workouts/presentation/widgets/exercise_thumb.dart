@@ -55,25 +55,30 @@ class ExerciseThumb extends ConsumerWidget {
             ),
     );
     child = ClipRRect(
-      borderRadius: BorderRadius.circular(size * 0.2),
+      borderRadius: BorderRadius.circular(4),
       child: child,
     );
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap ??
-          () => context.push(
-                '/exercise?name=${Uri.encodeComponent(exerciseName)}',
-              ),
-      child: child,
+    return Semantics(
+      button: true,
+      label: '$exerciseName, exercise details',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap ??
+            () => context.push(
+                  '/exercise?name=${Uri.encodeComponent(exerciseName)}',
+                ),
+        child: child,
+      ),
     );
   }
 }
 
 /// Reusable placeholder shown while the ExerciseDB image is in flight, or
-/// permanently when no image is available. Gradient colour is derived from
-/// the exercise name hash so different exercises get different tints — a
-/// row of placeholders still reads as a row of distinct items.
+/// permanently when no image is available. Field Manual issue: a raised
+/// field plate with a hairline and an olive glyph — regulation equipment,
+/// not the old Apple-gradient tiles. Distinctness across a list comes from
+/// the per-body-part icon and the mono stamp, not from color.
 class _ExercisePlaceholder extends StatelessWidget {
   const _ExercisePlaceholder({
     required this.exerciseName,
@@ -115,42 +120,17 @@ class _ExercisePlaceholder extends StatelessWidget {
     return Icons.fitness_center;
   }
 
-  /// Pair of accent colours for the gradient. Hue derived from the exercise
-  /// name hash so the colour stays stable across re-renders.
-  List<Color> _gradient(BuildContext context) {
-    final palette = AppColors.of(context);
-    final hash = exerciseName.hashCode.abs();
-    // Five hand-picked palettes that feel modern + work in both light and
-    // dark mode. Selected by hash for determinism.
-    const palettes = <(int, int)>[
-      (0xFF0A84FF, 0xFF5E5CE6),
-      (0xFF30D158, 0xFF0A84FF),
-      (0xFFFF9F0A, 0xFFFF453A),
-      (0xFFBF5AF2, 0xFF0A84FF),
-      (0xFF64D2FF, 0xFF0A84FF),
-    ];
-    final pick = palettes[hash % palettes.length];
-    return [Color(pick.$1), Color(pick.$2), palette.accent];
-  }
-
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
-    final colours = _gradient(context);
     final showLabel = size >= 56 && bodyPart != null;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            colours[0].withValues(alpha: 0.85),
-            colours[1].withValues(alpha: 0.85),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(size * 0.2),
+        color: palette.surfaceElevated,
+        border: Border.all(color: palette.border),
+        borderRadius: BorderRadius.circular(4),
       ),
       alignment: Alignment.center,
       child: Column(
@@ -158,10 +138,8 @@ class _ExercisePlaceholder extends StatelessWidget {
         children: [
           Icon(
             _icon,
-            size: size * 0.45,
-            color: palette.text == const Color(0xFFFFFFFF)
-                ? Colors.white
-                : Colors.white,
+            size: size * 0.42,
+            color: palette.textTertiary,
           ),
           if (showLabel) ...[
             const SizedBox(height: 2),
@@ -170,10 +148,11 @@ class _ExercisePlaceholder extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'JetBrainsMono',
+                fontVariations: const [FontVariation('wght', 700)],
                 fontWeight: FontWeight.w700,
-                fontSize: size * 0.10,
-                color: Colors.white.withValues(alpha: 0.95),
+                fontSize: (size * 0.10).clamp(8.0, 11.0),
+                color: palette.textSecondary,
                 letterSpacing: 0.5,
               ),
             ),

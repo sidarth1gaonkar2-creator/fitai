@@ -411,7 +411,19 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
           child: const Icon(CupertinoIcons.xmark,
               size: 22, semanticLabel: 'Discard workout'),
         ),
-        middle: Text(elapsedStr),
+        // Elapsed time is an instrument readout — mono, glanceable.
+        middle: Text(
+          elapsedStr,
+          semanticsLabel: 'Elapsed time $elapsedStr',
+          style: TextStyle(
+            fontFamily: 'JetBrainsMono',
+            fontVariations: const [FontVariation('wght', 700)],
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+            letterSpacing: 1,
+            color: AppColors.of(context).text,
+          ),
+        ),
         trailing: CupertinoButton(
           padding: const EdgeInsets.all(8),
           onPressed: state.isSaving ? null : _finishWorkout,
@@ -483,7 +495,9 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
                         child: OutlinedButton.icon(
                           onPressed: _showAddExerciseSheet,
                           icon: const Icon(Icons.add),
-                          label: const Text('Add Exercise'),
+                          // Oswald via the shim — bark case for commands.
+                          label: const Text('ADD EXERCISE',
+                              semanticsLabel: 'Add exercise'),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -497,7 +511,8 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
                           );
                         },
                         icon: const Icon(CupertinoIcons.timer),
-                        label: const Text('Intervals'),
+                        label: const Text('INTERVALS',
+                            semanticsLabel: 'Intervals'),
                       ),
                     ],
                   ),
@@ -525,7 +540,8 @@ class _ShareWorkoutPrompt extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+        border: Border(top: BorderSide(color: palette.border)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       child: SafeArea(
@@ -546,7 +562,7 @@ class _ShareWorkoutPrompt extends StatelessWidget {
               'Share this workout with the community?',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Inter',
                 fontWeight: FontWeight.w600,
                 fontSize: 17,
                 color: palette.text,
@@ -562,7 +578,7 @@ class _ShareWorkoutPrompt extends StatelessWidget {
                     child: Text(
                       'Skip',
                       style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w500,
                         fontSize: 16,
                         color: palette.textSecondary,
@@ -575,15 +591,17 @@ class _ShareWorkoutPrompt extends StatelessWidget {
                   child: CupertinoButton(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     color: palette.accent,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(4),
                     onPressed: () => Navigator.of(context).pop(true),
                     child: const Text(
-                      'Share',
+                      'SHARE',
                       style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Oswald',
+                        fontVariations: [FontVariation('wght', 600)],
                         fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                        color: CupertinoColors.white,
+                        fontSize: 15,
+                        letterSpacing: 0.6,
+                        color: Color(0xFF1A1C1A), // ink on accent
                       ),
                     ),
                   ),

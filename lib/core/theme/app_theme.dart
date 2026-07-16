@@ -47,7 +47,9 @@ class AppTheme {
       onSecondary: _ink,
       secondaryContainer: AppColors.success.withValues(alpha: 0.18),
       onSecondaryContainer: AppColors.success,
-      tertiary: Color(0xFF6B7257), // olive — structure only
+      // Lifted olive — tertiary occasionally carries small text (difficulty
+      // chips), so it must hold 4.5:1 on field surfaces.
+      tertiary: Color(0xFF8C9377),
       onTertiary: _bone,
       tertiaryContainer: _fieldRaised,
       onTertiaryContainer: _bone,

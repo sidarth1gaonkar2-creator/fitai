@@ -31,44 +31,58 @@ class TrainingDaysPicker extends ConsumerWidget {
 
     return Wrap(
       spacing: 6,
+      runSpacing: 6,
       children: List.generate(7, (i) {
         final day = i + 1;
         final isSelected = settings.workoutDays.contains(day);
-        return GestureDetector(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            final days = List<int>.from(settings.workoutDays);
-            if (isSelected) {
-              days.remove(day);
-            } else {
-              days.add(day);
-            }
-            notifier.update((s) => s.copyWith(workoutDays: days));
-            // Deliberate user edit → opt into the gym-streak mechanic. The
-            // [1,3,5] default alone never sets this; only an active tap flips
-            // isConfigured (preserves PR4a's no-infer rule).
-            ref
-                .read(trainingScheduleConfiguredProvider.notifier)
-                .markConfigured();
-          },
-          child: Container(
-            width: 42,
-            height: 36,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: isSelected ? palette.accent : palette.surface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: isSelected ? palette.accent : palette.border,
-              ),
-            ),
-            child: Text(
-              _dayLabels[i],
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: isSelected ? palette.text : palette.textSecondary,
+        return Semantics(
+          label: _dayLabels[i],
+          button: true,
+          selected: isSelected,
+          child: ExcludeSemantics(
+            child: GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                final days = List<int>.from(settings.workoutDays);
+                if (isSelected) {
+                  days.remove(day);
+                } else {
+                  days.add(day);
+                }
+                notifier.update((s) => s.copyWith(workoutDays: days));
+                // Deliberate user edit → opt into the gym-streak mechanic. The
+                // [1,3,5] default alone never sets this; only an active tap
+                // flips isConfigured (preserves PR4a's no-infer rule).
+                ref
+                    .read(trainingScheduleConfiguredProvider.notifier)
+                    .markConfigured();
+              },
+              child: Container(
+                width: 44, // full one-handed target both axes
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color:
+                      isSelected ? palette.accent : palette.surfaceElevated,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: isSelected ? palette.accent : palette.border,
+                  ),
+                ),
+                child: Text(
+                  _dayLabels[i].toUpperCase(),
+                  style: TextStyle(
+                    fontFamily: 'JetBrainsMono',
+                    fontVariations: const [FontVariation('wght', 700)],
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                    // Ink on the accent fill; muted bone at rest.
+                    color: isSelected
+                        ? const Color(0xFF1A1C1A)
+                        : palette.textSecondary,
+                  ),
+                ),
               ),
             ),
           ),

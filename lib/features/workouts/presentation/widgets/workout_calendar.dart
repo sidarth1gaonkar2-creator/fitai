@@ -42,7 +42,6 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final today = DateTime.now();
     final todayNorm = DateTime(today.year, today.month, today.day);
 
@@ -69,50 +68,58 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
     return Container(
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: palette.border),
       ),
-      padding: const EdgeInsets.all(12),
+      // 10pt side padding keeps each of the 7 day cells ≥44pt wide on
+      // 375pt-class devices.
+      padding: const EdgeInsets.all(10),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Month header
+          // Month header — a mono designation, like a log book page.
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
                 onPressed: _previousMonth,
-                icon: Icon(Icons.chevron_left, color: palette.accent),
-                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.chevron_left, color: palette.text),
                 tooltip: 'Previous month',
               ),
               Text(
-                '$monthName $year',
-                style: textTheme.titleSmall?.copyWith(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
+                '${monthName.toUpperCase()} $year',
+                style: TextStyle(
+                  fontFamily: 'JetBrainsMono',
+                  fontVariations: const [FontVariation('wght', 700)],
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  letterSpacing: 1,
                   color: palette.text,
                 ),
               ),
               IconButton(
                 onPressed: _nextMonth,
-                icon: Icon(Icons.chevron_right, color: palette.accent),
-                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.chevron_right, color: palette.text),
                 tooltip: 'Next month',
               ),
             ],
           ),
           const SizedBox(height: 8),
-          // Day-of-week headers
+          // Day-of-week rails — tertiary structure, not accent.
           Row(
             children: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
                 .map((d) => Expanded(
                       child: Center(
                         child: Text(
                           d,
-                          style: textTheme.bodySmall?.copyWith(
-                            color: palette.accent,
-                            fontWeight: FontWeight.w600,
+                          style: TextStyle(
+                            fontFamily: 'JetBrainsMono',
+                            fontVariations: const [
+                              FontVariation('wght', 700)
+                            ],
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11,
+                            color: palette.textTertiary,
                           ),
                         ),
                       ),
@@ -144,19 +151,20 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
                     date == widget.selectedDate;
                 final hasWorkout = widget.workoutDates.contains(date);
 
+                // Selected day: accent fill with ink numerals (readable on
+                // brass and every pack accent). Today, unselected: hairline
+                // ring, no fill — marked but quiet.
                 Color? bgColor;
+                Border? ring;
                 if (isSelected) {
                   bgColor = palette.accent;
                 } else if (isToday) {
-                  bgColor = palette.accent;
+                  ring = Border.all(color: palette.accent, width: 1.5);
                 }
 
-                Color textColor;
-                if (isSelected || isToday) {
-                  textColor = palette.text;
-                } else {
-                  textColor = palette.text;
-                }
+                final textColor = isSelected
+                    ? const Color(0xFF1A1C1A)
+                    : palette.text;
 
                 final dateLabel = '${_monthName(date.month)} $day, '
                     '${date.year}'
@@ -175,22 +183,30 @@ class _WorkoutCalendarState extends State<WorkoutCalendar> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: bgColor,
-                        shape: BoxShape.circle,
+                        border: ring,
+                        borderRadius: BorderRadius.circular(4),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             '$day',
-                            style: textTheme.bodySmall?.copyWith(
+                            // Calendar numerals are readouts — mono, tabular.
+                            style: TextStyle(
+                              fontFamily: 'JetBrainsMono',
+                              fontVariations: [
+                                FontVariation(
+                                    'wght',
+                                    (isToday || isSelected) ? 700 : 500),
+                              ],
                               fontWeight: (isToday || isSelected)
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
                               color: textColor,
                               fontSize: 13,
                             ),
                           ),
-                          if (hasWorkout && !isSelected && !isToday) ...[
+                          if (hasWorkout && !isSelected) ...[
                             const SizedBox(height: 2),
                             Container(
                               width: 5,

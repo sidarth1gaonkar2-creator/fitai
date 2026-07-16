@@ -27,7 +27,8 @@ class TrainingDaysCard extends ConsumerWidget {
     if (!schedule.isConfigured) {
       status = 'Pick your gym days to start a streak';
     } else if (gymStreak.currentStreak > 0) {
-      status = '🔥 ${gymStreak.currentStreak}-day gym streak · '
+      // A mono stamp, not an emoji — the streak is a readout.
+      status = 'STREAK DAY ${gymStreak.currentStreak} · '
           '×${streakMultiplier(gymStreak.currentStreak).toStringAsFixed(1)}';
     } else {
       status = 'Streak tracking on — log a workout on a gym day';
@@ -36,7 +37,7 @@ class TrainingDaysCard extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: palette.border),
       ),
       padding: const EdgeInsets.all(14),
@@ -45,14 +46,16 @@ class TrainingDaysCard extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.fitness_center, size: 18, color: palette.accent),
+              Icon(Icons.fitness_center, size: 16, color: palette.accent),
               const SizedBox(width: 8),
               Text(
-                'Training Days',
+                'TRAINING DAYS',
                 style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Oswald',
+                  fontVariations: const [FontVariation('wght', 600)],
                   fontSize: 15,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.6,
                   color: palette.text,
                 ),
               ),
@@ -62,15 +65,28 @@ class TrainingDaysCard extends ConsumerWidget {
           const TrainingDaysPicker(),
           const SizedBox(height: 10),
           Text(
-            status,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: schedule.isConfigured
-                  ? palette.accent
-                  : palette.textSecondary,
-            ),
+            // Streak + multiplier are trained-against numbers → mono when a
+            // streak is live; quiet Inter otherwise.
+            gymStreak.currentStreak > 0 && schedule.isConfigured
+                ? status.toUpperCase()
+                : status,
+            style: gymStreak.currentStreak > 0 && schedule.isConfigured
+                ? TextStyle(
+                    fontFamily: 'JetBrainsMono',
+                    fontVariations: const [FontVariation('wght', 700)],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                    color: palette.accent,
+                  )
+                : TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: schedule.isConfigured
+                        ? palette.accent
+                        : palette.textSecondary,
+                  ),
           ),
         ],
       ),

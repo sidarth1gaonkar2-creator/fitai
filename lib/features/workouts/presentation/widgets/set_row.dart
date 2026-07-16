@@ -1,5 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show IconButton, Icons, Theme, VisualDensity;
+import 'package:flutter/material.dart' show IconButton, Icons, Theme;
 import 'package:flutter/services.dart';
 import '../../../../core/utils/unit_converter.dart';
 import '../../domain/active_workout_state.dart';
@@ -94,7 +96,7 @@ class _SetRowState extends State<SetRow> {
     final unitsChanged = widget.units != oldWidget.units;
     if (widget.set.weight != oldWidget.set.weight || unitsChanged) {
       final currentTextDisplay =
-          double.tryParse(_weightController.text);
+          double.tryParse(_weightController.text.replaceAll(',', '.'));
       final currentAsKg = currentTextDisplay == null
           ? null
           : _inputToKg(currentTextDisplay);
@@ -113,10 +115,44 @@ class _SetRowState extends State<SetRow> {
     super.dispose();
   }
 
+  /// Instrument-panel entry (the Instrument Panel Rule): mono digits sized
+  /// to read at arm's length, on a raised field surface with a hairline.
+  static const _digitStyle = TextStyle(
+    fontFamily: 'JetBrainsMono',
+    fontVariations: [FontVariation('wght', 700)],
+    fontWeight: FontWeight.w700,
+    fontSize: 16,
+    letterSpacing: 0.5,
+  );
+
   @override
   Widget build(BuildContext context) {
+    // Digits ride Dynamic Type but clamp at 1.6× (Part A's tab-bar
+    // precedent) so the entry grid grows instead of clipping at AX sizes.
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.6,
+      child: Builder(builder: (context) => _buildRow(context)),
+    );
+  }
+
+  Widget _buildRow(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final scaler = MediaQuery.textScalerOf(context);
+    // 46pt at default size; grows with the (clamped) text scale.
+    final fieldHeight = math.max(46.0, scaler.scale(16) + 30);
+    final digitStyle = _digitStyle.copyWith(color: colorScheme.onSurface);
+    final ghostStyle = _digitStyle.copyWith(
+      fontVariations: const [FontVariation('wght', 500)],
+      fontWeight: FontWeight.w500,
+      // 0.72 keeps the ghost ≥4.5:1 on field-raised while the lighter weight
+      // still separates it from typed values.
+      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.72),
+    );
+    final fieldDecoration = BoxDecoration(
+      color: colorScheme.surfaceContainerHigh,
+      border: Border.all(color: colorScheme.outline),
+      borderRadius: BorderRadius.circular(4),
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -126,77 +162,75 @@ class _SetRowState extends State<SetRow> {
             width: 36,
             child: Text(
               '${widget.setNumber}',
-              style: textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+              style: _digitStyle.copyWith(
+                fontSize: 13,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
           ),
           Expanded(
-            child: SizedBox(
-              height: 40,
-              child: CupertinoTextField(
-                controller: _repsController,
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                style: textTheme.bodyMedium,
-                placeholder: widget.previousReps?.toString() ?? '0',
-                placeholderStyle: textTheme.bodyMedium?.copyWith(
-                  color: widget.previousReps != null
-                      ? colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
-                      : CupertinoColors.placeholderText,
+            child: Semantics(
+              textField: true,
+              label: 'Set ${widget.setNumber} reps',
+              child: SizedBox(
+                // ≥44pt one-handed target — ergonomics outrank theme.
+                height: fieldHeight,
+                child: CupertinoTextField(
+                  controller: _repsController,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  style: digitStyle,
+                  placeholder: widget.previousReps?.toString() ?? '0',
+                  placeholderStyle: ghostStyle,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: fieldDecoration,
+                  onChanged: (value) {
+                    final reps = int.tryParse(value);
+                    if (reps != null) widget.onUpdate(reps: reps);
+                  },
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  border: Border.all(color: colorScheme.outline),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                onChanged: (value) {
-                  final reps = int.tryParse(value);
-                  if (reps != null) widget.onUpdate(reps: reps);
-                },
               ),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: SizedBox(
-              height: 40,
-              child: CupertinoTextField(
-                controller: _weightController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                textAlign: TextAlign.center,
-                style: textTheme.bodyMedium,
-                // previousWeight is kg → convert to user's display unit.
-                placeholder: widget.previousWeight != null
-                    ? _formatWeight(_displayWeight(widget.previousWeight!))
-                    : '0',
-                placeholderStyle: textTheme.bodyMedium?.copyWith(
-                  color: widget.previousWeight != null
-                      ? colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
-                      : CupertinoColors.placeholderText,
+            child: Semantics(
+              textField: true,
+              label:
+                  'Set ${widget.setNumber} weight, ${UnitConverter.weightUnit(widget.units)}',
+              child: SizedBox(
+                height: fieldHeight,
+                child: CupertinoTextField(
+                  controller: _weightController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  textAlign: TextAlign.center,
+                  style: digitStyle,
+                  // previousWeight is kg → convert to user's display unit.
+                  placeholder: widget.previousWeight != null
+                      ? _formatWeight(_displayWeight(widget.previousWeight!))
+                      : '0',
+                  placeholderStyle: ghostStyle,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: fieldDecoration,
+                  onChanged: (value) {
+                    // User typed in their PREFERRED unit (lbs or kg). Always
+                    // emit kg upward — the storage layer treats every weight
+                    // as kilograms. Comma-locale decimal pads produce ','.
+                    final typed =
+                        double.tryParse(value.replaceAll(',', '.'));
+                    if (typed != null) {
+                      widget.onUpdate(weight: _inputToKg(typed));
+                    }
+                  },
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  border: Border.all(color: colorScheme.outline),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                onChanged: (value) {
-                  // User typed in their PREFERRED unit (lbs or kg). Always
-                  // emit kg upward — the storage layer treats every weight
-                  // as kilograms.
-                  final typed = double.tryParse(value);
-                  if (typed != null) {
-                    widget.onUpdate(weight: _inputToKg(typed));
-                  }
-                },
               ),
             ),
           ),
           if (widget.onCopyFromPrevious != null)
             SizedBox(
-              width: 32,
+              // Full 44pt target — no compact density; mid-set taps miss less.
+              width: 44,
               child: IconButton(
                 onPressed: () {
                   HapticFeedback.lightImpact();
@@ -207,7 +241,6 @@ class _SetRowState extends State<SetRow> {
                   size: 16,
                   color: colorScheme.onSurfaceVariant,
                 ),
-                visualDensity: VisualDensity.compact,
                 tooltip: 'Copy from previous set',
               ),
             ),
@@ -218,14 +251,12 @@ class _SetRowState extends State<SetRow> {
                     onPressed: widget.onComplete,
                     icon: Icon(Icons.check_circle,
                         color: colorScheme.primary, size: 22),
-                    visualDensity: VisualDensity.compact,
                     tooltip: 'Mark set incomplete',
                   )
                 : IconButton(
                     onPressed: widget.onComplete,
                     icon: Icon(Icons.check_circle_outline,
                         color: colorScheme.onSurfaceVariant, size: 22),
-                    visualDensity: VisualDensity.compact,
                     tooltip: 'Mark set complete',
                   ),
           ),

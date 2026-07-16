@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors, Icons, Theme;
+import 'package:flutter/material.dart' show Icons, Theme;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../models/workout.dart';
@@ -28,16 +28,18 @@ class WorkoutListTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       child: Row(
         children: [
+          // Squared field-raised emblem — quiet chrome, not an accent blob.
           Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: palette.accent,
-              shape: BoxShape.circle,
+              color: palette.surfaceElevated,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: palette.border),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.fitness_center,
-              color: Colors.white,
+              color: palette.accent,
               size: 22,
             ),
           ),
@@ -52,15 +54,21 @@ class WorkoutListTile extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
+                  // Meta line in mono — date + duration are readouts.
                   [
-                    dateStr,
+                    dateStr.toUpperCase(),
                     if (workout.durationMinutes != null)
-                      '${workout.durationMinutes} min',
+                      '${workout.durationMinutes} MIN',
                   ].join(' · '),
-                  style: textTheme.bodySmall?.copyWith(
-                    color: palette.accent,
+                  style: TextStyle(
+                    fontFamily: 'JetBrainsMono',
+                    fontVariations: const [FontVariation('wght', 500)],
+                    fontWeight: FontWeight.w500,
+                    fontSize: 11,
+                    letterSpacing: 0.5,
+                    color: palette.textSecondary,
                   ),
                 ),
               ],
@@ -68,7 +76,7 @@ class WorkoutListTile extends StatelessWidget {
           ),
           Icon(
             CupertinoIcons.chevron_right,
-            color: palette.text,
+            color: palette.textSecondary,
             size: 18,
           ),
         ],

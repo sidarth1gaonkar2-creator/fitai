@@ -292,7 +292,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                               height: 44,
                               decoration: BoxDecoration(
                                 color: colorScheme.tertiaryContainer,
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(4),
                               ),
                               child: Icon(
                                 Icons.add_circle_outline,
@@ -363,7 +363,7 @@ Future<String?> showExercisePickerSheet(BuildContext context) {
     useSafeArea: true,
     backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
     ),
     builder: (_) => const ExercisePickerSheet(),
   );

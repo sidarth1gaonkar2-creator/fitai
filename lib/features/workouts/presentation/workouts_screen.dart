@@ -76,26 +76,36 @@ class _WorkoutsScreenState extends ConsumerState<WorkoutsScreen>
         ],
       ),
       floatingActionButton: _tabController.index == 0
-          ? CupertinoButton(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              color: palette.accent,
-              borderRadius: BorderRadius.circular(28),
-              onPressed: () => context.go('/workouts/new'),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(CupertinoIcons.add, color: Colors.black, size: 18),
-                  SizedBox(width: 6),
-                  Text(
-                    'Start Workout',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: Colors.black,
-                    ),
+          ? Semantics(
+              label: 'Start workout',
+              button: true,
+              child: ExcludeSemantics(
+                child: CupertinoButton(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 14),
+                  color: palette.accent,
+                  borderRadius: BorderRadius.circular(4),
+                  onPressed: () => context.go('/workouts/new'),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.add,
+                          color: Color(0xFF1A1C1A), size: 18),
+                      SizedBox(width: 6),
+                      Text(
+                        'START WORKOUT',
+                        style: TextStyle(
+                          fontFamily: 'Oswald',
+                          fontVariations: [FontVariation('wght', 600)],
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          letterSpacing: 0.6,
+                          color: Color(0xFF1A1C1A), // ink on accent
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             )
           : null,
@@ -138,11 +148,14 @@ class _PillTabBarState extends State<_PillTabBar> {
     const tabs = ['History', 'Templates'];
 
     final palette = AppColors.of(context);
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    // Field Manual segmented control: sharp geometry, field ground, the
+    // active segment filled with the live accent carrying ink type.
     return Container(
       height: 48,
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: palette.border),
       ),
       child: Row(
@@ -155,34 +168,36 @@ class _PillTabBarState extends State<_PillTabBar> {
             label: tabs[index],
             button: true,
             selected: isActive,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                HapticFeedback.selectionClick();
-                widget.controller.animateTo(index);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                margin: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: isActive ? palette.accent : Colors.transparent,
-                  borderRadius: BorderRadius.circular(21),
-                  border: isActive
-                      ? null
-                      : Border.all(
-                          color: palette.border,
-                          width: 1,
-                        ),
-                ),
-                child: Center(
-                  child: Text(
-                    tabs[index],
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: isActive ? Colors.white : palette.text,
+            child: ExcludeSemantics(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  widget.controller.animateTo(index);
+                },
+                child: AnimatedContainer(
+                  duration: reduceMotion
+                      ? Duration.zero
+                      : const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  margin: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: isActive ? palette.accent : Colors.transparent,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Center(
+                    child: Text(
+                      tabs[index].toUpperCase(),
+                      style: TextStyle(
+                        fontFamily: 'Oswald',
+                        fontVariations: const [FontVariation('wght', 600)],
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        letterSpacing: 0.6,
+                        color: isActive
+                            ? const Color(0xFF1A1C1A) // ink on accent
+                            : palette.textSecondary,
+                      ),
                     ),
                   ),
                 ),
@@ -243,17 +258,19 @@ class _HistoryTab extends ConsumerWidget {
             ),
           ),
         ),
-        // Section label
+        // Section label — mono eyebrow designation.
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              selectedDate != null ? 'Workouts on this day' : 'All Workouts',
+              selectedDate != null ? 'ON THIS DAY' : 'ALL WORKOUTS',
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'JetBrainsMono',
+                fontVariations: const [FontVariation('wght', 700)],
                 fontWeight: FontWeight.w700,
-                fontSize: 14,
-                color: AppColors.of(context).text,
+                fontSize: 11,
+                letterSpacing: 1.3,
+                color: AppColors.of(context).textSecondary,
               ),
             ),
           ),
@@ -281,8 +298,9 @@ class _HistoryTab extends ConsumerWidget {
                             : "No workouts logged? That's unacceptable, soldier.\nTap + and get moving!",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontFamily: 'LeagueSpartan',
+                          fontFamily: 'Inter',
                           fontSize: 14,
+                          height: 1.45,
                           color: AppColors.of(context).textSecondary,
                         ),
                       ),

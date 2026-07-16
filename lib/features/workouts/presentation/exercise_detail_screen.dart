@@ -253,7 +253,7 @@ class _MuscleSection extends StatelessWidget {
           Text(
             'Muscles worked',
             style: textTheme.titleSmall?.copyWith(
-              fontFamily: 'Poppins',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w600,
               color: palette.text,
             ),
@@ -308,7 +308,7 @@ class _MuscleSection extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontFamily: 'Poppins',
+            fontFamily: 'Inter',
             fontSize: 11,
             color: palette.textSecondary,
           ),
@@ -321,7 +321,7 @@ class _MuscleSection extends StatelessWidget {
     return Text(
       '$label: ${names.join(', ')}',
       style: TextStyle(
-        fontFamily: 'LeagueSpartan',
+        fontFamily: 'Inter',
         fontSize: 12,
         color: palette.textSecondary,
         height: 1.35,
@@ -475,7 +475,7 @@ class _PRTile extends ConsumerWidget {
                 Text(
                   'Personal Record',
                   style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Inter',
                     fontWeight: FontWeight.w600,
                     color: palette.text,
                   ),
@@ -483,7 +483,7 @@ class _PRTile extends ConsumerWidget {
                 Text(
                   '${display.toStringAsFixed(0)} $unit × ${match.bestReps} reps',
                   style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
+                    fontFamily: 'Inter',
                     fontSize: 13,
                     color: palette.textSecondary,
                   ),
@@ -591,7 +591,7 @@ class _RankSection extends ConsumerWidget {
                 units: units,
               ),
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Inter',
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: palette.textSecondary,
@@ -601,7 +601,7 @@ class _RankSection extends ConsumerWidget {
             Text(
               'Top rank achieved — Sergeant Major of the Army 🎖️',
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Inter',
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: rankColor,
@@ -662,7 +662,7 @@ class _EquipmentChips extends StatelessWidget {
         Text(
           'Equipment',
           style: textTheme.titleSmall?.copyWith(
-            fontFamily: 'Poppins',
+            fontFamily: 'Inter',
             fontWeight: FontWeight.w600,
             color: palette.text,
           ),
@@ -682,7 +682,7 @@ class _EquipmentChips extends StatelessWidget {
                     child: Text(
                       n,
                       style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Inter',
                         fontSize: 12,
                         color: palette.text,
                       ),
@@ -748,7 +748,7 @@ class _StepsBlockState extends State<_StepsBlock> {
                     child: Text(
                       widget.title,
                       style: widget.textTheme.titleSmall?.copyWith(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w600,
                         color: widget.palette.text,
                       ),
@@ -790,7 +790,7 @@ class _StepsBlockState extends State<_StepsBlock> {
                             child: Text(
                               '${i + 1}',
                               style: TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Inter',
                                 fontWeight: FontWeight.w700,
                                 fontSize: 11,
                                 color: widget.palette.accent,

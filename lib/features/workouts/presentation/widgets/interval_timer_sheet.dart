@@ -28,7 +28,8 @@ class IntervalTimerSheet extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+        border: Border(top: BorderSide(color: palette.border)),
       ),
       child: SafeArea(
         top: false,
@@ -50,11 +51,13 @@ class IntervalTimerSheet extends ConsumerWidget {
 
               // Title
               Text(
-                'Interval Timer',
+                'INTERVALS',
                 style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Oswald',
+                  fontVariations: const [FontVariation('wght', 600)],
                   fontWeight: FontWeight.w600,
                   fontSize: 18,
+                  letterSpacing: 0.6,
                   color: palette.text,
                 ),
               ),
@@ -71,19 +74,19 @@ class IntervalTimerSheet extends ConsumerWidget {
                       padding: EdgeInsets.symmetric(horizontal: 12),
                       child: Text('HIIT',
                           style:
-                              TextStyle(fontFamily: 'Poppins', fontSize: 13)),
+                              TextStyle(fontFamily: 'Inter', fontSize: 13)),
                     ),
                     IntervalPreset.tabata: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 12),
                       child: Text('Tabata',
                           style:
-                              TextStyle(fontFamily: 'Poppins', fontSize: 13)),
+                              TextStyle(fontFamily: 'Inter', fontSize: 13)),
                     ),
                     IntervalPreset.custom: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 12),
                       child: Text('Custom',
                           style:
-                              TextStyle(fontFamily: 'Poppins', fontSize: 13)),
+                              TextStyle(fontFamily: 'Inter', fontSize: 13)),
                     ),
                   },
                   onValueChanged: (v) {
@@ -128,26 +131,28 @@ class IntervalTimerSheet extends ConsumerWidget {
 
               // Timer display (when running/finished)
               if (!isIdle) ...[
-                // Phase label
+                // Phase label — mono stamp in the phase colour.
                 Text(
-                  timer.phaseLabel,
+                  timer.phaseLabel.toUpperCase(),
                   style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'JetBrainsMono',
+                    fontVariations: const [FontVariation('wght', 700)],
                     fontWeight: FontWeight.w700,
-                    fontSize: 16,
+                    fontSize: 13,
                     color: phaseColor,
                     letterSpacing: 2,
                   ),
                 ),
                 const SizedBox(height: 8),
 
-                // Large countdown
+                // Large countdown — the instrument readout.
                 Text(
                   timer.formattedTime,
                   style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'JetBrainsMono',
+                    fontVariations: const [FontVariation('wght', 700)],
                     fontWeight: FontWeight.w700,
-                    fontSize: 72,
+                    fontSize: 64,
                     color: phaseColor,
                     height: 1,
                   ),
@@ -158,12 +163,21 @@ class IntervalTimerSheet extends ConsumerWidget {
                 Text(
                   isFinished
                       ? 'All rounds complete!'
-                      : 'Round ${timer.currentRound} of ${timer.totalRounds}',
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                    fontSize: 15,
-                    color: palette.textSecondary,
-                  ),
+                      : 'ROUND ${timer.currentRound}/${timer.totalRounds}',
+                  style: isFinished
+                      ? TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 15,
+                          color: palette.textSecondary,
+                        )
+                      : TextStyle(
+                          fontFamily: 'JetBrainsMono',
+                          fontVariations: const [FontVariation('wght', 500)],
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                          letterSpacing: 1,
+                          color: palette.textSecondary,
+                        ),
                 ),
                 const SizedBox(height: 20),
               ],
@@ -245,7 +259,7 @@ class _ConfigSlider extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w500,
               fontSize: 13,
               color: AppColors.of(context).textSecondary,
@@ -273,9 +287,10 @@ class _ConfigSlider extends StatelessWidget {
           child: Text(
             _formatSeconds(value),
             style: TextStyle(
-              fontFamily: 'LeagueSpartan',
+              fontFamily: 'JetBrainsMono',
+              fontVariations: const [FontVariation('wght', 500)],
               fontWeight: FontWeight.w500,
-              fontSize: 13,
+              fontSize: 12,
               color: AppColors.of(context).text,
             ),
             textAlign: TextAlign.right,
@@ -299,21 +314,33 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoButton(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-      color: color,
-      borderRadius: BorderRadius.circular(12),
-      onPressed: () {
-        HapticFeedback.mediumImpact();
-        onTap();
-      },
-      child: Text(
-        label,
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.w600,
-          fontSize: 15,
-          color: AppColors.of(context).text,
+    // Ink label on bright fills, white on dark ones — never accent-on-accent.
+    final onFill = color.computeLuminance() >= 0.18
+        ? const Color(0xFF1A1C1A)
+        : const Color(0xFFFFFFFF);
+    return Semantics(
+      label: label,
+      button: true,
+      child: ExcludeSemantics(
+        child: CupertinoButton(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+          color: color,
+          borderRadius: BorderRadius.circular(4),
+          onPressed: () {
+            HapticFeedback.mediumImpact();
+            onTap();
+          },
+          child: Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontFamily: 'Oswald',
+              fontVariations: const [FontVariation('wght', 600)],
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+              letterSpacing: 0.6,
+              color: onFill,
+            ),
+          ),
         ),
       ),
     );

@@ -30,6 +30,7 @@ class _RankCelebrationOverlayState extends State<RankCelebrationOverlay>
   late final AnimationController _intro; // one-shot: insignia bounce + fade-in
   late final AnimationController _particles; // looping chevron rise
   late final List<_Chevron> _chevrons;
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -42,9 +43,23 @@ class _RankCelebrationOverlayState extends State<RankCelebrationOverlay>
     _particles = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
-    )..repeat();
+    );
     final rng = Random();
     _chevrons = List.generate(30, (_) => _Chevron(rng));
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reduced motion: still loud — full-size insignia, glow, bark — but a
+    // crossfade instead of choreography (DESIGN.md Ceremony Overlay spec).
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
+    if (_reduceMotion) {
+      _intro.value = 1.0;
+      _particles.stop();
+    } else if (!_particles.isAnimating) {
+      _particles.repeat();
+    }
   }
 
   @override
@@ -60,32 +75,36 @@ class _RankCelebrationOverlayState extends State<RankCelebrationOverlay>
     final color = rank.color;
 
     return Material(
-      color: Colors.black.withValues(alpha: 0.88),
+      // Ink scrim — the ceremony ground.
+      color: const Color(0xFF1A1C1A).withValues(alpha: 0.94),
       child: Stack(
         children: [
-          // Floating chevron particles in the rank colour.
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _particles,
-              builder: (_, _) => CustomPaint(
-                painter: _ChevronParticlePainter(
-                  progress: _particles.value,
-                  chevrons: _chevrons,
-                  color: color,
+          // Floating chevron particles in the rank colour (off under
+          // reduced motion).
+          if (!_reduceMotion)
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _particles,
+                builder: (_, _) => CustomPaint(
+                  painter: _ChevronParticlePainter(
+                    progress: _particles.value,
+                    chevrons: _chevrons,
+                    color: color,
+                  ),
                 ),
               ),
             ),
-          ),
           Center(
             child: SingleChildScrollView(
               child: AnimatedBuilder(
                 animation: _intro,
                 builder: (context, _) {
                   final t = _intro.value;
-                  final insigniaScale = Curves.elasticOut.transform(
-                    t.clamp(0.0, 1.0),
-                  );
-                  final contentOpacity = ((t - 0.35) / 0.4).clamp(0.0, 1.0);
+                  final insigniaScale = _reduceMotion
+                      ? 1.0
+                      : Curves.elasticOut.transform(t.clamp(0.0, 1.0));
+                  final contentOpacity =
+                      ((t - 0.35) / 0.4).clamp(0.0, 1.0);
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -101,6 +120,14 @@ class _RankCelebrationOverlayState extends State<RankCelebrationOverlay>
                               color: color.withValues(alpha: 0.6),
                               width: 2,
                             ),
+                            // Theatrical light, earned (the Quiet Chrome /
+                            // Loud Ceremony rule).
+                            boxShadow: [
+                              BoxShadow(
+                                color: color.withValues(alpha: 0.35),
+                                blurRadius: 48,
+                              ),
+                            ],
                           ),
                           alignment: Alignment.center,
                           child: RankInsignia(rank: rank, size: 96),
@@ -112,33 +139,42 @@ class _RankCelebrationOverlayState extends State<RankCelebrationOverlay>
                         child: Column(
                           children: [
                             Text(
-                              'PROMOTED!',
+                              'PROMOTED',
                               style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w800,
-                                fontSize: 30,
-                                letterSpacing: 2,
+                                fontFamily: 'Oswald',
+                                fontVariations: const [
+                                  FontVariation('wght', 700)
+                                ],
+                                fontWeight: FontWeight.w700,
+                                fontSize: 34,
+                                height: 1.05,
+                                letterSpacing: 1.5,
                                 color: color,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'You are now a ${rank.displayName.toUpperCase()}',
+                              rank.displayName.toUpperCase(),
                               textAlign: TextAlign.center,
                               style: const TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Oswald',
+                                fontVariations: [FontVariation('wght', 600)],
                                 fontWeight: FontWeight.w600,
-                                fontSize: 18,
-                                color: Colors.white,
+                                fontSize: 21,
+                                letterSpacing: 0.8,
+                                color: Color(0xFFE8E4D8), // bone
                               ),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               '${rank.abbreviation} · E${rank.tier}',
-                              style: TextStyle(
-                                fontFamily: 'LeagueSpartan',
-                                fontSize: 13,
-                                color: Colors.white.withValues(alpha: 0.6),
+                              style: const TextStyle(
+                                fontFamily: 'JetBrainsMono',
+                                fontVariations: [FontVariation('wght', 700)],
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                                letterSpacing: 1.4,
+                                color: Color(0xFFCDC8BA), // muted bone
                               ),
                             ),
                             const SizedBox(height: 18),
@@ -148,11 +184,11 @@ class _RankCelebrationOverlayState extends State<RankCelebrationOverlay>
                               child: Text(
                                 promotionCelebrationLine(),
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontFamily: 'LeagueSpartan',
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
                                   fontSize: 15,
-                                  height: 1.35,
-                                  color: Colors.white.withValues(alpha: 0.85),
+                                  height: 1.45,
+                                  color: Color(0xFFCDC8BA), // muted bone
                                 ),
                               ),
                             ),
@@ -176,35 +212,50 @@ class _RankCelebrationOverlayState extends State<RankCelebrationOverlay>
   }
 }
 
-/// Small filled "Dismiss" button. Kept as a Material widget so the overlay
-/// doesn't need a Cupertino import just for one button.
+/// Small filled dismiss button. Kept as a Material widget so the overlay
+/// doesn't need a Cupertino import just for one button. Field Manual issue:
+/// sharp corners, condensed uppercase label, ink type on bright fills.
 class CupertinoButtonLike extends StatelessWidget {
   const CupertinoButtonLike({
     super.key,
     required this.color,
     required this.onPressed,
+    this.label = 'Carry on',
   });
 
   final Color color;
   final VoidCallback onPressed;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: color,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onPressed,
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 44, vertical: 13),
-          child: Text(
-            'Dismiss',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
-              color: Colors.white,
+    // Ink label on bright rank colours / brass, white on the dark ones.
+    final onFill = color.computeLuminance() >= 0.18
+        ? const Color(0xFF1A1C1A)
+        : Colors.white;
+    return Semantics(
+      label: label,
+      button: true,
+      child: ExcludeSemantics(
+        child: Material(
+          color: color,
+          borderRadius: BorderRadius.circular(4),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(4),
+            onTap: onPressed,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 44, vertical: 13),
+              child: Text(
+                label.toUpperCase(),
+                style: TextStyle(
+                  fontFamily: 'Oswald',
+                  fontVariations: const [FontVariation('wght', 600)],
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  letterSpacing: 0.6,
+                  color: onFill,
+                ),
+              ),
             ),
           ),
         ),

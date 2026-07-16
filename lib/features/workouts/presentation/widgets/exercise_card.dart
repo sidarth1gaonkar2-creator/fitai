@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart'
     show Card, Colors, Dismissible, DismissDirection, Icons, Theme, IconButton, TextButton, VisualDensity;
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -101,14 +102,16 @@ class ExerciseCard extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color:
                           colorScheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      'Est. 1RM ${UnitConverter.formatWeight(bestOrmKg, units)}',
+                      'E1RM ${UnitConverter.formatWeight(bestOrmKg, units)}',
                       style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
-                        fontWeight: FontWeight.w600,
+                        fontFamily: 'JetBrainsMono',
+                        fontVariations: const [FontVariation('wght', 700)],
+                        fontWeight: FontWeight.w700,
                         fontSize: 11,
+                        letterSpacing: 0.6,
                         color: colorScheme.primary,
                       ),
                     ),
@@ -156,12 +159,18 @@ class ExerciseCard extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
-                  'Last time: '
+                  // A trained-against number \u2014 mono, per the Instrument
+                  // Panel Rule.
+                  'LAST '
                   '${UnitConverter.formatWeight(exercise.sets.first.previousWeight!, units)}'
                   ' \u00d7 ${exercise.sets.first.previousReps}',
-                  style: textTheme.bodySmall?.copyWith(
+                  style: TextStyle(
+                    fontFamily: 'JetBrainsMono',
+                    fontVariations: const [FontVariation('wght', 500)],
+                    fontWeight: FontWeight.w500,
+                    fontSize: 11,
+                    letterSpacing: 0.5,
                     color: colorScheme.onSurfaceVariant,
-                    fontStyle: FontStyle.italic,
                   ),
                 ),
               ),
@@ -197,7 +206,14 @@ class ExerciseCard extends ConsumerWidget {
                       },
               );
               if (!canDelete) return row;
-              return Dismissible(
+              return Semantics(
+                // Swipe-to-delete has no gesture under VoiceOver — expose
+                // the same action through the rotor.
+                customSemanticsActions: {
+                  CustomSemanticsAction(label: 'Delete set ${setIndex + 1}'):
+                      () => onRemoveSet(setIndex),
+                },
+                child: Dismissible(
                 key: ValueKey('set-${exercise.name}-$setIndex-${activeSet.order}'),
                 direction: DismissDirection.endToStart,
                 background: Container(
@@ -219,6 +235,7 @@ class ExerciseCard extends ConsumerWidget {
                   onRemoveSet(setIndex);
                 },
                 child: row,
+                ),
               );
             }),
             const SizedBox(height: 4),

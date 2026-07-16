@@ -177,7 +177,7 @@ Future<void> showTemplatePickerSheet(BuildContext context) {
     useSafeArea: true,
     backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
     ),
     builder: (_) => const SizedBox(
       height: double.infinity,
@@ -214,7 +214,7 @@ class TemplateCard extends StatelessWidget {
     return Card.filled(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -359,7 +359,7 @@ class _CoachTemplateCard extends StatelessWidget {
     return Card.filled(
       child: InkWell(
         onTap: onStart,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(

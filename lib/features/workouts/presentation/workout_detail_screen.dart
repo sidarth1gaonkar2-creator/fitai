@@ -18,6 +18,26 @@ import 'widgets/muscle_highlight_widget.dart';
 /// Maps the local [MuscleGroup] enum to the muscle-name strings that the
 /// [MuscleHighlightWidget] knows zones for. Anything not in this table
 /// (e.g. cardio) is dropped — the widget tolerates unknown names.
+/// Mono meta style for dates/durations/set indices (Instrument Panel Rule).
+TextStyle _monoMeta(Color color) => TextStyle(
+      fontFamily: 'JetBrainsMono',
+      fontVariations: const [FontVariation('wght', 500)],
+      fontWeight: FontWeight.w500,
+      fontSize: 12,
+      letterSpacing: 0.5,
+      color: color,
+    );
+
+/// Mono readout style for logged reps/weights.
+TextStyle _monoDigits(Color color) => TextStyle(
+      fontFamily: 'JetBrainsMono',
+      fontVariations: const [FontVariation('wght', 700)],
+      fontWeight: FontWeight.w700,
+      fontSize: 14,
+      letterSpacing: 0.5,
+      color: color,
+    );
+
 String? _muscleGroupToZoneName(MuscleGroup g) {
   switch (g) {
     case MuscleGroup.chest:
@@ -184,23 +204,21 @@ class WorkoutDetailScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Info row
+                    // Info row — date/duration are readouts: mono.
                     Row(
                       children: [
                         Icon(Icons.calendar_today,
                             size: 16, color: colorScheme.onSurfaceVariant),
                         const SizedBox(width: 4),
                         Text(dateStr,
-                            style: textTheme.bodyMedium?.copyWith(
-                                color: colorScheme.onSurfaceVariant)),
+                            style: _monoMeta(colorScheme.onSurfaceVariant)),
                         if (workout.durationMinutes != null) ...[
                           const SizedBox(width: 16),
                           Icon(Icons.timer_outlined,
                               size: 16, color: colorScheme.onSurfaceVariant),
                           const SizedBox(width: 4),
-                          Text('${workout.durationMinutes} min',
-                              style: textTheme.bodyMedium?.copyWith(
-                                  color: colorScheme.onSurfaceVariant)),
+                          Text('${workout.durationMinutes} MIN',
+                              style: _monoMeta(colorScheme.onSurfaceVariant)),
                         ],
                       ],
                     ),
@@ -300,27 +318,32 @@ class WorkoutDetailScreen extends ConsumerWidget {
                                 ],
                               ),
                               const Divider(height: 8),
+                              // Logged numbers set in mono — the Instrument
+                              // Panel Rule applies to read-back too.
                               ...sets.asMap().entries.map((e) {
                                 final idx = e.key;
                                 final set = e.value;
+                                final digits =
+                                    _monoDigits(colorScheme.onSurface);
                                 return Padding(
                                   padding:
-                                      const EdgeInsets.symmetric(vertical: 2),
+                                      const EdgeInsets.symmetric(vertical: 3),
                                   child: Row(
                                     children: [
                                       SizedBox(
                                         width: 40,
                                         child: Text('${idx + 1}',
-                                            style: textTheme.bodyMedium),
+                                            style: _monoMeta(colorScheme
+                                                .onSurfaceVariant)),
                                       ),
                                       Expanded(
                                           child: Text('${set.reps}',
-                                              style: textTheme.bodyMedium)),
+                                              style: digits)),
                                       Expanded(
                                           child: Text(
                                               UnitConverter.formatWeight(
                                                   set.weight, units),
-                                              style: textTheme.bodyMedium)),
+                                              style: digits)),
                                     ],
                                   ),
                                 );

@@ -69,7 +69,8 @@ class _WorkoutCompleteOverlayState
     final volumeStr = '$volume ${UnitConverter.weightUnit(units)}';
 
     return Material(
-      color: Colors.black.withValues(alpha: 0.92),
+      // Ink scrim — ceremony ground per DESIGN.md, not pure black.
+      color: const Color(0xFF1A1C1A).withValues(alpha: 0.96),
       child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -81,11 +82,14 @@ class _WorkoutCompleteOverlayState
                 children: [
                   Text(
                     'WORKOUT COMPLETE',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w800,
-                      fontSize: 22,
-                      letterSpacing: 2,
+                      fontFamily: 'Oswald',
+                      fontVariations: const [FontVariation('wght', 700)],
+                      fontWeight: FontWeight.w700,
+                      fontSize: 26,
+                      height: 1.05,
+                      letterSpacing: 1,
                       color: accent,
                     ),
                   ),
@@ -94,10 +98,10 @@ class _WorkoutCompleteOverlayState
                     summary.title,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w600,
                       fontSize: 17,
-                      color: Colors.white,
+                      color: Color(0xFFE8E4D8), // bone
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -106,11 +110,11 @@ class _WorkoutCompleteOverlayState
                     child: Text(
                       _praise,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
                         fontSize: 15,
-                        height: 1.3,
-                        color: Colors.white.withValues(alpha: 0.82),
+                        height: 1.45,
+                        color: Color(0xFFCDC8BA), // muted bone
                       ),
                     ),
                   ),
@@ -136,7 +140,7 @@ class _WorkoutCompleteOverlayState
                       alignment: WrapAlignment.center,
                       children: [
                         for (final m in results.muscles)
-                          _MuscleBadgeChip(result: m, surface: colors.surface),
+                          _MuscleBadgeChip(result: m),
                       ],
                     ),
                   ],
@@ -219,6 +223,8 @@ class _StatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A stat readout (DESIGN.md signature component): bone mono value over
+    // a quiet mono eyebrow.
     return Column(
       children: [
         Text(
@@ -227,20 +233,23 @@ class _StatItem extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            fontFamily: 'Poppins',
+            fontFamily: 'JetBrainsMono',
+            fontVariations: [FontVariation('wght', 700)],
             fontWeight: FontWeight.w700,
             fontSize: 17,
-            color: Colors.white,
+            color: Color(0xFFE8E4D8), // bone
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontSize: 11,
-            letterSpacing: 1,
-            color: Colors.white.withValues(alpha: 0.5),
+          style: const TextStyle(
+            fontFamily: 'JetBrainsMono',
+            fontVariations: [FontVariation('wght', 700)],
+            fontWeight: FontWeight.w700,
+            fontSize: 10,
+            letterSpacing: 1.2,
+            color: Color(0xFF8C9377), // lifted olive
           ),
         ),
       ],
@@ -257,22 +266,22 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: TextStyle(
-        fontFamily: 'LeagueSpartan',
-        fontSize: 12,
+      style: const TextStyle(
+        fontFamily: 'JetBrainsMono',
+        fontVariations: [FontVariation('wght', 700)],
+        fontSize: 11,
         letterSpacing: 1.5,
-        fontWeight: FontWeight.w600,
-        color: Colors.white.withValues(alpha: 0.55),
+        fontWeight: FontWeight.w700,
+        color: Color(0xFFCDC8BA), // muted bone
       ),
     );
   }
 }
 
 class _MuscleBadgeChip extends StatelessWidget {
-  const _MuscleBadgeChip({required this.result, required this.surface});
+  const _MuscleBadgeChip({required this.result});
 
   final MuscleResult result;
-  final Color surface;
 
   @override
   Widget build(BuildContext context) {
@@ -282,24 +291,26 @@ class _MuscleBadgeChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: surface.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF21241F), // field
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: result.rankedUp
               ? result.rank.color.withValues(alpha: 0.7)
-              : Colors.white.withValues(alpha: 0.08),
+              : const Color(0x1FE8E4D8), // hairline
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            result.group.label,
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontSize: 12,
+            result.group.label.toUpperCase(),
+            style: const TextStyle(
+              fontFamily: 'JetBrainsMono',
+              fontVariations: [FontVariation('wght', 500)],
+              fontWeight: FontWeight.w500,
+              fontSize: 11,
               letterSpacing: 0.5,
-              color: Colors.white.withValues(alpha: 0.65),
+              color: Color(0xFFCDC8BA), // muted bone
             ),
           ),
           const SizedBox(width: 8),
@@ -339,10 +350,11 @@ class _EarnedRow extends StatelessWidget {
             child: Text(
               text,
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Inter',
                 fontWeight: emphatic ? FontWeight.w700 : FontWeight.w500,
                 fontSize: emphatic ? 15 : 14,
-                color: emphatic ? color : Colors.white.withValues(alpha: 0.9),
+                height: 1.35,
+                color: emphatic ? color : const Color(0xFFE8E4D8),
               ),
             ),
           ),
