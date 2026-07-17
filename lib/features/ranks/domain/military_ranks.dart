@@ -43,37 +43,39 @@ class RankInfo {
   final bool hasStar;
 }
 
-// Rank colours are the canonical Field Manual rank ramp from drillfit.com
-// (DESIGN.md §Colors, mapped positionally: app tier N wears ramp colour N).
-// They belong to insignia and ceremonies only — never to app chrome.
+// Rank colours are the Field Manual rank ramp (DESIGN.md §Colors), climbing
+// from aged brass at Private to red at the apex — the ladder heats up as you
+// rank up. Shares drillfit.com's palette but runs it in reverse order (the
+// site re-syncs to this direction later). Rank colours belong to insignia and
+// ceremonies only — never to app chrome.
 const Map<MilitaryRank, RankInfo> _rankInfo = {
   MilitaryRank.private_e1: RankInfo(
     name: 'Private',
     abbreviation: 'PVT',
     chevronCount: 1,
     minimumScore: 0,
-    color: Color(0xFFD14B3A), // ramp: rank-pvt
+    color: Color(0xFFA8A06A), // ramp tier 1 — recruit, aged brass
   ),
   MilitaryRank.privateFc_e2: RankInfo(
     name: 'Private First Class',
     abbreviation: 'PFC',
     chevronCount: 2,
     minimumScore: 1,
-    color: Color(0xFFE0A93A), // ramp: rank-pfc
+    color: Color(0xFFC9B97A), // ramp tier 2
   ),
   MilitaryRank.corporal_e3: RankInfo(
     name: 'Corporal',
     abbreviation: 'CPL',
     chevronCount: 3,
     minimumScore: 2,
-    color: Color(0xFFD4882A), // ramp: tier 3
+    color: Color(0xFF3FBF4A), // ramp tier 3
   ),
   MilitaryRank.specialist_e4: RankInfo(
     name: 'Specialist',
     abbreviation: 'SPC',
     chevronCount: 0,
     minimumScore: 3,
-    color: Color(0xFF8E6FD0), // ramp: tier 4
+    color: Color(0xFF3B6FC4), // ramp tier 4
     hasEagle: true, // specialist "eagle" / shield badge
   ),
   MilitaryRank.sergeant_e5: RankInfo(
@@ -81,35 +83,35 @@ const Map<MilitaryRank, RankInfo> _rankInfo = {
     abbreviation: 'SGT',
     chevronCount: 3,
     minimumScore: 4,
-    color: Color(0xFFA05FC9), // ramp: rank-sgt
+    color: Color(0xFF4A90D9), // ramp tier 5
   ),
   MilitaryRank.staffSergeant_e6: RankInfo(
     name: 'Staff Sergeant',
     abbreviation: 'SSG',
     chevronCount: 4,
     minimumScore: 5,
-    color: Color(0xFF4A90D9), // ramp: rank-ssg
+    color: Color(0xFFA05FC9), // ramp tier 6
   ),
   MilitaryRank.sergeantFc_e7: RankInfo(
     name: 'Sergeant First Class',
     abbreviation: 'SFC',
     chevronCount: 5,
     minimumScore: 6,
-    color: Color(0xFF3B6FC4), // ramp: rank-sfc
+    color: Color(0xFF8E6FD0), // ramp tier 7
   ),
   MilitaryRank.masterSergeant_e8: RankInfo(
     name: 'Master Sergeant',
     abbreviation: 'MSG',
     chevronCount: 6,
     minimumScore: 7,
-    color: Color(0xFF3FBF4A), // ramp: rank-msg
+    color: Color(0xFFD4882A), // ramp tier 8
   ),
   MilitaryRank.sergeantMajor_e9: RankInfo(
     name: 'Sergeant Major',
     abbreviation: 'SGM',
     chevronCount: 3,
     minimumScore: 8,
-    color: Color(0xFFC9B97A), // ramp: tier 9
+    color: Color(0xFFE0A93A), // ramp tier 9
     hasStar: true, // 3 chevrons + 3 rockers + star
   ),
   MilitaryRank.sgmArmy_e10: RankInfo(
@@ -117,7 +119,7 @@ const Map<MilitaryRank, RankInfo> _rankInfo = {
     abbreviation: 'SMA',
     chevronCount: 3,
     minimumScore: 9,
-    color: Color(0xFFA8A06A), // ramp: rank-sma — the apex, aged brass
+    color: Color(0xFFD14B3A), // ramp tier 10 — the apex burns red
     hasStar: true,
     hasEagle: true, // eagle + stars + chevrons
   ),

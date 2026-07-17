@@ -11,16 +11,16 @@ colors:
   brass-pressed: "#A38443"
   olive: "#6B7257"
   alert: "#C24A38"
-  rank-pvt: "#D14B3A"
-  rank-pfc: "#E0A93A"
-  rank-spc: "#D4882A"
-  rank-cpl: "#8E6FD0"
-  rank-sgt: "#A05FC9"
-  rank-ssg: "#4A90D9"
-  rank-sfc: "#3B6FC4"
-  rank-msg: "#3FBF4A"
-  rank-1sg: "#C9B97A"
-  rank-sma: "#A8A06A"
+  rank-pvt: "#A8A06A"
+  rank-pfc: "#C9B97A"
+  rank-spc: "#3FBF4A"
+  rank-cpl: "#3B6FC4"
+  rank-sgt: "#4A90D9"
+  rank-ssg: "#A05FC9"
+  rank-sfc: "#8E6FD0"
+  rank-msg: "#D4882A"
+  rank-1sg: "#E0A93A"
+  rank-sma: "#D14B3A"
 typography:
   display:
     fontFamily: "Oswald (condensed grotesque; bundle via pubspec)"
@@ -113,7 +113,7 @@ The site's Field Manual palette, promoted to app chrome: a two-step dark ground,
 - **Alert Red** (#C24A38): sparing — destructive actions, missed-target callouts, the occasional stamp. Not an accent.
 
 ### Tertiary
-- **Rank ramp** (rank-pvt #D14B3A → rank-sma #A8A06A): one color per enlisted tier, used on insignia, rank abbreviations, and promotion ceremonies. These are the canonical brand rank colors from drillfit.com; the app's current per-rank colors (gray→crimson in `military_ranks.dart`) migrate to this ramp during the reskin.
+- **Rank ramp** (rank-pvt #A8A06A → rank-sma #D14B3A): one color per enlisted tier, used on insignia, rank abbreviations, and promotion ceremonies. The ladder heats up as you climb — aged brass at Private, burning red at the apex (product decision, reskin batch #3). The palette is shared with drillfit.com's ladder but runs in the opposite order there; the site re-syncs to this direction as a follow-up.
 
 ### Neutral
 - **Ink** (#1A1C1A): screen background.
