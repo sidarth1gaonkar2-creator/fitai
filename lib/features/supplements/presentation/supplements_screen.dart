@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../models/enums.dart';
 import '../../../providers/supplement_providers.dart';
@@ -17,11 +18,13 @@ class SupplementsScreen extends ConsumerWidget {
 
     final palette = AppColors.of(context);
     return CupertinoPageScaffold(
-      backgroundColor: palette.background,
+      backgroundColor: FieldManual.ink,
       navigationBar: CupertinoNavigationBar(
-        middle: const Text('Supplements'),
-        backgroundColor: palette.background.withValues(alpha: 0.8),
-        border: null,
+        middle: Text('SUPPLEMENTS', style: FieldManual.title()),
+        backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+        border: const Border(
+          bottom: BorderSide(color: FieldManual.hairline),
+        ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: () {
@@ -31,7 +34,9 @@ class SupplementsScreen extends ConsumerWidget {
             );
           },
           child: const Icon(CupertinoIcons.add,
-              size: 22, semanticLabel: 'Add supplement'),
+              size: 22,
+              color: FieldManual.bone,
+              semanticLabel: 'Add supplement'),
         ),
       ),
       child: SafeArea(
@@ -47,21 +52,15 @@ class SupplementsScreen extends ConsumerWidget {
                         color: palette.accent.withValues(alpha: 0.3)),
                     const SizedBox(height: 16),
                     Text(
-                      'No supplements yet',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 17,
-                        color: palette.text,
-                      ),
+                      'NO SUPPLEMENTS YET',
+                      style: FieldManual.title(),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'Tap + to add from the library',
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
+                      style: FieldManual.body(
                         fontSize: 14,
-                        color: palette.textSecondary,
+                        color: FieldManual.mutedBone,
                       ),
                     ),
                   ],
@@ -82,13 +81,8 @@ class SupplementsScreen extends ConsumerWidget {
                   // 30-day consistency
                   if (active.isNotEmpty) ...[
                     Text(
-                      '30-Day Consistency',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: palette.text,
-                      ),
+                      '30-DAY CONSISTENCY',
+                      style: FieldManual.title(),
                     ),
                     const SizedBox(height: 10),
                     ...active.map((s) => Padding(
@@ -103,22 +97,16 @@ class SupplementsScreen extends ConsumerWidget {
 
                   // Active supplements
                   Text(
-                    'Active',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      color: palette.text,
-                    ),
+                    'ACTIVE',
+                    style: FieldManual.title(),
                   ),
                   const SizedBox(height: 10),
                   if (active.isEmpty)
                     Text(
                       'No active supplements',
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
+                      style: FieldManual.body(
                         fontSize: 14,
-                        color: palette.textSecondary,
+                        color: FieldManual.mutedBone,
                       ),
                     )
                   else
@@ -144,13 +132,8 @@ class SupplementsScreen extends ConsumerWidget {
                   if (inactive.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     Text(
-                      'Inactive',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: palette.text,
-                      ),
+                      'INACTIVE',
+                      style: FieldManual.title(),
                     ),
                     const SizedBox(height: 10),
                     ...inactive.map((s) => Padding(
@@ -183,7 +166,7 @@ class SupplementsScreen extends ConsumerWidget {
                 (_) => const Padding(
                   padding: EdgeInsets.only(bottom: 10),
                   child: ShimmerBox(
-                      width: double.infinity, height: 60, borderRadius: 12),
+                      width: double.infinity, height: 60, borderRadius: 8),
                 ),
               ),
             ),
@@ -191,7 +174,7 @@ class SupplementsScreen extends ConsumerWidget {
           error: (_, _) => Center(
             child: Text(
               'Failed to load supplements.',
-              style: TextStyle(color: palette.text),
+              style: FieldManual.body(),
             ),
           ),
         ),
@@ -217,6 +200,30 @@ class _SupplementTile extends StatelessWidget {
   final VoidCallback onToggle;
   final VoidCallback onDelete;
 
+  /// Deleting is irreversible (removes the supplement and its history), so
+  /// a one-tap trash press asks first. Confirm calls the same [onDelete].
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Text('Delete $name?'),
+        content: const Text('This removes it and its history.'),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.of(ctx).pop(false),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: const Text('Delete'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) onDelete();
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
@@ -224,7 +231,7 @@ class _SupplementTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: palette.border),
       ),
       child: Row(
@@ -234,35 +241,40 @@ class _SupplementTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+                  // User content — never uppercased. Inactive rows stay
+                  // ≥4.5:1 (mutedBone at full alpha); the strikethrough
+                  // carries the paused state, not a faded colour.
                   name,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
+                  style: FieldManual.title(
                     color: isActive
-                        ? palette.text
-                        : palette.text.withValues(alpha: 0.4),
+                        ? FieldManual.bone
+                        : FieldManual.mutedBone,
+                  ).copyWith(
+                    fontSize: 15,
+                    decoration:
+                        isActive ? null : TextDecoration.lineThrough,
+                    decorationColor: FieldManual.mutedBone,
                   ),
                 ),
                 Text(
-                  '$dosage · $timing',
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                    fontSize: 12,
-                    color: palette.textSecondary,
-                  ),
+                  // Dosage stamp — mono designation carrying the number.
+                  '$dosage · $timing'.toUpperCase(),
+                  style: FieldManual.label(fontSize: 10),
                 ),
               ],
             ),
           ),
           CupertinoButton(
             padding: const EdgeInsets.all(6),
+            minimumSize: const Size(44, 44),
             onPressed: onToggle,
             child: Icon(
               isActive
                   ? CupertinoIcons.pause_circle
                   : CupertinoIcons.play_circle,
-              color: isActive ? palette.warning : palette.success,
+              // One accent voice for interactive controls — the icon shape
+              // (pause vs play) carries the state, not a colour code.
+              color: palette.accent,
               size: 22,
               semanticLabel:
                   isActive ? 'Pause supplement' : 'Resume supplement',
@@ -270,7 +282,8 @@ class _SupplementTile extends StatelessWidget {
           ),
           CupertinoButton(
             padding: const EdgeInsets.all(6),
-            onPressed: onDelete,
+            minimumSize: const Size(44, 44),
+            onPressed: () => _confirmDelete(context),
             child: Icon(
               CupertinoIcons.trash,
               color: palette.destructive,

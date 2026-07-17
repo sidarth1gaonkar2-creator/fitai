@@ -1,9 +1,10 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/nutrient_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/unit_converter.dart';
 import '../../../../providers/unit_system_provider.dart';
 import '../../domain/food_search_result.dart';
@@ -332,39 +333,46 @@ class _ModeSegmented extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tabs = <(ServingMode, String)>[
-      (ServingMode.serving, 'Serving'),
-      if (showContainer) (ServingMode.container, 'Container'),
-      (ServingMode.weight, 'Weight'),
+      (ServingMode.serving, 'SERVING'),
+      if (showContainer) (ServingMode.container, 'CONTAINER'),
+      (ServingMode.weight, 'WEIGHT'),
     ];
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 180);
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: palette.surfaceElevated,
-        borderRadius: BorderRadius.circular(10),
+        color: FieldManual.field,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: FieldManual.hairline),
       ),
       child: Row(
         children: tabs
             .map((t) => Expanded(
-                  child: GestureDetector(
-                    onTap: () => onChanged(t.$1),
-                    behavior: HitTestBehavior.opaque,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: mode == t.$1 ? palette.surface : null,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        t.$2,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: mode == t.$1
-                              ? palette.text
-                              : palette.textSecondary,
+                  child: Semantics(
+                    button: true,
+                    selected: mode == t.$1,
+                    child: GestureDetector(
+                      onTap: () => onChanged(t.$1),
+                      behavior: HitTestBehavior.opaque,
+                      child: AnimatedContainer(
+                        duration: duration,
+                        constraints: const BoxConstraints(minHeight: 44),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: mode == t.$1 ? palette.accent : null,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          t.$2,
+                          style: FieldManual.label(
+                            fontSize: 10,
+                            color: mode == t.$1
+                                ? palette.onAccent
+                                : FieldManual.mutedBone,
+                          ),
                         ),
                       ),
                     ),
@@ -423,20 +431,13 @@ class _ServingModeBody extends StatelessWidget {
                         : quantity.toStringAsFixed(2)
                             .replaceAll(RegExp(r'0+$'), '')
                             .replaceAll(RegExp(r'\.$'), ''),
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 36,
-                      color: palette.text,
-                    ),
+                    style: FieldManual.readout(fontSize: 36),
                   ),
                   Text(
                     quantity == 1 ? unit : '${unit}s',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w500,
+                    style: FieldManual.body(
                       fontSize: 13,
-                      color: palette.textSecondary,
+                      color: FieldManual.mutedBone,
                     ),
                   ),
                 ],
@@ -456,23 +457,23 @@ class _ServingModeBody extends StatelessWidget {
         const SizedBox(height: 12),
         // Manual numeric input — falls back to the steppers if the user
         // doesn't want to type.
-        CupertinoTextField(
-          controller: manualController,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          textAlign: TextAlign.center,
-          decoration: BoxDecoration(
-            color: palette.surfaceElevated,
-            borderRadius: BorderRadius.circular(10),
+        _FmFocusRing(
+          builder: (context, focused) => CupertinoTextField(
+            controller: manualController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textAlign: TextAlign.center,
+            decoration: BoxDecoration(
+              color: FieldManual.fieldRaised,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: focused ? palette.accent : FieldManual.hairline,
+              ),
+            ),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            style: FieldManual.readout(fontSize: 16),
+            onChanged: onManualTextChanged,
           ),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-            color: palette.text,
-          ),
-          onChanged: onManualTextChanged,
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -494,10 +495,9 @@ class _ServingModeBody extends StatelessWidget {
           Text(
             servingDescription!,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Poppins',
+            style: FieldManual.body(
               fontSize: 12,
-              color: palette.textSecondary,
+              color: FieldManual.mutedBone,
             ),
           ),
         ],
@@ -530,16 +530,38 @@ class _ContainerModeBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return Column(
       children: [
-        Text(
-          'Container has ${servingsPerContainer.toStringAsFixed(servingsPerContainer == servingsPerContainer.roundToDouble() ? 0 : 1)} servings',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w500,
-            fontSize: 13,
-            color: palette.textSecondary,
+        // The count is an instrument value — mono readout inside the sentence.
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: 'Container has ',
+                style: FieldManual.body(
+                  fontSize: 13,
+                  color: FieldManual.mutedBone,
+                ),
+              ),
+              TextSpan(
+                text: servingsPerContainer.toStringAsFixed(
+                    servingsPerContainer ==
+                            servingsPerContainer.roundToDouble()
+                        ? 0
+                        : 1),
+                style: FieldManual.readout(
+                  fontSize: 13,
+                  color: FieldManual.mutedBone,
+                ),
+              ),
+              TextSpan(
+                text: ' servings',
+                style: FieldManual.body(
+                  fontSize: 13,
+                  color: FieldManual.mutedBone,
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
@@ -581,23 +603,24 @@ class _WeightModeBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          child: CupertinoTextField(
-            controller: controller,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            placeholder: '0',
-            decoration: BoxDecoration(
-              color: palette.surfaceElevated,
-              borderRadius: BorderRadius.circular(10),
+          child: _FmFocusRing(
+            builder: (context, focused) => CupertinoTextField(
+              controller: controller,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              placeholder: '0',
+              decoration: BoxDecoration(
+                color: FieldManual.fieldRaised,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: focused ? palette.accent : FieldManual.hairline,
+                ),
+              ),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              style: FieldManual.readout(fontSize: 22),
+              onChanged: onTextChanged,
             ),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontWeight: FontWeight.w700,
-              fontSize: 22,
-              color: palette.text,
-            ),
-            onChanged: onTextChanged,
           ),
         ),
         const SizedBox(width: 8),
@@ -608,16 +631,14 @@ class _WeightModeBody extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: palette.accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+              color: palette.accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(4),
               border: Border.all(color: palette.accent.withValues(alpha: 0.4)),
             ),
             child: Text(
-              inOunces ? 'oz ⇄ g' : 'g ⇄ oz',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
+              inOunces ? 'OZ ⇄ G' : 'G ⇄ OZ',
+              style: FieldManual.label(
+                fontSize: 11,
                 color: palette.accent,
               ),
             ),
@@ -641,7 +662,6 @@ class _StepperButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return Semantics(
       button: true,
       label: semanticLabel,
@@ -655,11 +675,12 @@ class _StepperButton extends StatelessWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: palette.surfaceElevated,
-            shape: BoxShape.circle,
+            color: FieldManual.fieldRaised,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: FieldManual.hairline),
           ),
           alignment: Alignment.center,
-          child: Icon(icon, size: 20, color: palette.text),
+          child: Icon(icon, size: 20, color: FieldManual.bone),
         ),
       ),
     );
@@ -689,23 +710,24 @@ class _QuickChip extends StatelessWidget {
       },
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        constraints: BoxConstraints(minWidth: minWidth),
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 180),
+        constraints: BoxConstraints(minWidth: minWidth, minHeight: 44),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive
-              ? palette.accent
-              : palette.surfaceElevated,
-          borderRadius: BorderRadius.circular(8),
+          color: isActive ? palette.accent : FieldManual.fieldRaised,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: isActive ? palette.accent : FieldManual.hairline,
+          ),
         ),
         alignment: Alignment.center,
         child: Text(
           label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
+          style: FieldManual.readout(
             fontSize: 13,
-            color: isActive ? Colors.white : palette.text,
+            color: isActive ? palette.onAccent : FieldManual.bone,
           ),
         ),
       ),
@@ -732,12 +754,12 @@ class LiveNutritionPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: palette.surfaceElevated,
-        borderRadius: BorderRadius.circular(12),
+        color: FieldManual.field,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: FieldManual.hairline),
       ),
       child: Column(
         children: [
@@ -748,32 +770,33 @@ class LiveNutritionPreview extends StatelessWidget {
             children: [
               Text(
                 calories.toStringAsFixed(0),
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 34,
-                  color: palette.text,
-                ),
+                style: FieldManual.readout(fontSize: 32),
               ),
               const SizedBox(width: 4),
-              Text(
-                'kcal',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                  color: palette.textSecondary,
-                ),
-              ),
+              Text('KCAL', style: FieldManual.label(fontSize: 10)),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _Macro(label: 'P', value: protein, color: palette.accent),
-              _Macro(label: 'C', value: carbs, color: palette.warning),
-              _Macro(label: 'F', value: fat, color: palette.success),
+              // Small NutrientIcons dots stay — they aid scanning across the
+              // row; the values themselves are bone mono readouts.
+              _Macro(
+                label: 'P',
+                value: protein,
+                color: NutrientIcons.proteinColor,
+              ),
+              _Macro(
+                label: 'C',
+                value: carbs,
+                color: NutrientIcons.carbsColor,
+              ),
+              _Macro(
+                label: 'F',
+                value: fat,
+                color: NutrientIcons.fatColor,
+              ),
             ],
           ),
         ],
@@ -795,7 +818,6 @@ class _Macro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return Column(
       children: [
         Row(
@@ -806,28 +828,42 @@ class _Macro extends StatelessWidget {
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
             const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 11,
-                color: palette.textSecondary,
-              ),
-            ),
+            Text(label, style: FieldManual.label(fontSize: 10)),
           ],
         ),
         const SizedBox(height: 2),
         Text(
-          '${value.toStringAsFixed(1)}g',
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-            color: palette.text,
-          ),
+          '${value.toStringAsFixed(1)}G',
+          style: FieldManual.readout(fontSize: 15),
         ),
       ],
+    );
+  }
+}
+
+/// Tracks whether a descendant text field holds focus so the builder can
+/// paint the Field Manual accent focus border. Presentation only — the
+/// wrapper node is unfocusable and skipped in traversal, so keyboard and
+/// tap behavior are untouched.
+class _FmFocusRing extends StatefulWidget {
+  const _FmFocusRing({required this.builder});
+
+  final Widget Function(BuildContext context, bool focused) builder;
+
+  @override
+  State<_FmFocusRing> createState() => _FmFocusRingState();
+}
+
+class _FmFocusRingState extends State<_FmFocusRing> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: (focused) => setState(() => _focused = focused),
+      child: widget.builder(context, _focused),
     );
   }
 }

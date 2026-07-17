@@ -79,27 +79,33 @@ class _KcalGaugeState extends State<KcalGauge> {
           ),
           Padding(
             padding: EdgeInsets.only(top: widget.size * 0.08),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  bigNumber,
-                  style: FieldManual.readout(fontSize: 34),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subLabel,
-                  style: FieldManual.label(fontSize: 10),
-                ),
-                if (_canFlip) ...[
-                  const SizedBox(height: 4),
-                  Icon(
-                    CupertinoIcons.arrow_2_squarepath,
-                    size: 12,
-                    color: FieldManual.olive,
+            // Clamp (not disable) Dynamic Type inside the fixed-size tick
+            // ring so AX text sizes can't collide with the arc. The
+            // Semantics label below carries the full-size reading.
+            child: MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 1.4,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    bigNumber,
+                    style: FieldManual.readout(fontSize: 34),
                   ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subLabel,
+                    style: FieldManual.label(fontSize: 10),
+                  ),
+                  if (_canFlip) ...[
+                    const SizedBox(height: 4),
+                    Icon(
+                      CupertinoIcons.arrow_2_squarepath,
+                      size: 12,
+                      color: FieldManual.olive,
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
+import '../../../../core/widgets/macro_readout.dart';
 import '../../../tutorial/presentation/tutorial_anchor.dart';
 import 'kcal_gauge.dart';
 import 'saved_meals_quick_log.dart';
@@ -59,20 +60,27 @@ class RationsPanel extends StatelessWidget {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () => context.go('/nutrition'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: accent.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    child: Text(
-                      '+ LOG MEAL',
-                      style: FieldManual.label(
-                        color: accent,
-                        fontSize: 10,
+                  // ≥44pt tap target — the painted chip stays compact, the
+                  // hit area extends beyond it.
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: accent.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Text(
+                          '+ LOG MEAL',
+                          style: FieldManual.label(
+                            color: accent,
+                            fontSize: 10,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -109,7 +117,7 @@ class RationsPanel extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: _MacroReadout(
+                    child: MacroReadout(
                       label: 'PROTEIN',
                       grams: protein,
                       target: proteinTarget,
@@ -117,7 +125,7 @@ class RationsPanel extends StatelessWidget {
                   ),
                   const SizedBox(width: 14),
                   Expanded(
-                    child: _MacroReadout(
+                    child: MacroReadout(
                       label: 'CARBS',
                       grams: carbs,
                       target: carbsTarget,
@@ -125,7 +133,7 @@ class RationsPanel extends StatelessWidget {
                   ),
                   const SizedBox(width: 14),
                   Expanded(
-                    child: _MacroReadout(
+                    child: MacroReadout(
                       label: 'FAT',
                       grams: fat,
                       target: fatTarget,
@@ -137,58 +145,6 @@ class RationsPanel extends StatelessWidget {
           ],
           // Quick rations — self-collapses when the user has no saved meals.
           const SavedMealsQuickLog(),
-        ],
-      ),
-    );
-  }
-}
-
-class _MacroReadout extends StatelessWidget {
-  const _MacroReadout({
-    required this.label,
-    required this.grams,
-    required this.target,
-  });
-
-  final String label;
-  final double grams;
-  final double target;
-
-  @override
-  Widget build(BuildContext context) {
-    final fraction =
-        target <= 0 ? 0.0 : (grams / target).clamp(0.0, 1.0).toDouble();
-    return Semantics(
-      label: '$label ${grams.round()} of ${target.round()} grams',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: FieldManual.label(fontSize: 9)),
-          const SizedBox(height: 4),
-          Text(
-            '${grams.round()}/${target.round()}G',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: FieldManual.readout(fontSize: 13),
-          ),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(1),
-            child: SizedBox(
-              height: 2,
-              child: Stack(
-                children: [
-                  Container(color: FieldManual.hairline),
-                  FractionallySizedBox(
-                    widthFactor: fraction,
-                    child: Container(
-                      color: FieldManual.bone.withValues(alpha: 0.85),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );

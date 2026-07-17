@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../models/enums.dart';
@@ -37,11 +38,8 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
     if (mealsAsync.isLoading && !mealsAsync.hasValue) {
       return Scaffold(
-        appBar: CupertinoNavigationBar(
-        middle: const Text('Nutrition'),
-        backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
-        border: null,
-      ),
+        backgroundColor: FieldManual.ink,
+        appBar: _navBar(),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
@@ -79,11 +77,8 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
     if (mealsAsync.hasError && !mealsAsync.hasValue) {
       return Scaffold(
-        appBar: CupertinoNavigationBar(
-        middle: const Text('Nutrition'),
-        backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
-        border: null,
-      ),
+        backgroundColor: FieldManual.ink,
+        appBar: _navBar(),
         body: ErrorCard(
           message: 'Could not load nutrition data.',
           onRetry: () => ref.invalidate(todayMealsProvider),
@@ -101,15 +96,13 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
     final isLocked = completedDayAsync.valueOrNull != null;
 
     return Scaffold(
-      appBar: CupertinoNavigationBar(
-        middle: const Text('Nutrition'),
-        backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
-        border: null,
+      backgroundColor: FieldManual.ink,
+      appBar: _navBar(
         trailing: CupertinoButton(
           padding: const EdgeInsets.all(8),
           onPressed: () => context.push('/nutrition/saved-meals'),
           child: Icon(
-            Icons.bookmark_outline,
+            CupertinoIcons.bookmark,
             size: 22,
             color: AppColors.of(context).accent,
             semanticLabel: 'Saved meals',
@@ -220,6 +213,16 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
   }
 }
 
+/// Field Manual nav bar: ink at 82% over a hairline, NUTRITION designation.
+CupertinoNavigationBar _navBar({Widget? trailing}) {
+  return CupertinoNavigationBar(
+    middle: Text('NUTRITION', style: FieldManual.title()),
+    backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+    border: const Border(bottom: BorderSide(color: FieldManual.hairline)),
+    trailing: trailing,
+  );
+}
+
 // ─── Tab Toggle ──────────────────────────────────────────────────────────────
 
 class _TabToggle extends StatelessWidget {
@@ -233,13 +236,13 @@ class _TabToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return Container(
-      height: 44,
+      // Scales with Dynamic Type like the quick-action chips row.
+      height: MediaQuery.textScalerOf(context).scale(44),
       decoration: BoxDecoration(
-        color: palette.surface,
-        border: Border.all(color: palette.border),
-        borderRadius: BorderRadius.circular(22),
+        color: FieldManual.field,
+        border: Border.all(color: FieldManual.hairline),
+        borderRadius: BorderRadius.circular(4),
       ),
       padding: const EdgeInsets.all(3),
       child: Row(
@@ -280,32 +283,31 @@ class _TabPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final inner = GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
-          color: isActive ? AppColors.of(context).accent : Colors.transparent,
-          borderRadius: BorderRadius.circular(19),
-          border: isActive
-              ? null
-              : Border.all(
-                  color: AppColors.of(context).border,
-                  width: 1,
-                ),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-            color: isActive ? Colors.white : AppColors.of(context).text,
+    final palette = AppColors.of(context);
+    final inner = Semantics(
+      button: true,
+      selected: isActive,
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: AnimatedContainer(
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 200),
+          curve: Curves.easeOutQuart,
+          decoration: BoxDecoration(
+            color: isActive ? palette.accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label.toUpperCase(),
+            style: FieldManual.label(
+              fontSize: 11,
+              color: isActive ? palette.onAccent : FieldManual.mutedBone,
+            ),
           ),
         ),
       ),
@@ -326,33 +328,39 @@ class _SearchTrigger extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: palette.surfaceElevated,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(CupertinoIcons.search, size: 18, color: palette.textSecondary),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Search foods, restaurants, or scan barcode...',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 14,
-                  color: palette.textSecondary,
-                ),
-              ),
+    return Semantics(
+      button: true,
+      label: 'Search foods, restaurants, or scan barcode',
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            decoration: BoxDecoration(
+              color: FieldManual.fieldRaised,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: FieldManual.hairline),
             ),
-          ],
+            child: Row(
+              children: [
+                const Icon(CupertinoIcons.search,
+                    size: 18, color: FieldManual.mutedBone),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Search foods, restaurants, or scan barcode...',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: FieldManual.body(
+                      color: FieldManual.mutedBone,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -366,7 +374,7 @@ class _QuickActionChips extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(
-      height: 38,
+      height: MediaQuery.textScalerOf(context).scale(44),
       child: ListView(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -395,7 +403,7 @@ class _QuickActionChips extends ConsumerWidget {
             ),
           ),
           _Chip(
-            icon: Icons.bookmark_outline,
+            icon: CupertinoIcons.bookmark,
             label: 'Saved',
             onTap: () => context.push('/nutrition/saved-meals'),
           ),
@@ -436,40 +444,44 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap();
-        },
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: palette.surfaceElevated,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: palette.border),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (emoji != null)
-                Text(emoji!, style: const TextStyle(fontSize: 16))
-              else if (icon != null)
-                Icon(icon, size: 16, color: palette.text),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: palette.text,
-                ),
+      // Spoken label stays sentence case; the uppercase is visual only.
+      child: Semantics(
+        button: true,
+        label: label,
+        child: ExcludeSemantics(
+          child: GestureDetector(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onTap();
+            },
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: FieldManual.field,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: FieldManual.hairline),
               ),
-            ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (emoji != null)
+                    Text(emoji!, style: const TextStyle(fontSize: 16))
+                  else if (icon != null)
+                    Icon(icon, size: 16, color: FieldManual.bone),
+                  const SizedBox(width: 6),
+                  Text(
+                    label.toUpperCase(),
+                    style: FieldManual.label(
+                      fontSize: 10,
+                      color: FieldManual.bone,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

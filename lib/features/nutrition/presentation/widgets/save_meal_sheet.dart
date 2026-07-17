@@ -1,8 +1,9 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Icons, Theme;
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../models/food_entry.dart';
 import '../../../../providers/saved_meal_providers.dart';
@@ -78,7 +79,6 @@ class _SaveMealSheetState extends ConsumerState<SaveMealSheet> {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
-    final textTheme = Theme.of(context).textTheme;
 
     final totalCal = widget.entries.fold<double>(0, (s, e) => s + e.calories);
     final totalPro = widget.entries.fold<double>(0, (s, e) => s + e.protein);
@@ -90,10 +90,9 @@ class _SaveMealSheetState extends ConsumerState<SaveMealSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: const BoxDecoration(
+          color: FieldManual.ink,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: SafeArea(
@@ -107,34 +106,33 @@ class _SaveMealSheetState extends ConsumerState<SaveMealSheet> {
                   width: 36,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: palette.textSecondary.withValues(alpha: 0.4),
+                    color: FieldManual.hairlineStrong,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
               Text(
-                'Save Meal',
+                'SAVE MEAL',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18,
-                  color: palette.text,
-                ),
+                style: FieldManual.title(),
               ),
               const SizedBox(height: 16),
               CupertinoTextField(
                 controller: _nameController,
                 placeholder: 'Meal name',
                 autofocus: true,
-                style: TextStyle(color: palette.text, fontSize: 16),
-                placeholderStyle: TextStyle(color: palette.textSecondary),
+                style: FieldManual.body(fontSize: 16),
+                placeholderStyle: FieldManual.body(
+                  fontSize: 16,
+                  color: FieldManual.mutedBone,
+                ),
                 padding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
-                  color: palette.surfaceElevated,
-                  borderRadius: BorderRadius.circular(12),
+                  color: FieldManual.fieldRaised,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: FieldManual.hairline),
                 ),
               ),
               const SizedBox(height: 12),
@@ -147,8 +145,9 @@ class _SaveMealSheetState extends ConsumerState<SaveMealSheet> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: palette.surfaceElevated,
-                  borderRadius: BorderRadius.circular(12),
+                  color: FieldManual.field,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: FieldManual.hairline),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,16 +158,17 @@ class _SaveMealSheetState extends ConsumerState<SaveMealSheet> {
                           Expanded(
                             child: Text(
                               e.name,
-                              style: textTheme.bodyMedium
-                                  ?.copyWith(color: palette.text),
+                              style: FieldManual.body(fontSize: 14),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           Text(
-                            '${e.calories.toInt()} kcal',
-                            style: textTheme.bodySmall
-                                ?.copyWith(color: palette.textSecondary),
+                            '${e.calories.toInt()} KCAL',
+                            style: FieldManual.readout(
+                              fontSize: 12,
+                              color: FieldManual.mutedBone,
+                            ),
                           ),
                         ],
                       ),
@@ -177,34 +177,30 @@ class _SaveMealSheetState extends ConsumerState<SaveMealSheet> {
                     const SizedBox(height: 10),
                     Container(
                       height: 1,
-                      color: palette.border,
+                      color: FieldManual.hairline,
                     ),
                     const SizedBox(height: 10),
                     Row(
                       children: [
                         Expanded(
                           child: Text(
-                            'Total',
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: palette.text,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            'TOTAL',
+                            style: FieldManual.label(fontSize: 10),
                           ),
                         ),
                         Text(
-                          '${totalCal.toInt()} kcal',
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: palette.text,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          '${totalCal.toInt()} KCAL',
+                          style: FieldManual.readout(fontSize: 14),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'P ${totalPro.toInt()}g · C ${totalCarb.toInt()}g · F ${totalFat.toInt()}g',
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: palette.textSecondary),
+                      'P ${totalPro.toInt()}G · C ${totalCarb.toInt()}G · F ${totalFat.toInt()}G',
+                      style: FieldManual.readout(
+                        fontSize: 11,
+                        color: FieldManual.mutedBone,
+                      ),
                     ),
                   ],
                 ),
@@ -214,24 +210,23 @@ class _SaveMealSheetState extends ConsumerState<SaveMealSheet> {
                 width: double.infinity,
                 child: CupertinoButton(
                   color: palette.accent,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(4),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   onPressed: _saving ? null : _save,
                   child: _saving
-                      ? const CupertinoActivityIndicator(
-                          color: CupertinoColors.white)
-                      : const Row(
+                      ? CupertinoActivityIndicator(
+                          color: palette.onAccent)
+                      : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.bookmark_outline,
-                                color: CupertinoColors.white, size: 18),
-                            SizedBox(width: 6),
+                                color: palette.onAccent, size: 18),
+                            const SizedBox(width: 6),
                             Text(
-                              'Save Meal',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w600,
-                                color: CupertinoColors.white,
+                              'SAVE MEAL',
+                              style: FieldManual.label(
+                                color: palette.onAccent,
+                                fontSize: 12,
                               ),
                             ),
                           ],

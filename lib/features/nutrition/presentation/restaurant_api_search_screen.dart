@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/nutrient_icons.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../data/restaurant_preseed_items.dart';
 import '../../../models/enums.dart';
@@ -227,13 +228,19 @@ class _RestaurantApiSearchScreenState
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
     return Scaffold(
+      backgroundColor: FieldManual.ink,
       appBar: CupertinoNavigationBar(
-        backgroundColor: palette.background.withValues(alpha: 0.8),
-        border: null,
+        backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+        border: const Border(
+          bottom: BorderSide(color: FieldManual.hairline),
+        ),
         middle: Text(
+          // Restaurant names are content and keep their case; the static
+          // fallback is a designation.
           widget.restaurantName.isEmpty
-              ? 'Search Menu Items'
+              ? 'SEARCH MENU ITEMS'
               : widget.restaurantName,
+          style: FieldManual.title(),
         ),
       ),
       body: SafeArea(
@@ -256,15 +263,16 @@ class _RestaurantApiSearchScreenState
                   ),
                 ),
                 decoration: BoxDecoration(
-                  color: palette.surfaceElevated,
-                  borderRadius: BorderRadius.circular(10),
+                  color: FieldManual.fieldRaised,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: FieldManual.hairline),
                 ),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                style: TextStyle(color: palette.text, fontSize: 14),
-                placeholderStyle: TextStyle(
-                  color: palette.textSecondary,
+                style: FieldManual.body(fontSize: 14),
+                placeholderStyle: FieldManual.body(
                   fontSize: 14,
+                  color: FieldManual.mutedBone,
                 ),
                 onChanged: _onChanged,
                 onSubmitted: (_) {
@@ -318,21 +326,29 @@ class _RestaurantApiSearchScreenState
                     : isOffline
                         ? 'No internet connection.'
                         : 'Could not load menu items.',
-                style: TextStyle(color: palette.text),
+                style: FieldManual.body(),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               if (!isQuota)
                 OutlinedButton.icon(
                   onPressed: _runSearch,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
+                  style: _secondaryButtonStyle,
+                  icon: const Icon(Icons.refresh,
+                      size: 18, color: FieldManual.bone),
+                  label: Text('RETRY',
+                      style: FieldManual.label(
+                          fontSize: 11, color: FieldManual.bone)),
                 ),
               if (isQuota)
                 OutlinedButton.icon(
                   onPressed: () => context.go('/nutrition/restaurants'),
-                  icon: const Icon(Icons.menu_book_outlined),
-                  label: const Text('Browse built-in menus'),
+                  style: _secondaryButtonStyle,
+                  icon: const Icon(Icons.menu_book_outlined,
+                      size: 18, color: FieldManual.bone),
+                  label: Text('BROWSE BUILT-IN MENUS',
+                      style: FieldManual.label(
+                          fontSize: 11, color: FieldManual.bone)),
                 ),
             ],
           ),
@@ -344,7 +360,7 @@ class _RestaurantApiSearchScreenState
         return Center(
           child: Text(
             'Start typing to search.',
-            style: TextStyle(color: palette.textSecondary),
+            style: FieldManual.body(color: FieldManual.mutedBone),
           ),
         );
       }
@@ -359,7 +375,7 @@ class _RestaurantApiSearchScreenState
               const SizedBox(height: 8),
               Text(
                 'No items found — try a different search.',
-                style: TextStyle(color: palette.textSecondary),
+                style: FieldManual.body(color: FieldManual.mutedBone),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -379,6 +395,15 @@ class _RestaurantApiSearchScreenState
     );
   }
 }
+
+/// Field Manual secondary button: transparent fill, hairline border, sharp
+/// 4pt geometry, 44pt minimum target.
+final ButtonStyle _secondaryButtonStyle = OutlinedButton.styleFrom(
+  foregroundColor: FieldManual.bone,
+  side: const BorderSide(color: FieldManual.hairlineStrong),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+  minimumSize: const Size(44, 44),
+);
 
 class _ResultTile extends StatelessWidget {
   const _ResultTile({required this.food, required this.mealType});
@@ -404,27 +429,22 @@ class _ResultTile extends StatelessWidget {
             )
           : _Fallback(name: food.name),
       title: Text(
+        // Dish names are content — never uppercased.
         food.name,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-          color: palette.text,
-        ),
+        style: FieldManual.title().copyWith(fontSize: 15),
       ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 2),
         child: Text(
-          '${food.caloriesPer100g.toInt()} kcal/100g · '
+          '${food.caloriesPer100g.toInt()} KCAL/100G · '
           'P${food.proteinPer100g.toInt()} '
           'C${food.carbsPer100g.toInt()} '
           'F${food.fatPer100g.toInt()}',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 12,
-            color: palette.textSecondary,
+          style: FieldManual.readout(
+            fontSize: 11,
+            color: FieldManual.mutedBone,
           ),
         ),
       ),

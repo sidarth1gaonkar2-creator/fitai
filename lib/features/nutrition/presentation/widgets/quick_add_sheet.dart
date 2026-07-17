@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../data/food_emojis.dart';
 import '../../../../models/enums.dart';
@@ -140,9 +140,9 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: const BoxDecoration(
+          color: FieldManual.ink,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
         child: SafeArea(
@@ -157,21 +157,16 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                     width: 36,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: palette.textSecondary.withValues(alpha: 0.3),
+                      color: FieldManual.mutedBone.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Quick Add',
+                  'QUICK ADD',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 17,
-                    color: palette.text,
-                  ),
+                  style: FieldManual.title(),
                 ),
                 // Saved presets section — only renders when there are any.
                 ...savedAsync.maybeWhen(
@@ -199,87 +194,91 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                 ),
                 const SizedBox(height: 16),
                 // Calories — primary, large
-                CupertinoTextField(
-                  controller: _caloriesController,
-                  autofocus: true,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  placeholder: '0',
-                  decoration: BoxDecoration(
-                    color: palette.surfaceElevated,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 18),
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 28,
-                    color: palette.text,
-                  ),
-                  placeholderStyle: TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 28,
-                    color: palette.textSecondary.withValues(alpha: 0.5),
-                  ),
-                  suffix: Padding(
-                    padding: const EdgeInsets.only(right: 14),
-                    child: Text(
-                      'kcal',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                        color: palette.textSecondary,
+                _FmFocusRing(
+                  builder: (context, focused) => CupertinoTextField(
+                    controller: _caloriesController,
+                    autofocus: true,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    placeholder: '0',
+                    decoration: BoxDecoration(
+                      color: FieldManual.fieldRaised,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color:
+                            focused ? palette.accent : FieldManual.hairline,
                       ),
                     ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 18),
+                    style: FieldManual.readout(fontSize: 28),
+                    placeholderStyle: FieldManual.readout(
+                      fontSize: 28,
+                      color: FieldManual.mutedBone.withValues(alpha: 0.5),
+                    ),
+                    suffix: Padding(
+                      padding: const EdgeInsets.only(right: 14),
+                      child:
+                          Text('KCAL', style: FieldManual.label(fontSize: 11)),
+                    ),
+                    onChanged: (_) => setState(() {}),
                   ),
-                  onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 12),
                 // Food name (optional unless saving)
-                CupertinoTextField(
-                  controller: _nameController,
-                  placeholder: _saveForLater
-                      ? 'Name (required to save)'
-                      : _placeholderName(),
-                  decoration: BoxDecoration(
-                    color: palette.surfaceElevated,
-                    borderRadius: BorderRadius.circular(10),
+                _FmFocusRing(
+                  builder: (context, focused) => CupertinoTextField(
+                    controller: _nameController,
+                    placeholder: _saveForLater
+                        ? 'Name (required to save)'
+                        : _placeholderName(),
+                    decoration: BoxDecoration(
+                      color: FieldManual.fieldRaised,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color:
+                            focused ? palette.accent : FieldManual.hairline,
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    style: FieldManual.body(fontSize: 15),
+                    placeholderStyle: FieldManual.body(
+                      fontSize: 15,
+                      color: FieldManual.mutedBone,
+                    ),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
-                  style: TextStyle(color: palette.text, fontSize: 15),
-                  placeholderStyle:
-                      TextStyle(color: palette.textSecondary, fontSize: 15),
                 ),
                 const SizedBox(height: 12),
                 // Macros — expand
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () => setState(() => _expandMacros = !_expandMacros),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        _expandMacros
-                            ? CupertinoIcons.chevron_up
-                            : CupertinoIcons.chevron_down,
-                        size: 14,
-                        color: palette.accent,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _expandMacros ? 'Hide macros' : 'Add macros (optional)',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 13,
+                  // ≥44pt tap target for the expander row.
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _expandMacros
+                              ? CupertinoIcons.chevron_up
+                              : CupertinoIcons.chevron_down,
+                          size: 14,
                           color: palette.accent,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          _expandMacros
+                              ? 'Hide macros'
+                              : 'Add macros (optional)',
+                          style: FieldManual.body(
+                            fontSize: 13,
+                            color: palette.accent,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 if (_expandMacros) ...[
@@ -315,15 +314,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                 ),
                 const SizedBox(height: 14),
                 // Meal type
-                Text(
-                  'Meal',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: palette.textSecondary,
-                  ),
-                ),
+                Text('MEAL', style: FieldManual.label(fontSize: 11)),
                 const SizedBox(height: 6),
                 _MealTypeRow(
                   selected: _mealType,
@@ -336,19 +327,14 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                 CupertinoButton(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   color: palette.accent,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(4),
                   onPressed: _saving ? null : _submit,
                   child: _saving
-                      ? const CupertinoActivityIndicator(
-                          color: CupertinoColors.white)
+                      ? CupertinoActivityIndicator(
+                          color: palette.onAccent)
                       : Text(
-                          _saveForLater ? 'Save & Add' : 'Add',
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: CupertinoColors.white,
-                          ),
+                          _saveForLater ? 'SAVE & ADD' : 'ADD',
+                          style: FieldManual.title(color: palette.onAccent),
                         ),
                 ),
               ],
@@ -371,28 +357,29 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   Widget _macroField(TextEditingController controller, String label) {
     return Builder(builder: (context) {
       final palette = AppColors.of(context);
-      return CupertinoTextField(
-        controller: controller,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        placeholder: label,
-        decoration: BoxDecoration(
-          color: palette.surfaceElevated,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        suffix: Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: Text(
-            'g',
-            style: TextStyle(
-              fontSize: 12,
-              color: palette.textSecondary,
+      return _FmFocusRing(
+        builder: (context, focused) => CupertinoTextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          placeholder: label,
+          decoration: BoxDecoration(
+            color: FieldManual.fieldRaised,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: focused ? palette.accent : FieldManual.hairline,
             ),
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          suffix: Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Text('G', style: FieldManual.label(fontSize: 11)),
+          ),
+          style: FieldManual.readout(fontSize: 14),
+          placeholderStyle: FieldManual.body(
+            fontSize: 14,
+            color: FieldManual.mutedBone,
+          ),
         ),
-        style: TextStyle(color: palette.text, fontSize: 14),
-        placeholderStyle:
-            TextStyle(color: palette.textSecondary, fontSize: 14),
       );
     });
   }
@@ -411,7 +398,7 @@ class _SavedPresetsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
+    final ts = MediaQuery.textScalerOf(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -419,24 +406,18 @@ class _SavedPresetsRow extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 6),
           child: Row(
             children: [
-              Icon(CupertinoIcons.clock,
-                  size: 13, color: palette.textSecondary),
+              const Icon(CupertinoIcons.clock,
+                  size: 13, color: FieldManual.mutedBone),
               const SizedBox(width: 4),
               Text(
-                'Recent Quick Adds',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                  color: palette.textSecondary,
-                  letterSpacing: 0.3,
-                ),
+                'RECENT QUICK ADDS',
+                style: FieldManual.label(fontSize: 11),
               ),
             ],
           ),
         ),
         SizedBox(
-          height: 64,
+          height: ts.scale(64),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: rows.length,
@@ -466,7 +447,6 @@ class _PresetChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     final hasMacros = row.protein > 0 || row.carbs > 0 || row.fat > 0;
     return GestureDetector(
       onTap: onTap,
@@ -476,9 +456,9 @@ class _PresetChip extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 200),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: palette.surfaceElevated,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: palette.border),
+          color: FieldManual.field,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: FieldManual.hairline),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -497,27 +477,22 @@ class _PresetChip extends StatelessWidget {
                     row.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: palette.text,
-                    ),
+                    // Preset names are user content — never uppercase.
+                    style: FieldManual.title().copyWith(fontSize: 13),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     hasMacros
-                        ? '${row.calories.toInt()} kcal · '
+                        ? '${row.calories.toInt()} KCAL · '
                             'P${row.protein.toInt()} '
                             'C${row.carbs.toInt()} '
                             'F${row.fat.toInt()}'
-                        : '${row.calories.toInt()} kcal',
+                        : '${row.calories.toInt()} KCAL',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 11,
-                      color: palette.textSecondary,
+                    style: FieldManual.readout(
+                      fontSize: 10,
+                      color: FieldManual.mutedBone,
                     ),
                   ),
                 ],
@@ -530,10 +505,18 @@ class _PresetChip extends StatelessWidget {
               child: GestureDetector(
                 onTap: onDelete,
                 behavior: HitTestBehavior.opaque,
-                child: Icon(
-                  CupertinoIcons.xmark_circle_fill,
-                  size: 16,
-                  color: palette.textSecondary.withValues(alpha: 0.5),
+                // ≥44pt tap target; the icon stays visually small.
+                child: Container(
+                  constraints: const BoxConstraints(
+                    minWidth: 44,
+                    minHeight: 44,
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    CupertinoIcons.xmark_circle_fill,
+                    size: 16,
+                    color: FieldManual.mutedBone.withValues(alpha: 0.6),
+                  ),
                 ),
               ),
             ),
@@ -553,29 +536,32 @@ class _SaveToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => onChanged(!value),
-      child: Row(
-        children: [
-          Icon(
-            value
-                ? CupertinoIcons.checkmark_square_fill
-                : CupertinoIcons.square,
-            size: 20,
-            color: value ? palette.accent : palette.textSecondary,
+    // Spoken as a checkbox; the visual row is excluded to avoid
+    // double-reading.
+    return Semantics(
+      checked: value,
+      label: 'Save for later',
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => onChanged(!value),
+          child: Row(
+            children: [
+              Icon(
+                value
+                    ? CupertinoIcons.checkmark_square_fill
+                    : CupertinoIcons.square,
+                size: 20,
+                color: value ? palette.accent : FieldManual.mutedBone,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Save for later',
+                style: FieldManual.body(fontSize: 14),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Text(
-            'Save for later',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-              color: palette.text,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -590,35 +576,42 @@ class _MealTypeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 180);
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: palette.surfaceElevated,
-        borderRadius: BorderRadius.circular(10),
+        color: FieldManual.field,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: FieldManual.hairline),
       ),
       child: Row(
         children: MealType.values
             .map((m) => Expanded(
-                  child: GestureDetector(
-                    onTap: () => onChanged(m),
-                    behavior: HitTestBehavior.opaque,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: selected == m ? palette.accent : null,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        m.label,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                          color: selected == m
-                              ? Colors.white
-                              : palette.text,
+                  child: Semantics(
+                    button: true,
+                    selected: selected == m,
+                    child: GestureDetector(
+                      onTap: () => onChanged(m),
+                      behavior: HitTestBehavior.opaque,
+                      child: AnimatedContainer(
+                        duration: duration,
+                        constraints: const BoxConstraints(minHeight: 44),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: selected == m ? palette.accent : null,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          m.label.toUpperCase(),
+                          style: FieldManual.label(
+                            fontSize: 11,
+                            color: selected == m
+                                ? palette.onAccent
+                                : FieldManual.mutedBone,
+                          ),
                         ),
                       ),
                     ),
@@ -626,6 +619,33 @@ class _MealTypeRow extends StatelessWidget {
                 ))
             .toList(),
       ),
+    );
+  }
+}
+
+/// Tracks whether a descendant text field holds focus so the builder can
+/// paint the Field Manual accent focus border. Presentation only — the
+/// wrapper node is unfocusable and skipped in traversal, so keyboard and
+/// tap behavior are untouched.
+class _FmFocusRing extends StatefulWidget {
+  const _FmFocusRing({required this.builder});
+
+  final Widget Function(BuildContext context, bool focused) builder;
+
+  @override
+  State<_FmFocusRing> createState() => _FmFocusRingState();
+}
+
+class _FmFocusRingState extends State<_FmFocusRing> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: (focused) => setState(() => _focused = focused),
+      child: widget.builder(context, _focused),
     );
   }
 }

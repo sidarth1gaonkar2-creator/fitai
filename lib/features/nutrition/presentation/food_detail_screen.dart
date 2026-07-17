@@ -2,7 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/nutrient_icons.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../models/enums.dart';
 import '../../../providers/nutrition_providers.dart';
@@ -108,8 +110,8 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final food = _food;
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final palette = AppColors.of(context);
+    final accent = palette.accent;
 
     final cal = food.caloriesFor(_servingSize);
     final pro = food.proteinFor(_servingSize);
@@ -117,10 +119,13 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
     final fat = food.fatFor(_servingSize);
 
     return Scaffold(
+      backgroundColor: FieldManual.ink,
       appBar: CupertinoNavigationBar(
-        middle: const Text('Add Food'),
-        backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
-        border: null,
+        middle: Text('ADD FOOD', style: FieldManual.title()),
+        backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+        border: const Border(
+          bottom: BorderSide(color: FieldManual.hairline),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -131,7 +136,7 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
             if (food.imageUrl != null)
               Center(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                   child: Image.network(
                     food.imageUrl!,
                     width: 120,
@@ -144,32 +149,51 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
             if (food.imageUrl != null) const SizedBox(height: 16),
             Text(
               food.name,
-              style: textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              // Food names are user content — never uppercase.
+              style: FieldManual.title().copyWith(fontSize: 20),
               textAlign: TextAlign.center,
             ),
             if (food.brand != null) ...[
               const SizedBox(height: 4),
               Text(
                 food.brand!,
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: FieldManual.body(
+                  fontSize: 14,
+                  color: FieldManual.mutedBone,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
             const SizedBox(height: 24),
 
             // Serving size input
-            Text('Serving size',
-                style: textTheme.labelLarge
-                    ?.copyWith(fontWeight: FontWeight.w600)),
+            Text('SERVING SIZE', style: FieldManual.label(fontSize: 10)),
             const SizedBox(height: 8),
             TextField(
               controller: _servingController,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                suffixText: 'g',
+              style: FieldManual.readout(fontSize: 18),
+              cursorColor: accent,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: FieldManual.fieldRaised,
+                suffixText: 'G',
+                suffixStyle: FieldManual.label(fontSize: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 14),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(4),
+                  borderSide:
+                      const BorderSide(color: FieldManual.hairline),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(4),
+                  borderSide: BorderSide(color: accent),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
               ),
               onChanged: (value) {
                 final parsed = double.tryParse(value);
@@ -183,52 +207,57 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
               spacing: 6,
               children: [
                 _QuickButton(
-                    label: '50g',
+                    label: '50G',
                     onTap: () => _setServing(50)),
                 _QuickButton(
-                    label: '100g',
+                    label: '100G',
                     onTap: () => _setServing(100)),
                 _QuickButton(
-                    label: '150g',
+                    label: '150G',
                     onTap: () => _setServing(150)),
                 _QuickButton(
-                    label: '200g',
+                    label: '200G',
                     onTap: () => _setServing(200)),
               ],
             ),
             const SizedBox(height: 24),
 
             // Nutrition preview
-            Card.filled(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _NutritionRow(
-                      label: 'Calories',
-                      value: '${cal.toInt()} kcal',
-                      isBold: true,
-                    ),
-                    const Divider(height: 16),
-                    _NutritionRow(
-                      label: 'Protein',
-                      value: '${pro.toStringAsFixed(1)} g',
-                      color: colorScheme.primary,
-                    ),
-                    const SizedBox(height: 8),
-                    _NutritionRow(
-                      label: 'Carbs',
-                      value: '${carb.toStringAsFixed(1)} g',
-                      color: colorScheme.tertiary,
-                    ),
-                    const SizedBox(height: 8),
-                    _NutritionRow(
-                      label: 'Fat',
-                      value: '${fat.toStringAsFixed(1)} g',
-                      color: colorScheme.secondary,
-                    ),
-                  ],
-                ),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: FieldManual.field,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: FieldManual.hairline),
+              ),
+              child: Column(
+                children: [
+                  _NutritionRow(
+                    label: 'Calories',
+                    value: '${cal.toInt()} KCAL',
+                    isBold: true,
+                  ),
+                  const Divider(height: 16, color: FieldManual.hairline),
+                  // Small NutrientIcons dots stay — they aid scanning; the
+                  // values themselves are bone mono readouts.
+                  _NutritionRow(
+                    label: 'Protein',
+                    value: '${pro.toStringAsFixed(1)} G',
+                    color: NutrientIcons.proteinColor,
+                  ),
+                  const SizedBox(height: 8),
+                  _NutritionRow(
+                    label: 'Carbs',
+                    value: '${carb.toStringAsFixed(1)} G',
+                    color: NutrientIcons.carbsColor,
+                  ),
+                  const SizedBox(height: 8),
+                  _NutritionRow(
+                    label: 'Fat',
+                    value: '${fat.toStringAsFixed(1)} G',
+                    color: NutrientIcons.fatColor,
+                  ),
+                ],
               ),
             ),
 
@@ -236,87 +265,94 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
             // Micronutrient preview
             if (_loadingDetail) ...[
               const SizedBox(height: 16),
-              const Center(
+              Center(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: FieldManual.mutedBone,
+                      ),
                     ),
-                    SizedBox(width: 8),
-                    Text('Loading micronutrients…',
-                        style: TextStyle(fontSize: 13)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Loading micronutrients…',
+                      style: FieldManual.body(
+                        fontSize: 13,
+                        color: FieldManual.mutedBone,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ] else if (food.hasMicronutrients) ...[
               const SizedBox(height: 12),
-              Card.filled(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Micronutrients',
-                        style: textTheme.titleSmall
-                            ?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                      const Divider(height: 16),
-                      if (food.ironMgFor(_servingSize) != null)
-                        _NutritionRow(
-                            label: 'Iron',
-                            value:
-                                '${food.ironMgFor(_servingSize)!.toStringAsFixed(1)} mg'),
-                      if (food.calciumMgFor(_servingSize) != null)
-                        _NutritionRow(
-                            label: 'Calcium',
-                            value:
-                                '${food.calciumMgFor(_servingSize)!.toStringAsFixed(0)} mg'),
-                      if (food.vitaminCMgFor(_servingSize) != null)
-                        _NutritionRow(
-                            label: 'Vitamin C',
-                            value:
-                                '${food.vitaminCMgFor(_servingSize)!.toStringAsFixed(1)} mg'),
-                      if (food.vitaminDMcgFor(_servingSize) != null)
-                        _NutritionRow(
-                            label: 'Vitamin D',
-                            value:
-                                '${food.vitaminDMcgFor(_servingSize)!.toStringAsFixed(1)} mcg'),
-                      if (food.magnesiumMgFor(_servingSize) != null)
-                        _NutritionRow(
-                            label: 'Magnesium',
-                            value:
-                                '${food.magnesiumMgFor(_servingSize)!.toStringAsFixed(0)} mg'),
-                      if (food.potassiumMgFor(_servingSize) != null)
-                        _NutritionRow(
-                            label: 'Potassium',
-                            value:
-                                '${food.potassiumMgFor(_servingSize)!.toStringAsFixed(0)} mg'),
-                      if (food.zincMgFor(_servingSize) != null)
-                        _NutritionRow(
-                            label: 'Zinc',
-                            value:
-                                '${food.zincMgFor(_servingSize)!.toStringAsFixed(1)} mg'),
-                      if (food.vitaminB12McgFor(_servingSize) != null)
-                        _NutritionRow(
-                            label: 'Vitamin B12',
-                            value:
-                                '${food.vitaminB12McgFor(_servingSize)!.toStringAsFixed(1)} mcg'),
-                      if (food.folateMcgFor(_servingSize) != null)
-                        _NutritionRow(
-                            label: 'Folate',
-                            value:
-                                '${food.folateMcgFor(_servingSize)!.toStringAsFixed(0)} mcg'),
-                      if (food.sodiumMgFor(_servingSize) != null)
-                        _NutritionRow(
-                            label: 'Sodium',
-                            value:
-                                '${food.sodiumMgFor(_servingSize)!.toStringAsFixed(0)} mg'),
-                    ],
-                  ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: FieldManual.field,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: FieldManual.hairline),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('MICRONUTRIENTS', style: FieldManual.title()),
+                    const Divider(height: 16, color: FieldManual.hairline),
+                    if (food.ironMgFor(_servingSize) != null)
+                      _NutritionRow(
+                          label: 'Iron',
+                          value:
+                              '${food.ironMgFor(_servingSize)!.toStringAsFixed(1)} MG'),
+                    if (food.calciumMgFor(_servingSize) != null)
+                      _NutritionRow(
+                          label: 'Calcium',
+                          value:
+                              '${food.calciumMgFor(_servingSize)!.toStringAsFixed(0)} MG'),
+                    if (food.vitaminCMgFor(_servingSize) != null)
+                      _NutritionRow(
+                          label: 'Vitamin C',
+                          value:
+                              '${food.vitaminCMgFor(_servingSize)!.toStringAsFixed(1)} MG'),
+                    if (food.vitaminDMcgFor(_servingSize) != null)
+                      _NutritionRow(
+                          label: 'Vitamin D',
+                          value:
+                              '${food.vitaminDMcgFor(_servingSize)!.toStringAsFixed(1)} MCG'),
+                    if (food.magnesiumMgFor(_servingSize) != null)
+                      _NutritionRow(
+                          label: 'Magnesium',
+                          value:
+                              '${food.magnesiumMgFor(_servingSize)!.toStringAsFixed(0)} MG'),
+                    if (food.potassiumMgFor(_servingSize) != null)
+                      _NutritionRow(
+                          label: 'Potassium',
+                          value:
+                              '${food.potassiumMgFor(_servingSize)!.toStringAsFixed(0)} MG'),
+                    if (food.zincMgFor(_servingSize) != null)
+                      _NutritionRow(
+                          label: 'Zinc',
+                          value:
+                              '${food.zincMgFor(_servingSize)!.toStringAsFixed(1)} MG'),
+                    if (food.vitaminB12McgFor(_servingSize) != null)
+                      _NutritionRow(
+                          label: 'Vitamin B12',
+                          value:
+                              '${food.vitaminB12McgFor(_servingSize)!.toStringAsFixed(1)} MCG'),
+                    if (food.folateMcgFor(_servingSize) != null)
+                      _NutritionRow(
+                          label: 'Folate',
+                          value:
+                              '${food.folateMcgFor(_servingSize)!.toStringAsFixed(0)} MCG'),
+                    if (food.sodiumMgFor(_servingSize) != null)
+                      _NutritionRow(
+                          label: 'Sodium',
+                          value:
+                              '${food.sodiumMgFor(_servingSize)!.toStringAsFixed(0)} MG'),
+                  ],
                 ),
               ),
             ],
@@ -326,16 +362,30 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
             // micronutrient fields are populated before the entry is saved.
             FilledButton.icon(
               onPressed: (_isSaving || _loadingDetail) ? null : _addFood,
+              style: FilledButton.styleFrom(
+                backgroundColor: accent,
+                foregroundColor: palette.onAccent,
+                disabledBackgroundColor: FieldManual.fieldRaised,
+                disabledForegroundColor: FieldManual.mutedBone,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                textStyle: FieldManual.title(),
+              ),
               icon: (_isSaving || _loadingDetail)
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: FieldManual.mutedBone,
+                      ),
                     )
                   : const Icon(Icons.add),
               label: Text(_loadingDetail
                   ? 'Loading nutrients…'
-                  : 'Add to ${widget.mealType.label}'),
+                  : 'ADD TO ${widget.mealType.label.toUpperCase()}'),
             ),
           ],
         ),
@@ -364,6 +414,13 @@ class _QuickButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           minimumSize: Size.zero,
+          backgroundColor: FieldManual.fieldRaised,
+          foregroundColor: FieldManual.bone,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+            side: const BorderSide(color: FieldManual.hairline),
+          ),
+          textStyle: FieldManual.readout(fontSize: 13),
         ),
         child: Text(label),
       ),
@@ -386,8 +443,6 @@ class _NutritionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Row(
       children: [
         if (color != null) ...[
@@ -405,18 +460,13 @@ class _NutritionRow extends StatelessWidget {
           child: Text(
             label,
             style: isBold
-                ? textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w600)
-                : textTheme.bodyMedium,
+                ? FieldManual.title().copyWith(fontSize: 15)
+                : FieldManual.body(fontSize: 14),
           ),
         ),
         Text(
           value,
-          style: isBold
-              ? textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold)
-              : textTheme.bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w500),
+          style: FieldManual.readout(fontSize: isBold ? 16 : 13),
         ),
       ],
     );

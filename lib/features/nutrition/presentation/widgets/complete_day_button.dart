@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Icons, Colors;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../providers/nutrition_providers.dart';
 
@@ -25,12 +25,13 @@ class CompleteDayButton extends ConsumerWidget {
         child: Center(
           child: CupertinoButton(
             onPressed: () => ref.invalidate(todayCompletedDayProvider),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(CupertinoIcons.refresh, size: 18),
-                SizedBox(width: 6),
-                Text('Could not load — tap to retry'),
+                const Icon(CupertinoIcons.refresh, size: 18),
+                const SizedBox(width: 6),
+                Text('Could not load — tap to retry',
+                    style: FieldManual.body(fontSize: 14)),
               ],
             ),
           ),
@@ -72,9 +73,10 @@ class CompleteDayButton extends ConsumerWidget {
       builder: (context) {
         final palette = AppColors.of(context);
         return Container(
-          decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          decoration: const BoxDecoration(
+            // Sheets are ink by doctrine, 12pt top radius (DESIGN.md).
+            color: FieldManual.ink,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
           ),
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
           child: SafeArea(
@@ -82,38 +84,48 @@ class CompleteDayButton extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // The ceremony is earned only when the targets were HIT.
+                // A merely-logged day gets a quiet, factual stamp — no
+                // trophy for incomplete work (PRODUCT.md: praise only
+                // completed work).
                 Container(
                   width: 80,
                   height: 80,
-                  decoration: BoxDecoration(
-                    color: palette.accent,
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: macrosHit
+                      ? BoxDecoration(
+                          color: palette.accent,
+                          shape: BoxShape.circle,
+                        )
+                      : BoxDecoration(
+                          color: FieldManual.field,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: FieldManual.hairlineStrong),
+                        ),
                   child: Icon(
-                    Icons.emoji_events,
+                    macrosHit
+                        ? CupertinoIcons.rosette
+                        : CupertinoIcons.checkmark_seal,
                     size: 44,
-                    color: palette.text,
+                    color: macrosHit ? palette.onAccent : FieldManual.mutedBone,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  macrosHit ? 'All Macros Hit!' : 'Day Complete!',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.bold,
-                    color: palette.text,
-                    fontSize: 22,
-                  ),
+                  // Ceremony headline — the sergeant shouts it (when earned).
+                  macrosHit ? 'ALL MACROS HIT' : 'DAY LOGGED',
+                  style: FieldManual.headline(),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   macrosHit
-                      ? 'Amazing work! You nailed your nutrition targets today.'
-                      : 'Great job logging your nutrition today. Keep it up!',
+                      ? 'Solid work, soldier. Targets met. '
+                          'Same standard tomorrow.'
+                      : 'Log closed. Macros missed — the log doesn\'t lie. '
+                          'Hit your numbers tomorrow.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: palette.text.withValues(alpha: 0.8),
+                  style: FieldManual.body(
                     fontSize: 14,
+                    color: FieldManual.mutedBone,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -121,16 +133,12 @@ class CompleteDayButton extends ConsumerWidget {
                   width: double.infinity,
                   child: CupertinoButton(
                     color: palette.accent,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(4),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Continue',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Poppins',
-                      ),
+                    child: Text(
+                      'CONTINUE',
+                      style: FieldManual.title(color: palette.onAccent),
                     ),
                   ),
                 ),
@@ -182,27 +190,23 @@ class _CompleteButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
+    // Completion ceremony CTA: accent fill carrying ink type (DESIGN.md).
     return SizedBox(
       width: double.infinity,
       child: CupertinoButton(
         color: palette.accent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4),
         padding: const EdgeInsets.symmetric(vertical: 14),
         onPressed: onComplete,
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(CupertinoIcons.check_mark_circled,
-                color: Colors.black, size: 20),
-            SizedBox(width: 8),
+                color: palette.onAccent, size: 20),
+            const SizedBox(width: 8),
             Text(
-              'Complete Day',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
-                color: Colors.black,
-              ),
+              'COMPLETE DAY',
+              style: FieldManual.title(color: palette.onAccent),
             ),
           ],
         ),
@@ -228,7 +232,7 @@ class _LockedBanner extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: palette.border),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -238,12 +242,16 @@ class _LockedBanner extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: palette.accent.withValues(alpha: 0.25),
+              // Success tint stays: a completed day is earned work, so the
+              // palette's success green marks the ceremony moment here.
+              color: palette.success.withValues(alpha: 0.18),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.emoji_events,
-              color: palette.accent,
+              macrosHit
+                  ? CupertinoIcons.rosette
+                  : CupertinoIcons.checkmark_seal,
+              color: palette.success,
               size: 20,
             ),
           ),
@@ -256,18 +264,13 @@ class _LockedBanner extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      'Day Complete!',
-                      style: TextStyle(
-                        color: palette.text,
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
+                      'DAY COMPLETE',
+                      style: FieldManual.title().copyWith(fontSize: 14),
                     ),
                     if (macrosHit) ...[
                       const SizedBox(width: 6),
                       Icon(
-                        Icons.star_rounded,
+                        CupertinoIcons.star_fill,
                         size: 16,
                         color: palette.accent,
                       ),
@@ -276,11 +279,11 @@ class _LockedBanner extends StatelessWidget {
                 ),
                 Text(
                   macrosHit
-                      ? 'All macros hit. Great work!'
+                      ? 'All macros hit. Solid work, soldier.'
                       : 'Nutrition logged for today.',
-                  style: TextStyle(
-                    color: palette.textSecondary,
+                  style: FieldManual.body(
                     fontSize: 12,
+                    color: FieldManual.mutedBone,
                   ),
                 ),
               ],
@@ -290,8 +293,11 @@ class _LockedBanner extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             onPressed: onUnlock,
             child: Text(
-              'Unlock',
-              style: TextStyle(color: palette.accent),
+              'UNLOCK',
+              style: FieldManual.label(
+                fontSize: 11,
+                color: palette.accent,
+              ),
             ),
           ),
         ],

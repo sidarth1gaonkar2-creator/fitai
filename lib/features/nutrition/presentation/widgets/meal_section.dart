@@ -1,7 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Divider, Icons, Theme;
+import 'package:flutter/material.dart' show Divider, Icons;
 import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../models/enums.dart';
 import '../../../../models/food_entry.dart';
@@ -130,8 +131,6 @@ class MealSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
     final palette = AppColors.of(context);
 
     return CupertinoCard(
@@ -151,19 +150,18 @@ class MealSection extends StatelessWidget {
                   ),
                   child: Icon(
                     _icon,
-                    color: palette.text,
+                    // On-accent glyph on the accent-filled disc — accent
+                    // surfaces carry the palette's onAccent tone (DESIGN.md).
+                    color: palette.onAccent,
                     size: 18,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    mealType.label,
-                    style: textTheme.titleSmall?.copyWith(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      color: palette.text,
-                    ),
+                    // Meal designations are commands: BREAKFAST, LUNCH...
+                    mealType.label.toUpperCase(),
+                    style: FieldManual.title(),
                   ),
                 ),
                 if (!isLocked && entries.isNotEmpty)
@@ -172,7 +170,13 @@ class MealSection extends StatelessWidget {
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () => _onSavePressed(context),
-                    child: Padding(
+                    // ≥44pt tap target; the icon stays visually small.
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 44,
+                      ),
+                      alignment: Alignment.center,
                       padding: const EdgeInsets.only(right: 8),
                       child: Icon(
                         Icons.bookmark_outline,
@@ -183,35 +187,26 @@ class MealSection extends StatelessWidget {
                     ),
                   ),
                 if (entries.isNotEmpty) ...[
-                  // Protein subtotal
+                  // Protein subtotal — instrument readout, quiet tone.
                   Text(
-                    '${_totalProtein.toInt()}g P',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: palette.accent,
+                    '${_totalProtein.toInt()}G P',
+                    style: FieldManual.readout(
+                      fontSize: 11,
+                      color: FieldManual.mutedBone,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Calorie subtotal
+                  // Calorie subtotal — the section's primary number.
                   Text(
-                    '${_totalCalories.toInt()} kcal',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                    '${_totalCalories.toInt()} KCAL',
+                    style: FieldManual.readout(fontSize: 13),
                   ),
                 ] else ...[
                   Text(
-                    '0 kcal',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
+                    '0 KCAL',
+                    style: FieldManual.readout(
                       fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: colorScheme.onSurfaceVariant,
+                      color: FieldManual.mutedBone,
                     ),
                   ),
                 ],
@@ -219,7 +214,7 @@ class MealSection extends StatelessWidget {
             ),
             if (entries.isNotEmpty) ...[
               const SizedBox(height: 8),
-              const Divider(height: 1),
+              const Divider(height: 1, color: FieldManual.hairline),
               ..._renderRows(),
               if (!isLocked && entries.length >= 2)
                 // Gentle nudge — visible only when there are multiple
@@ -229,23 +224,27 @@ class MealSection extends StatelessWidget {
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () => _onSavePressed(context),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.bookmark_add_outlined,
-                          size: 14,
-                          color: palette.accent,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Save this as a reusable meal',
-                          style: textTheme.labelSmall?.copyWith(
+                    // ≥44pt tap target for the save nudge row.
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 44),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.bookmark_add_outlined,
+                            size: 14,
                             color: palette.accent,
-                            fontWeight: FontWeight.w500,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          Text(
+                            'Save this as a reusable meal',
+                            style: FieldManual.body(
+                              fontSize: 12,
+                              color: palette.accent,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -253,8 +252,9 @@ class MealSection extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'Empty plate, soldier. Log it.',
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+                style: FieldManual.body(
+                  fontSize: 13,
+                  color: FieldManual.mutedBone,
                 ),
               ),
             ],
@@ -267,11 +267,14 @@ class MealSection extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(CupertinoIcons.add, size: 18, color: AppColors.of(context).accent),
+                      Icon(CupertinoIcons.add, size: 18, color: palette.accent),
                       const SizedBox(width: 4),
                       Text(
-                        'Add Food',
-                        style: TextStyle(color: AppColors.of(context).accent),
+                        'ADD FOOD',
+                        style: FieldManual.label(
+                          fontSize: 11,
+                          color: palette.accent,
+                        ),
                       ),
                     ],
                   ),

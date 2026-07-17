@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/nutrient_icons.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../models/enums.dart';
 import '../../../models/saved_meal.dart';
@@ -54,9 +55,6 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
     // Local results — instant
     final localResults = _currentQuery.isNotEmpty
         ? ref.watch(foodLocalSearchProvider(_currentQuery))
@@ -68,40 +66,48 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
         : null;
 
     return Scaffold(
+      backgroundColor: FieldManual.ink,
       appBar: CupertinoNavigationBar(
-        backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
-        border: null,
-        middle: CupertinoTextField(
-          controller: _searchController,
-          autofocus: true,
-          placeholder: 'Search foods...',
-          decoration: BoxDecoration(
-            color: AppColors.of(context).surfaceElevated,
-            borderRadius: BorderRadius.circular(10),
+        backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+        border: const Border(
+          bottom: BorderSide(color: FieldManual.hairline),
+        ),
+        middle: _FmFocusRing(
+          builder: (context, focused) => CupertinoTextField(
+            controller: _searchController,
+            autofocus: true,
+            placeholder: 'Search foods...',
+            decoration: BoxDecoration(
+              color: FieldManual.fieldRaised,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: focused
+                    ? AppColors.of(context).accent
+                    : FieldManual.hairline,
+              ),
+            ),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            style: FieldManual.body(fontSize: 14),
+            placeholderStyle:
+                FieldManual.body(fontSize: 14, color: FieldManual.mutedBone),
+            onChanged: _onSearchChanged,
           ),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          style: TextStyle(color: AppColors.of(context).text, fontSize: 14),
-          placeholderStyle: TextStyle(
-            color: AppColors.of(context).textSecondary,
-            fontSize: 14,
-          ),
-          onChanged: _onSearchChanged,
         ),
         trailing: CupertinoButton(
           padding: const EdgeInsets.all(8),
           onPressed: () =>
               context.go('/nutrition/scan/${widget.mealType.name}'),
           child: const Icon(CupertinoIcons.qrcode_viewfinder,
-              size: 22, semanticLabel: 'Scan barcode'),
+              size: 22,
+              color: FieldManual.bone,
+              semanticLabel: 'Scan barcode'),
         ),
       ),
       body: _buildBody(
         context,
         localResults,
         remoteAsync,
-        colorScheme,
-        textTheme,
       ),
     );
   }
@@ -110,8 +116,6 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
     BuildContext context,
     List<FoodSearchResult> localResults,
     AsyncValue<List<FoodSearchResult>>? remoteAsync,
-    ColorScheme colorScheme,
-    TextTheme textTheme,
   ) {
     // Empty query — show prompt
     if (_currentQuery.isEmpty) {
@@ -119,12 +123,14 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.search, size: 48, color: colorScheme.onSurfaceVariant),
+            const Icon(Icons.search, size: 48, color: FieldManual.mutedBone),
             const SizedBox(height: 8),
             Text(
               'Search for a food or scan a barcode.',
-              style: textTheme.bodyMedium
-                  ?.copyWith(color: colorScheme.onSurfaceVariant),
+              style: FieldManual.body(
+                fontSize: 14,
+                color: FieldManual.mutedBone,
+              ),
             ),
           ],
         ),
@@ -167,7 +173,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
       slivers: [
         if (savedMealMatches.isNotEmpty) ...[
           _SectionHeader(
-            label: 'Saved Meals',
+            label: 'SAVED MEALS',
             icon: Icons.bookmark_outline,
             isPrimary: true,
           ),
@@ -181,7 +187,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
         // Local results section — always at top, renders first frame
         if (localResults.isNotEmpty) ...[
           _SectionHeader(
-            label: 'US Foods',
+            label: 'FOOD DATABASE',
             icon: Icons.bolt_outlined,
             isPrimary: true,
           ),
@@ -198,7 +204,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
         // USDA remote results section
         if (remoteIsLoading) ...[
           _SectionHeader(
-            label: 'From USDA',
+            label: 'FROM USDA',
             icon: Icons.cloud_outlined,
           ),
           SliverToBoxAdapter(
@@ -249,7 +255,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
     return [
       if (usda.isNotEmpty) ...[
         _SectionHeader(
-          label: 'Common Foods',
+          label: 'COMMON FOODS',
           icon: Icons.public_outlined,
         ),
         SliverList.builder(
@@ -263,7 +269,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
       ],
       if (branded.isNotEmpty) ...[
         _SectionHeader(
-          label: 'Branded & Restaurant',
+          label: 'BRANDED & RESTAURANT',
           icon: Icons.storefront_outlined,
         ),
         SliverList.builder(
@@ -297,7 +303,9 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
-    final color = isPrimary ? palette.accent : palette.textSecondary;
+    // The accent marks the primary sections via the icon only — mono labels
+    // stay muted bone at small sizes (Field Manual label rule).
+    final iconColor = isPrimary ? palette.accent : FieldManual.mutedBone;
 
     return SliverToBoxAdapter(
       child: Padding(
@@ -305,18 +313,9 @@ class _SectionHeader extends StatelessWidget {
             const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 4),
         child: Row(
           children: [
-            Icon(icon, size: 14, color: color),
+            Icon(icon, size: 14, color: iconColor),
             const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: isPrimary ? 'Poppins' : null,
-                fontWeight: isPrimary ? FontWeight.w700 : FontWeight.w600,
-                fontSize: 13,
-                color: color,
-                letterSpacing: 0.3,
-              ),
-            ),
+            Text(label, style: FieldManual.label(fontSize: 10)),
           ],
         ),
       ),
@@ -341,9 +340,6 @@ class _FoodResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       leading: food.imageUrl != null
@@ -362,7 +358,8 @@ class _FoodResultTile extends StatelessWidget {
         food.name,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+        // Food names are user content — never uppercase.
+        style: FieldManual.title().copyWith(fontSize: 15),
       ),
       subtitle: Row(
         children: [
@@ -372,32 +369,29 @@ class _FoodResultTile extends StatelessWidget {
                 food.brand!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: textTheme.bodySmall
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: FieldManual.body(
+                  fontSize: 12,
+                  color: FieldManual.mutedBone,
+                ),
               ),
             ),
             Text(
               ' · ',
-              style: textTheme.bodySmall
-                  ?.copyWith(color: colorScheme.onSurfaceVariant),
+              style: FieldManual.body(
+                fontSize: 12,
+                color: FieldManual.mutedBone,
+              ),
             ),
           ],
           Text(
-            '${food.caloriesPer100g.toInt()} kcal/100g',
-            style: textTheme.bodySmall
-                ?.copyWith(color: colorScheme.onSurfaceVariant),
-          ),
-          Text(
-            ' · ',
-            style: textTheme.bodySmall
-                ?.copyWith(color: colorScheme.onSurfaceVariant),
-          ),
-          Text(
+            '${food.caloriesPer100g.toInt()} KCAL/100G · '
             'P${food.proteinPer100g.toInt()} '
             'C${food.carbsPer100g.toInt()} '
             'F${food.fatPer100g.toInt()}',
-            style: textTheme.bodySmall
-                ?.copyWith(color: colorScheme.onSurfaceVariant),
+            style: FieldManual.readout(
+              fontSize: 11,
+              color: FieldManual.mutedBone,
+            ),
           ),
         ],
       ),
@@ -451,8 +445,6 @@ class _RemoteErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final isOffline = error is SocketException;
 
     return Padding(
@@ -462,7 +454,7 @@ class _RemoteErrorBanner extends StatelessWidget {
           Icon(
             isOffline ? Icons.wifi_off : Icons.cloud_off_outlined,
             size: 18,
-            color: colorScheme.onSurfaceVariant,
+            color: FieldManual.mutedBone,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -470,13 +462,21 @@ class _RemoteErrorBanner extends StatelessWidget {
               isOffline
                   ? 'No internet. Showing local results only.'
                   : 'Could not load online results.',
-              style: textTheme.bodySmall
-                  ?.copyWith(color: colorScheme.onSurfaceVariant),
+              style: FieldManual.body(
+                fontSize: 12,
+                color: FieldManual.mutedBone,
+              ),
             ),
           ),
           TextButton(
             onPressed: onRetry,
-            child: const Text('Retry'),
+            child: Text(
+              'RETRY',
+              style: FieldManual.label(
+                fontSize: 10,
+                color: AppColors.of(context).accent,
+              ),
+            ),
           ),
         ],
       ),
@@ -501,42 +501,54 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.search_off_outlined,
               size: 56,
-              color: colorScheme.onSurfaceVariant,
+              color: FieldManual.mutedBone,
             ),
             const SizedBox(height: 12),
             Text(
               'No results found for "$query"',
               textAlign: TextAlign.center,
-              style: textTheme.titleSmall?.copyWith(
-                color: colorScheme.onSurface,
-              ),
+              style: FieldManual.body(fontSize: 15),
             ),
             const SizedBox(height: 4),
             Text(
               'Try a different search term or scan a barcode.',
               textAlign: TextAlign.center,
-              style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
+              style: FieldManual.body(
+                fontSize: 13,
+                color: FieldManual.mutedBone,
               ),
             ),
             const SizedBox(height: 24),
             OutlinedButton.icon(
               onPressed: () =>
                   context.go('/nutrition/scan/${mealType.name}'),
-              icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('Scan Barcode'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: FieldManual.bone,
+                side: const BorderSide(color: FieldManual.hairlineStrong),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 14),
+              ),
+              icon: const Icon(Icons.qr_code_scanner,
+                  color: FieldManual.bone),
+              label: Text(
+                'SCAN BARCODE',
+                style: FieldManual.label(
+                  fontSize: 11,
+                  color: FieldManual.bone,
+                ),
+              ),
             ),
           ],
         ),
@@ -568,7 +580,7 @@ class _SavedMealSuggestionTile extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: palette.accent.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: palette.accent.withValues(alpha: 0.4),
             ),
@@ -584,22 +596,20 @@ class _SavedMealSuggestionTile extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
+                      // Meal names are user content — never uppercase.
                       'Log entire "${meal.name}"?',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
+                      style: FieldManual.body(fontSize: 14).copyWith(
                         fontWeight: FontWeight.w600,
-                        color: palette.text,
-                        fontSize: 14,
+                        fontVariations: const [FontVariation('wght', 600)],
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      '${meal.totalCalories.toInt()} kcal saved meal',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 12,
-                        color: palette.textSecondary,
+                      '${meal.totalCalories.toInt()} KCAL · SAVED MEAL',
+                      style: FieldManual.readout(
+                        fontSize: 11,
+                        color: FieldManual.mutedBone,
                       ),
                     ),
                   ],
@@ -611,6 +621,33 @@ class _SavedMealSuggestionTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Tracks whether a descendant text field holds focus so the builder can
+/// paint the Field Manual accent focus border. Presentation only — the
+/// wrapper node is unfocusable and skipped in traversal, so keyboard and
+/// tap behavior are untouched.
+class _FmFocusRing extends StatefulWidget {
+  const _FmFocusRing({required this.builder});
+
+  final Widget Function(BuildContext context, bool focused) builder;
+
+  @override
+  State<_FmFocusRing> createState() => _FmFocusRingState();
+}
+
+class _FmFocusRingState extends State<_FmFocusRing> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: (focused) => setState(() => _focused = focused),
+      child: widget.builder(context, _focused),
     );
   }
 }

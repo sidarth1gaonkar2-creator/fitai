@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show LinearProgressIndicator;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../providers/supplement_providers.dart';
 
@@ -19,17 +19,12 @@ class SupplementConsistencyCard extends ConsumerWidget {
     return consistencyAsync.when(
       data: (pct) {
         final percent = (pct * 100).round();
-        final color = percent >= 80
-            ? palette.success
-            : percent >= 50
-                ? palette.warning
-                : palette.destructive;
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: palette.surface,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: palette.border),
           ),
           child: Row(
@@ -39,24 +34,30 @@ class SupplementConsistencyCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
+                      // User content — never uppercased.
                       name,
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w500,
-                        fontSize: 13,
-                        color: palette.text,
-                      ),
+                      style: FieldManual.title().copyWith(fontSize: 14),
                     ),
                     const SizedBox(height: 4),
-                    // Progress bar
+                    // Progress bar — bone fill on a hairline track. The
+                    // traffic-light tiers retire; the readout carries the
+                    // number (DESIGN.md bar idiom).
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
+                      borderRadius: BorderRadius.circular(1),
                       child: SizedBox(
-                        height: 6,
-                        child: LinearProgressIndicator(
-                          value: pct.clamp(0.0, 1.0),
-                          backgroundColor: palette.surfaceElevated,
-                          color: color,
+                        height: 4,
+                        child: Stack(
+                          children: [
+                            Container(color: FieldManual.hairline),
+                            FractionallySizedBox(
+                              widthFactor:
+                                  pct.clamp(0.0, 1.0).toDouble(),
+                              child: Container(
+                                color: FieldManual.bone
+                                    .withValues(alpha: 0.85),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -66,12 +67,7 @@ class SupplementConsistencyCard extends ConsumerWidget {
               const SizedBox(width: 12),
               Text(
                 '$percent%',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                  color: color,
-                ),
+                style: FieldManual.readout(fontSize: 15),
               ),
             ],
           ),
@@ -88,7 +84,7 @@ class SupplementConsistencyCard extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: palette.surface,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: palette.border),
           ),
           child: Row(
@@ -99,10 +95,9 @@ class SupplementConsistencyCard extends ConsumerWidget {
               Expanded(
                 child: Text(
                   'Unable to load $name consistency',
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
+                  style: FieldManual.body(
                     fontSize: 12,
-                    color: palette.textSecondary,
+                    color: FieldManual.mutedBone,
                   ),
                 ),
               ),
@@ -110,7 +105,13 @@ class SupplementConsistencyCard extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 onPressed: () =>
                     ref.invalidate(supplementConsistencyProvider(supplementId)),
-                child: const Text('Retry', style: TextStyle(fontSize: 12)),
+                child: Text(
+                  'RETRY',
+                  style: FieldManual.label(
+                    fontSize: 10,
+                    color: palette.accent,
+                  ),
+                ),
               ),
             ],
           ),

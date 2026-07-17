@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../data/food_emojis.dart';
 
 /// Result of [FoodEmojiPicker.show]. Distinguishes the three outcomes:
@@ -80,9 +81,10 @@ class FoodEmojiPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
     return Container(
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: const BoxDecoration(
+        // Sheets are ink by doctrine, 12pt top radius (DESIGN.md).
+        color: FieldManual.ink,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       child: Column(
         children: [
@@ -93,7 +95,7 @@ class FoodEmojiPicker extends StatelessWidget {
               width: 36,
               height: 5,
               decoration: BoxDecoration(
-                color: palette.textSecondary.withValues(alpha: 0.3),
+                color: FieldManual.hairlineStrong,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -103,13 +105,8 @@ class FoodEmojiPicker extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  'Pick an icon',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 17,
-                    color: palette.text,
-                  ),
+                  'PICK AN ICON',
+                  style: FieldManual.title(),
                 ),
                 const Spacer(),
                 if (selectedEmoji != null)
@@ -120,11 +117,9 @@ class FoodEmojiPicker extends StatelessWidget {
                       onSelected(null);
                     },
                     child: Text(
-                      'Clear',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
+                      'CLEAR',
+                      style: FieldManual.label(
+                        fontSize: 11,
                         color: palette.accent,
                       ),
                     ),
@@ -172,7 +167,6 @@ class _QuickPicksSliver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -182,14 +176,8 @@ class _QuickPicksSliver extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                'Quick picks',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                  color: palette.textSecondary,
-                  letterSpacing: 0.3,
-                ),
+                'QUICK PICKS',
+                style: FieldManual.label(fontSize: 10),
               ),
             ),
             Wrap(
@@ -218,19 +206,12 @@ class _CategoryHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
         child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
-            color: palette.textSecondary,
-            letterSpacing: 0.3,
-          ),
+          label.toUpperCase(),
+          style: FieldManual.label(fontSize: 10),
         ),
       ),
     );
@@ -288,17 +269,19 @@ class _EmojiTile extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 150),
         width: 40,
         height: 40,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isSelected
               ? palette.accent.withValues(alpha: 0.18)
-              : palette.surfaceElevated,
-          borderRadius: BorderRadius.circular(10),
+              : FieldManual.fieldRaised,
+          borderRadius: BorderRadius.circular(4),
           border: Border.all(
-            color: isSelected ? palette.accent : palette.border,
+            color: isSelected ? palette.accent : FieldManual.hairline,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -338,9 +321,10 @@ class FoodEmojiSelector extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: palette.surfaceElevated,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: palette.border),
+          // Input-adjacent surface: raised field, hairline, sharp corners.
+          color: FieldManual.fieldRaised,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: FieldManual.hairline),
         ),
         child: Row(
           children: [
@@ -350,7 +334,7 @@ class FoodEmojiSelector extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: palette.surface,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
                 emoji ?? FoodEmojis.defaultEmoji,
@@ -364,21 +348,15 @@ class FoodEmojiSelector extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    label,
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: palette.text,
-                    ),
+                    label.toUpperCase(),
+                    style: FieldManual.label(fontSize: 10),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     emoji == null ? 'Tap to choose' : 'Tap to change',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 11,
-                      color: palette.textSecondary,
+                    style: FieldManual.body(
+                      fontSize: 12,
+                      color: FieldManual.mutedBone,
                     ),
                   ),
                 ],

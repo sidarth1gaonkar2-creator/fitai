@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../models/enums.dart';
 import '../../../../models/food_entry.dart';
@@ -123,7 +124,6 @@ class RecentFoodsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final palette = AppColors.of(context);
     final async = ref.watch(recentFoodsProvider);
 
     return DraggableScrollableSheet(
@@ -132,10 +132,9 @@ class RecentFoodsSheet extends ConsumerWidget {
       minChildSize: 0.4,
       maxChildSize: 0.95,
       builder: (context, controller) => Container(
-        decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: const BoxDecoration(
+          color: FieldManual.ink,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         child: Column(
           children: [
@@ -145,7 +144,7 @@ class RecentFoodsSheet extends ConsumerWidget {
                 width: 36,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: palette.textSecondary.withValues(alpha: 0.3),
+                  color: FieldManual.mutedBone.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -154,21 +153,13 @@ class RecentFoodsSheet extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
               child: Row(
                 children: [
-                  Text(
-                    'Recent Foods',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
-                      color: palette.text,
-                    ),
-                  ),
+                  Text('RECENT FOODS', style: FieldManual.title()),
                   const Spacer(),
                   IconButton(
                     icon: const Icon(CupertinoIcons.xmark, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
                     tooltip: 'Close',
-                    color: palette.textSecondary,
+                    color: FieldManual.mutedBone,
                   ),
                 ],
               ),
@@ -176,15 +167,13 @@ class RecentFoodsSheet extends ConsumerWidget {
             Expanded(
               child: async.when(
                 loading: () => const Center(child: CupertinoActivityIndicator()),
-                error: (e, _) => _Empty(
+                error: (e, _) => const _Empty(
                   message: 'Couldn’t load recent foods.',
-                  palette: palette,
                 ),
                 data: (rows) {
                   if (rows.isEmpty) {
-                    return _Empty(
+                    return const _Empty(
                       message: 'No recent foods yet. Log something first!',
-                      palette: palette,
                     );
                   }
                   return _GroupedList(
@@ -262,7 +251,6 @@ class _GroupedList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     // Group preserving order — rows is already sorted desc by time.
     final grouped = <String, List<_RecentFoodRow>>{};
     for (final r in rows) {
@@ -283,14 +271,8 @@ class _GroupedList extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.only(top: 14, bottom: 6, left: 4),
               child: Text(
-                k,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                  color: palette.textSecondary,
-                  letterSpacing: 0.4,
-                ),
+                k.toUpperCase(),
+                style: FieldManual.label(fontSize: 10),
               ),
             );
           }
@@ -322,13 +304,14 @@ class _Tile extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           child: Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: palette.surfaceElevated,
-              borderRadius: BorderRadius.circular(10),
+              color: FieldManual.field,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: FieldManual.hairline),
             ),
             child: Row(
               children: [
@@ -340,12 +323,8 @@ class _Tile extends StatelessWidget {
                         row.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
-                          color: palette.text,
-                        ),
+                        // Food names are user content — never uppercase.
+                        style: FieldManual.title().copyWith(fontSize: 14),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -353,10 +332,9 @@ class _Tile extends StatelessWidget {
                         'P${row.protein.toInt()} '
                         'C${row.carbs.toInt()} '
                         'F${row.fat.toInt()}',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 11,
-                          color: palette.textSecondary,
+                        style: FieldManual.readout(
+                          fontSize: 10,
+                          color: FieldManual.mutedBone,
                         ),
                       ),
                     ],
@@ -367,21 +345,11 @@ class _Tile extends StatelessWidget {
                   children: [
                     Text(
                       '${row.calories.toInt()}',
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                        color: palette.text,
-                      ),
+                      style: FieldManual.readout(fontSize: 16),
                     ),
                     Text(
-                      'kcal',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w500,
-                        fontSize: 10,
-                        color: palette.textSecondary,
-                      ),
+                      'KCAL',
+                      style: FieldManual.label(fontSize: 11),
                     ),
                   ],
                 ),
@@ -401,10 +369,9 @@ class _Tile extends StatelessWidget {
 }
 
 class _Empty extends StatelessWidget {
-  const _Empty({required this.message, required this.palette});
+  const _Empty({required this.message});
 
   final String message;
-  final Palette palette;
 
   @override
   Widget build(BuildContext context) {
@@ -414,11 +381,9 @@ class _Empty extends StatelessWidget {
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w500,
+          style: FieldManual.body(
             fontSize: 14,
-            color: palette.textSecondary,
+            color: FieldManual.mutedBone,
           ),
         ),
       ),

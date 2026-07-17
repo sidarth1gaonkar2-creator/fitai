@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/services.dart';
-import '../../../../core/constants/nutrient_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../models/food_entry.dart';
 
@@ -27,9 +28,6 @@ class FoodEntryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
     final tile = Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -39,11 +37,9 @@ class FoodEntryTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+                  // User content — never uppercased.
                   entry.name,
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: FieldManual.title().copyWith(fontSize: 15),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -52,24 +48,9 @@ class FoodEntryTile extends StatelessWidget {
                   spacing: 4,
                   runSpacing: 2,
                   children: [
-                    _MacroTag(
-                      label: 'P',
-                      grams: entry.protein,
-                      bgColor: AppColors.of(context).accent.withValues(alpha: 0.12),
-                      textColor: AppColors.of(context).accent,
-                    ),
-                    _MacroTag(
-                      label: 'C',
-                      grams: entry.carbs,
-                      bgColor: AppColors.of(context).accent.withValues(alpha: 0.08),
-                      textColor: AppColors.of(context).accent,
-                    ),
-                    _MacroTag(
-                      label: 'F',
-                      grams: entry.fat,
-                      bgColor: NutrientIcons.fatColor.withValues(alpha: 0.14),
-                      textColor: NutrientIcons.fatColor,
-                    ),
+                    _MacroTag(label: 'P', grams: entry.protein),
+                    _MacroTag(label: 'C', grams: entry.carbs),
+                    _MacroTag(label: 'F', grams: entry.fat),
                     if (entry.servingSize != null)
                       _ServingTag(
                         size: entry.servingSize!,
@@ -83,15 +64,13 @@ class FoodEntryTile extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             '${entry.calories.toInt()}',
-            style: textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppColors.of(context).accent,
-            ),
+            style: FieldManual.readout(fontSize: 15),
           ),
           Text(
-            ' kcal',
-            style: textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+            ' KCAL',
+            style: FieldManual.readout(
+              fontSize: 10,
+              color: FieldManual.mutedBone,
             ),
           ),
         ],
@@ -100,43 +79,47 @@ class FoodEntryTile extends StatelessWidget {
 
     if (isLocked) return tile;
 
-    return _SwipeTile(
-      entry: entry,
-      onDelete: onDelete,
-      onRestore: onRestore,
-      child: tile,
+    // Swipe is the only visual delete affordance — expose it to assistive
+    // tech as a custom semantic action too.
+    return Semantics(
+      customSemanticsActions: {
+        const CustomSemanticsAction(label: 'Delete'): onDelete,
+      },
+      child: _SwipeTile(
+        entry: entry,
+        onDelete: onDelete,
+        onRestore: onRestore,
+        child: tile,
+      ),
     );
   }
 }
 
+/// Macro chips retire their old macro-tint colours: data readouts are bone
+/// on field surfaces. Legacy macro tints survive only as small icon accents
+/// elsewhere, pending a future decision.
 class _MacroTag extends StatelessWidget {
   const _MacroTag({
     required this.label,
     required this.grams,
-    required this.bgColor,
-    required this.textColor,
   });
 
   final String label;
   final double grams;
-  final Color bgColor;
-  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: bgColor,
+        color: FieldManual.fieldRaised,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        '$label ${grams.toInt()}g',
-        style: textTheme.labelSmall?.copyWith(
-          color: textColor,
-          fontWeight: FontWeight.w600,
+        '$label ${grams.toInt()}G',
+        style: FieldManual.readout(
+          fontSize: 10,
+          color: FieldManual.mutedBone,
         ),
       ),
     );
@@ -151,19 +134,17 @@ class _ServingTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
+        color: FieldManual.fieldRaised,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        '${size.toInt()}$unit',
-        style: textTheme.labelSmall?.copyWith(
-          color: colorScheme.onSurfaceVariant,
+        '${size.toInt()}${unit.toUpperCase()}',
+        style: FieldManual.readout(
+          fontSize: 10,
+          color: FieldManual.mutedBone,
         ),
       ),
     );
@@ -232,10 +213,10 @@ class _SwipeTileState extends State<_SwipeTile> {
             padding: const EdgeInsets.only(right: 16),
             color: showRed
                 ? AppColors.of(context).destructive.withValues(alpha: 0.9)
-                : Colors.grey.withValues(alpha: 0.15),
+                : FieldManual.fieldRaised,
             child: Icon(
               Icons.delete,
-              color: showRed ? Colors.white : Colors.grey,
+              color: showRed ? FieldManual.bone : FieldManual.mutedBone,
             ),
           ),
           child: widget.child,

@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Divider, Icons, Theme;
+import 'package:flutter/material.dart' show Divider, Icons;
 import 'package:flutter/services.dart';
 
-import '../../../../core/constants/nutrient_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../data/food_emojis.dart';
 import '../../../../models/food_entry.dart';
@@ -46,8 +46,7 @@ class _MealGroupTileState extends State<MealGroupTile> {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     final itemCount = widget.entries.length;
 
     final summary = Padding(
@@ -61,8 +60,9 @@ class _MealGroupTileState extends State<MealGroupTile> {
             height: 36,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: palette.accent.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(10),
+              color: FieldManual.fieldRaised,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: FieldManual.hairline),
             ),
             child: Text(_displayEmoji, style: const TextStyle(fontSize: 20)),
           ),
@@ -73,12 +73,9 @@ class _MealGroupTileState extends State<MealGroupTile> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
+                  // User content — never uppercased.
                   _displayName,
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    color: palette.text,
-                  ),
+                  style: FieldManual.title().copyWith(fontSize: 15),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -87,24 +84,9 @@ class _MealGroupTileState extends State<MealGroupTile> {
                   spacing: 4,
                   runSpacing: 2,
                   children: [
-                    _MacroPill(
-                      label: 'P',
-                      grams: _totalPro,
-                      bg: palette.accent.withValues(alpha: 0.12),
-                      fg: palette.accent,
-                    ),
-                    _MacroPill(
-                      label: 'C',
-                      grams: _totalCarb,
-                      bg: palette.accent.withValues(alpha: 0.08),
-                      fg: palette.accent,
-                    ),
-                    _MacroPill(
-                      label: 'F',
-                      grams: _totalFat,
-                      bg: NutrientIcons.fatColor.withValues(alpha: 0.14),
-                      fg: NutrientIcons.fatColor,
-                    ),
+                    _MacroPill(label: 'P', grams: _totalPro),
+                    _MacroPill(label: 'C', grams: _totalCarb),
+                    _MacroPill(label: 'F', grams: _totalFat),
                     _CountPill(count: itemCount),
                   ],
                 ),
@@ -114,20 +96,20 @@ class _MealGroupTileState extends State<MealGroupTile> {
           const SizedBox(width: 8),
           Text(
             '${_totalCal.toInt()}',
-            style: textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: palette.accent,
-            ),
+            style: FieldManual.readout(fontSize: 15),
           ),
           Text(
-            ' kcal',
-            style: textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+            ' KCAL',
+            style: FieldManual.readout(
+              fontSize: 10,
+              color: FieldManual.mutedBone,
             ),
           ),
           const SizedBox(width: 4),
           AnimatedRotation(
-            duration: const Duration(milliseconds: 180),
+            duration: reduceMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 180),
             turns: _expanded ? 0.5 : 0,
             child: Icon(
               CupertinoIcons.chevron_down,
@@ -142,16 +124,22 @@ class _MealGroupTileState extends State<MealGroupTile> {
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () {
-            HapticFeedback.selectionClick();
-            setState(() => _expanded = !_expanded);
-          },
-          child: summary,
+        Semantics(
+          button: true,
+          expanded: _expanded,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() => _expanded = !_expanded);
+            },
+            child: summary,
+          ),
         ),
         AnimatedSize(
-          duration: const Duration(milliseconds: 180),
+          duration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 180),
           curve: Curves.easeInOut,
           alignment: Alignment.topCenter,
           child: _expanded
@@ -202,7 +190,7 @@ class _MealGroupTileState extends State<MealGroupTile> {
           color: palette.destructive.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(Icons.delete, color: CupertinoColors.white),
+        child: const Icon(Icons.delete, color: FieldManual.bone),
       ),
       child: body,
     );
@@ -216,8 +204,6 @@ class _IngredientRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-    final textTheme = Theme.of(context).textTheme;
     return Row(
       children: [
         Expanded(
@@ -228,30 +214,26 @@ class _IngredientRow extends StatelessWidget {
                 entry.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: textTheme.bodySmall?.copyWith(
-                  fontFamily: 'Poppins',
-                  color: palette.text,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: FieldManual.body(fontSize: 13),
               ),
               const SizedBox(height: 2),
               Text(
                 'P${entry.protein.toInt()} '
                 'C${entry.carbs.toInt()} '
                 'F${entry.fat.toInt()}',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
+                style: FieldManual.readout(
                   fontSize: 10,
-                  color: palette.textSecondary,
+                  color: FieldManual.mutedBone,
                 ),
               ),
             ],
           ),
         ),
         Text(
-          '${entry.calories.toInt()} kcal',
-          style: textTheme.bodySmall?.copyWith(
-            color: palette.textSecondary,
+          '${entry.calories.toInt()} KCAL',
+          style: FieldManual.readout(
+            fontSize: 11,
+            color: FieldManual.mutedBone,
           ),
         ),
       ],
@@ -259,32 +241,32 @@ class _IngredientRow extends StatelessWidget {
   }
 }
 
+/// Macro chips retire their old macro-tint colours: data readouts are bone
+/// on field surfaces; the legacy macro tints survive only as small icon
+/// accents pending a future decision.
 class _MacroPill extends StatelessWidget {
   const _MacroPill({
     required this.label,
     required this.grams,
-    required this.bg,
-    required this.fg,
   });
 
   final String label;
   final double grams;
-  final Color bg;
-  final Color fg;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: bg,
+        color: FieldManual.fieldRaised,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        '$label ${grams.toInt()}g',
-        style: textTheme.labelSmall
-            ?.copyWith(color: fg, fontWeight: FontWeight.w600),
+        '$label ${grams.toInt()}G',
+        style: FieldManual.readout(
+          fontSize: 10,
+          color: FieldManual.mutedBone,
+        ),
       ),
     );
   }
@@ -296,20 +278,15 @@ class _CountPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-    final textTheme = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: palette.surfaceElevated,
+        color: FieldManual.fieldRaised,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        '$count items',
-        style: textTheme.labelSmall?.copyWith(
-          color: palette.textSecondary,
-          fontWeight: FontWeight.w500,
-        ),
+        '$count ITEMS',
+        style: FieldManual.label(fontSize: 11),
       ),
     );
   }

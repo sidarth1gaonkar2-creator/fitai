@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../data/curated_meal_plans.dart';
 
 class MealPlanCard extends StatelessWidget {
@@ -19,9 +20,9 @@ class MealPlanCard extends StatelessWidget {
     final palette = AppColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: palette.surface,
-        border: Border.all(color: palette.border),
-        borderRadius: BorderRadius.circular(16),
+        color: FieldManual.field,
+        border: Border.all(color: FieldManual.hairline),
+        borderRadius: BorderRadius.circular(8),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -30,29 +31,22 @@ class MealPlanCard extends StatelessWidget {
           // Plan name
           Text(
             plan.name,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-              color: palette.text,
-            ),
+            style: FieldManual.title(),
           ),
           const SizedBox(height: 8),
 
-          // Goal chip
+          // Goal chip — description is a sentence, so it keeps sentence case.
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: palette.accent,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               plan.goalDescription,
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w500,
+              style: FieldManual.body(
                 fontSize: 12,
-                color: Colors.black,
+                color: palette.onAccent,
               ),
             ),
           ),
@@ -63,17 +57,17 @@ class MealPlanCard extends StatelessWidget {
             children: [
               _StatChip(
                 icon: Icons.local_fire_department_outlined,
-                label: '${plan.totalCalories} kcal',
+                label: '${plan.totalCalories} KCAL',
               ),
               const SizedBox(width: 12),
               _StatChip(
                 icon: Icons.fitness_center_outlined,
-                label: '${plan.totalProtein}g protein',
+                label: '${plan.totalProtein}G PROTEIN',
               ),
               const SizedBox(width: 12),
               _StatChip(
                 icon: Icons.restaurant_outlined,
-                label: '${plan.mealCount} meals',
+                label: '${plan.mealCount} MEALS',
               ),
             ],
           ),
@@ -86,19 +80,18 @@ class MealPlanCard extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: onPreview,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: palette.accent,
-                    side: BorderSide(color: palette.border),
+                    foregroundColor: FieldManual.bone,
+                    side: const BorderSide(color: FieldManual.hairlineStrong),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
-                  child: const Text(
-                    'Preview',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
+                  child: Text(
+                    'PREVIEW',
+                    style: FieldManual.label(
+                      color: FieldManual.bone,
+                      fontSize: 11,
                     ),
                   ),
                 ),
@@ -109,18 +102,17 @@ class MealPlanCard extends StatelessWidget {
                   onPressed: onImport,
                   style: FilledButton.styleFrom(
                     backgroundColor: palette.accent,
-                    foregroundColor: palette.text,
+                    foregroundColor: palette.onAccent,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
-                  child: const Text(
-                    'Import Today',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
+                  child: Text(
+                    'IMPORT TODAY',
+                    style: FieldManual.label(
+                      color: palette.onAccent,
+                      fontSize: 11,
                     ),
                   ),
                 ),
@@ -148,11 +140,7 @@ class _StatChip extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 12,
-            color: AppColors.of(context).accent,
-          ),
+          style: FieldManual.readout(fontSize: 11),
         ),
       ],
     );

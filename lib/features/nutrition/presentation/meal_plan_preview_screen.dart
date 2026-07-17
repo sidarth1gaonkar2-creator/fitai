@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../data/curated_meal_plans.dart';
 import '../../../models/enums.dart';
@@ -19,17 +20,15 @@ class MealPlanPreviewScreen extends ConsumerWidget {
 
     final palette = AppColors.of(context);
     return Scaffold(
-      backgroundColor: palette.background,
+      backgroundColor: FieldManual.ink,
       appBar: CupertinoNavigationBar(
-        backgroundColor: palette.background.withValues(alpha: 0.8),
-        border: null,
+        backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+        border: const Border(
+          bottom: BorderSide(color: FieldManual.hairline),
+        ),
         middle: Text(
           plan.name,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: palette.text,
-          ),
+          style: FieldManual.title(),
         ),
       ),
       body: Column(
@@ -68,17 +67,16 @@ class MealPlanPreviewScreen extends ConsumerWidget {
                   onPressed: () => _import(context, ref, plan),
                   style: FilledButton.styleFrom(
                     backgroundColor: palette.accent,
-                    foregroundColor: palette.text,
+                    foregroundColor: palette.onAccent,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
-                  child: const Text(
-                    'Import This Plan',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
+                  child: Text(
+                    'IMPORT THIS PLAN',
+                    style: FieldManual.label(
+                      color: palette.onAccent,
+                      fontSize: 12,
                     ),
                   ),
                 ),
@@ -123,35 +121,32 @@ class _MacroSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: palette.surface,
-        border: Border.all(color: palette.border),
-        borderRadius: BorderRadius.circular(16),
+        color: FieldManual.field,
+        border: Border.all(color: FieldManual.hairline),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             plan.goalDescription,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w500,
+            style: FieldManual.body(
               fontSize: 14,
-              color: palette.textSecondary,
+              color: FieldManual.mutedBone,
             ),
           ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _MacroColumn(label: 'Calories', value: '${plan.totalCalories}'),
-              _MacroColumn(label: 'Protein', value: '${plan.totalProtein}g'),
-              _MacroColumn(label: 'Carbs', value: '${plan.totalCarbs}g'),
-              _MacroColumn(label: 'Fat', value: '${plan.totalFat}g'),
+              _MacroColumn(label: 'CALORIES', value: '${plan.totalCalories}'),
+              _MacroColumn(label: 'PROTEIN', value: '${plan.totalProtein}G'),
+              _MacroColumn(label: 'CARBS', value: '${plan.totalCarbs}G'),
+              _MacroColumn(label: 'FAT', value: '${plan.totalFat}G'),
             ],
           ),
         ],
@@ -172,21 +167,12 @@ class _MacroColumn extends StatelessWidget {
       children: [
         Text(
           value,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-            color: AppColors.of(context).accent,
-          ),
+          style: FieldManual.readout(fontSize: 16),
         ),
         const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 11,
-            color: AppColors.of(context).textSecondary,
-          ),
+          style: FieldManual.label(fontSize: 11),
         ),
       ],
     );
@@ -210,22 +196,13 @@ class _MealHeader extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            mealType.label,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
-              color: AppColors.of(context).text,
-            ),
+            mealType.label.toUpperCase(),
+            style: FieldManual.title(),
           ),
           const Spacer(),
           Text(
-            '${meal.totalCalories.toInt()} kcal',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 12,
-              color: AppColors.of(context).accent,
-            ),
+            '${meal.totalCalories.toInt()} KCAL',
+            style: FieldManual.readout(fontSize: 12),
           ),
         ],
       ),
@@ -248,9 +225,9 @@ class _FoodRow extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.of(context).surface,
-        border: Border.all(color: AppColors.of(context).border),
-        borderRadius: BorderRadius.circular(12),
+        color: FieldManual.field,
+        border: Border.all(color: FieldManual.hairline),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
@@ -260,20 +237,12 @@ class _FoodRow extends StatelessWidget {
               children: [
                 Text(
                   food.name,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                    color: AppColors.of(context).text,
-                  ),
+                  style: FieldManual.body(fontSize: 14),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${food.servingSize.toInt()}${food.servingUnit}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.of(context).textSecondary,
-                  ),
+                  style: FieldManual.label(fontSize: 11),
                 ),
               ],
             ),
@@ -282,20 +251,15 @@ class _FoodRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${food.calories.toInt()} kcal',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: AppColors.of(context).accent,
-                ),
+                '${food.calories.toInt()} KCAL',
+                style: FieldManual.readout(fontSize: 12),
               ),
               const SizedBox(height: 2),
               Text(
                 'P${food.protein.toInt()} C${food.carbs.toInt()} F${food.fat.toInt()}',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.of(context).textSecondary,
+                style: FieldManual.readout(
+                  fontSize: 10,
+                  color: FieldManual.mutedBone,
                 ),
               ),
             ],

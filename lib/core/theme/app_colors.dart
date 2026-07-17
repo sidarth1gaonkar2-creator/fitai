@@ -229,6 +229,13 @@ class Palette {
   final Color textTertiary;
   final Color accent;
 
+  /// Readable tone for text/icons sitting ON the accent fill: ink for bright
+  /// accents (brass and most packs), bone for the dark ones (e.g. Stealth).
+  /// Hardcoding ink on accent breaks dark packs — always use this.
+  Color get onAccent => accent.computeLuminance() >= 0.18
+      ? const Color(0xFF1A1C1A)
+      : const Color(0xFFE8E4D8);
+
   /// Pressed/held state of accent-filled controls.
   final Color accentPressed;
   final Color accentLight;

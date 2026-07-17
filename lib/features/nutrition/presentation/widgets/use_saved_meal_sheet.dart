@@ -1,9 +1,10 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Icons, Theme;
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../data/food_emojis.dart';
 import '../../../../models/enums.dart';
@@ -57,7 +58,6 @@ class _UseSavedMealSheetState extends ConsumerState<UseSavedMealSheet> {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
-    final textTheme = Theme.of(context).textTheme;
     final itemsAsync = ref.watch(savedMealItemsProvider(widget.meal.id));
     final cal = widget.meal.totalCalories * _portion;
     final pro = widget.meal.totalProtein * _portion;
@@ -65,9 +65,9 @@ class _UseSavedMealSheetState extends ConsumerState<UseSavedMealSheet> {
     final fat = widget.meal.totalFat * _portion;
 
     return Container(
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: const BoxDecoration(
+        color: FieldManual.ink,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       child: SafeArea(
         top: false,
@@ -86,7 +86,7 @@ class _UseSavedMealSheetState extends ConsumerState<UseSavedMealSheet> {
                     width: 36,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: palette.textSecondary.withValues(alpha: 0.4),
+                      color: FieldManual.hairlineStrong,
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
@@ -102,12 +102,7 @@ class _UseSavedMealSheetState extends ConsumerState<UseSavedMealSheet> {
                     Expanded(
                       child: Text(
                         widget.meal.name,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18,
-                          color: palette.text,
-                        ),
+                        style: FieldManual.title(),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -121,12 +116,13 @@ class _UseSavedMealSheetState extends ConsumerState<UseSavedMealSheet> {
                       child: CupertinoActivityIndicator()),
                   error: (_, _) => Text(
                     'Could not load items',
-                    style: TextStyle(color: palette.textSecondary),
+                    style: FieldManual.body(color: FieldManual.mutedBone),
                   ),
                   data: (items) => Container(
                     decoration: BoxDecoration(
-                      color: palette.surfaceElevated,
-                      borderRadius: BorderRadius.circular(12),
+                      color: FieldManual.field,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: FieldManual.hairline),
                     ),
                     padding: const EdgeInsets.all(12),
                     child: Column(
@@ -137,16 +133,17 @@ class _UseSavedMealSheetState extends ConsumerState<UseSavedMealSheet> {
                               Expanded(
                                 child: Text(
                                   it.foodName,
-                                  style: textTheme.bodyMedium
-                                      ?.copyWith(color: palette.text),
+                                  style: FieldManual.body(fontSize: 14),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               Text(
-                                '${(it.calories * it.quantity * _portion).toInt()} kcal',
-                                style: textTheme.bodySmall?.copyWith(
-                                    color: palette.textSecondary),
+                                '${(it.calories * it.quantity * _portion).toInt()} KCAL',
+                                style: FieldManual.readout(
+                                  fontSize: 12,
+                                  color: FieldManual.mutedBone,
+                                ),
                               ),
                             ],
                           ),
@@ -162,32 +159,33 @@ class _UseSavedMealSheetState extends ConsumerState<UseSavedMealSheet> {
                   children: [
                     Expanded(
                       child: _Stat(
-                          label: 'kcal',
+                          label: 'KCAL',
                           value: cal.toInt().toString()),
                     ),
                     Expanded(
                       child: _Stat(
-                          label: 'P', value: '${pro.toInt()}g'),
+                          label: 'P', value: '${pro.toInt()}G'),
                     ),
                     Expanded(
                       child: _Stat(
-                          label: 'C', value: '${carb.toInt()}g'),
+                          label: 'C', value: '${carb.toInt()}G'),
                     ),
                     Expanded(
                       child: _Stat(
-                          label: 'F', value: '${fat.toInt()}g'),
+                          label: 'F', value: '${fat.toInt()}G'),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Portion',
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: palette.textSecondary),
+                  'PORTION',
+                  style: FieldManual.label(fontSize: 10),
                 ),
                 const SizedBox(height: 6),
                 CupertinoSlidingSegmentedControl<double>(
                   groupValue: _portion,
+                  backgroundColor: FieldManual.fieldRaised,
+                  thumbColor: palette.accent,
                   onValueChanged: (v) {
                     if (v == null) return;
                     HapticFeedback.selectionClick();
@@ -198,15 +196,22 @@ class _UseSavedMealSheetState extends ConsumerState<UseSavedMealSheet> {
                       p: Padding(
                         padding:
                             const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        child: Text('${p}x'),
+                        child: Text(
+                          '${p}x',
+                          style: FieldManual.readout(
+                            fontSize: 13,
+                            color: p == _portion
+                                ? palette.onAccent
+                                : FieldManual.bone,
+                          ),
+                        ),
                       ),
                   },
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  'Log to',
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: palette.textSecondary),
+                  'LOG TO',
+                  style: FieldManual.label(fontSize: 10),
                 ),
                 const SizedBox(height: 6),
                 Row(
@@ -236,24 +241,22 @@ class _UseSavedMealSheetState extends ConsumerState<UseSavedMealSheet> {
     final palette = AppColors.of(context);
     return CupertinoButton(
       color: palette.accent,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(4),
       padding: const EdgeInsets.symmetric(vertical: 12),
       onPressed: _logging ? null : () => _log(type),
       child: _logging
-          ? const CupertinoActivityIndicator(color: CupertinoColors.white)
+          ? CupertinoActivityIndicator(color: palette.onAccent)
           : Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.add,
-                    size: 16, color: CupertinoColors.white),
+                Icon(Icons.add,
+                    size: 16, color: palette.onAccent),
                 const SizedBox(width: 4),
                 Text(
-                  label,
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    color: CupertinoColors.white,
-                    fontSize: 14,
+                  label.toUpperCase(),
+                  style: FieldManual.label(
+                    color: palette.onAccent,
+                    fontSize: 11,
                   ),
                 ),
               ],
@@ -270,25 +273,15 @@ class _Stat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return Column(
       children: [
         Text(
           value,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-            color: palette.text,
-          ),
+          style: FieldManual.readout(fontSize: 16),
         ),
         Text(
           label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 11,
-            color: palette.textSecondary,
-          ),
+          style: FieldManual.label(fontSize: 11),
         ),
       ],
     );

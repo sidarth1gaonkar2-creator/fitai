@@ -1,12 +1,12 @@
 import 'package:flutter/cupertino.dart' hide CupertinoExpansionTile;
-import 'package:flutter/material.dart' show LinearProgressIndicator, Theme;
 import '../../../../core/constants/micro_rdas.dart';
 import '../../../../core/constants/nutrient_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
 
 /// Collapsible card showing 10 tracked micronutrients vs their RDA targets.
-/// Sodium colour logic is inverted (red when over the upper limit).
+/// Sodium colour logic is inverted (alert when over the upper limit).
 class MicronutrientSection extends StatelessWidget {
   const MicronutrientSection({
     super.key,
@@ -21,9 +21,6 @@ class MicronutrientSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
     return CupertinoExpansionTile(
       leading: Icon(
         CupertinoIcons.lab_flask,
@@ -31,15 +28,16 @@ class MicronutrientSection extends StatelessWidget {
         size: 22,
       ),
       title: Text(
-        'Micronutrients',
-        style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+        'MICRONUTRIENTS',
+        style: FieldManual.title(),
       ),
       subtitle: Text(
         _trackedCount > 0
             ? '$_trackedCount of ${microRdaTargets.length} nutrients tracked today'
             : 'Track food to see your nutrient targets',
-        style: textTheme.bodySmall?.copyWith(
-          color: colorScheme.onSurfaceVariant,
+        style: FieldManual.body(
+          fontSize: 12,
+          color: FieldManual.mutedBone,
         ),
       ),
       children: microRdaTargets.keys.map((key) {
@@ -85,34 +83,26 @@ class _MicronutrientRow extends StatelessWidget {
     return v.toStringAsFixed(2);
   }
 
-  Color _barColor(BuildContext context) {
-    final palette = AppColors.of(context);
-    if (target <= 0) return palette.accent;
+  /// True overshoot only — on-track progress is bone (DESIGN.md). Sodium's
+  /// inverted logic survives: exceeding the upper limit is the alert case.
+  bool _isOvershoot() {
+    if (target <= 0) return false;
     final ratio = consumed / target;
-
-    if (isSodium) {
-      // Sodium: normal when under 90%, over = red
-      if (ratio > 1.0) return palette.destructive;
-      if (ratio > 0.9) return palette.success;
-      return palette.accent;
-    }
-
-    if (ratio > 1.1) return palette.destructive;
-    if (ratio >= 0.9) return palette.success;
-    return palette.accent;
+    if (isSodium) return ratio > 1.0;
+    return ratio > 1.1;
   }
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
     final (iconData, iconColor) = NutrientIcons.forMicro(name);
     final unit = _unit(name);
     final progress =
         target > 0 ? (consumed / target).clamp(0.0, 1.0) : 0.0;
     final percent =
         target > 0 ? ((consumed / target) * 100).clamp(0.0, 999.0) : 0.0;
-    final barColor = _barColor(context);
+    final fillColor = _isOvershoot()
+        ? FieldManual.alert
+        : FieldManual.bone.withValues(alpha: 0.85);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -121,38 +111,47 @@ class _MicronutrientRow extends StatelessWidget {
         children: [
           Row(
             children: [
+              // Nutrient colours stay on small icons only — scanning aid.
               Icon(iconData, size: 14, color: iconColor),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   name,
-                  style: textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: FieldManual.body(fontSize: 13),
                 ),
               ),
               Text(
-                '${_formatValue(consumed)} / ${_formatValue(target)} $unit  '
-                '(${percent.toInt()}%)',
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+                '${_formatValue(consumed)}/${_formatValue(target)} '
+                '${unit.toUpperCase()} (${percent.toInt()}%)',
+                style: FieldManual.readout(
+                  fontSize: 11,
+                  color: FieldManual.mutedBone,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 3),
+          // Bone fill on a hairline track — the RationsPanel bar idiom.
           TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: progress),
-            duration: const Duration(milliseconds: 500),
+            tween: Tween<double>(begin: 0, end: progress.toDouble()),
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 500),
             curve: Curves.easeOutCubic,
             builder: (context, value, _) {
               return ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: LinearProgressIndicator(
-                  value: value,
-                  minHeight: 5,
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                  valueColor: AlwaysStoppedAnimation<Color>(barColor),
+                borderRadius: BorderRadius.circular(1),
+                child: SizedBox(
+                  height: 3,
+                  child: Stack(
+                    children: [
+                      Container(color: FieldManual.hairline),
+                      FractionallySizedBox(
+                        widthFactor: value,
+                        child: Container(color: fillColor),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },

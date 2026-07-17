@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../models/enums.dart';
@@ -13,6 +14,7 @@ class SupplementChecklistCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = AppColors.of(context);
     final checklistAsync = ref.watch(supplementChecklistProvider);
 
     return checklistAsync.when(
@@ -23,7 +25,7 @@ class SupplementChecklistCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('SUPPLEMENTS', style: FieldManual.label(fontSize: 9)),
+                Text('SUPPLEMENTS', style: FieldManual.label(fontSize: 11)),
                 const SizedBox(height: 10),
                 Text(
                   'Add supplements to track your daily intake.',
@@ -42,18 +44,19 @@ class SupplementChecklistCard extends ConsumerWidget {
                       context.push('/supplements');
                     },
                     child: Container(
+                      constraints: const BoxConstraints(minHeight: 44),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(
-                          color: FieldManual.brass.withValues(alpha: 0.4),
+                          color: palette.accent.withValues(alpha: 0.4),
                         ),
                       ),
                       child: Text(
                         '+ ADD SUPPLEMENTS',
                         style: FieldManual.label(
-                          color: FieldManual.brass,
+                          color: palette.accent,
                           fontSize: 10,
                         ),
                       ),
@@ -78,7 +81,7 @@ class SupplementChecklistCard extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       'SUPPLEMENTS',
-                      style: FieldManual.label(fontSize: 9),
+                      style: FieldManual.label(fontSize: 11),
                     ),
                   ),
                   Text(
@@ -86,15 +89,17 @@ class SupplementChecklistCard extends ConsumerWidget {
                     style: FieldManual.readout(
                       fontSize: 13,
                       color: complete
-                          ? FieldManual.brass
+                          ? palette.accent
                           : FieldManual.mutedBone,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              ...items.map((item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
+              ...items.map((item) => Semantics(
+                    button: true,
+                    checked: item.taken,
+                    label: item.supplement.name,
                     child: GestureDetector(
                       onTap: () {
                         HapticFeedback.selectionClick();
@@ -102,61 +107,72 @@ class SupplementChecklistCard extends ConsumerWidget {
                             ref, item.supplement.id, !item.taken);
                       },
                       behavior: HitTestBehavior.opaque,
-                      child: Row(
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: 22,
-                            height: 22,
-                            decoration: BoxDecoration(
-                              color: item.taken ? FieldManual.brass : null,
-                              borderRadius: BorderRadius.circular(4),
-                              border: item.taken
-                                  ? null
-                                  : Border.all(
-                                      color: FieldManual.hairlineStrong,
-                                      width: 1.5,
-                                    ),
-                            ),
-                            child: item.taken
-                                ? const Icon(
-                                    CupertinoIcons.checkmark,
-                                    size: 13,
-                                    color: FieldManual.ink,
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              item.supplement.name,
-                              style: FieldManual.body(
-                                fontSize: 14,
-                                color: item.taken
-                                    ? FieldManual.mutedBone
-                                    : FieldManual.bone,
-                              ).copyWith(
-                                decoration: item.taken
-                                    ? TextDecoration.lineThrough
+                      // ≥44pt tap target per row; the state is spoken via
+                      // the Semantics above, so the visual text is excluded
+                      // to avoid double-reading.
+                      child: ExcludeSemantics(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(minHeight: 44),
+                          child: Row(
+                            children: [
+                              AnimatedContainer(
+                                duration:
+                                    MediaQuery.disableAnimationsOf(context)
+                                        ? Duration.zero
+                                        : const Duration(milliseconds: 200),
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  color: item.taken ? palette.accent : null,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: item.taken
+                                      ? null
+                                      : Border.all(
+                                          color: FieldManual.hairlineStrong,
+                                          width: 1.5,
+                                        ),
+                                ),
+                                child: item.taken
+                                    ? Icon(
+                                        CupertinoIcons.checkmark,
+                                        size: 13,
+                                        color: palette.onAccent,
+                                      )
                                     : null,
-                                decorationColor: FieldManual.mutedBone,
                               ),
-                            ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  item.supplement.name,
+                                  style: FieldManual.body(
+                                    fontSize: 14,
+                                    color: item.taken
+                                        ? FieldManual.mutedBone
+                                        : FieldManual.bone,
+                                  ).copyWith(
+                                    decoration: item.taken
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                    decorationColor: FieldManual.mutedBone,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '${item.supplement.dosage} ${item.supplement.unit}'
+                                    .toUpperCase(),
+                                style: FieldManual.label(fontSize: 8),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                item.supplement.timing.label.toUpperCase(),
+                                style: FieldManual.label(
+                                  color: FieldManual.mutedBone,
+                                  fontSize: 8,
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            '${item.supplement.dosage} ${item.supplement.unit}'
-                                .toUpperCase(),
-                            style: FieldManual.label(fontSize: 8),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            item.supplement.timing.label.toUpperCase(),
-                            style: FieldManual.label(
-                              color: FieldManual.mutedBone,
-                              fontSize: 8,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   )),

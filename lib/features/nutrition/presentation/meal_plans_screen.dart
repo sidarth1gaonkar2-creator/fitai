@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../data/curated_meal_plans.dart';
@@ -18,6 +19,7 @@ class MealPlansContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final customPlansAsync = ref.watch(allCustomMealPlansProvider);
+    final palette = AppColors.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -37,23 +39,20 @@ class MealPlansContent extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.of(context).accent, AppColors.of(context).accent.withValues(alpha: 0.7)],
-                ),
-                borderRadius: BorderRadius.circular(12),
+                color: palette.accent,
+                borderRadius: BorderRadius.circular(4),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(CupertinoIcons.add, size: 18, color: Colors.white),
-                  SizedBox(width: 8),
+                  Icon(CupertinoIcons.add,
+                      size: 18, color: palette.onAccent),
+                  const SizedBox(width: 8),
                   Text(
-                    'Create Plan',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      color: Colors.white,
+                    'CREATE PLAN',
+                    style: FieldManual.label(
+                      color: palette.onAccent,
+                      fontSize: 12,
                     ),
                   ),
                 ],
@@ -84,10 +83,9 @@ class MealPlansContent extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       'Could not load your plans.',
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
+                      style: FieldManual.body(
                         fontSize: 13,
-                        color: palette.textSecondary,
+                        color: FieldManual.mutedBone,
                       ),
                     ),
                   ),
@@ -95,8 +93,13 @@ class MealPlansContent extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     onPressed: () =>
                         ref.invalidate(allCustomMealPlansProvider),
-                    child: const Text('Retry',
-                        style: TextStyle(fontSize: 13)),
+                    child: Text(
+                      'RETRY',
+                      style: FieldManual.label(
+                        color: palette.accent,
+                        fontSize: 11,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -110,13 +113,8 @@ class MealPlansContent extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
-                    'My Plans',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                      color: AppColors.of(context).text,
-                    ),
+                    'MY PLANS',
+                    style: FieldManual.headline(),
                   ),
                 ),
                 ...plans.map((plan) => Padding(
@@ -133,13 +131,8 @@ class MealPlansContent extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
-            'Suggested Plans',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              color: AppColors.of(context).text,
-            ),
+            'SUGGESTED PLANS',
+            style: FieldManual.headline(),
           ),
         ),
         ...curatedMealPlans.map((plan) => Padding(
@@ -189,9 +182,9 @@ class _CustomPlanCard extends ConsumerWidget {
     final palette = AppColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: palette.surface,
-        border: Border.all(color: palette.border),
-        borderRadius: BorderRadius.circular(16),
+        color: FieldManual.field,
+        border: Border.all(color: FieldManual.hairline),
+        borderRadius: BorderRadius.circular(8),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -200,12 +193,7 @@ class _CustomPlanCard extends ConsumerWidget {
           // Name
           Text(
             plan.name,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-              color: palette.text,
-            ),
+            style: FieldManual.title(),
           ),
           if (plan.goal != null) ...[
             const SizedBox(height: 8),
@@ -213,15 +201,13 @@ class _CustomPlanCard extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: palette.accent,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                plan.goal!,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 12,
-                  color: Colors.black,
+                plan.goal!.toUpperCase(),
+                style: FieldManual.label(
+                  color: palette.onAccent,
+                  fontSize: 10,
                 ),
               ),
             ),
@@ -233,22 +219,22 @@ class _CustomPlanCard extends ConsumerWidget {
             children: [
               _StatChip(
                 icon: Icons.local_fire_department_outlined,
-                label: '${plan.totalCalories.toInt()} kcal',
+                label: '${plan.totalCalories.toInt()} KCAL',
               ),
               const SizedBox(width: 12),
               _StatChip(
                 icon: Icons.fitness_center_outlined,
-                label: '${plan.totalProtein.toInt()}g P',
+                label: '${plan.totalProtein.toInt()}G P',
               ),
               const SizedBox(width: 8),
               _StatChip(
                 icon: Icons.grain,
-                label: '${plan.totalCarbs.toInt()}g C',
+                label: '${plan.totalCarbs.toInt()}G C',
               ),
               const SizedBox(width: 8),
               _StatChip(
                 icon: Icons.opacity,
-                label: '${plan.totalFat.toInt()}g F',
+                label: '${plan.totalFat.toInt()}G F',
               ),
             ],
           ),
@@ -262,18 +248,17 @@ class _CustomPlanCard extends ConsumerWidget {
                   onPressed: () => _import(context, ref),
                   style: FilledButton.styleFrom(
                     backgroundColor: palette.accent,
-                    foregroundColor: palette.text,
+                    foregroundColor: palette.onAccent,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
-                  child: const Text(
-                    'Import Today',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
+                  child: Text(
+                    'IMPORT TODAY',
+                    style: FieldManual.label(
+                      color: palette.onAccent,
+                      fontSize: 11,
                     ),
                   ),
                 ),
@@ -289,7 +274,7 @@ class _CustomPlanCard extends ConsumerWidget {
                   style: IconButton.styleFrom(
                     backgroundColor: palette.destructive.withValues(alpha: 0.15),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                 ),
@@ -365,11 +350,7 @@ class _StatChip extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 12,
-            color: AppColors.of(context).accent,
-          ),
+          style: FieldManual.readout(fontSize: 11),
         ),
       ],
     );

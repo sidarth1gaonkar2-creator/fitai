@@ -1,10 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart'
-    show Dismissible, DismissDirection, Icons, Scaffold, Theme;
+    show Dismissible, DismissDirection, Icons, Scaffold;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../models/enums.dart';
@@ -224,15 +225,16 @@ class _CreateSavedMealScreenState
     }
 
     final palette = AppColors.of(context);
-    final textTheme = Theme.of(context).textTheme;
 
     if (_isEdit && !_initialLoadDone) {
       return Scaffold(
-        backgroundColor: palette.background,
+        backgroundColor: FieldManual.ink,
         appBar: CupertinoNavigationBar(
-          middle: const Text('Edit Meal'),
-          backgroundColor: palette.background.withValues(alpha: 0.8),
-          border: null,
+          middle: Text('EDIT MEAL', style: FieldManual.title()),
+          backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+          border: const Border(
+            bottom: BorderSide(color: FieldManual.hairline),
+          ),
         ),
         body: const Padding(
           padding: EdgeInsets.all(16),
@@ -242,21 +244,26 @@ class _CreateSavedMealScreenState
     }
 
     return Scaffold(
-      backgroundColor: palette.background,
+      backgroundColor: FieldManual.ink,
       appBar: CupertinoNavigationBar(
-        middle: Text(_isEdit ? 'Edit Meal' : 'Create Meal'),
-        backgroundColor: palette.background.withValues(alpha: 0.8),
-        border: null,
+        middle: Text(
+          _isEdit ? 'EDIT MEAL' : 'CREATE MEAL',
+          style: FieldManual.title(),
+        ),
+        backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+        border: const Border(
+          bottom: BorderSide(color: FieldManual.hairline),
+        ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: _saving ? null : _save,
           child: _saving
               ? const CupertinoActivityIndicator()
               : Text(
-                  _isEdit ? 'Save' : 'Save',
-                  style: TextStyle(
+                  'SAVE',
+                  style: FieldManual.label(
                     color: palette.accent,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
                   ),
                 ),
         ),
@@ -271,15 +278,17 @@ class _CreateSavedMealScreenState
                   CupertinoTextField(
                     controller: _nameController,
                     placeholder: 'Meal name',
-                    style: TextStyle(color: palette.text, fontSize: 16),
-                    placeholderStyle:
-                        TextStyle(color: palette.textSecondary),
+                    style: FieldManual.body(fontSize: 16),
+                    placeholderStyle: FieldManual.body(
+                      fontSize: 16,
+                      color: FieldManual.mutedBone,
+                    ),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
-                      color: palette.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: palette.border),
+                      color: FieldManual.fieldRaised,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: FieldManual.hairline),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -292,32 +301,27 @@ class _CreateSavedMealScreenState
                     children: [
                       Expanded(
                         child: Text(
-                          'Items',
-                          style: textTheme.labelLarge?.copyWith(
-                            color: palette.accent,
-                            letterSpacing: 0.5,
-                          ),
+                          'ITEMS',
+                          style: FieldManual.label(fontSize: 10),
                         ),
                       ),
                       CupertinoButton(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
                         color: palette.accent,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(4),
                         onPressed: _addItem,
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.add,
-                                size: 16, color: CupertinoColors.white),
-                            SizedBox(width: 4),
+                                size: 16, color: palette.onAccent),
+                            const SizedBox(width: 4),
                             Text(
-                              'Add Item',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w600,
-                                color: CupertinoColors.white,
-                                fontSize: 13,
+                              'ADD ITEM',
+                              style: FieldManual.label(
+                                color: palette.onAccent,
+                                fontSize: 11,
                               ),
                             ),
                           ],
@@ -330,16 +334,18 @@ class _CreateSavedMealScreenState
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: palette.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: palette.border),
+                        color: FieldManual.field,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: FieldManual.hairline),
                       ),
                       child: Center(
                         child: Text(
                           'No items yet. Tap "Add Item" to search for foods.',
                           textAlign: TextAlign.center,
-                          style: textTheme.bodyMedium
-                              ?.copyWith(color: palette.textSecondary),
+                          style: FieldManual.body(
+                            fontSize: 14,
+                            color: FieldManual.mutedBone,
+                          ),
                         ),
                       ),
                     )
@@ -358,11 +364,15 @@ class _CreateSavedMealScreenState
                             padding:
                                 const EdgeInsets.symmetric(horizontal: 20),
                             decoration: BoxDecoration(
-                              color: palette.destructive,
-                              borderRadius: BorderRadius.circular(12),
+                              // 0.9 alpha over the dark surface keeps the
+                              // bone icon ≥3:1 (same idiom as
+                              // food_entry_tile's swipe background).
+                              color: palette.destructive
+                                  .withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(Icons.delete,
-                                color: CupertinoColors.white),
+                                color: FieldManual.bone),
                           ),
                           onDismissed: (_) =>
                               setState(() => _items.removeAt(i)),
@@ -383,27 +393,27 @@ class _CreateSavedMealScreenState
                 top: 12,
                 bottom: 12 + MediaQuery.of(context).padding.bottom,
               ),
-              decoration: BoxDecoration(
-                color: palette.surface,
-                border: Border(top: BorderSide(color: palette.border)),
+              decoration: const BoxDecoration(
+                color: FieldManual.field,
+                border: Border(top: BorderSide(color: FieldManual.hairline)),
               ),
               child: Row(
                 children: [
                   Expanded(
                     child: _Total(
-                        label: 'kcal', value: _totalCal.toInt().toString()),
+                        label: 'KCAL', value: _totalCal.toInt().toString()),
                   ),
                   Expanded(
                     child:
-                        _Total(label: 'P', value: '${_totalPro.toInt()}g'),
+                        _Total(label: 'P', value: '${_totalPro.toInt()}G'),
                   ),
                   Expanded(
                     child: _Total(
-                        label: 'C', value: '${_totalCarb.toInt()}g'),
+                        label: 'C', value: '${_totalCarb.toInt()}G'),
                   ),
                   Expanded(
                     child:
-                        _Total(label: 'F', value: '${_totalFat.toInt()}g'),
+                        _Total(label: 'F', value: '${_totalFat.toInt()}G'),
                   ),
                 ],
               ),
@@ -423,8 +433,6 @@ class _ItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-    final textTheme = Theme.of(context).textTheme;
     final total = item.calories * item.quantity;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -432,9 +440,9 @@ class _ItemRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: palette.border),
+          color: FieldManual.field,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: FieldManual.hairline),
         ),
         child: Row(
           children: [
@@ -445,33 +453,26 @@ class _ItemRow extends StatelessWidget {
                 children: [
                   Text(
                     item.foodName,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: palette.text,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: FieldManual.title(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     '${item.servingSize.toStringAsFixed(0)} ${item.servingUnit}'
                     ' · ${item.quantity}× serving',
-                    style: textTheme.bodySmall
-                        ?.copyWith(color: palette.textSecondary),
+                    style: FieldManual.label(fontSize: 11),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
             Text(
-              '${total.toInt()} kcal',
-              style: textTheme.bodyMedium?.copyWith(
-                color: palette.text,
-                fontWeight: FontWeight.w600,
-              ),
+              '${total.toInt()} KCAL',
+              style: FieldManual.readout(fontSize: 13),
             ),
             const SizedBox(width: 6),
-            Icon(CupertinoIcons.chevron_right,
-                size: 14, color: palette.textSecondary),
+            const Icon(CupertinoIcons.chevron_right,
+                size: 14, color: FieldManual.mutedBone),
           ],
         ),
       ),
@@ -486,25 +487,15 @@ class _Total extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return Column(
       children: [
         Text(
           value,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w700,
-            fontSize: 16,
-            color: palette.text,
-          ),
+          style: FieldManual.readout(fontSize: 16),
         ),
         Text(
           label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 11,
-            color: palette.textSecondary,
-          ),
+          style: FieldManual.label(fontSize: 11),
         ),
       ],
     );
@@ -534,9 +525,9 @@ class _EditItemSheet extends StatelessWidget {
         top: 12,
         bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
       ),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: const BoxDecoration(
+        color: FieldManual.ink,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -547,7 +538,7 @@ class _EditItemSheet extends StatelessWidget {
               width: 36,
               height: 5,
               decoration: BoxDecoration(
-                color: palette.textSecondary.withValues(alpha: 0.4),
+                color: FieldManual.hairlineStrong,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -556,12 +547,7 @@ class _EditItemSheet extends StatelessWidget {
           Text(
             name,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              color: palette.text,
-              fontSize: 16,
-            ),
+            style: FieldManual.title(),
           ),
           const SizedBox(height: 16),
           _LabeledField(
@@ -578,14 +564,13 @@ class _EditItemSheet extends StatelessWidget {
             width: double.infinity,
             child: CupertinoButton(
               color: palette.accent,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(4),
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(
-                'Done',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  color: CupertinoColors.white,
+              child: Text(
+                'DONE',
+                style: FieldManual.label(
+                  color: palette.onAccent,
+                  fontSize: 12,
                 ),
               ),
             ),
@@ -604,28 +589,24 @@ class _LabeledField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 12,
-            color: palette.textSecondary,
-          ),
+          label.toUpperCase(),
+          style: FieldManual.label(fontSize: 10),
         ),
         const SizedBox(height: 4),
         CupertinoTextField(
           controller: controller,
           keyboardType:
               const TextInputType.numberWithOptions(decimal: true),
-          style: TextStyle(color: palette.text, fontSize: 16),
+          style: FieldManual.readout(fontSize: 16),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: palette.surfaceElevated,
-            borderRadius: BorderRadius.circular(10),
+            color: FieldManual.fieldRaised,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: FieldManual.hairline),
           ),
         ),
       ],

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../data/restaurant_menus.dart';
 import '../../../models/enums.dart';
 
@@ -59,10 +60,13 @@ class _RestaurantBrowserScreenState
     final filtered = _filtered;
 
     return Scaffold(
+      backgroundColor: FieldManual.ink,
       appBar: CupertinoNavigationBar(
-        backgroundColor: palette.background.withValues(alpha: 0.8),
-        border: null,
-        middle: const Text('Restaurants'),
+        backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+        border: const Border(
+          bottom: BorderSide(color: FieldManual.hairline),
+        ),
+        middle: Text('RESTAURANTS', style: FieldManual.title()),
       ),
       body: SafeArea(
         child: Column(
@@ -82,15 +86,16 @@ class _RestaurantBrowserScreenState
                   ),
                 ),
                 decoration: BoxDecoration(
-                  color: palette.surfaceElevated,
-                  borderRadius: BorderRadius.circular(10),
+                  color: FieldManual.fieldRaised,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: FieldManual.hairline),
                 ),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                style: TextStyle(color: palette.text, fontSize: 14),
-                placeholderStyle: TextStyle(
-                  color: palette.textSecondary,
+                style: FieldManual.body(fontSize: 14),
+                placeholderStyle: FieldManual.body(
                   fontSize: 14,
+                  color: FieldManual.mutedBone,
                 ),
                 onChanged: (v) => setState(() => _query = v),
               ),
@@ -150,9 +155,7 @@ class _RestaurantBrowserScreenState
                   },
                   child: Text(
                     "Don't see your restaurant? Search foods →",
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w500,
+                    style: FieldManual.body(
                       fontSize: 13,
                       color: palette.accent,
                     ),
@@ -175,16 +178,16 @@ class _RestaurantCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
         decoration: BoxDecoration(
-          color: menu.accentColor.withValues(alpha: 0.12),
-          border:
-              Border.all(color: menu.accentColor.withValues(alpha: 0.35)),
-          borderRadius: BorderRadius.circular(16),
+          // Brand-tinted surfaces retire: FM cards sit on field with a
+          // hairline; the emoji carries per-chain recognition.
+          color: FieldManual.field,
+          border: Border.all(color: FieldManual.hairline),
+          borderRadius: BorderRadius.circular(8),
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -200,31 +203,23 @@ class _RestaurantCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+                  // Brand names are content — never uppercased.
                   menu.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                    color: palette.text,
-                  ),
+                  style: FieldManual.title(),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  menu.searchOnly
-                      ? (menu.id == 'other'
-                          ? 'Search any menu'
-                          : 'Search menu')
-                      : menu.mealTypes.join(' · '),
+                  (menu.searchOnly
+                          ? (menu.id == 'other'
+                              ? 'Search any menu'
+                              : 'Search menu')
+                          : menu.mealTypes.join(' · '))
+                      .toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 11,
-                    color: palette.textSecondary,
-                  ),
+                  style: FieldManual.label(fontSize: 11),
                 ),
               ],
             ),
@@ -257,11 +252,9 @@ class _EmptyState extends StatelessWidget {
                   ? 'No restaurants yet.'
                   : 'No restaurants match "$query"',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w500,
+              style: FieldManual.body(
                 fontSize: 14,
-                color: palette.textSecondary,
+                color: FieldManual.mutedBone,
               ),
             ),
           ],

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../models/enums.dart';
 import '../../../../providers/nutrition_providers.dart';
@@ -157,9 +158,9 @@ class _AddFoodSheetState extends ConsumerState<AddFoodSheet> {
       minChildSize: 0.5,
       maxChildSize: 0.95,
       builder: (context, scrollController) => Container(
-        decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: const BoxDecoration(
+          color: FieldManual.ink,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         child: Column(
           children: [
@@ -170,7 +171,7 @@ class _AddFoodSheetState extends ConsumerState<AddFoodSheet> {
                 width: 36,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: palette.textSecondary.withValues(alpha: 0.3),
+                  color: FieldManual.mutedBone.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -188,7 +189,7 @@ class _AddFoodSheetState extends ConsumerState<AddFoodSheet> {
                       children: [
                         if (food.imageUrl != null)
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(8),
                             child: Image.network(
                               food.imageUrl!,
                               width: 64,
@@ -207,12 +208,10 @@ class _AddFoodSheetState extends ConsumerState<AddFoodSheet> {
                                 food.name,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 18,
-                                  color: palette.text,
-                                ),
+                                // Food names are user content — never
+                                // uppercase.
+                                style: FieldManual.title()
+                                    .copyWith(fontSize: 18),
                               ),
                               if (food.brand != null) ...[
                                 const SizedBox(height: 2),
@@ -220,11 +219,9 @@ class _AddFoodSheetState extends ConsumerState<AddFoodSheet> {
                                   food.brand!,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontWeight: FontWeight.w500,
+                                  style: FieldManual.body(
                                     fontSize: 13,
-                                    color: palette.textSecondary,
+                                    color: FieldManual.mutedBone,
                                   ),
                                 ),
                               ],
@@ -235,7 +232,7 @@ class _AddFoodSheetState extends ConsumerState<AddFoodSheet> {
                           icon: const Icon(CupertinoIcons.xmark, size: 20),
                           onPressed: () => Navigator.of(context).pop(),
                           tooltip: 'Close',
-                          color: palette.textSecondary,
+                          color: FieldManual.mutedBone,
                         ),
                       ],
                     ),
@@ -255,15 +252,7 @@ class _AddFoodSheetState extends ConsumerState<AddFoodSheet> {
                     ),
                     const SizedBox(height: 16),
                     // ── Meal destination ───────────────────────────
-                    Text(
-                      'Meal',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        color: palette.textSecondary,
-                      ),
-                    ),
+                    Text('MEAL', style: FieldManual.label(fontSize: 10)),
                     const SizedBox(height: 6),
                     _MealTypeSegmented(
                       selected: _mealType,
@@ -290,20 +279,16 @@ class _AddFoodSheetState extends ConsumerState<AddFoodSheet> {
                         padding:
                             const EdgeInsets.symmetric(vertical: 14),
                         color: palette.accent,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         onPressed:
                             _isSaving ? null : () => _addFood(),
                         child: _isSaving
-                            ? const CupertinoActivityIndicator(
-                                color: CupertinoColors.white)
-                            : const Text(
-                                'Add Food',
-                                style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                  color: CupertinoColors.white,
-                                ),
+                            ? CupertinoActivityIndicator(
+                                color: palette.onAccent)
+                            : Text(
+                                'ADD FOOD',
+                                style: FieldManual.title(
+                                    color: palette.onAccent),
                               ),
                       ),
                     ),
@@ -313,11 +298,9 @@ class _AddFoodSheetState extends ConsumerState<AddFoodSheet> {
                           ? null
                           : () => _addFood(alsoSaveAsMeal: true),
                       child: Text(
-                        'Add & Save to Meals',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
+                        'ADD & SAVE TO MEALS',
+                        style: FieldManual.label(
+                          fontSize: 11,
                           color: palette.accent,
                         ),
                       ),
@@ -342,35 +325,42 @@ class _MealTypeSegmented extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 180);
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: palette.surfaceElevated,
-        borderRadius: BorderRadius.circular(10),
+        color: FieldManual.field,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: FieldManual.hairline),
       ),
       child: Row(
         children: MealType.values
             .map((m) => Expanded(
-                  child: GestureDetector(
-                    onTap: () => onChanged(m),
-                    behavior: HitTestBehavior.opaque,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: selected == m ? palette.accent : null,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        m.label,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                          color: selected == m
-                              ? Colors.white
-                              : palette.text,
+                  child: Semantics(
+                    button: true,
+                    selected: selected == m,
+                    child: GestureDetector(
+                      onTap: () => onChanged(m),
+                      behavior: HitTestBehavior.opaque,
+                      child: AnimatedContainer(
+                        duration: duration,
+                        constraints: const BoxConstraints(minHeight: 44),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: selected == m ? palette.accent : null,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          m.label.toUpperCase(),
+                          style: FieldManual.label(
+                            fontSize: 11,
+                            color: selected == m
+                                ? palette.onAccent
+                                : FieldManual.mutedBone,
+                          ),
                         ),
                       ),
                     ),

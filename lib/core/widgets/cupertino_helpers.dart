@@ -135,56 +135,61 @@ class _CupertinoExpansionTileState extends State<CupertinoExpansionTile>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                children: [
-                  if (widget.leading != null) ...[
-                    widget.leading!,
-                    const SizedBox(width: 12),
-                  ],
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        DefaultTextStyle(
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            color: AppColors.of(context).text,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
-                          child: widget.title,
-                        ),
-                        if (widget.subtitle != null) ...[
-                          const SizedBox(height: 2),
+          Semantics(
+            button: true,
+            expanded: _expanded,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+                  children: [
+                    if (widget.leading != null) ...[
+                      widget.leading!,
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           DefaultTextStyle(
                             style: TextStyle(
                               fontFamily: 'Inter',
-                              color: AppColors.of(context).textSecondary,
-                              fontSize: 12,
+                              color: AppColors.of(context).text,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
                             ),
-                            child: widget.subtitle!,
+                            child: widget.title,
                           ),
+                          if (widget.subtitle != null) ...[
+                            const SizedBox(height: 2),
+                            DefaultTextStyle(
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                color: AppColors.of(context).textSecondary,
+                                fontSize: 12,
+                              ),
+                              child: widget.subtitle!,
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                  AnimatedRotation(
-                    turns: _expanded ? 0.25 : 0,
-                    duration: MediaQuery.disableAnimationsOf(context)
-                        ? Duration.zero
-                        : const Duration(milliseconds: 200),
-                    child: Icon(
-                      CupertinoIcons.chevron_right,
-                      size: 16,
-                      color: AppColors.of(context).textSecondary,
+                    AnimatedRotation(
+                      turns: _expanded ? 0.25 : 0,
+                      duration: MediaQuery.disableAnimationsOf(context)
+                          ? Duration.zero
+                          : const Duration(milliseconds: 200),
+                      child: Icon(
+                        CupertinoIcons.chevron_right,
+                        size: 16,
+                        color: AppColors.of(context).textSecondary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -366,16 +371,25 @@ class _ToastWidgetState extends State<_ToastWidget>
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: widget.onAction,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 4),
-                          child: Text(
-                            widget.actionLabel!,
-                            style: TextStyle(
-                              color: palette.accent,
-                              fontFamily: 'Inter',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
+                        // ≥44pt tap target for the action label.
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            minWidth: 44,
+                            minHeight: 44,
+                          ),
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6),
+                              child: Text(
+                                widget.actionLabel!,
+                                style: TextStyle(
+                                  color: palette.accent,
+                                  fontFamily: 'Inter',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -397,11 +411,12 @@ class _ToastWidgetState extends State<_ToastWidget>
 // ---------------------------------------------------------------------------
 
 /// Readable label color for text sitting ON an accent fill: ink for bright
-/// accents (brass and most packs), white for the dark ones (e.g. Stealth).
+/// accents (brass and most packs), bone for the dark ones (e.g. Stealth).
+/// Mirrors [Palette.onAccent] — keep the two in lockstep.
 Color _onAccent(Color accent) =>
     accent.computeLuminance() >= 0.18
         ? const Color(0xFF1A1C1A) // ink
-        : Colors.white;
+        : const Color(0xFFE8E4D8); // bone
 
 /// Filled primary CTA — Field Manual issue: accent fill, ink label,
 /// condensed uppercase, sharp 4px corners (DESIGN.md §Buttons).

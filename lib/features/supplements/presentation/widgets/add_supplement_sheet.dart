@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../models/enums.dart';
 import '../../../../models/supplement.dart';
 import '../../../../providers/supplement_providers.dart';
@@ -95,9 +95,10 @@ class _AddSupplementSheetState extends ConsumerState<AddSupplementSheet> {
 
     final palette = AppColors.of(context);
     return Container(
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: const BoxDecoration(
+        // Sheets are ink by doctrine, 12pt top radius (DESIGN.md).
+        color: FieldManual.ink,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       child: SafeArea(
         top: false,
@@ -111,7 +112,7 @@ class _AddSupplementSheetState extends ConsumerState<AddSupplementSheet> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: palette.text.withValues(alpha: 0.2),
+                  color: FieldManual.hairlineStrong,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -122,23 +123,17 @@ class _AddSupplementSheetState extends ConsumerState<AddSupplementSheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Add Supplement',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 18,
-                        color: palette.text,
-                      ),
+                      'ADD SUPPLEMENT',
+                      style: FieldManual.title(),
                     ),
                   ),
                   CupertinoButton(
                     padding: EdgeInsets.zero,
                     onPressed: () => setState(() => _isCustom = !_isCustom),
                     child: Text(
-                      _isCustom ? 'Library' : 'Custom',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 14,
+                      _isCustom ? 'LIBRARY' : 'CUSTOM',
+                      style: FieldManual.label(
+                        fontSize: 11,
                         color: palette.accent,
                       ),
                     ),
@@ -152,12 +147,13 @@ class _AddSupplementSheetState extends ConsumerState<AddSupplementSheet> {
                 CupertinoTextField(
                   controller: _nameController,
                   placeholder: 'Supplement Name',
-                  style: TextStyle(color: palette.text),
-                  placeholderStyle: TextStyle(
-                      color: palette.textSecondary),
+                  style: FieldManual.body(),
+                  placeholderStyle:
+                      FieldManual.body(color: FieldManual.mutedBone),
                   decoration: BoxDecoration(
-                    color: palette.background,
-                    borderRadius: BorderRadius.circular(10),
+                    color: FieldManual.fieldRaised,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: FieldManual.hairline),
                   ),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -171,12 +167,14 @@ class _AddSupplementSheetState extends ConsumerState<AddSupplementSheet> {
                         controller: _dosageController,
                         placeholder: 'Dose',
                         keyboardType: TextInputType.number,
-                        style: TextStyle(color: palette.text),
-                        placeholderStyle: TextStyle(
-                            color: palette.textSecondary),
+                        // Numeric entry reads as an instrument value.
+                        style: FieldManual.readout(fontSize: 15),
+                        placeholderStyle:
+                            FieldManual.body(color: FieldManual.mutedBone),
                         decoration: BoxDecoration(
-                          color: palette.background,
-                          borderRadius: BorderRadius.circular(10),
+                          color: FieldManual.fieldRaised,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: FieldManual.hairline),
                         ),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 12),
@@ -187,12 +185,13 @@ class _AddSupplementSheetState extends ConsumerState<AddSupplementSheet> {
                       child: CupertinoTextField(
                         controller: _unitController,
                         placeholder: 'Unit',
-                        style: TextStyle(color: palette.text),
-                        placeholderStyle: TextStyle(
-                            color: palette.textSecondary),
+                        style: FieldManual.body(),
+                        placeholderStyle:
+                            FieldManual.body(color: FieldManual.mutedBone),
                         decoration: BoxDecoration(
-                          color: palette.background,
-                          borderRadius: BorderRadius.circular(10),
+                          color: FieldManual.fieldRaised,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: FieldManual.hairline),
                         ),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 12),
@@ -205,15 +204,23 @@ class _AddSupplementSheetState extends ConsumerState<AddSupplementSheet> {
                   width: double.infinity,
                   child: CupertinoSlidingSegmentedControl<SupplementTiming>(
                     groupValue: _timing,
-                    backgroundColor: palette.background,
+                    backgroundColor: FieldManual.fieldRaised,
                     thumbColor: palette.accent,
                     children: {
                       for (final t in SupplementTiming.values)
                         t: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Text(t.label,
-                              style: const TextStyle(
-                                  fontFamily: 'Poppins', fontSize: 10)),
+                          child: Text(
+                            t.label.toUpperCase(),
+                            // Accent thumb carries the on-accent ink; resting
+                            // segments stay muted bone on the raised field.
+                            style: FieldManual.label(
+                              fontSize: 11,
+                              color: t == _timing
+                                  ? palette.onAccent
+                                  : FieldManual.mutedBone,
+                            ),
+                          ),
                         ),
                     },
                     onValueChanged: (v) {
@@ -226,15 +233,11 @@ class _AddSupplementSheetState extends ConsumerState<AddSupplementSheet> {
                   width: double.infinity,
                   child: CupertinoButton(
                     color: palette.accent,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(4),
                     onPressed: _addCustom,
-                    child: const Text(
-                      'Add',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+                    child: Text(
+                      'ADD',
+                      style: FieldManual.title(color: palette.onAccent),
                     ),
                   ),
                 ),
@@ -264,10 +267,9 @@ class _AddSupplementSheetState extends ConsumerState<AddSupplementSheet> {
                     error: (_, _) => Center(
                       child: Text(
                         'Failed to load supplements.',
-                        style: TextStyle(
-                          fontFamily: 'LeagueSpartan',
+                        style: FieldManual.body(
                           fontSize: 14,
-                          color: palette.textSecondary,
+                          color: FieldManual.mutedBone,
                         ),
                       ),
                     ),
@@ -304,28 +306,27 @@ class _ApiSupplementCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: palette.background,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: palette.border),
+          color: FieldManual.field,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: FieldManual.hairline),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Rating badge
+            // Rating badge — evidence-grade tiers keep their colour as a
+            // small scanning aid (like nutrient icons).
             Container(
               width: 32,
               height: 32,
               decoration: BoxDecoration(
                 color: ratingColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(4),
               ),
               alignment: Alignment.center,
               child: Text(
                 '${supplement.rating}',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
+                style: FieldManual.readout(
+                  fontSize: 13,
                   color: ratingColor,
                 ),
               ),
@@ -337,13 +338,9 @@ class _ApiSupplementCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
+                    // Catalog content — never uppercased.
                     supplement.name,
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                      color: palette.text,
-                    ),
+                    style: FieldManual.title().copyWith(fontSize: 15),
                   ),
                   const SizedBox(height: 2),
                   // Category tag
@@ -357,11 +354,9 @@ class _ApiSupplementCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          supplement.category,
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
+                          supplement.category.toUpperCase(),
+                          style: FieldManual.label(
+                            fontSize: 11,
                             color: palette.accent,
                           ),
                         ),
@@ -370,10 +365,9 @@ class _ApiSupplementCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           supplement.dose,
-                          style: TextStyle(
-                            fontFamily: 'LeagueSpartan',
-                            fontSize: 11,
-                            color: palette.textSecondary,
+                          style: FieldManual.readout(
+                            fontSize: 10,
+                            color: FieldManual.mutedBone,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -384,10 +378,9 @@ class _ApiSupplementCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       supplement.benefitsSummary,
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
+                      style: FieldManual.body(
                         fontSize: 12,
-                        color: palette.textSecondary,
+                        color: FieldManual.mutedBone,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -404,8 +397,13 @@ class _ApiSupplementCard extends StatelessWidget {
               child: GestureDetector(
                 onTap: onAdd,
                 behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
+                // ≥44pt tap target; the icon stays visually small.
+                child: Container(
+                  constraints: const BoxConstraints(
+                    minWidth: 44,
+                    minHeight: 44,
+                  ),
+                  alignment: Alignment.center,
                   child: Icon(CupertinoIcons.add_circled,
                       color: palette.accent, size: 24),
                 ),
@@ -443,9 +441,10 @@ class _SupplementDetailSheet extends StatelessWidget {
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * 0.75,
       ),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: const BoxDecoration(
+        // Sheets are ink by doctrine, 12pt top radius (DESIGN.md).
+        color: FieldManual.ink,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       child: SafeArea(
         top: false,
@@ -459,7 +458,7 @@ class _SupplementDetailSheet extends StatelessWidget {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: palette.text.withValues(alpha: 0.2),
+                  color: FieldManual.hairlineStrong,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -476,13 +475,9 @@ class _SupplementDetailSheet extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
+                            // Catalog content — never uppercased.
                             supplement.name,
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 20,
-                              color: palette.text,
-                            ),
+                            style: FieldManual.headline(),
                           ),
                         ),
                         Container(
@@ -490,14 +485,12 @@ class _SupplementDetailSheet extends StatelessWidget {
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: palette.accent.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            supplement.category,
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                            supplement.category.toUpperCase(),
+                            style: FieldManual.label(
+                              fontSize: 10,
                               color: palette.accent,
                             ),
                           ),
@@ -506,12 +499,10 @@ class _SupplementDetailSheet extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Dose: ${supplement.dose}  ·  Timing: ${supplement.timing}',
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
-                        fontSize: 13,
-                        color: palette.textSecondary,
-                      ),
+                      // Dose stamp — mono designation carrying the numbers.
+                      'DOSE: ${supplement.dose}  ·  TIMING: ${supplement.timing}'
+                          .toUpperCase(),
+                      style: FieldManual.label(fontSize: 10),
                     ),
                     const SizedBox(height: 20),
 
@@ -553,19 +544,16 @@ class _SupplementDetailSheet extends StatelessWidget {
                       width: double.infinity,
                       child: CupertinoButton(
                         color: palette.accent,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         onPressed: () {
                           HapticFeedback.mediumImpact();
                           Navigator.pop(context);
                           onAdd();
                         },
-                        child: const Text(
-                          'Add to My Supplements',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
+                        child: Text(
+                          'ADD TO MY SUPPLEMENTS',
+                          style: FieldManual.title(color: palette.onAccent)
+                              .copyWith(fontSize: 15),
                         ),
                       ),
                     ),
@@ -600,16 +588,13 @@ class _DetailSection extends StatelessWidget {
       children: [
         Row(
           children: [
+            // Section colour survives on the small icon as a scanning aid;
+            // the header itself is a muted mono designation.
             Icon(icon, size: 16, color: color),
             const SizedBox(width: 6),
             Text(
-              title,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                color: color,
-              ),
+              title.toUpperCase(),
+              style: FieldManual.label(fontSize: 10),
             ),
           ],
         ),
@@ -624,8 +609,8 @@ class _DetailSection extends StatelessWidget {
                     child: Container(
                       width: 5,
                       height: 5,
-                      decoration: BoxDecoration(
-                        color: AppColors.of(context).textSecondary,
+                      decoration: const BoxDecoration(
+                        color: FieldManual.mutedBone,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -634,10 +619,9 @@ class _DetailSection extends StatelessWidget {
                   Expanded(
                     child: Text(
                       item,
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
+                      style: FieldManual.body(
                         fontSize: 13,
-                        color: AppColors.of(context).textSecondary,
+                        color: FieldManual.mutedBone,
                       ),
                     ),
                   ),

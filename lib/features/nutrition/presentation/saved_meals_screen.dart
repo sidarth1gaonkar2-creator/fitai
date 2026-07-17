@@ -1,11 +1,12 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Dismissible, DismissDirection, FloatingActionButton, Icons, Scaffold, Theme;
+import 'package:flutter/material.dart' show Dismissible, DismissDirection, FloatingActionButton, Icons, RoundedRectangleBorder, Scaffold;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
@@ -122,28 +123,33 @@ class _SavedMealsScreenState extends ConsumerState<SavedMealsScreen> {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
-    final textTheme = Theme.of(context).textTheme;
+    final ts = MediaQuery.textScalerOf(context);
     final frequentAsync = ref.watch(frequentMealsProvider);
     final filteredAsync = ref.watch(savedMealSearchProvider(_query));
 
     return Scaffold(
-      backgroundColor: palette.background,
+      backgroundColor: FieldManual.ink,
       appBar: CupertinoNavigationBar(
-        middle: const Text('Saved Meals'),
-        backgroundColor: palette.background.withValues(alpha: 0.8),
-        border: null,
+        middle: Text('SAVED MEALS', style: FieldManual.title()),
+        backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+        border: const Border(
+          bottom: BorderSide(color: FieldManual.hairline),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: palette.accent,
-        foregroundColor: CupertinoColors.white,
+        foregroundColor: palette.onAccent,
+        // Quiet Chrome: the Field Manual casts no shadows.
+        elevation: 0,
+        highlightElevation: 0,
+        focusElevation: 0,
+        hoverElevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         onPressed: () => context.push('/nutrition/saved-meals/create'),
         icon: const Icon(Icons.add),
-        label: const Text(
-          'Create Meal',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-          ),
+        label: Text(
+          'CREATE MEAL',
+          style: FieldManual.label(color: palette.onAccent, fontSize: 11),
         ),
       ),
       body: SafeArea(
@@ -154,6 +160,15 @@ class _SavedMealsScreenState extends ConsumerState<SavedMealsScreen> {
               child: CupertinoSearchTextField(
                 controller: _searchController,
                 placeholder: 'Search saved meals',
+                style: FieldManual.body(),
+                placeholderStyle:
+                    FieldManual.body(color: FieldManual.mutedBone),
+                itemColor: FieldManual.mutedBone,
+                decoration: BoxDecoration(
+                  color: FieldManual.fieldRaised,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: FieldManual.hairline),
+                ),
                 onChanged: (v) => setState(() => _query = v),
               ),
             ),
@@ -189,15 +204,12 @@ class _SavedMealsScreenState extends ConsumerState<SavedMealsScreen> {
                                   padding: const EdgeInsets.only(
                                       left: 4, bottom: 6, top: 4),
                                   child: Text(
-                                    'Frequently Used',
-                                    style: textTheme.labelLarge?.copyWith(
-                                      color: palette.accent,
-                                      letterSpacing: 0.5,
-                                    ),
+                                    'FREQUENTLY USED',
+                                    style: FieldManual.label(fontSize: 10),
                                   ),
                                 ),
                                 SizedBox(
-                                  height: 120,
+                                  height: ts.scale(120),
                                   child: ListView.separated(
                                     scrollDirection: Axis.horizontal,
                                     itemCount: frequent.length,
@@ -217,11 +229,8 @@ class _SavedMealsScreenState extends ConsumerState<SavedMealsScreen> {
                         Padding(
                           padding: const EdgeInsets.only(left: 4, bottom: 6),
                           child: Text(
-                            'All Saved Meals',
-                            style: textTheme.labelLarge?.copyWith(
-                              color: palette.accent,
-                              letterSpacing: 0.5,
-                            ),
+                            'ALL SAVED MEALS',
+                            style: FieldManual.label(fontSize: 10),
                           ),
                         ),
                       ] else if (filtered.isEmpty) ...[
@@ -230,8 +239,9 @@ class _SavedMealsScreenState extends ConsumerState<SavedMealsScreen> {
                           child: Center(
                             child: Text(
                               'No saved meals match "$_query"',
-                              style: textTheme.bodyMedium?.copyWith(
-                                color: palette.textSecondary,
+                              style: FieldManual.body(
+                                fontSize: 14,
+                                color: FieldManual.mutedBone,
                               ),
                             ),
                           ),
@@ -262,31 +272,25 @@ class _SavedMealsScreenState extends ConsumerState<SavedMealsScreen> {
 class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-    final textTheme = Theme.of(context).textTheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.bookmark_outline,
-                size: 56, color: palette.textSecondary),
+            const Icon(Icons.bookmark_outline,
+                size: 56, color: FieldManual.mutedBone),
             const SizedBox(height: 12),
             Text(
               'No saved meals yet',
-              style: textTheme.titleMedium?.copyWith(
-                color: palette.text,
-                fontWeight: FontWeight.w600,
-              ),
+              style: FieldManual.title(),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
             Text(
               'Save a meal from your nutrition log to reuse it with one tap.',
               textAlign: TextAlign.center,
-              style: textTheme.bodyMedium
-                  ?.copyWith(color: palette.textSecondary),
+              style: FieldManual.body(color: FieldManual.mutedBone),
             ),
           ],
         ),
@@ -303,8 +307,6 @@ class _FrequentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-    final textTheme = Theme.of(context).textTheme;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -312,9 +314,9 @@ class _FrequentCard extends StatelessWidget {
         width: 150,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: palette.border),
+          color: FieldManual.field,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: FieldManual.hairline),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,10 +332,7 @@ class _FrequentCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     meal.name,
-                    style: textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: palette.text,
-                    ),
+                    style: FieldManual.title().copyWith(fontSize: 14),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -342,20 +341,13 @@ class _FrequentCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              '${meal.totalCalories.toInt()} kcal',
-              style: textTheme.bodySmall?.copyWith(
-                color: palette.textSecondary,
-              ),
+              '${meal.totalCalories.toInt()} KCAL',
+              style: FieldManual.readout(fontSize: 12),
             ),
             if (meal.useCount > 0)
               Text(
-                'Used ${meal.useCount}×',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 11,
-                  color: palette.accent,
-                  fontWeight: FontWeight.w600,
-                ),
+                'USED ${meal.useCount}×',
+                style: FieldManual.label(fontSize: 11),
               ),
           ],
         ),
@@ -380,7 +372,6 @@ class _SavedMealRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = AppColors.of(context);
-    final textTheme = Theme.of(context).textTheme;
     final itemsAsync = ref.watch(savedMealItemsProvider(meal.id));
     final itemCount = itemsAsync.valueOrNull?.length ?? 0;
 
@@ -396,10 +387,12 @@ class _SavedMealRow extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
-          color: palette.destructive,
-          borderRadius: BorderRadius.circular(12),
+          // 0.9 alpha over the dark surface keeps the bone icon ≥3:1
+          // (same idiom as food_entry_tile's swipe background).
+          color: palette.destructive.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(Icons.delete, color: CupertinoColors.white),
+        child: const Icon(Icons.delete, color: FieldManual.bone),
       ),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -408,9 +401,9 @@ class _SavedMealRow extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: palette.border),
+            color: FieldManual.field,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: FieldManual.hairline),
           ),
           child: Row(
             children: [
@@ -435,22 +428,31 @@ class _SavedMealRow extends ConsumerWidget {
                   children: [
                     Text(
                       meal.name,
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: palette.text,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: FieldManual.title(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
-                      '$itemCount item${itemCount == 1 ? '' : 's'} · '
-                      '${meal.totalCalories.toInt()} kcal · '
-                      'used ${timeago.format(meal.lastUsedAt, locale: 'en_short')}',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: palette.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          '${meal.totalCalories.toInt()} KCAL',
+                          style: FieldManual.readout(fontSize: 12),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '· $itemCount item${itemCount == 1 ? '' : 's'} · '
+                            'used ${timeago.format(meal.lastUsedAt, locale: 'en_short')}',
+                            style: FieldManual.body(
+                              fontSize: 12,
+                              color: FieldManual.mutedBone,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -461,23 +463,21 @@ class _SavedMealRow extends ConsumerWidget {
                       horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: palette.accent,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     '${meal.useCount}×',
-                    style: const TextStyle(
-                      color: CupertinoColors.white,
+                    style: FieldManual.readout(
                       fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'Poppins',
+                      color: palette.onAccent,
                     ),
                   ),
                 ),
               const SizedBox(width: 6),
-              Icon(
+              const Icon(
                 CupertinoIcons.chevron_right,
                 size: 16,
-                color: palette.textSecondary,
+                color: FieldManual.mutedBone,
               ),
             ],
           ),

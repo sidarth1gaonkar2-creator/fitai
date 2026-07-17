@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../data/restaurant_menus.dart';
 import '../../../models/enums.dart';
@@ -351,7 +352,7 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
     if (!mounted) return;
     final shouldLog = await showCupertinoModalPopup<bool>(
       context: context,
-      builder: (_) => _MealCartSheet(accent: _menu?.accentColor),
+      builder: (_) => const _MealCartSheet(),
     );
     if (shouldLog == true && mounted) {
       await _logCartFlow();
@@ -437,7 +438,7 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
         carb: carb,
         fat: fat,
         defaultType: _defaultMealType(),
-        accent: _menu?.accentColor ?? AppColors.of(context).accent,
+        accent: AppColors.of(context).accent,
       ),
     );
   }
@@ -653,19 +654,24 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
+    // One accent voice (Field Manual): the equipped palette's accent, not the
+    // per-restaurant brand color — several brand colors fail AA on ink.
+    final accent = AppColors.of(context).accent;
     final menu = _menu;
     if (menu == null) {
       return Scaffold(
+        backgroundColor: FieldManual.ink,
         appBar: CupertinoNavigationBar(
-          middle: const Text('Not found'),
-          backgroundColor: palette.background.withValues(alpha: 0.8),
-          border: null,
+          middle: Text('NOT FOUND', style: FieldManual.title()),
+          backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+          border: const Border(
+            bottom: BorderSide(color: FieldManual.hairline),
+          ),
         ),
         body: Center(
           child: Text(
             "We don't have a menu for ${widget.restaurantId} yet.",
-            style: TextStyle(color: palette.textSecondary),
+            style: FieldManual.body(color: FieldManual.mutedBone),
             textAlign: TextAlign.center,
           ),
         ),
@@ -691,15 +697,19 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
         });
       },
       child: Scaffold(
+        backgroundColor: FieldManual.ink,
         appBar: CupertinoNavigationBar(
-          backgroundColor: palette.background.withValues(alpha: 0.8),
-          border: null,
+          backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+          border: const Border(
+            bottom: BorderSide(color: FieldManual.hairline),
+          ),
           middle: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(menu.emoji, style: const TextStyle(fontSize: 18)),
               const SizedBox(width: 6),
-              Text(menu.name),
+              // Restaurant name is content — styled, never uppercased.
+              Text(menu.name, style: FieldManual.title()),
             ],
           ),
         ),
@@ -714,7 +724,7 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
                   child: _MealTypeSelector(
                     options: menu.mealTypes,
                     selected: _builderKey,
-                    accent: menu.accentColor,
+                    accent: accent,
                     onChanged: _onSwitchBuilder,
                   ),
                 ),
@@ -730,7 +740,7 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
                     return _CategoryBlock(
                       category: category,
                       selectedIndexes: selectedIdx,
-                      accent: menu.accentColor,
+                      accent: accent,
                       onToggle: (itemIdx) => _toggleItem(catIdx, itemIdx),
                       isDoubled: _doubled.contains(catIdx),
                       onToggleDouble: () => _toggleDouble(catIdx),
@@ -755,7 +765,7 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
           onAddToLog: _addToLog,
           onSaveAsMeal: _saveAsMeal,
           onOpenCart: _openCartSheet,
-          accent: menu.accentColor,
+          accent: accent,
         ),
       ),
     );
@@ -781,7 +791,7 @@ class _MealTypeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
     return SizedBox(
-      height: 40,
+      height: 44,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: options.length,
@@ -796,18 +806,20 @@ class _MealTypeSelector extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: isActive ? accent : palette.surfaceElevated,
-                borderRadius: BorderRadius.circular(20),
+                color: isActive ? accent : FieldManual.fieldRaised,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: isActive ? accent : FieldManual.hairline,
+                ),
               ),
               alignment: Alignment.center,
+              // Meal-form names ("Bowl", "Burrito") are menu content —
+              // styled, never uppercased.
               child: Text(
                 options[i],
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: isActive ? Colors.white : palette.text,
-                ),
+                style: FieldManual.title(
+                  color: isActive ? palette.onAccent : FieldManual.bone,
+                ).copyWith(fontSize: 13),
               ),
             ),
           );
@@ -866,7 +878,6 @@ class _CategoryBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     final hasSelection = selectedIndexes.isNotEmpty;
     final cap = category.maxSelections;
     final isAtCap =
@@ -880,33 +891,24 @@ class _CategoryBlock extends StatelessWidget {
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Row(
               children: [
+                // Category headers are designations ("PROTEIN", "TOPPINGS").
                 Text(
-                  category.name,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                    color: palette.text,
-                  ),
+                  category.name.toUpperCase(),
+                  style: FieldManual.title(),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  _hint,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 11,
-                    color: palette.textSecondary,
-                  ),
+                  _hint.toUpperCase(),
+                  style: FieldManual.label(fontSize: 11),
                 ),
               ],
             ),
           ),
           Container(
             decoration: BoxDecoration(
-              color: palette.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: palette.border),
+              color: FieldManual.field,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: FieldManual.hairline),
             ),
             child: Column(
               children: List.generate(category.items.length, (i) {
@@ -980,19 +982,17 @@ class _ModifierToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
+    // On = accent border + accent label; off = fieldRaised + hairline + bone.
     return GestureDetector(
       onTap: onToggle,
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: isOn
-              ? accent.withValues(alpha: 0.12)
-              : palette.surfaceElevated,
-          borderRadius: BorderRadius.circular(10),
+          color: FieldManual.fieldRaised,
+          borderRadius: BorderRadius.circular(4),
           border: Border.all(
-            color: isOn ? accent : palette.border,
+            color: isOn ? accent : FieldManual.hairline,
             width: isOn ? 1.5 : 1,
           ),
         ),
@@ -1001,17 +1001,15 @@ class _ModifierToggle extends StatelessWidget {
             Icon(
               icon,
               size: 18,
-              color: isOn ? accent : palette.textSecondary,
+              color: isOn ? accent : FieldManual.mutedBone,
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                isOn ? labelOn : labelOff,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: isOn ? accent : palette.text,
+                (isOn ? labelOn : labelOff).toUpperCase(),
+                style: FieldManual.label(
+                  fontSize: 11,
+                  color: isOn ? accent : FieldManual.bone,
                 ),
               ),
             ),
@@ -1055,87 +1053,81 @@ class _ItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     // Selected rows show the SIGNED contribution to the running total
-    // ("+180 cal"); unselected rows show the unsigned per-item kcal. The
+    // ("+180 CAL"); unselected rows show the unsigned per-item kcal. The
     // effective value reflects the active multiplier — 2× when doubled,
     // 0.5× when half-portion — so the user can sanity-check at a glance.
     double effectiveCal = item.calories;
     if (isDoubled) effectiveCal *= 2;
     if (isHalfPortion) effectiveCal *= 0.5;
     final calLabel = isSelected
-        ? '+${effectiveCal.toInt()} cal'
-        : '${item.calories.toInt()} cal';
+        ? '+${effectiveCal.toInt()} CAL'
+        : '${item.calories.toInt()} CAL';
 
     final nameColor = isDisabled
-        ? palette.textSecondary.withValues(alpha: 0.5)
-        : palette.text;
+        ? FieldManual.mutedBone.withValues(alpha: 0.5)
+        : FieldManual.bone;
     final calColor = isDisabled
-        ? palette.textSecondary.withValues(alpha: 0.4)
-        : (isSelected ? accent : palette.textSecondary);
+        ? FieldManual.mutedBone.withValues(alpha: 0.4)
+        : (isSelected ? accent : FieldManual.mutedBone);
 
     return Column(
       children: [
-        InkWell(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            color: isSelected
-                ? accent.withValues(alpha: 0.10)
-                : Colors.transparent,
-            child: Row(
-              children: [
-                _SelectorBadge(
-                  mode: mode,
-                  isSelected: isSelected,
-                  accent: accent,
-                  dimmed: isDisabled,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          item.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight:
-                                isSelected ? FontWeight.w600 : FontWeight.w500,
-                            fontSize: 14,
-                            color: nameColor,
+        // Disabled (at-cap) rows are colour-only visually — expose the
+        // disabled state to assistive tech as well.
+        Semantics(
+          enabled: !isDisabled,
+          child: InkWell(
+            onTap: onTap,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              color: isSelected ? FieldManual.fieldRaised : Colors.transparent,
+              child: Row(
+                children: [
+                  _SelectorBadge(
+                    mode: mode,
+                    isSelected: isSelected,
+                    accent: accent,
+                    dimmed: isDisabled,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          // Menu item names are content — never uppercased.
+                          child: Text(
+                            item.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: FieldManual.title(color: nameColor)
+                                .copyWith(fontSize: 14),
                           ),
                         ),
-                      ),
-                      if (isDoubled) ...[
-                        const SizedBox(width: 6),
-                        _MultiplierBadge(text: '2×', accent: accent),
+                        if (isDoubled) ...[
+                          const SizedBox(width: 6),
+                          _MultiplierBadge(text: '2×', accent: accent),
+                        ],
+                        if (isHalfPortion) ...[
+                          const SizedBox(width: 6),
+                          _MultiplierBadge(text: '½', accent: accent),
+                        ],
                       ],
-                      if (isHalfPortion) ...[
-                        const SizedBox(width: 6),
-                        _MultiplierBadge(text: '½', accent: accent),
-                      ],
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  calLabel,
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: calColor,
+                  const SizedBox(width: 8),
+                  Text(
+                    calLabel,
+                    style: FieldManual.readout(color: calColor, fontSize: 12),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
         if (showDivider)
-          Divider(height: 1, indent: 50, color: palette.separator),
+          const Divider(height: 1, indent: 50, color: FieldManual.hairline),
       ],
     );
   }
@@ -1148,20 +1140,16 @@ class _MultiplierBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: accent,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(3),
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.w700,
-          fontSize: 10,
-          color: Colors.white,
-        ),
+        style: FieldManual.label(fontSize: 10, color: palette.onAccent),
       ),
     );
   }
@@ -1182,10 +1170,9 @@ class _SelectorBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     final borderColor = dimmed
-        ? palette.textSecondary.withValues(alpha: 0.3)
-        : (isSelected ? accent : palette.textSecondary);
+        ? FieldManual.mutedBone.withValues(alpha: 0.3)
+        : (isSelected ? accent : FieldManual.mutedBone);
     if (mode == SelectionMode.single) {
       // Radio
       return Container(
@@ -1214,12 +1201,13 @@ class _SelectorBadge extends StatelessWidget {
       height: 22,
       decoration: BoxDecoration(
         color: isSelected ? accent : Colors.transparent,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(4),
         border: Border.all(color: borderColor, width: 2),
       ),
       alignment: Alignment.center,
       child: isSelected
-          ? const Icon(Icons.check, size: 16, color: Colors.white)
+          ? Icon(Icons.check,
+              size: 16, color: AppColors.of(context).onAccent)
           : null,
     );
   }
@@ -1258,11 +1246,10 @@ class _RunningTotalBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return Container(
-      decoration: BoxDecoration(
-        color: palette.surface,
-        border: Border(top: BorderSide(color: palette.border)),
+      decoration: const BoxDecoration(
+        color: FieldManual.field,
+        border: Border(top: BorderSide(color: FieldManual.hairline)),
       ),
       child: SafeArea(
         top: false,
@@ -1280,8 +1267,8 @@ class _RunningTotalBar extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
+                      color: FieldManual.fieldRaised,
+                      borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: accent.withValues(alpha: 0.4)),
                     ),
                     child: Row(
@@ -1290,12 +1277,10 @@ class _RunningTotalBar extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            '$cartCount item${cartCount == 1 ? '' : 's'} · '
-                            '${cartCalories.toInt()} cal in your meal',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
+                            '$cartCount ITEM${cartCount == 1 ? '' : 'S'} · '
+                            '${cartCalories.toInt()} CAL IN YOUR MEAL',
+                            style: FieldManual.label(
+                              fontSize: 10,
                               color: accent,
                             ),
                           ),
@@ -1318,32 +1303,19 @@ class _RunningTotalBar extends StatelessWidget {
                     children: [
                       Text(
                         cal.toStringAsFixed(0),
-                        style: TextStyle(
-                          fontFamily: 'LeagueSpartan',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 22,
-                          color: palette.text,
-                        ),
+                        style: FieldManual.readout(fontSize: 22),
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        'cal',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12,
-                          color: palette.textSecondary,
-                        ),
-                      ),
+                      Text('CAL', style: FieldManual.label(fontSize: 10)),
                     ],
                   ),
                   Row(
                     children: [
-                      _macro('P', pro, palette.accent),
+                      _macro('P', pro),
                       const SizedBox(width: 10),
-                      _macro('C', carb, palette.warning),
+                      _macro('C', carb),
                       const SizedBox(width: 10),
-                      _macro('F', fat, palette.success),
+                      _macro('F', fat),
                       const SizedBox(width: 10),
                       // Save the current configuration as a reusable meal.
                       Semantics(
@@ -1352,10 +1324,18 @@ class _RunningTotalBar extends StatelessWidget {
                         child: GestureDetector(
                           onTap: isSaving ? null : onSaveAsMeal,
                           behavior: HitTestBehavior.opaque,
-                          child: Icon(
-                            CupertinoIcons.bookmark,
-                            size: 20,
-                            color: palette.textSecondary,
+                          // ≥44pt tap target; the icon stays visually small.
+                          child: Container(
+                            constraints: const BoxConstraints(
+                              minWidth: 44,
+                              minHeight: 44,
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              CupertinoIcons.bookmark,
+                              size: 20,
+                              color: FieldManual.mutedBone,
+                            ),
                           ),
                         ),
                       ),
@@ -1369,17 +1349,15 @@ class _RunningTotalBar extends StatelessWidget {
                 children: [
                   Expanded(
                     child: CupertinoButton(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       color: accent,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                       onPressed: isSaving ? null : onAddToMeal,
-                      child: const Text(
-                        'Add to Meal',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: CupertinoColors.white,
+                      child: Text(
+                        'ADD TO MEAL',
+                        style: FieldManual.label(
+                          fontSize: 12,
+                          color: AppColors.of(context).onAccent,
                         ),
                       ),
                     ),
@@ -1387,19 +1365,17 @@ class _RunningTotalBar extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: CupertinoButton(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      color: palette.surfaceElevated,
-                      borderRadius: BorderRadius.circular(12),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      color: FieldManual.fieldRaised,
+                      borderRadius: BorderRadius.circular(4),
                       onPressed: isSaving ? null : onAddToLog,
                       child: isSaving
                           ? const CupertinoActivityIndicator()
                           : Text(
-                              cartCount > 0 ? 'Log Meal' : 'Add to Log',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: accent,
+                              cartCount > 0 ? 'LOG MEAL' : 'ADD TO LOG',
+                              style: FieldManual.label(
+                                fontSize: 12,
+                                color: FieldManual.bone,
                               ),
                             ),
                     ),
@@ -1413,29 +1389,13 @@ class _RunningTotalBar extends StatelessWidget {
     );
   }
 
-  Widget _macro(String label, double value, Color color) {
-    return Builder(builder: (context) {
-      final palette = AppColors.of(context);
-      return Row(
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '${value.toStringAsFixed(0)}$label',
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: palette.text,
-            ),
-          ),
-        ],
-      );
-    });
+  // Macro readouts are bone instrument-panel numbers (no colored dots —
+  // macro colors never carry text or markers in the Field Manual).
+  Widget _macro(String label, double value) {
+    return Text(
+      '${value.toStringAsFixed(0)}$label',
+      style: FieldManual.readout(fontSize: 13),
+    );
   }
 }
 
@@ -1467,11 +1427,10 @@ class _MealTypeSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
     return Container(
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: const BoxDecoration(
+        color: FieldManual.ink,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
       child: SafeArea(
@@ -1483,7 +1442,7 @@ class _MealTypeSheet extends StatelessWidget {
               width: 36,
               height: 5,
               decoration: BoxDecoration(
-                color: palette.textSecondary.withValues(alpha: 0.4),
+                color: FieldManual.mutedBone.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -1493,8 +1452,9 @@ class _MealTypeSheet extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: palette.surfaceElevated,
-                borderRadius: BorderRadius.circular(12),
+                color: FieldManual.field,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: FieldManual.hairline),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1505,62 +1465,39 @@ class _MealTypeSheet extends StatelessWidget {
                     children: [
                       Text(
                         cal.toStringAsFixed(0),
-                        style: TextStyle(
-                          fontFamily: 'LeagueSpartan',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 22,
-                          color: palette.text,
-                        ),
+                        style: FieldManual.readout(fontSize: 22),
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        'cal',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12,
-                          color: palette.textSecondary,
-                        ),
-                      ),
+                      Text('CAL', style: FieldManual.label(fontSize: 10)),
                     ],
                   ),
                   Text(
                     '${pro.toStringAsFixed(0)}P · ${carb.toStringAsFixed(0)}C · '
                     '${fat.toStringAsFixed(0)}F',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: palette.textSecondary,
+                    style: FieldManual.readout(
+                      fontSize: 13,
+                      color: FieldManual.mutedBone,
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 18),
-            Text(
-              'Add to which meal?',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w700,
-                fontSize: 17,
-                color: palette.text,
-              ),
-            ),
+            Text('ADD TO WHICH MEAL?', style: FieldManual.title()),
             const SizedBox(height: 14),
             Row(
               children: [
-                _button(context, MealType.breakfast, palette),
+                _button(context, MealType.breakfast),
                 const SizedBox(width: 10),
-                _button(context, MealType.lunch, palette),
+                _button(context, MealType.lunch),
               ],
             ),
             const SizedBox(height: 10),
             Row(
               children: [
-                _button(context, MealType.dinner, palette),
+                _button(context, MealType.dinner),
                 const SizedBox(width: 10),
-                _button(context, MealType.snack, palette),
+                _button(context, MealType.snack),
               ],
             ),
             const SizedBox(height: 6),
@@ -1568,7 +1505,7 @@ class _MealTypeSheet extends StatelessWidget {
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 'Cancel',
-                style: TextStyle(color: palette.textSecondary),
+                style: FieldManual.body(color: FieldManual.mutedBone),
               ),
             ),
           ],
@@ -1577,7 +1514,7 @@ class _MealTypeSheet extends StatelessWidget {
     );
   }
 
-  Widget _button(BuildContext context, MealType type, Palette palette) {
+  Widget _button(BuildContext context, MealType type) {
     final isDefault = type == defaultType;
     return Expanded(
       child: GestureDetector(
@@ -1589,12 +1526,10 @@ class _MealTypeSheet extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: isDefault
-                ? accent.withValues(alpha: 0.14)
-                : palette.surfaceElevated,
-            borderRadius: BorderRadius.circular(14),
+            color: FieldManual.fieldRaised,
+            borderRadius: BorderRadius.circular(4),
             border: Border.all(
-              color: isDefault ? accent : palette.border,
+              color: isDefault ? accent : FieldManual.hairline,
               width: isDefault ? 1.5 : 1,
             ),
           ),
@@ -1603,24 +1538,16 @@ class _MealTypeSheet extends StatelessWidget {
               Text(_emoji[type]!, style: const TextStyle(fontSize: 26)),
               const SizedBox(height: 6),
               Text(
-                type.label,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: isDefault ? accent : palette.text,
-                ),
+                type.label.toUpperCase(),
+                style: FieldManual.title(
+                  color: isDefault ? accent : FieldManual.bone,
+                ).copyWith(fontSize: 14),
               ),
               if (isDefault) ...[
                 const SizedBox(height: 2),
                 Text(
-                  'Suggested',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 10,
-                    color: accent,
-                  ),
+                  'SUGGESTED',
+                  style: FieldManual.label(fontSize: 11, color: accent),
                 ),
               ],
             ],
@@ -1634,20 +1561,17 @@ class _MealTypeSheet extends StatelessWidget {
 // ─── "Your Meal" cart review sheet ────────────────────────────────
 
 class _MealCartSheet extends ConsumerWidget {
-  const _MealCartSheet({this.accent});
-
-  final Color? accent;
+  const _MealCartSheet();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final palette = AppColors.of(context);
-    final accentColor = accent ?? palette.accent;
+    final accentColor = AppColors.of(context).accent;
     final cart = ref.watch(mealCartProvider);
 
     return Container(
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: const BoxDecoration(
+        color: FieldManual.ink,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.72,
@@ -1662,28 +1586,18 @@ class _MealCartSheet extends ConsumerWidget {
               width: 36,
               height: 5,
               decoration: BoxDecoration(
-                color: palette.textSecondary.withValues(alpha: 0.4),
+                color: FieldManual.mutedBone.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              'Your Meal',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w700,
-                fontSize: 17,
-                color: palette.text,
-              ),
-            ),
+            Text('YOUR MEAL', style: FieldManual.title()),
             const SizedBox(height: 4),
             Text(
               'Swipe an item to remove it',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w500,
-                fontSize: 12,
-                color: palette.textSecondary,
+              style: FieldManual.body(
+                fontSize: 13,
+                color: FieldManual.mutedBone,
               ),
             ),
             const SizedBox(height: 12),
@@ -1692,7 +1606,7 @@ class _MealCartSheet extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 32),
                 child: Text(
                   'Your meal is empty.',
-                  style: TextStyle(color: palette.textSecondary),
+                  style: FieldManual.body(color: FieldManual.mutedBone),
                 ),
               )
             else ...[
@@ -1700,9 +1614,9 @@ class _MealCartSheet extends ConsumerWidget {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: cart.items.length,
-                  separatorBuilder: (_, _) => Divider(
+                  separatorBuilder: (_, _) => const Divider(
                     height: 1,
-                    color: palette.separator,
+                    color: FieldManual.hairline,
                   ),
                   itemBuilder: (context, i) {
                     final item = cart.items[i];
@@ -1718,9 +1632,9 @@ class _MealCartSheet extends ConsumerWidget {
                       background: Container(
                         alignment: Alignment.centerRight,
                         padding: const EdgeInsets.only(right: 20),
-                        color: palette.destructive,
+                        color: FieldManual.alert,
                         child: const Icon(CupertinoIcons.delete,
-                            color: CupertinoColors.white),
+                            color: FieldManual.bone),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1731,27 +1645,23 @@ class _MealCartSheet extends ConsumerWidget {
                                 crossAxisAlignment:
                                     CrossAxisAlignment.start,
                                 children: [
+                                  // Composed meal names are content —
+                                  // never uppercased.
                                   Text(
                                     item.name,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontFamily: 'Poppins',
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                      color: palette.text,
-                                    ),
+                                    style: FieldManual.title()
+                                        .copyWith(fontSize: 14),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     '${item.protein.toStringAsFixed(0)}P · '
                                     '${item.carbs.toStringAsFixed(0)}C · '
                                     '${item.fat.toStringAsFixed(0)}F',
-                                    style: TextStyle(
-                                      fontFamily: 'LeagueSpartan',
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 12,
-                                      color: palette.textSecondary,
+                                    style: FieldManual.readout(
+                                      fontSize: 11,
+                                      color: FieldManual.mutedBone,
                                     ),
                                   ),
                                 ],
@@ -1759,13 +1669,8 @@ class _MealCartSheet extends ConsumerWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              '${item.calories.toStringAsFixed(0)} cal',
-                              style: TextStyle(
-                                fontFamily: 'LeagueSpartan',
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                                color: palette.text,
-                              ),
+                              '${item.calories.toStringAsFixed(0)} CAL',
+                              style: FieldManual.readout(fontSize: 13),
                             ),
                           ],
                         ),
@@ -1779,32 +1684,20 @@ class _MealCartSheet extends ConsumerWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
-                  color: palette.surfaceElevated,
-                  borderRadius: BorderRadius.circular(12),
+                  color: FieldManual.field,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: FieldManual.hairline),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    Text('TOTAL', style: FieldManual.label(fontSize: 10)),
                     Text(
-                      'Total',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: palette.text,
-                      ),
-                    ),
-                    Text(
-                      '${cart.totalCalories.toStringAsFixed(0)} cal · '
+                      '${cart.totalCalories.toStringAsFixed(0)} CAL · '
                       '${cart.totalProtein.toStringAsFixed(0)}P · '
                       '${cart.totalCarbs.toStringAsFixed(0)}C · '
                       '${cart.totalFat.toStringAsFixed(0)}F',
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        color: palette.text,
-                      ),
+                      style: FieldManual.readout(fontSize: 13),
                     ),
                   ],
                 ),
@@ -1815,15 +1708,13 @@ class _MealCartSheet extends ConsumerWidget {
                 child: CupertinoButton(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   color: accentColor,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(4),
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text(
-                    'Add to Log',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      color: CupertinoColors.white,
+                  child: Text(
+                    'ADD TO LOG',
+                    style: FieldManual.label(
+                      fontSize: 12,
+                      color: AppColors.of(context).onAccent,
                     ),
                   ),
                 ),
@@ -1861,15 +1752,14 @@ class _NameSavedMealSheetState extends State<_NameSavedMealSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
+    final accent = AppColors.of(context).accent;
     return Padding(
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: const BoxDecoration(
+          color: FieldManual.ink,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
         child: SafeArea(
@@ -1881,34 +1771,27 @@ class _NameSavedMealSheetState extends State<_NameSavedMealSheet> {
                 width: 36,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: palette.textSecondary.withValues(alpha: 0.4),
+                  color: FieldManual.mutedBone.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
               const SizedBox(height: 16),
-              Text(
-                'Save this meal',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 17,
-                  color: palette.text,
-                ),
-              ),
+              Text('SAVE THIS MEAL', style: FieldManual.title()),
               const SizedBox(height: 12),
               CupertinoTextField(
                 controller: _ctl,
                 autofocus: true,
                 placeholder: 'Meal name',
                 decoration: BoxDecoration(
-                  color: palette.surfaceElevated,
-                  borderRadius: BorderRadius.circular(10),
+                  color: FieldManual.fieldRaised,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: FieldManual.hairline),
                 ),
                 padding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 12),
-                style: TextStyle(color: palette.text, fontSize: 15),
+                style: FieldManual.body(),
                 placeholderStyle:
-                    TextStyle(color: palette.textSecondary, fontSize: 15),
+                    FieldManual.body(color: FieldManual.mutedBone),
               ),
               const SizedBox(height: 16),
               Row(
@@ -1919,7 +1802,7 @@ class _NameSavedMealSheetState extends State<_NameSavedMealSheet> {
                       onPressed: () => Navigator.of(context).pop(),
                       child: Text(
                         'Cancel',
-                        style: TextStyle(color: palette.textSecondary),
+                        style: FieldManual.body(color: FieldManual.mutedBone),
                       ),
                     ),
                   ),
@@ -1927,13 +1810,16 @@ class _NameSavedMealSheetState extends State<_NameSavedMealSheet> {
                   Expanded(
                     child: CupertinoButton(
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      color: palette.accent,
-                      borderRadius: BorderRadius.circular(12),
+                      color: accent,
+                      borderRadius: BorderRadius.circular(4),
                       onPressed: () =>
                           Navigator.of(context).pop(_ctl.text.trim()),
-                      child: const Text(
-                        'Save',
-                        style: TextStyle(color: CupertinoColors.white),
+                      child: Text(
+                        'SAVE',
+                        style: FieldManual.label(
+                          fontSize: 12,
+                          color: AppColors.of(context).onAccent,
+                        ),
                       ),
                     ),
                   ),

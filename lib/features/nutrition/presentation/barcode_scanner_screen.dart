@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../models/enums.dart';
 import '../../../providers/nutrition_providers.dart';
@@ -63,13 +64,14 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
+      backgroundColor: FieldManual.ink,
       appBar: CupertinoNavigationBar(
-        middle: const Text('Scan Barcode'),
-        backgroundColor: AppColors.of(context).background.withValues(alpha: 0.8),
-        border: null,
+        middle: Text('SCAN BARCODE', style: FieldManual.title()),
+        backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+        border: const Border(
+          bottom: BorderSide(color: FieldManual.hairline),
+        ),
         trailing: CupertinoButton(
           padding: const EdgeInsets.all(8),
           onPressed: () => _controller.toggleTorch(),
@@ -81,6 +83,7 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
                     ? CupertinoIcons.bolt_fill
                     : CupertinoIcons.bolt_slash,
                 size: 22,
+                color: FieldManual.bone,
                 semanticLabel: state.torchState == TorchState.on
                     ? 'Turn torch off'
                     : 'Turn torch on',
@@ -97,16 +100,17 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
           ),
           if (_isProcessing)
             Container(
-              color: Colors.black54,
-              child: const Center(
+              color: FieldManual.ink.withValues(alpha: 0.75),
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: Colors.white),
-                    SizedBox(height: 16),
+                    const CircularProgressIndicator(
+                        color: FieldManual.bone),
+                    const SizedBox(height: 16),
                     Text(
                       'Looking up product...',
-                      style: TextStyle(color: Colors.white, fontSize: 16),
+                      style: FieldManual.body(fontSize: 15),
                     ),
                   ],
                 ),
@@ -122,10 +126,10 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
                 height: guideSize,
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: colorScheme.primary,
+                    color: AppColors.of(context).accent,
                     width: 2,
                   ),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
             );

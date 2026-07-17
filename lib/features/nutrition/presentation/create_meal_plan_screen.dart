@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/constants/nutrient_icons.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/widgets/cupertino_helpers.dart' as helpers;
 import '../../../models/enums.dart';
 import '../../../providers/custom_meal_plan_providers.dart';
@@ -117,34 +117,39 @@ class _CreateMealPlanScreenState extends ConsumerState<CreateMealPlanScreen> {
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
     return Scaffold(
-      backgroundColor: palette.background,
+      backgroundColor: FieldManual.ink,
       appBar: CupertinoNavigationBar(
-        backgroundColor: palette.background.withValues(alpha: 0.8),
-        border: null,
+        backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+        border: const Border(
+          bottom: BorderSide(color: FieldManual.hairline),
+        ),
         leading: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: () => Navigator.of(context).pop(),
-          child: Text('Cancel',
-              style: TextStyle(color: palette.accent)),
+          child: Text(
+            'CANCEL',
+            style: FieldManual.label(
+              color: FieldManual.bone,
+              fontSize: 12,
+            ),
+          ),
         ),
         middle: Text(
-          'Create Meal Plan',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: palette.text,
-          ),
+          'CREATE MEAL PLAN',
+          style: FieldManual.title(),
         ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: _saving ? null : _save,
           child: _saving
               ? const CupertinoActivityIndicator(radius: 10)
-              : Text('Save',
-                  style: TextStyle(
+              : Text(
+                  'SAVE',
+                  style: FieldManual.label(
                     color: palette.accent,
-                    fontWeight: FontWeight.w600,
-                  )),
+                    fontSize: 12,
+                  ),
+                ),
         ),
       ),
       body: Column(
@@ -160,26 +165,21 @@ class _CreateMealPlanScreenState extends ConsumerState<CreateMealPlanScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
-                    color: palette.surface,
-                    borderRadius: BorderRadius.circular(10),
+                    color: FieldManual.fieldRaised,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: FieldManual.hairline),
                   ),
-                  style: TextStyle(color: palette.text, fontSize: 15),
-                  placeholderStyle: TextStyle(
-                    color: palette.textSecondary,
-                    fontSize: 15,
+                  style: FieldManual.body(),
+                  placeholderStyle: FieldManual.body(
+                    color: FieldManual.mutedBone,
                   ),
                 ),
                 const SizedBox(height: 16),
 
                 // Goal chips
                 Text(
-                  'Goal',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: palette.text,
-                  ),
+                  'GOAL',
+                  style: FieldManual.label(fontSize: 10),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -188,24 +188,23 @@ class _CreateMealPlanScreenState extends ConsumerState<CreateMealPlanScreen> {
                   children: _goalOptions.map((goal) {
                     final selected = _selectedGoal == goal;
                     return ChoiceChip(
-                      label: Text(goal),
+                      label: Text(goal.toUpperCase()),
                       selected: selected,
                       onSelected: (v) =>
                           setState(() => _selectedGoal = v ? goal : null),
                       selectedColor: palette.accent,
-                      backgroundColor: palette.surface,
-                      labelStyle: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w500,
-                        fontSize: 13,
-                        color: selected ? Colors.white : palette.text,
+                      backgroundColor: FieldManual.field,
+                      checkmarkColor: palette.onAccent,
+                      labelStyle: FieldManual.label(
+                        fontSize: 10,
+                        color: selected ? palette.onAccent : FieldManual.bone,
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(4),
                         side: BorderSide(
                           color: selected
                               ? palette.accent
-                              : palette.border,
+                              : FieldManual.hairline,
                         ),
                       ),
                     );
@@ -264,9 +263,16 @@ class _MealSection extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: helpers.CupertinoExpansionTile(
         initiallyExpanded: true,
-        title: Text(mealType.label),
+        title: Text(
+          mealType.label.toUpperCase(),
+          style: FieldManual.title(),
+        ),
         subtitle: Text(
-          '${_sectionCals.toInt()} kcal · ${foods.length} item${foods.length == 1 ? '' : 's'}',
+          '${_sectionCals.toInt()} KCAL · ${foods.length} ITEM${foods.length == 1 ? '' : 'S'}',
+          style: FieldManual.readout(
+            fontSize: 10,
+            color: FieldManual.mutedBone,
+          ),
         ),
         children: [
           ...List.generate(foods.length, (i) {
@@ -284,16 +290,13 @@ class _MealSection extends StatelessWidget {
                           food.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppColors.of(context).text,
-                            fontSize: 14,
-                          ),
+                          style: FieldManual.body(fontSize: 14),
                         ),
                         Text(
-                          '${cals.toInt()} kcal',
-                          style: TextStyle(
-                            color: AppColors.of(context).textSecondary,
-                            fontSize: 12,
+                          '${cals.toInt()} KCAL',
+                          style: FieldManual.readout(
+                            fontSize: 11,
+                            color: FieldManual.mutedBone,
                           ),
                         ),
                       ],
@@ -303,11 +306,20 @@ class _MealSection extends StatelessWidget {
                     button: true,
                     label: 'Remove food',
                     child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: () => onRemoveFood(i),
-                      child: Icon(
-                        CupertinoIcons.minus_circle_fill,
-                        color: AppColors.of(context).destructive,
-                        size: 20,
+                      // ≥44pt tap target; the icon stays visually small.
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          minWidth: 44,
+                          minHeight: 44,
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          CupertinoIcons.minus_circle_fill,
+                          color: AppColors.of(context).destructive,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -322,9 +334,11 @@ class _MealSection extends StatelessWidget {
               builder: (context) {
                 final accentColor = AppColors.of(context).accent;
                 return Container(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: accentColor.withValues(alpha: 0.4)),
                   ),
                   child: Row(
@@ -333,12 +347,10 @@ class _MealSection extends StatelessWidget {
                       Icon(CupertinoIcons.add, size: 16, color: accentColor),
                       const SizedBox(width: 6),
                       Text(
-                        'Add Food',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                        'ADD FOOD',
+                        style: FieldManual.label(
                           color: accentColor,
+                          fontSize: 10,
                         ),
                       ),
                     ],
@@ -373,36 +385,31 @@ class _TotalsBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final padding = MediaQuery.paddingOf(context);
-    final palette = AppColors.of(context);
     return Container(
       padding:
           EdgeInsets.fromLTRB(16, 12, 16, padding.bottom > 0 ? padding.bottom : 12),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        border: Border(top: BorderSide(color: palette.border)),
+      decoration: const BoxDecoration(
+        color: FieldManual.field,
+        border: Border(top: BorderSide(color: FieldManual.hairline)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _TotalItem(
-            label: 'Calories',
+            label: 'CALORIES',
             value: '${calories.toInt()}',
-            color: NutrientIcons.caloriesColor,
           ),
           _TotalItem(
-            label: 'Protein',
-            value: '${protein.toInt()}g',
-            color: NutrientIcons.proteinColor,
+            label: 'PROTEIN',
+            value: '${protein.toInt()}G',
           ),
           _TotalItem(
-            label: 'Carbs',
-            value: '${carbs.toInt()}g',
-            color: NutrientIcons.carbsColor,
+            label: 'CARBS',
+            value: '${carbs.toInt()}G',
           ),
           _TotalItem(
-            label: 'Fat',
-            value: '${fat.toInt()}g',
-            color: NutrientIcons.fatColor,
+            label: 'FAT',
+            value: '${fat.toInt()}G',
           ),
         ],
       ),
@@ -414,12 +421,10 @@ class _TotalItem extends StatelessWidget {
   const _TotalItem({
     required this.label,
     required this.value,
-    required this.color,
   });
 
   final String label;
   final String value;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -428,20 +433,11 @@ class _TotalItem extends StatelessWidget {
       children: [
         Text(
           value,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w700,
-            fontSize: 16,
-            color: color,
-          ),
+          style: FieldManual.readout(fontSize: 16),
         ),
         Text(
           label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 11,
-            color: AppColors.of(context).textSecondary,
-          ),
+          style: FieldManual.label(fontSize: 11),
         ),
       ],
     );
