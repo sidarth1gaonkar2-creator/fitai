@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/unit_converter.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
+import '../../../core/widgets/tactical_surface.dart';
 import '../../../data/exercise_library.dart';
 import '../../../providers/entitlement_providers.dart';
 import '../../../providers/unit_system_provider.dart';
@@ -41,7 +42,7 @@ class RanksScreen extends ConsumerWidget {
         backgroundColor: palette.background.withValues(alpha: 0.8),
         border: null,
       ),
-      body: async.when(
+      body: SkinBackground(child: async.when(
         loading: () => const Padding(
           padding: EdgeInsets.all(16),
           child: Column(
@@ -100,7 +101,7 @@ class RanksScreen extends ConsumerWidget {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 }

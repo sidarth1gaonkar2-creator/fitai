@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/utils/scoped_prefs.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
+import '../../../core/widgets/tactical_surface.dart';
 import '../../../data/exercise_library.dart';
 import '../../../data/workout_templates.dart';
 import '../../../models/saved_workout_template.dart';
@@ -440,7 +441,8 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
                 ),
         ),
       ),
-      body: Column(
+      body: SkinBackground(
+          child: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
@@ -525,7 +527,7 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
           // Rest timer (bottom)
           const RestTimerSheet(),
         ],
-      ),
+      )),
     );
   }
 }

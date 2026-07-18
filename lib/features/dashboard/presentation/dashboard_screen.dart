@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/field_manual.dart';
+import '../../../core/widgets/tactical_surface.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../providers/dashboard_providers.dart';
@@ -297,7 +298,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ],
         ),
       ),
-      body: body,
+      body: SkinBackground(child: body),
     );
   }
 }

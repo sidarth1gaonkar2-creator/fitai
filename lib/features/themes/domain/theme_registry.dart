@@ -1,6 +1,20 @@
 import 'package:flutter/painting.dart';
 
+import '../../../core/theme/surface_texture.dart';
 import 'app_theme_data.dart';
+
+// Night Ops surface texture — dark tactical camo darkened toward near-black
+// (NVG/HUD grain, derived from design-refs/Nightops texture skin.jpg). Every
+// tone is capped at #1C1C1C so text over the lightest lobe holds WCAG AA
+// (bone 13.6:1, amber 9.4:1).
+const SurfaceTexture _nightOpsTexture = SurfaceTexture(
+  id: 'night_ops',
+  base: Color(0xFF050505),
+  tones: [Color(0xFF0D0D0D), Color(0xFF151515), Color(0xFF1C1C1C)],
+  blobsPerTone: 72,
+  tileSize: 480,
+  seed: 7,
+);
 
 /// Static catalogue of all themes shipped with the app. Order here defines
 /// the order shown in the store grid. The first entry MUST be the default
@@ -262,9 +276,12 @@ const List<AppThemeData> themeRegistry = [
     darkTextSecondary: _mutedBone,
     darkTextTertiary: _liftedOlive,
     darkSurfaceElevated: Color(0xFF161616),
-    darkBorder: Color(0x29E8E4D8), // bone @16% — holds as a hairline on black
-    darkSeparator: Color(0x1AE8E4D8), // bone @10%
-    // Full-skin overrides:
+    darkBorder: Color(0x3DE8E4D8), // bone @24% — HUD viewport hairline on black
+    darkSeparator: Color(0x1FE8E4D8), // bone @12%
+    // Full-skin overrides — the material, not just the accent:
+    surfaceTexture: _nightOpsTexture, // tactical camo grain behind backgrounds
+    cardBrackets: true, // HUD viewport frame + corner brackets on cards
+    accentGlow: true, // amber blooms on true black (HUD signal)
     cardRadius: 2, // sharp regulation corners (FM 8)
     sheetRadius: 4, // (FM 12)
     buttonRadius: 2, // (FM 4)

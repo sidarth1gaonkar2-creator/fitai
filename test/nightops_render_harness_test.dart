@@ -1,12 +1,12 @@
-// RENDER HARNESS — renders the Night Ops full skin vs the Field Manual default
-// across dashboard / My Ranks / logging chrome, using the REAL reused widgets
-// (CupertinoCard, FieldManual text styles, RankInsignia) under each skin.
+// RENDER HARNESS — Night Ops (full skin) vs Field Manual default across the
+// dashboard / My Ranks / logging chrome, using the REAL reused widgets
+// (SkinBackground, CupertinoCard, FieldManual text styles, RankInsignia) under
+// each skin. Produces a SIDE-BY-SIDE PNG — the acceptance test: the two must
+// read as different SKINS, not a recolor.
 //
 // Run: flutter test --no-test-assets test/nightops_render_harness_test.dart
-// (fonts are loaded from disk via FontLoader, so the test-asset bundle isn't
-// needed — --no-test-assets is fine and matches the repo convention).
-//
-// Writes PNGs to the gitignored build/nightops-renders/ (safe on any checkout).
+// (fonts load from disk via FontLoader; --no-test-assets is fine.)
+// Writes to gitignored build/nightops-renders/.
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -20,6 +20,7 @@ import 'package:fitai/core/theme/app_colors.dart';
 import 'package:fitai/core/theme/field_manual.dart';
 import 'package:fitai/core/theme/fm_skin.dart';
 import 'package:fitai/core/widgets/cupertino_helpers.dart';
+import 'package:fitai/core/widgets/tactical_surface.dart';
 import 'package:fitai/features/ranks/domain/military_ranks.dart';
 import 'package:fitai/features/ranks/presentation/widgets/rank_badge.dart';
 import 'package:fitai/features/themes/domain/app_theme_data.dart';
@@ -27,6 +28,7 @@ import 'package:fitai/features/themes/domain/theme_registry.dart';
 import 'package:fitai/features/themes/providers/theme_providers.dart';
 
 final _outDir = '${Directory.current.path}/build/nightops-renders';
+const _screenSize = Size(390, 1180);
 
 Future<void> _loadFont(String family, String path) async {
   final bytes = await File(path).readAsBytes();
@@ -34,26 +36,21 @@ Future<void> _loadFont(String family, String path) async {
       .load();
 }
 
-Future<void> _capture(
+Future<ui.Image> _render(
   WidgetTester tester, {
   required AppThemeData theme,
   required String file,
 }) async {
-  // The whole-app skin the FM statics resolve (surfaces/geometry/type).
   FieldManual.skin = FmSkin.fromTheme(theme);
-  const size = Size(390, 1200);
-  await tester.binding.setSurfaceSize(size);
+  await tester.binding.setSurfaceSize(_screenSize);
   final key = GlobalKey();
   await tester.pumpWidget(
     ProviderScope(
       overrides: [activeThemeProvider.overrideWithValue(theme)],
       child: MediaQuery(
-        data: const MediaQueryData(size: size),
+        data: const MediaQueryData(size: _screenSize),
         child: Directionality(
           textDirection: TextDirection.ltr,
-          // The app always runs dark (light mode retired); AppColors reads
-          // brightness off CupertinoTheme, so the Palette channel needs a dark
-          // CupertinoTheme here or it falls back to the light palette.
           child: CupertinoTheme(
             data: const CupertinoThemeData(brightness: Brightness.dark),
             child: RepaintBoundary(key: key, child: _Showcase(theme: theme)),
@@ -62,15 +59,59 @@ Future<void> _capture(
       ),
     ),
   );
-  await tester.pump(const Duration(milliseconds: 32));
+  await tester.pump(const Duration(milliseconds: 40));
   final boundary =
       key.currentContext!.findRenderObject() as RenderRepaintBoundary;
+  late ui.Image img;
   await tester.runAsync(() async {
-    final image = await boundary.toImage(pixelRatio: 2.0);
-    final png = await image.toByteData(format: ui.ImageByteFormat.png);
+    img = await boundary.toImage(pixelRatio: 2.0);
+    final png = await img.toByteData(format: ui.ImageByteFormat.png);
     await File(file).writeAsBytes(png!.buffer.asUint8List());
-    image.dispose();
   });
+  return img;
+}
+
+void _label(Canvas c, String s, Offset center, double size, Color color) {
+  final tp = TextPainter(
+    text: TextSpan(
+      text: s,
+      style: TextStyle(
+        fontFamily: 'JetBrainsMono',
+        fontSize: size,
+        color: color,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.5,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  tp.paint(c, center - Offset(tp.width / 2, tp.height / 2));
+}
+
+Future<void> _sideBySide(
+  ui.Image a,
+  String la,
+  ui.Image b,
+  String lb,
+  String file,
+) async {
+  final w = a.width, h = a.height;
+  const gap = 44, headerH = 88, pad = 28;
+  final totalW = pad + w + gap + w + pad;
+  final totalH = headerH + h + pad;
+  final rec = ui.PictureRecorder();
+  final c = Canvas(rec, Rect.fromLTWH(0, 0, totalW.toDouble(), totalH.toDouble()));
+  c.drawRect(Rect.fromLTWH(0, 0, totalW.toDouble(), totalH.toDouble()),
+      Paint()..color = const Color(0xFF161616));
+  _label(c, la, Offset(pad + w / 2, headerH / 2), 26, const Color(0xFFFFB000));
+  _label(c, lb, Offset(pad + w + gap + w / 2.0, headerH / 2), 26,
+      const Color(0xFFC8A24B));
+  c.drawImage(a, Offset(pad.toDouble(), headerH.toDouble()), Paint());
+  c.drawImage(
+      b, Offset((pad + w + gap).toDouble(), headerH.toDouble()), Paint());
+  final img = await rec.endRecording().toImage(totalW, totalH);
+  final png = await img.toByteData(format: ui.ImageByteFormat.png);
+  await File(file).writeAsBytes(png!.buffer.asUint8List());
   // ignore: avoid_print
   print('WROTE $file');
 }
@@ -83,23 +124,26 @@ void main() {
     await Directory(_outDir).create(recursive: true);
   });
 
-  tearDown(() {
-    // Reset the global skin so ordering never leaks between captures.
-    FieldManual.skin = const FmSkin.fieldManual();
-  });
+  tearDown(() => FieldManual.skin = const FmSkin.fieldManual());
 
-  testWidgets('Night Ops skin — dashboard/ranks/logging chrome', (t) async {
-    await _capture(t, theme: themeById('night_ops'), file: '$_outDir/night_ops.png');
-  });
-
-  testWidgets('Field Manual default — same chrome for comparison', (t) async {
-    await _capture(t, theme: defaultTheme, file: '$_outDir/field_manual.png');
+  testWidgets('Night Ops vs Field Manual — side-by-side acceptance', (t) async {
+    final nightOps = await _render(t,
+        theme: themeById('night_ops'), file: '$_outDir/night_ops.png');
+    final fm = await _render(t,
+        theme: defaultTheme, file: '$_outDir/field_manual.png');
+    await t.runAsync(() => _sideBySide(
+          nightOps,
+          'NIGHT OPS',
+          fm,
+          'FIELD MANUAL',
+          '$_outDir/night_ops_vs_fm.png',
+        ));
   });
 }
 
-/// A single tall panel that stacks the signature chrome of the three key
-/// screens, built from the real reused widgets so a skin's effect on surfaces,
-/// geometry, type, accent, and insignia is visible at a glance.
+/// One tall panel stacking the signature chrome of the three key screens, built
+/// from the real reused widgets so a skin's effect on the *material* (texture,
+/// frames, geometry, type, accent, insignia) is visible at a glance.
 class _Showcase extends StatelessWidget {
   const _Showcase({required this.theme});
   final AppThemeData theme;
@@ -109,8 +153,9 @@ class _Showcase extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = AppColors.of(context);
-    return ColoredBox(
-      color: FieldManual.ink,
+    // SkinBackground paints the tactical texture on a full skin, or a solid
+    // ink fill on accent-swap themes (byte-identical).
+    return SkinBackground(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         child: Column(
@@ -125,7 +170,7 @@ class _Showcase extends StatelessWidget {
             CupertinoCard(
               child: Row(
                 children: [
-                  _disc(p, size: 34, inset: 22),
+                  _disc(size: 34, inset: 22),
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,7 +232,7 @@ class _Showcase extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  _disc(p, size: 96, inset: 58),
+                  _disc(size: 96, inset: 58),
                   const SizedBox(height: 12),
                   Text(_rank.displayName,
                       style: FieldManual.display().copyWith(fontSize: 24)),
@@ -254,7 +299,7 @@ class _Showcase extends StatelessWidget {
     );
   }
 
-  Widget _disc(Palette p, {required double size, required double inset}) {
+  Widget _disc({required double size, required double inset}) {
     return Container(
       width: size,
       height: size,
@@ -277,7 +322,12 @@ class _Showcase extends StatelessWidget {
         child: FractionallySizedBox(
           alignment: Alignment.centerLeft,
           widthFactor: frac,
-          child: Container(color: p.accent),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: p.accent,
+              boxShadow: skinAccentGlow(p.accent, blur: 10, alpha: 0.5),
+            ),
+          ),
         ),
       ),
     );
@@ -304,6 +354,7 @@ class _Showcase extends StatelessWidget {
         color: filled ? p.accent : FieldManual.fieldRaised,
         borderRadius: BorderRadius.circular(FieldManual.buttonRadius),
         border: filled ? null : Border.all(color: p.border),
+        boxShadow: filled ? skinAccentGlow(p.accent) : null,
       ),
       child: Text(
         label,
@@ -332,8 +383,8 @@ class _Showcase extends StatelessWidget {
         );
     return Container(
       padding: const EdgeInsets.only(top: 10),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: FieldManual.hairline)),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: p.border)),
       ),
       child: Row(
         children: [
