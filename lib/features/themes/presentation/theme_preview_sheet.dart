@@ -44,7 +44,7 @@ class ThemePreviewSheet extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         // FM sheet: ink ground, top radius 12; the scrim behind the modal
         // conveys modality — no shadow.
         color: FieldManual.ink,

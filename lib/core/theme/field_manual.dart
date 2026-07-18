@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import 'fm_skin.dart';
+
 /// Field Manual design tokens — the app's target visual spec (DESIGN.md).
 ///
 /// First adopted by the Airborne paywall; new and reworked screens build on
@@ -8,16 +10,39 @@ import 'package:flutter/widgets.dart';
 /// Rule, theme packs swap the accent on app chrome only — Airborne brand
 /// moments always wear brass.
 abstract final class FieldManual {
-  // ── Surfaces ──────────────────────────────────────────────────────────────
+  // ── Active skin ───────────────────────────────────────────────────────────
+  // Full skins (Night Ops, …) restyle surfaces, geometry, and type beyond the
+  // accent. `DrillFitApp` writes this from the equipped theme, and the whole
+  // tree rebuilds on change — so these statics resolve the live skin with no
+  // per-widget wiring. Defaults to the Field Manual look, so every accent-swap
+  // pack (which overrides nothing) renders byte-identically.
+  static FmSkin skin = const FmSkin.fieldManual();
+
+  // ── Surfaces (skin-driven) ────────────────────────────────────────────────
 
   /// Screen background.
-  static const ink = Color(0xFF1A1C1A);
+  static Color get ink => skin.ink;
 
   /// Cards, panels, sheets — one tonal step above ink.
-  static const field = Color(0xFF21241F);
+  static Color get field => skin.field;
 
   /// The rare second step: active inputs, pressed cards, selected surfaces.
-  static const fieldRaised = Color(0xFF2A2E26);
+  static Color get fieldRaised => skin.fieldRaised;
+
+  // ── Geometry (skin-driven) ────────────────────────────────────────────────
+
+  /// Card/panel corner radius (FM 8). Chokepoint surfaces (CupertinoCard) read
+  /// this; ad-hoc `BorderRadius.circular(...)` literals are not yet tokenised.
+  static double get cardRadius => skin.cardRadius;
+
+  /// Sheet/dialog corner radius (FM 12).
+  static double get sheetRadius => skin.sheetRadius;
+
+  /// Button/input corner radius (FM 4).
+  static double get buttonRadius => skin.buttonRadius;
+
+  /// Hairline border/frame width (FM 1).
+  static double get borderWidth => skin.borderWidth;
 
   // ── Text & accents ────────────────────────────────────────────────────────
 
@@ -65,8 +90,8 @@ abstract final class FieldManual {
 
   /// Screen titles, ceremony headlines, rank names. Uppercase commands only.
   static TextStyle display({Color color = bone}) => TextStyle(
-        fontFamily: 'Oswald',
-        fontVariations: _wght(700),
+        fontFamily: skin.displayFamily,
+        fontVariations: _wght(skin.displayWeight),
         fontWeight: FontWeight.w700,
         fontSize: 28,
         height: 1.05,
@@ -76,8 +101,8 @@ abstract final class FieldManual {
 
   /// Section headers and card group titles. Uppercase.
   static TextStyle headline({Color color = bone}) => TextStyle(
-        fontFamily: 'Oswald',
-        fontVariations: _wght(600),
+        fontFamily: skin.displayFamily,
+        fontVariations: _wght(skin.headlineWeight),
         fontWeight: FontWeight.w600,
         fontSize: 21,
         height: 1.1,
@@ -87,8 +112,8 @@ abstract final class FieldManual {
 
   /// Card headings, exercise names, list row leads. Uppercase.
   static TextStyle title({Color color = bone}) => TextStyle(
-        fontFamily: 'Oswald',
-        fontVariations: _wght(600),
+        fontFamily: skin.displayFamily,
+        fontVariations: _wght(skin.titleWeight),
         fontWeight: FontWeight.w600,
         fontSize: 16,
         height: 1.2,
@@ -100,7 +125,7 @@ abstract final class FieldManual {
   /// uppercase — the sergeant shouts headlines, not paragraphs.
   static TextStyle body({Color color = bone, double fontSize = 15}) =>
       TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: skin.bodyFamily,
         fontVariations: _wght(400),
         fontWeight: FontWeight.w400,
         fontSize: fontSize,
@@ -113,7 +138,7 @@ abstract final class FieldManual {
   /// uppercase-command Oswald [display]/[headline] faces. Inter at heading
   /// weight and size.
   static TextStyle prompt({Color color = bone}) => TextStyle(
-        fontFamily: 'Inter',
+        fontFamily: skin.bodyFamily,
         fontVariations: _wght(600),
         fontWeight: FontWeight.w600,
         fontSize: 22,
@@ -124,7 +149,7 @@ abstract final class FieldManual {
   /// Mono designation labels: eyebrows, stamps, chips. Uppercase, tracked.
   static TextStyle label({Color color = mutedBone, double fontSize = 11}) =>
       TextStyle(
-        fontFamily: 'JetBrainsMono',
+        fontFamily: skin.monoFamily,
         fontVariations: _wght(700),
         fontWeight: FontWeight.w700,
         fontSize: fontSize,
@@ -137,7 +162,7 @@ abstract final class FieldManual {
   /// Tabular by face; sized to read at arm's length.
   static TextStyle readout({Color color = bone, double fontSize = 18}) =>
       TextStyle(
-        fontFamily: 'JetBrainsMono',
+        fontFamily: skin.monoFamily,
         fontVariations: _wght(700),
         fontWeight: FontWeight.w700,
         fontSize: fontSize,
@@ -149,7 +174,7 @@ abstract final class FieldManual {
   /// Fine print that must stay legible: terms, disclosures. Mono, quiet,
   /// but mutedBone — never olive (the Olive Floor Rule).
   static TextStyle finePrint({Color color = mutedBone}) => TextStyle(
-        fontFamily: 'JetBrainsMono',
+        fontFamily: skin.monoFamily,
         fontVariations: _wght(500),
         fontWeight: FontWeight.w500,
         fontSize: 11,

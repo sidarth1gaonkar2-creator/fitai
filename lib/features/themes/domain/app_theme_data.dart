@@ -41,6 +41,16 @@ class AppThemeData {
     this.darkSurfaceElevated,
     this.darkBorder,
     this.darkSeparator,
+    this.cardRadius,
+    this.sheetRadius,
+    this.buttonRadius,
+    this.borderWidth,
+    this.displayFontFamily,
+    this.bodyFontFamily,
+    this.monoFontFamily,
+    this.displayWeight,
+    this.headlineWeight,
+    this.titleWeight,
   });
 
   final String id;
@@ -76,6 +86,42 @@ class AppThemeData {
 
   /// Row separators (weaker than [darkBorder]).
   final Color? darkSeparator;
+
+  // ── Optional full-skin tokens (null → Field Manual defaults) ──────────────
+  // Accent-swap packs leave every one of these null and resolve to the FM
+  // values in [FmSkin.fromTheme], so they stay byte-identical. A "full skin"
+  // (Night Ops) sets them to restyle geometry and type beyond the accent —
+  // per DESIGN.md this is a new tier above the Accent Swap Rule, not a change
+  // to it. Colours already flow through the surface/accent tokens above.
+
+  /// Card/panel corner radius (FM default 8).
+  final double? cardRadius;
+
+  /// Sheet/dialog corner radius (FM default 12).
+  final double? sheetRadius;
+
+  /// Button/input corner radius (FM default 4).
+  final double? buttonRadius;
+
+  /// Hairline border/frame width (FM default 1).
+  final double? borderWidth;
+
+  /// Display face family for the bark — display/headline/title (FM 'Oswald').
+  /// Body (Inter) and mono (JetBrainsMono) stay stable unless a skin also
+  /// overrides them — legibility first.
+  final String? displayFontFamily;
+
+  /// Reading face family — body/prompt (FM 'Inter').
+  final String? bodyFontFamily;
+
+  /// Instrument-panel face family — label/readout/finePrint (FM 'JetBrainsMono').
+  final String? monoFontFamily;
+
+  /// Variable-font wght for `display()` (FM 700), `headline()` (FM 600),
+  /// `title()` (FM 600). A skin may push the display face heavier/lighter.
+  final double? displayWeight;
+  final double? headlineWeight;
+  final double? titleWeight;
 
   // ── Commerce ─────────────────────────────────────────────────────────────
   /// Price in coins — the app's single currency, earned in-app (workouts,

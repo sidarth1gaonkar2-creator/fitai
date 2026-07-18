@@ -393,7 +393,7 @@ class _CreateSavedMealScreenState
                 top: 12,
                 bottom: 12 + MediaQuery.of(context).padding.bottom,
               ),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: FieldManual.field,
                 border: Border(top: BorderSide(color: FieldManual.hairline)),
               ),
@@ -525,7 +525,7 @@ class _EditItemSheet extends StatelessWidget {
         top: 12,
         bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
       ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: FieldManual.ink,
         borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),

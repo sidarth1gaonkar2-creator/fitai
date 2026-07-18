@@ -65,7 +65,7 @@ class _UseSavedMealSheetState extends ConsumerState<UseSavedMealSheet> {
     final fat = widget.meal.totalFat * _portion;
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: FieldManual.ink,
         borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),

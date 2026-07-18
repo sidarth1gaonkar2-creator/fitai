@@ -73,7 +73,7 @@ class CompleteDayButton extends ConsumerWidget {
       builder: (context) {
         final palette = AppColors.of(context);
         return Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             // Sheets are ink by doctrine, 12pt top radius (DESIGN.md).
             color: FieldManual.ink,
             borderRadius: BorderRadius.vertical(top: Radius.circular(12)),

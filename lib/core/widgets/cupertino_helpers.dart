@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors;
 import '../theme/app_colors.dart';
+import '../theme/field_manual.dart';
 
 /// Shared Cupertino-styled helpers used throughout the app.
 /// These replace Material chrome widgets (Card, ExpansionTile, SnackBar, etc.)
@@ -17,15 +18,16 @@ class CupertinoCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(16),
     this.color,
     this.onTap,
-    // Field Manual cards are 8px; sheets are the 12px surface (DESIGN.md).
-    this.borderRadius = 8,
+    // Null → the skin's card radius (FM 8px; a full skin like Night Ops
+    // sharpens it). Callers pass an explicit value for sheet/other radii.
+    this.borderRadius,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final Color? color;
   final VoidCallback? onTap;
-  final double borderRadius;
+  final double? borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -34,8 +36,8 @@ class CupertinoCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: color ?? palette.surface,
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: palette.border),
+        borderRadius: BorderRadius.circular(borderRadius ?? FieldManual.cardRadius),
+        border: Border.all(color: palette.border, width: FieldManual.borderWidth),
       ),
       child: child,
     );

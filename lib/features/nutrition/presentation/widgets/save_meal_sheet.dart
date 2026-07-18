@@ -90,7 +90,7 @@ class _SaveMealSheetState extends ConsumerState<SaveMealSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: FieldManual.ink,
           borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),

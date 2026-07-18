@@ -68,8 +68,8 @@ class _BrandMarkPainter extends CustomPainter {
 
     // Ink→field radial lift (SVG cx 50% / cy 42% / r 72%) — matches the icon.
     final ground = Paint()
-      ..shader = const RadialGradient(
-        center: Alignment(0, -0.16), // cy 42% → (0.42 − 0.5) × 2
+      ..shader = RadialGradient(
+        center: const Alignment(0, -0.16), // cy 42% → (0.42 − 0.5) × 2
         radius: 0.72,
         colors: [FieldManual.field, FieldManual.ink],
       ).createShader(rect);

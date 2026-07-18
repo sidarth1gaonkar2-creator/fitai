@@ -388,7 +388,7 @@ class _TotalsBar extends StatelessWidget {
     return Container(
       padding:
           EdgeInsets.fromLTRB(16, 12, 16, padding.bottom > 0 ? padding.bottom : 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: FieldManual.field,
         border: Border(top: BorderSide(color: FieldManual.hairline)),
       ),

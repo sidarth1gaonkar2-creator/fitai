@@ -1511,7 +1511,7 @@ class _AirborneSection extends ConsumerWidget {
                 color: FieldManual.brass,
                 shape: BoxShape.circle,
               ),
-              child: const Center(
+              child: Center(
                 child: JumpWings(width: 26, color: FieldManual.ink),
               ),
             ),

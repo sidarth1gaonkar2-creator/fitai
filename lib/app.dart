@@ -6,6 +6,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/field_manual.dart';
+import 'core/theme/fm_skin.dart';
 import 'core/utils/logger.dart';
 import 'features/themes/providers/theme_providers.dart';
 import 'features/tutorial/presentation/tutorial_overlay.dart';
@@ -65,6 +67,13 @@ class DrillFitApp extends ConsumerWidget {
     // equips a new pack — that's what propagates the new accent / surface
     // colours through `AppColors.of(context)` everywhere downstream.
     final activeTheme = ref.watch(activeThemeProvider);
+    // Full skins (Night Ops, …) may restyle surfaces, geometry, and type
+    // beyond the accent. Resolve the equipped theme into the app-wide
+    // FieldManual skin BEFORE building, so every FM-routed surface and type
+    // token re-skins on equip; the whole tree rebuilds below. Accent-swap
+    // packs resolve to the FM defaults, so they stay byte-identical.
+    final skin = FmSkin.fromTheme(activeTheme);
+    FieldManual.skin = skin;
     // Light mode retired (batch #3): the Field Manual is dark by doctrine.
     // AppColors keeps its light mappings for theme packs / a possible future
     // "Daylight Ops" pack, so the resolve(theme:, brightness:) shape stays.
@@ -102,22 +111,22 @@ class DrillFitApp extends ConsumerWidget {
         textTheme: CupertinoTextThemeData(
           primaryColor: palette.accent,
           textStyle: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: skin.bodyFamily,
             color: textColor,
             fontSize: 15,
             height: 1.45,
           ),
           navTitleTextStyle: TextStyle(
-            fontFamily: 'Oswald',
-            fontVariations: const [FontVariation('wght', 600)],
+            fontFamily: skin.displayFamily,
+            fontVariations: [FontVariation('wght', skin.headlineWeight)],
             fontWeight: FontWeight.w600,
             fontSize: 17,
             letterSpacing: 0.4,
             color: textColor,
           ),
           navLargeTitleTextStyle: TextStyle(
-            fontFamily: 'Oswald',
-            fontVariations: const [FontVariation('wght', 700)],
+            fontFamily: skin.displayFamily,
+            fontVariations: [FontVariation('wght', skin.displayWeight)],
             fontWeight: FontWeight.w700,
             fontSize: 30,
             height: 1.05,
@@ -125,7 +134,7 @@ class DrillFitApp extends ConsumerWidget {
             color: textColor,
           ),
           navActionTextStyle: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: skin.bodyFamily,
             fontWeight: FontWeight.w500,
             fontSize: 15,
             color: palette.accent,

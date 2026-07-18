@@ -132,7 +132,7 @@ class RecentFoodsSheet extends ConsumerWidget {
       minChildSize: 0.4,
       maxChildSize: 0.95,
       builder: (context, controller) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: FieldManual.ink,
           borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),

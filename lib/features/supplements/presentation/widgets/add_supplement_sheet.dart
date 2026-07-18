@@ -95,7 +95,7 @@ class _AddSupplementSheetState extends ConsumerState<AddSupplementSheet> {
 
     final palette = AppColors.of(context);
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         // Sheets are ink by doctrine, 12pt top radius (DESIGN.md).
         color: FieldManual.ink,
         borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
@@ -441,7 +441,7 @@ class _SupplementDetailSheet extends StatelessWidget {
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * 0.75,
       ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         // Sheets are ink by doctrine, 12pt top radius (DESIGN.md).
         color: FieldManual.ink,
         borderRadius: BorderRadius.vertical(top: Radius.circular(12)),

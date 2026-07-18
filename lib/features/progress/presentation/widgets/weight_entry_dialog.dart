@@ -109,7 +109,7 @@ class _WeightEntryDialogState extends ConsumerState<WeightEntryDialog> {
             : FieldManual.hairline;
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: FieldManual.field,
         // Sheets are the 12px surface (DESIGN.md §Cards/Containers).
         borderRadius: BorderRadius.vertical(top: Radius.circular(12)),

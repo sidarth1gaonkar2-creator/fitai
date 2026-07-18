@@ -158,7 +158,7 @@ class _AddFoodSheetState extends ConsumerState<AddFoodSheet> {
       minChildSize: 0.5,
       maxChildSize: 0.95,
       builder: (context, scrollController) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: FieldManual.ink,
           borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),

@@ -52,7 +52,7 @@ class ExercisePickerDropdown extends StatelessWidget {
         border: border(FieldManual.hairline),
       ),
       menuStyle: MenuStyle(
-        backgroundColor: const WidgetStatePropertyAll(FieldManual.field),
+        backgroundColor: WidgetStatePropertyAll(FieldManual.field),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
         elevation: const WidgetStatePropertyAll(0),
         shape: WidgetStatePropertyAll(

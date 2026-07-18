@@ -150,10 +150,10 @@ class _AirbornePaywallSheetState extends State<AirbornePaywallSheet> {
 
     return Container(
       constraints: BoxConstraints(maxHeight: maxHeight),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: FieldManual.ink,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(top: BorderSide(color: FieldManual.hairlineStrong)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        border: const Border(top: BorderSide(color: FieldManual.hairlineStrong)),
       ),
       child: SafeArea(
         top: false,
@@ -517,7 +517,7 @@ class _SelectionMark extends StatelessWidget {
             : Border.all(color: FieldManual.hairlineStrong, width: 1.5),
       ),
       child: selected
-          ? const Icon(
+          ? Icon(
               CupertinoIcons.checkmark,
               size: 12,
               color: FieldManual.ink,
@@ -549,7 +549,7 @@ class _CtaButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(4),
       onPressed: enabled ? onPressed : null,
       child: busy
-          ? const CupertinoActivityIndicator(color: FieldManual.ink)
+          ? CupertinoActivityIndicator(color: FieldManual.ink)
           : Text(
               'GO AIRBORNE',
               style: FieldManual.title(color: FieldManual.ink),

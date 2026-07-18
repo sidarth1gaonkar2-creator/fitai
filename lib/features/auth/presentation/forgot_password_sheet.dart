@@ -146,7 +146,7 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
         // Field Manual sheet: ink surface, 12px top radius, scrim conveys
         // modality.
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: FieldManual.ink,
           borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),

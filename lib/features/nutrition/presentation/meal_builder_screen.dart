@@ -1247,9 +1247,9 @@ class _RunningTotalBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: FieldManual.field,
-        border: Border(top: BorderSide(color: FieldManual.hairline)),
+        border: const Border(top: BorderSide(color: FieldManual.hairline)),
       ),
       child: SafeArea(
         top: false,
@@ -1428,9 +1428,9 @@ class _MealTypeSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: FieldManual.ink,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
       child: SafeArea(
@@ -1569,9 +1569,9 @@ class _MealCartSheet extends ConsumerWidget {
     final cart = ref.watch(mealCartProvider);
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: FieldManual.ink,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
       ),
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.72,
@@ -1757,9 +1757,9 @@ class _NameSavedMealSheetState extends State<_NameSavedMealSheet> {
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: FieldManual.ink,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
         child: SafeArea(
