@@ -1,9 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors, Icons, Theme;
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/validators.dart';
 import '../onboarding_controller.dart';
 import 'onboarding_illustration.dart';
@@ -17,6 +18,7 @@ class NameStep extends ConsumerStatefulWidget {
 
 class _NameStepState extends ConsumerState<NameStep> {
   final _nameController = TextEditingController();
+  final _focusNode = FocusNode();
   String? _nameError;
   Timer? _debounce;
   bool _isTouched = false;
@@ -28,11 +30,17 @@ class _NameStepState extends ConsumerState<NameStep> {
     if (currentName.isNotEmpty) {
       _nameController.text = currentName;
     }
+    // Focus only drives the accent border — presentation state.
+    _focusNode.addListener(_onFocusChanged);
   }
+
+  void _onFocusChanged() => setState(() {});
 
   @override
   void dispose() {
     _debounce?.cancel();
+    _focusNode.removeListener(_onFocusChanged);
+    _focusNode.dispose();
     _nameController.dispose();
     super.dispose();
   }
@@ -52,7 +60,8 @@ class _NameStepState extends ConsumerState<NameStep> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final palette = AppColors.of(context);
+    final showError = _isTouched && _nameError != null;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -65,52 +74,52 @@ class _NameStepState extends ConsumerState<NameStep> {
           const SizedBox(height: 24),
           Text(
             "What's your name?",
-            style: textTheme.headlineMedium?.copyWith(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 28,
-              color: AppColors.of(context).text,
-            ),
+            style: FieldManual.prompt(color: palette.text),
           ),
           const SizedBox(height: 8),
           Text(
-            "We'll use this to personalise your experience.",
-            style: textTheme.bodyLarge?.copyWith(
-              fontFamily: 'LeagueSpartan',
-              fontWeight: FontWeight.w400,
-              color: AppColors.of(context).textSecondary,
-            ),
+            "So the sergeant knows who he's talking to.",
+            style: FieldManual.body(color: palette.textSecondary),
           ),
           const SizedBox(height: 32),
           CupertinoTextField(
             controller: _nameController,
+            focusNode: _focusNode,
             placeholder: 'Enter your name',
-            prefix: const Padding(
-              padding: EdgeInsets.only(left: 12),
-              child: Text('Name', style: TextStyle(color: CupertinoColors.systemGrey)),
+            prefix: Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Text('NAME', style: FieldManual.label()),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             decoration: BoxDecoration(
-              color: AppColors.of(context).surface,
-              borderRadius: BorderRadius.circular(10),
+              color: palette.surfaceElevated,
+              borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: (_isTouched && _nameError != null)
-                    ? AppColors.of(context).destructive
-                    : AppColors.of(context).border,
+                color: showError
+                    ? palette.destructive
+                    : _focusNode.hasFocus
+                        ? palette.accent
+                        : palette.border,
               ),
             ),
-            style: TextStyle(color: AppColors.of(context).text),
+            cursorColor: palette.accent,
+            style: FieldManual.body(color: palette.text),
+            placeholderStyle:
+                FieldManual.body(color: palette.textSecondary),
             textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.done,
             onChanged: _onNameChanged,
             onSubmitted: (_) => _isValid ? _submit() : null,
           ),
-          if (_isTouched && _nameError != null)
+          if (showError)
             Padding(
               padding: const EdgeInsets.only(top: 6, left: 4),
               child: Text(
                 _nameError!,
-                style: TextStyle(color: AppColors.of(context).destructive, fontSize: 12),
+                style: FieldManual.body(
+                  fontSize: 12,
+                  color: palette.destructive,
+                ),
               ),
             ),
           const SizedBox(height: 32),
@@ -146,21 +155,18 @@ class _NextButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
+    // "Next" stays sentence case — widget tests find this exact string.
     if (isValid) {
       return SizedBox(
         width: double.infinity,
         child: CupertinoButton(
           padding: const EdgeInsets.symmetric(vertical: 14),
           color: palette.accent,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(4),
           onPressed: onPressed,
-          child: const Text(
+          child: Text(
             'Next',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+            style: FieldManual.title(color: palette.onAccent),
           ),
         ),
       );
@@ -168,16 +174,20 @@ class _NextButton extends StatelessWidget {
 
     return SizedBox(
       width: double.infinity,
-      child: CupertinoButton(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        borderRadius: BorderRadius.circular(12),
-        onPressed: null,
-        child: Text(
-          'Next',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: palette.text.withValues(alpha: 0.4),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: palette.border),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          borderRadius: BorderRadius.circular(4),
+          onPressed: null,
+          child: Text(
+            'Next',
+            style: FieldManual.title(
+              color: palette.text.withValues(alpha: 0.4),
+            ),
           ),
         ),
       ),

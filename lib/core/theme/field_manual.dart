@@ -108,6 +108,19 @@ abstract final class FieldManual {
         color: color,
       );
 
+  /// Sentence-case screen heading in the reading face — for onboarding
+  /// questions and prompts ("What's your name?") that must NOT wear the
+  /// uppercase-command Oswald [display]/[headline] faces. Inter at heading
+  /// weight and size.
+  static TextStyle prompt({Color color = bone}) => TextStyle(
+        fontFamily: 'Inter',
+        fontVariations: _wght(600),
+        fontWeight: FontWeight.w600,
+        fontSize: 22,
+        height: 1.2,
+        color: color,
+      );
+
   /// Mono designation labels: eyebrows, stamps, chips. Uppercase, tracked.
   static TextStyle label({Color color = mutedBone, double fontSize = 11}) =>
       TextStyle(

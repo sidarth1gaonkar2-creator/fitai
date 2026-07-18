@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../domain/tutorial_controller.dart';
 import '../providers/tutorial_providers.dart';
 
@@ -102,10 +103,11 @@ class _TutorialOverlayHostState extends ConsumerState<TutorialOverlayHost> {
 
     return TutorialOverlay(
       spotlightRect: _spotlightRect!.inflate(8),
+      accent: AppColors.of(context).accent,
       title: step.title,
       description: step.description,
       buttonText: controller.currentIndex == controller.totalSteps - 1
-          ? 'Get Started!'
+          ? 'Get Started'
           : 'Next',
       onNext: () {
         HapticFeedback.selectionClick();
@@ -138,6 +140,7 @@ class TutorialOverlay extends StatefulWidget {
     required this.currentStep,
     required this.totalSteps,
     required this.shape,
+    required this.accent,
   });
 
   final Rect spotlightRect;
@@ -149,6 +152,10 @@ class TutorialOverlay extends StatefulWidget {
   final int currentStep;
   final int totalSteps;
   final SpotlightShape shape;
+
+  /// The equipped pack's accent — threaded from the host so the tour wears the
+  /// live theme, not a compile-time brass.
+  final Color accent;
 
   @override
   State<TutorialOverlay> createState() => _TutorialOverlayState();
@@ -163,6 +170,7 @@ class _TutorialOverlayState extends State<TutorialOverlay>
   Rect _animatedRect = Rect.zero;
   Rect _moveFrom = Rect.zero;
   Rect _moveTo = Rect.zero;
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -184,6 +192,30 @@ class _TutorialOverlayState extends State<TutorialOverlay>
     _moveTo = widget.spotlightRect;
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Honor Reduce Motion: freeze the pulse at its resting value, make the
+    // fade instant, and let the spotlight jump between targets. Resolved here
+    // (not initState) because it needs MediaQuery.
+    final reduce = MediaQuery.disableAnimationsOf(context);
+    if (reduce == _reduceMotion) return;
+    _reduceMotion = reduce;
+    if (reduce) {
+      _pulse
+        ..stop()
+        ..value = 0;
+      _fade
+        ..duration = Duration.zero
+        ..value = 1.0;
+      _spotlightMove.duration = Duration.zero;
+    } else {
+      _fade.duration = const Duration(milliseconds: 300);
+      _spotlightMove.duration = const Duration(milliseconds: 400);
+      if (!_pulse.isAnimating) _pulse.repeat(reverse: true);
+    }
+  }
+
   void _onMoveTick() {
     final t = Curves.easeInOutCubic.transform(_spotlightMove.value);
     setState(() {
@@ -195,15 +227,23 @@ class _TutorialOverlayState extends State<TutorialOverlay>
   void didUpdateWidget(TutorialOverlay old) {
     super.didUpdateWidget(old);
     if (old.spotlightRect != widget.spotlightRect) {
-      _moveFrom = _animatedRect;
-      _moveTo = widget.spotlightRect;
-      _spotlightMove
-        ..stop()
-        ..reset()
-        ..forward();
+      if (_reduceMotion) {
+        // Reduced motion: no tween — the cutout jumps to the new target.
+        _moveFrom = widget.spotlightRect;
+        _moveTo = widget.spotlightRect;
+        setState(() => _animatedRect = widget.spotlightRect);
+      } else {
+        _moveFrom = _animatedRect;
+        _moveTo = widget.spotlightRect;
+        _spotlightMove
+          ..stop()
+          ..reset()
+          ..forward();
+      }
     }
-    // Quick fade-in on tooltip when the step title changes.
-    if (old.title != widget.title) {
+    // Quick fade-in on tooltip when the step title changes (skipped under
+    // Reduce Motion — the card swaps content in place).
+    if (old.title != widget.title && !_reduceMotion) {
       _fade.forward(from: 0);
     }
   }
@@ -219,7 +259,7 @@ class _TutorialOverlayState extends State<TutorialOverlay>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final accent = AppColors.dark.accent;
+    final accent = widget.accent;
     final rect = _animatedRect;
 
     // Tooltip placement: if the spotlight sits above the vertical centre,
@@ -253,7 +293,7 @@ class _TutorialOverlayState extends State<TutorialOverlay>
           ),
         ),
 
-        // Skip button — top-right
+        // Skip button — top-right, quiet mono stamp (Field Manual).
         Positioned(
           top: topPad + 12,
           right: 12,
@@ -261,16 +301,15 @@ class _TutorialOverlayState extends State<TutorialOverlay>
             child: TextButton(
               onPressed: widget.onSkip,
               style: TextButton.styleFrom(
-                foregroundColor: Colors.white.withValues(alpha: 0.75),
+                foregroundColor: FieldManual.bone,
                 padding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 8),
               ),
-              child: const Text(
-                'Skip',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
+              child: Text(
+                'SKIP',
+                style: FieldManual.label(
+                  fontSize: 12,
+                  color: FieldManual.bone,
                 ),
               ),
             ),
@@ -404,38 +443,27 @@ class _TutorialTooltip extends StatelessWidget {
       type: MaterialType.transparency,
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        // Field Manual card: field surface, 8px corners, hairline border —
+        // no shadow (the scrim already separates it from the page).
         decoration: BoxDecoration(
-          color: const Color(0xFF1C1C1E),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          color: FieldManual.field,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: FieldManual.hairlineStrong),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              title,
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-                color: Colors.white,
-              ),
+              title.toUpperCase(),
+              style: FieldManual.title(),
             ),
             const SizedBox(height: 6),
             Text(
               description,
-              style: TextStyle(
+              style: FieldManual.body(
                 fontSize: 14,
-                height: 1.35,
-                color: Colors.white.withValues(alpha: 0.78),
+                color: FieldManual.mutedBone,
               ),
             ),
             const SizedBox(height: 14),
@@ -479,18 +507,21 @@ class _StepDots extends StatelessWidget {
     // counter to keep the row from wrapping.
     const maxDots = 16;
     final shown = math.min(total, maxDots);
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Row(
       children: List.generate(shown, (i) {
         final isCurrent = i == current - 1;
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 200),
           margin: const EdgeInsets.only(right: 5),
           width: isCurrent ? 8 : 6,
           height: isCurrent ? 8 : 6,
           decoration: BoxDecoration(
             color: isCurrent
                 ? accent
-                : Colors.white.withValues(alpha: 0.25),
+                : FieldManual.bone.withValues(alpha: 0.25),
             shape: BoxShape.circle,
           ),
         );
@@ -512,21 +543,30 @@ class _TooltipButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Readable label on the accent fill — mirrors [Palette.onAccent] (this
+    // widget only receives the raw accent color).
+    final onAccent = accent.computeLuminance() >= 0.18
+        ? FieldManual.ink
+        : FieldManual.bone;
     return Material(
       color: accent,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(4),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(4),
         onTap: onPressed,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-              color: Colors.white,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Center(
+              child: Text(
+                label.toUpperCase(),
+                style: FieldManual.title().copyWith(
+                  fontSize: 14,
+                  letterSpacing: 0.6,
+                  color: onAccent,
+                ),
+              ),
             ),
           ),
         ),

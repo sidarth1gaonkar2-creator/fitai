@@ -1,9 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors, Icons, Theme;
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../models/enums.dart';
 import '../onboarding_controller.dart';
@@ -19,6 +20,7 @@ class BodyInfoStep extends ConsumerStatefulWidget {
 
 class _BodyInfoStepState extends ConsumerState<BodyInfoStep> {
   final _ageController = TextEditingController();
+  final _ageFocusNode = FocusNode();
   Sex? _selectedSex;
   String? _ageError;
   Timer? _debounce;
@@ -30,11 +32,17 @@ class _BodyInfoStepState extends ConsumerState<BodyInfoStep> {
     final state = ref.read(onboardingControllerProvider);
     if (state.age != null) _ageController.text = state.age.toString();
     _selectedSex = state.sex;
+    // Focus only drives the accent border — presentation state.
+    _ageFocusNode.addListener(_onFocusChanged);
   }
+
+  void _onFocusChanged() => setState(() {});
 
   @override
   void dispose() {
     _debounce?.cancel();
+    _ageFocusNode.removeListener(_onFocusChanged);
+    _ageFocusNode.dispose();
     _ageController.dispose();
     super.dispose();
   }
@@ -56,7 +64,8 @@ class _BodyInfoStepState extends ConsumerState<BodyInfoStep> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final palette = AppColors.of(context);
+    final showError = _ageTouched && _ageError != null;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -69,61 +78,55 @@ class _BodyInfoStepState extends ConsumerState<BodyInfoStep> {
           const SizedBox(height: 24),
           Text(
             'Tell us about yourself',
-            style: textTheme.headlineMedium?.copyWith(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 28,
-              color: AppColors.of(context).text,
-            ),
+            style: FieldManual.prompt(color: palette.text),
           ),
           const SizedBox(height: 8),
           Text(
             'This helps us calculate your daily calorie needs.',
-            style: textTheme.bodyLarge?.copyWith(
-              fontFamily: 'LeagueSpartan',
-              fontWeight: FontWeight.w400,
-              color: AppColors.of(context).textSecondary,
-            ),
+            style: FieldManual.body(color: palette.textSecondary),
           ),
           const SizedBox(height: 32),
           CupertinoTextField(
             controller: _ageController,
+            focusNode: _ageFocusNode,
             placeholder: 'Enter your age',
-            prefix: const Padding(
-              padding: EdgeInsets.only(left: 12),
-              child: Text('Age', style: TextStyle(color: CupertinoColors.systemGrey)),
+            prefix: Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Text('AGE', style: FieldManual.label()),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             decoration: BoxDecoration(
-              color: AppColors.of(context).surface,
-              borderRadius: BorderRadius.circular(10),
+              color: palette.surfaceElevated,
+              borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: (_ageTouched && _ageError != null)
-                    ? AppColors.of(context).destructive
-                    : AppColors.of(context).border,
+                color: showError
+                    ? palette.destructive
+                    : _ageFocusNode.hasFocus
+                        ? palette.accent
+                        : palette.border,
               ),
             ),
-            style: TextStyle(color: AppColors.of(context).text),
+            cursorColor: palette.accent,
+            // Trained-against number → mono readout (Instrument Panel Rule).
+            style: FieldManual.readout(fontSize: 16, color: palette.text),
+            placeholderStyle:
+                FieldManual.body(color: palette.textSecondary),
             keyboardType: TextInputType.number,
             onChanged: _onAgeChanged,
           ),
-          if (_ageTouched && _ageError != null)
+          if (showError)
             Padding(
               padding: const EdgeInsets.only(top: 6, left: 4),
               child: Text(
                 _ageError!,
-                style: TextStyle(color: AppColors.of(context).destructive, fontSize: 12),
+                style: FieldManual.body(
+                  fontSize: 12,
+                  color: palette.destructive,
+                ),
               ),
             ),
           const SizedBox(height: 24),
-          Text(
-            'Sex',
-            style: textTheme.titleMedium?.copyWith(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              color: AppColors.of(context).text,
-            ),
-          ),
+          Text('SEX', style: FieldManual.label()),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -177,21 +180,18 @@ class _NextButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
+    // "Next" stays sentence case — widget tests find this exact string.
     if (isValid) {
       return SizedBox(
         width: double.infinity,
         child: CupertinoButton(
           padding: const EdgeInsets.symmetric(vertical: 14),
           color: palette.accent,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(4),
           onPressed: onPressed,
-          child: const Text(
+          child: Text(
             'Next',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+            style: FieldManual.title(color: palette.onAccent),
           ),
         ),
       );
@@ -199,16 +199,20 @@ class _NextButton extends StatelessWidget {
 
     return SizedBox(
       width: double.infinity,
-      child: CupertinoButton(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        borderRadius: BorderRadius.circular(12),
-        onPressed: null,
-        child: Text(
-          'Next',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: palette.text.withValues(alpha: 0.4),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: palette.border),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          borderRadius: BorderRadius.circular(4),
+          onPressed: null,
+          child: Text(
+            'Next',
+            style: FieldManual.title(
+              color: palette.text.withValues(alpha: 0.4),
+            ),
           ),
         ),
       ),

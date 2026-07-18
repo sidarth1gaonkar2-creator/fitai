@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../models/enums.dart';
 import '../onboarding_controller.dart';
 import 'onboarding_illustration.dart';
@@ -30,7 +31,7 @@ class _GoalStepState extends ConsumerState<GoalStep> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final palette = AppColors.of(context);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -43,21 +44,12 @@ class _GoalStepState extends ConsumerState<GoalStep> {
           const SizedBox(height: 24),
           Text(
             "What's your goal?",
-            style: textTheme.headlineMedium?.copyWith(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 28,
-              color: AppColors.of(context).text,
-            ),
+            style: FieldManual.prompt(color: palette.text),
           ),
           const SizedBox(height: 8),
           Text(
             "We'll tailor your nutrition targets accordingly.",
-            style: textTheme.bodyLarge?.copyWith(
-              fontFamily: 'LeagueSpartan',
-              fontWeight: FontWeight.w400,
-              color: AppColors.of(context).textSecondary,
-            ),
+            style: FieldManual.body(color: palette.textSecondary),
           ),
           const SizedBox(height: 32),
           ...Goal.values.map(
@@ -98,23 +90,21 @@ class _NextButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
+    // "Next" stays sentence case — widget tests find this exact string.
     if (isValid) {
       return FilledButton(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
           backgroundColor: palette.accent,
-          foregroundColor: Colors.white,
+          foregroundColor: palette.onAccent,
           minimumSize: const Size.fromHeight(52),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(4),
           ),
         ),
-        child: const Text(
+        child: Text(
           'Next',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-          ),
+          style: FieldManual.title(color: palette.onAccent),
         ),
       );
     }
@@ -124,17 +114,16 @@ class _NextButton extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(52),
         foregroundColor: palette.text,
-        side: BorderSide(color: palette.border, width: 1.5),
+        side: BorderSide(color: palette.border),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(4),
         ),
         disabledForegroundColor: palette.text.withValues(alpha: 0.4),
       ),
-      child: const Text(
+      child: Text(
         'Next',
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.w600,
+        style: FieldManual.title(
+          color: palette.text.withValues(alpha: 0.4),
         ),
       ),
     );

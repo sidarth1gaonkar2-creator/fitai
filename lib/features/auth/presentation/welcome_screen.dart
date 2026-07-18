@@ -1,9 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors, Scaffold;
+import 'package:flutter/material.dart' show Scaffold;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../providers/auth_provider.dart';
@@ -40,7 +40,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.darkBackground,
+      backgroundColor: FieldManual.ink,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -63,27 +63,25 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Title
-              const Text(
-                'DrillFit',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 32,
-                  color: Colors.white,
+              // Wordmark — Oswald display, tracked caps (Field Manual).
+              Text(
+                'DRILLFIT',
+                style: FieldManual.display().copyWith(
+                  fontSize: 34,
+                  letterSpacing: 1.5,
                 ),
               ),
               const SizedBox(height: 8),
 
-              // Tagline
-              const Text(
-                'Your AI-powered fitness companion',
+              // Tagline — the positioning line, verbatim (PRODUCT.md). The
+              // old "AI-powered fitness companion" was the exact register the
+              // brand defines itself against.
+              Text(
+                'Most fitness apps just track. DrillFit makes you earn it.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  fontWeight: FontWeight.w400,
+                style: FieldManual.body(
                   fontSize: 16,
-                  color: AppColors.purpleLight,
+                  color: FieldManual.mutedBone,
                 ),
               ),
 
@@ -115,7 +113,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
               const AppleSignInButton(),
               const SizedBox(height: 12),
 
-              // Google Sign-In button
+              // Google Sign-In button — provider brand treatment, NOT Field
+              // Manual idiom (App Store / Google branding review). Neutral
+              // white-on-dark chrome and platform font stay; only the corner
+              // radius aligns at 4, which matches Google's own rectangular
+              // button spec (4dp corners).
               SizedBox(
                 width: double.infinity,
                 child: GestureDetector(
@@ -124,7 +126,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: const Color(0x99FFFFFF)),
                     ),
                     child: Row(
@@ -136,17 +138,15 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                           const Text(
                             'G',
                             style: TextStyle(
-                              fontFamily: 'Poppins',
                               fontWeight: FontWeight.w700,
                               fontSize: 18,
-                              color: Colors.white,
+                              color: CupertinoColors.white,
                             ),
                           ),
                           const SizedBox(width: 10),
                           const Text(
                             'Continue with Google',
                             style: TextStyle(
-                              fontFamily: 'Poppins',
                               fontWeight: FontWeight.w600,
                               fontSize: 15,
                               color: CupertinoColors.white,

@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/utils/validators.dart';
 import '../../../providers/auth_provider.dart';
@@ -65,9 +65,16 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
 
   void _onFocusChanged() {
     // Validate on blur — but an untouched empty field stays quiet until Send.
-    if (_emailFocus.hasFocus) return;
+    // The bare setState calls only repaint the accent focus border.
+    if (_emailFocus.hasFocus) {
+      setState(() {});
+      return;
+    }
     _debounce?.cancel();
-    if (_emailController.text.trim().isEmpty) return;
+    if (_emailController.text.trim().isEmpty) {
+      setState(() {});
+      return;
+    }
     setState(() => _emailError = validateEmail(_emailController.text));
   }
 
@@ -137,9 +144,11 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+        // Field Manual sheet: ink surface, 12px top radius, scrim conveys
+        // modality.
         decoration: const BoxDecoration(
-          color: AppColors.darkBackground,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          color: FieldManual.ink,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         child: SafeArea(
           top: false,
@@ -150,29 +159,17 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
   }
 
   Widget _buildForm(BuildContext context) {
+    final palette = AppColors.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Reset your password',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-            color: Colors.white,
-          ),
-        ),
+        Text('RESET YOUR PASSWORD', style: FieldManual.headline()),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           "Confirm your email and we'll send a reset link. "
           "You'll be back in the fight in no time.",
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontWeight: FontWeight.w400,
-            fontSize: 15,
-            color: AppColors.purpleLight,
-          ),
+          style: FieldManual.body(fontSize: 15, color: FieldManual.mutedBone),
         ),
         const SizedBox(height: 20),
         CupertinoTextField(
@@ -187,39 +184,49 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
           textInputAction: TextInputAction.send,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
-            color: AppColors.darkSurface,
-            borderRadius: BorderRadius.circular(10),
+            color: FieldManual.fieldRaised,
+            borderRadius: BorderRadius.circular(4),
             border: Border.all(
               color: _emailError != null
-                  ? AppColors.error
-                  : const Color(0x14FFFFFF),
+                  ? palette.destructive
+                  : _emailFocus.hasFocus
+                      ? palette.accent
+                      : FieldManual.hairline,
             ),
           ),
-          style: const TextStyle(color: Colors.white),
+          style: FieldManual.body(),
+          placeholderStyle: FieldManual.body(color: FieldManual.mutedBone),
+          cursorColor: palette.accent,
         ),
+        // Error is never color-alone — the message text carries it.
         if (_emailError != null)
           Padding(
             padding: const EdgeInsets.only(top: 6, left: 4),
             child: Text(
               _emailError!,
-              style: const TextStyle(color: AppColors.error, fontSize: 12),
+              style: FieldManual.body(
+                fontSize: 12,
+                color: palette.destructive,
+              ),
             ),
           ),
         const SizedBox(height: 20),
         CupertinoButton(
           padding: const EdgeInsets.symmetric(vertical: 14),
-          color: AppColors.lime,
-          borderRadius: BorderRadius.circular(12),
+          color: palette.accent,
+          // Keep the accent fill while sending (the only disabled state) so
+          // the ink spinner stays visible.
+          disabledColor: palette.accent,
+          borderRadius: BorderRadius.circular(4),
           onPressed: _isSending ? null : _send,
           child: _isSending
-              ? const CupertinoActivityIndicator(color: Colors.black)
-              : const Text(
-                  'Send Reset Link',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
+              ? CupertinoActivityIndicator(color: palette.onAccent)
+              : Text(
+                  'SEND RESET LINK',
+                  style: FieldManual.title().copyWith(
                     fontSize: 15,
-                    color: Colors.black,
+                    letterSpacing: 0.6,
+                    color: palette.onAccent,
                   ),
                 ),
         ),
@@ -227,13 +234,9 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
         CupertinoButton(
           padding: const EdgeInsets.symmetric(vertical: 10),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text(
+          child: Text(
             'Cancel',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 14,
-              color: AppColors.purpleLight,
-            ),
+            style: FieldManual.body(fontSize: 14, color: FieldManual.bone),
           ),
         ),
       ],
@@ -241,50 +244,40 @@ class _ForgotPasswordSheetState extends ConsumerState<ForgotPasswordSheet> {
   }
 
   Widget _buildConfirmation(BuildContext context) {
+    final palette = AppColors.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(
+        Icon(
           CupertinoIcons.envelope_circle_fill,
           size: 48,
-          color: AppColors.lime,
+          color: palette.accent,
         ),
         const SizedBox(height: 12),
-        const Text(
-          'Check your inbox',
+        Text(
+          'CHECK YOUR INBOX',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-            color: Colors.white,
-          ),
+          style: FieldManual.headline(),
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           _resetSentMessage,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontWeight: FontWeight.w400,
-            fontSize: 15,
-            color: AppColors.purpleLight,
-          ),
+          style: FieldManual.body(fontSize: 15, color: FieldManual.mutedBone),
         ),
         const SizedBox(height: 20),
         CupertinoButton(
           padding: const EdgeInsets.symmetric(vertical: 14),
-          color: AppColors.lime,
-          borderRadius: BorderRadius.circular(12),
+          color: palette.accent,
+          borderRadius: BorderRadius.circular(4),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text(
-            'Roger That',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
+          child: Text(
+            'ROGER THAT',
+            style: FieldManual.title().copyWith(
               fontSize: 15,
-              color: Colors.black,
+              letterSpacing: 0.6,
+              color: palette.onAccent,
             ),
           ),
         ),

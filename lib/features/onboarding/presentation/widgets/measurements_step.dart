@@ -1,9 +1,11 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/unit_converter.dart';
+import '../../../../core/widgets/fm_segmented.dart';
 import '../../../../providers/unit_system_provider.dart';
 import '../onboarding_controller.dart';
 import 'onboarding_illustration.dart';
@@ -198,6 +200,7 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
 
   Future<void> _editWeight() async {
     HapticFeedback.selectionClick();
+    final palette = AppColors.of(context);
     final ctrl = TextEditingController(text: '$_weight');
     final result = await showCupertinoDialog<int>(
       context: context,
@@ -231,15 +234,29 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
                       keyboardType: TextInputType.number,
                       placeholder: '$_minWeight - $_maxWeight $_weightUnit',
                       textAlign: TextAlign.center,
+                      cursorColor: palette.accent,
+                      style: FieldManual.readout(
+                        fontSize: 16,
+                        color: palette.text,
+                      ),
+                      placeholderStyle: FieldManual.body(
+                        fontSize: 13,
+                        color: palette.textSecondary,
+                      ),
+                      decoration: BoxDecoration(
+                        color: palette.surfaceElevated,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: palette.border),
+                      ),
                       onSubmitted: (_) => confirm(),
                     ),
                     if (error != null) ...[
                       const SizedBox(height: 8),
                       Text(
                         error!,
-                        style: const TextStyle(
-                          color: CupertinoColors.systemRed,
+                        style: FieldManual.body(
                           fontSize: 12,
+                          color: palette.destructive,
                         ),
                       ),
                     ],
@@ -265,8 +282,18 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
     ctrl.dispose();
     if (result != null && mounted) {
       setState(() => _weight = result);
-      _weightCtrl.animateToItem(
-        _weight - _minWeight,
+      _settleWheel(_weightCtrl, _weight - _minWeight);
+    }
+  }
+
+  /// Settle a wheel on [index] after tap-to-type — jumps instead of animating
+  /// when the user has Reduce Motion on.
+  void _settleWheel(FixedExtentScrollController ctrl, int index) {
+    if (MediaQuery.disableAnimationsOf(context)) {
+      ctrl.jumpToItem(index);
+    } else {
+      ctrl.animateToItem(
+        index,
         duration: const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
       );
@@ -275,6 +302,7 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
 
   Future<void> _editHeight() async {
     HapticFeedback.selectionClick();
+    final palette = AppColors.of(context);
     if (_isImperial) {
       final ftCtrl = TextEditingController(text: '${_height ~/ 12}');
       final inCtrl = TextEditingController(text: '${_height % 12}');
@@ -321,6 +349,20 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
                               keyboardType: TextInputType.number,
                               placeholder: 'ft',
                               textAlign: TextAlign.center,
+                              cursorColor: palette.accent,
+                              style: FieldManual.readout(
+                                fontSize: 16,
+                                color: palette.text,
+                              ),
+                              placeholderStyle: FieldManual.body(
+                                fontSize: 13,
+                                color: palette.textSecondary,
+                              ),
+                              decoration: BoxDecoration(
+                                color: palette.surfaceElevated,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: palette.border),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -332,6 +374,20 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
                               keyboardType: TextInputType.number,
                               placeholder: 'in',
                               textAlign: TextAlign.center,
+                              cursorColor: palette.accent,
+                              style: FieldManual.readout(
+                                fontSize: 16,
+                                color: palette.text,
+                              ),
+                              placeholderStyle: FieldManual.body(
+                                fontSize: 13,
+                                color: palette.textSecondary,
+                              ),
+                              decoration: BoxDecoration(
+                                color: palette.surfaceElevated,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: palette.border),
+                              ),
                               onSubmitted: (_) => confirm(),
                             ),
                           ),
@@ -343,9 +399,9 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
                         const SizedBox(height: 8),
                         Text(
                           error!,
-                          style: const TextStyle(
-                            color: CupertinoColors.systemRed,
+                          style: FieldManual.body(
                             fontSize: 12,
+                            color: palette.destructive,
                           ),
                         ),
                       ],
@@ -372,11 +428,7 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
       inCtrl.dispose();
       if (result != null && mounted) {
         setState(() => _height = result);
-        _heightCtrl.animateToItem(
-          _height - _minHeight,
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeOutCubic,
-        );
+        _settleWheel(_heightCtrl, _height - _minHeight);
       }
       return;
     }
@@ -415,15 +467,29 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
                       keyboardType: TextInputType.number,
                       placeholder: '$_minHeight - $_maxHeight cm',
                       textAlign: TextAlign.center,
+                      cursorColor: palette.accent,
+                      style: FieldManual.readout(
+                        fontSize: 16,
+                        color: palette.text,
+                      ),
+                      placeholderStyle: FieldManual.body(
+                        fontSize: 13,
+                        color: palette.textSecondary,
+                      ),
+                      decoration: BoxDecoration(
+                        color: palette.surfaceElevated,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: palette.border),
+                      ),
                       onSubmitted: (_) => confirm(),
                     ),
                     if (error != null) ...[
                       const SizedBox(height: 8),
                       Text(
                         error!,
-                        style: const TextStyle(
-                          color: CupertinoColors.systemRed,
+                        style: FieldManual.body(
                           fontSize: 12,
+                          color: palette.destructive,
                         ),
                       ),
                     ],
@@ -449,20 +515,19 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
     ctrl.dispose();
     if (result != null && mounted) {
       setState(() => _height = result);
-      _heightCtrl.animateToItem(
-        _height - _minHeight,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-      );
+      _settleWheel(_heightCtrl, _height - _minHeight);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final palette = AppColors.of(context);
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
-    return Padding(
+    return SafeArea(
+      // Bottom inset so the Next button clears the home indicator, matching
+      // the SafeArea-wrapped name/body/goal steps.
+      child: Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -474,40 +539,24 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
           const SizedBox(height: 24),
           Text(
             'Your measurements',
-            style: textTheme.headlineMedium?.copyWith(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 28,
-              color: palette.text,
-            ),
+            style: FieldManual.prompt(color: palette.text),
           ),
           const SizedBox(height: 8),
           Text(
             'Tap a value to type it in, or scroll the wheel.',
-            style: textTheme.bodyLarge?.copyWith(
-              fontFamily: 'LeagueSpartan',
-              fontWeight: FontWeight.w400,
-              color: palette.textSecondary,
-            ),
+            style: FieldManual.body(color: palette.textSecondary),
           ),
           const SizedBox(height: 16),
-          // Unit toggle — Cupertino segmented control. The thumb animation
-          // is built in; selecting either side triggers the value
-          // conversion + provider sync in [_setUnit].
+          // Unit toggle — Field Manual segmented control (same single-tap
+          // surface as the sliding control it replaces); selecting either
+          // side triggers the value conversion + provider sync in [_setUnit].
           Center(
             child: SizedBox(
               width: 260,
-              child: CupertinoSlidingSegmentedControl<bool>(
-                groupValue: _isImperial,
-                thumbColor: palette.accent,
-                backgroundColor: palette.surfaceElevated,
-                onValueChanged: (value) {
-                  if (value != null) _setUnit(value);
-                },
-                children: {
-                  true: _segLabel('Imperial', isSelected: _isImperial),
-                  false: _segLabel('Metric', isSelected: !_isImperial),
-                },
+              child: FmSegmented<bool>(
+                segments: const [(true, 'Imperial'), (false, 'Metric')],
+                selected: _isImperial,
+                onChanged: _setUnit,
               ),
             ),
           ),
@@ -524,7 +573,9 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
             // scroll offset — the header updates but the wheel doesn't,
             // which is the bug we're fixing here.
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
+              duration: reduceMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 220),
               switchInCurve: Curves.easeOut,
               switchOutCurve: Curves.easeIn,
               transitionBuilder: (child, animation) =>
@@ -565,35 +616,16 @@ class _MeasurementsStepState extends ConsumerState<MeasurementsStep> {
           CupertinoButton(
             padding: const EdgeInsets.symmetric(vertical: 14),
             color: palette.accent,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(4),
             onPressed: _submit,
-            child: const Text(
+            // "Next" stays sentence case — widget tests find this string.
+            child: Text(
               'Next',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Poppins',
-              ),
+              style: FieldManual.title(color: palette.onAccent),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _segLabel(String text, {required bool isSelected}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.w600,
-          fontSize: 13,
-          color: isSelected
-              ? CupertinoColors.white
-              : AppColors.of(context).text,
-        ),
       ),
     );
   }
@@ -626,39 +658,31 @@ class _WheelPicker extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: palette.border),
       ),
       child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.only(top: 10),
-            child: Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                color: palette.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            child: Text(label.toUpperCase(), style: FieldManual.label()),
           ),
-          // Tap-to-type — the big accent-coloured headline doubles as a
-          // button. A dotted underline + ~16-px vertical padding tells the
-          // user it's interactive and gives the gesture room.
+          // Tap-to-type — the big accent-coloured readout doubles as a
+          // button. A dotted underline + vertical padding (≥44pt with the
+          // 22pt readout) tells the user it's interactive and gives the
+          // gesture room.
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onTapValue,
             child: Padding(
               padding:
-                  const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                  const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               child: Text(
                 displayValue,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
+                style: FieldManual.readout(
+                  fontSize: 22,
                   color: palette.accent,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
+                ).copyWith(
                   decoration: TextDecoration.underline,
                   decorationStyle: TextDecorationStyle.dotted,
                   decorationColor: palette.accent.withValues(alpha: 0.35),
@@ -689,10 +713,11 @@ class _WheelPicker extends StatelessWidget {
                 itemBuilder: (context, i) => Center(
                   child: Text(
                     formatItem(min + i),
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
+                    // Wheel values are trained-against numbers → mono
+                    // readout (Instrument Panel Rule).
+                    style: FieldManual.readout(
+                      fontSize: 17,
                       color: palette.text,
-                      fontSize: 20,
                     ),
                   ),
                 ),

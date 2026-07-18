@@ -29,7 +29,7 @@ void main() {
 
       expect(find.text("What's your name?"), findsOneWidget);
       expect(
-        find.text("We'll use this to personalise your experience."),
+        find.text("So the sergeant knows who he's talking to."),
         findsOneWidget,
       );
     });

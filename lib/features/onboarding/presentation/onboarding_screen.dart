@@ -4,6 +4,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import 'onboarding_controller.dart';
 import 'widgets/activity_step.dart';
 import 'widgets/body_info_step.dart';
@@ -56,34 +57,35 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final step = state.currentStep;
     final previousStep = state.previousStep;
 
+    final palette = AppColors.of(context);
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+
     ref.listen<int>(
       onboardingControllerProvider.select((s) => s.currentStep),
       (previous, next) {
         if (_pageController.hasClients) {
-          _pageController.animateToPage(
-            next,
-            duration: const Duration(milliseconds: 320),
-            curve: Curves.easeOutCubic,
-          );
+          if (reduceMotion) {
+            _pageController.jumpToPage(next);
+          } else {
+            _pageController.animateToPage(
+              next,
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+            );
+          }
         }
       },
     );
-
-    final palette = AppColors.of(context);
 
     if (_isLoading) {
       return Scaffold(
         backgroundColor: palette.background,
         appBar: CupertinoNavigationBar(
-          backgroundColor: palette.background.withValues(alpha: 0.8),
-          border: null,
+          backgroundColor: palette.background.withValues(alpha: 0.82),
+          border: Border(bottom: BorderSide(color: palette.border)),
           middle: Text(
-            'Welcome to DrillFit',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              color: palette.text,
-            ),
+            'WELCOME TO DRILLFIT',
+            style: FieldManual.title(color: palette.text),
           ),
         ),
         body: Center(
@@ -97,15 +99,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return Scaffold(
       backgroundColor: palette.background,
       appBar: CupertinoNavigationBar(
-        backgroundColor: palette.background.withValues(alpha: 0.8),
-        border: null,
+        backgroundColor: palette.background.withValues(alpha: 0.82),
+        border: Border(bottom: BorderSide(color: palette.border)),
         middle: Text(
-          'Welcome to DrillFit',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: palette.text,
-          ),
+          'WELCOME TO DRILLFIT',
+          style: FieldManual.title(color: palette.text),
         ),
         leading: step > 0
             ? CupertinoButton(
@@ -159,8 +157,10 @@ class _DotProgressIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
-    return Container(
-      color: palette.surface,
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    // Accent marks the live step on a hairline track of inactive dots; the
+    // strip itself sits directly on the ink background.
+    return Padding(
       padding: const EdgeInsets.only(bottom: 16, top: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -169,14 +169,18 @@ class _DotProgressIndicator extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
+              duration: reduceMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
               width: isActive ? 20 : 8,
               height: 8,
               decoration: BoxDecoration(
+                // Inactive dots at bone@40% clear the 3:1 non-text floor;
+                // hairlineStrong (bone@16%) read at ~1.3:1 on ink.
                 color: isActive
                     ? palette.accent
-                    : palette.text.withValues(alpha: 0.3),
+                    : FieldManual.bone.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -219,6 +223,16 @@ class _AnimatedStepState extends State<_AnimatedStep>
     );
     _updateSlideAnimation();
     _controller.forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reduced motion: collapse the entrance fade/slide to a hard cut
+    // (Duration.zero) — same tree, no movement.
+    _controller.duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 320);
   }
 
   @override

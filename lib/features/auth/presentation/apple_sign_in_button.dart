@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/utils/logger.dart';
 import '../../../providers/auth_provider.dart';
 import 'auth_error_dialog.dart';
@@ -50,17 +50,20 @@ class _AppleSignInButtonState extends ConsumerState<AppleSignInButton> {
       child: SignInWithAppleButton(
         // Null onPressed disables the official button while a request is in
         // flight (don't overlay a spinner — keep Apple's button pristine).
+        // Provider brand treatment stays (white style, official logo/label);
+        // only the corner radius aligns with Field Manual geometry — Apple's
+        // HIG allows a custom corner radius on this button.
         onPressed: _loading ? null : _signIn,
         style: SignInWithAppleButtonStyle.white,
         height: 48,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4),
       ),
     );
   }
 }
 
-/// "───  or  ───" divider separating email auth from the Apple button on the
-/// sign-in / sign-up screens.
+/// "───  OR  ───" divider separating email auth from the Apple button on the
+/// sign-in / sign-up screens. Field Manual: hairline rules, mono stamp.
 class AuthOrDivider extends StatelessWidget {
   const AuthOrDivider({super.key});
 
@@ -68,19 +71,16 @@ class AuthOrDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Container(height: 1, color: const Color(0x22FFFFFF))),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            'or',
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontSize: 13,
-              color: AppColors.purpleLight,
-            ),
-          ),
+        Expanded(
+          child: Container(height: 1, color: FieldManual.hairlineStrong),
         ),
-        Expanded(child: Container(height: 1, color: const Color(0x22FFFFFF))),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text('OR', style: FieldManual.label(fontSize: 10)),
+        ),
+        Expanded(
+          child: Container(height: 1, color: FieldManual.hairlineStrong),
+        ),
       ],
     );
   }

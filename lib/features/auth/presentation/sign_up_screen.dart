@@ -2,9 +2,10 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors, Scaffold;
+import 'package:flutter/material.dart' show Scaffold;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/utils/validators.dart';
 import '../../../providers/auth_provider.dart';
@@ -122,7 +123,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         case 'weak-password':
           setState(
             () => _passwordError =
-                'Password must be at least 6 characters. Give it some muscle.',
+                'Password must be at least 6 characters.',
           );
         default:
           showAuthErrorDialog(context, e);
@@ -137,12 +138,15 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
     return Scaffold(
-      backgroundColor: AppColors.darkBackground,
-      appBar: const CupertinoNavigationBar(
-        middle: Text('Create Account'),
-        backgroundColor: Color(0xCC1A1A1A),
-        border: null,
+      backgroundColor: FieldManual.ink,
+      appBar: CupertinoNavigationBar(
+        middle: Text('CREATE ACCOUNT', style: FieldManual.title()),
+        backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+        border: const Border(
+          bottom: BorderSide(color: FieldManual.hairline),
+        ),
       ),
       body: SafeArea(
         top: false,
@@ -154,23 +158,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               const SizedBox(height: 32),
 
               // Heading
-              const Text(
-                'Get started',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 28,
-                  color: Colors.white,
-                ),
-              ),
+              Text('GET STARTED', style: FieldManual.display()),
               const SizedBox(height: 8),
-              const Text(
-                'Create your account to begin your fitness journey.',
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  fontWeight: FontWeight.w400,
+              Text(
+                'Enlistment takes a minute. The rest you earn.',
+                style: FieldManual.body(
                   fontSize: 16,
-                  color: AppColors.purpleLight,
+                  color: FieldManual.mutedBone,
                 ),
               ),
               const SizedBox(height: 32),
@@ -219,23 +213,26 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Create Account button
+              // Create Account button — Field Manual primary: accent fill,
+              // on-accent label, sharp 4px corners.
               SizedBox(
                 width: double.infinity,
                 child: CupertinoButton(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  color: AppColors.lime,
-                  borderRadius: BorderRadius.circular(12),
+                  color: palette.accent,
+                  // Keep the accent fill while loading (the only disabled
+                  // state) so the ink spinner stays visible.
+                  disabledColor: palette.accent,
+                  borderRadius: BorderRadius.circular(4),
                   onPressed: _isLoading ? null : _signUp,
                   child: _isLoading
-                      ? const CupertinoActivityIndicator(color: Colors.black)
-                      : const Text(
-                          'Create Account',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w600,
+                      ? CupertinoActivityIndicator(color: palette.onAccent)
+                      : Text(
+                          'CREATE ACCOUNT',
+                          style: FieldManual.title().copyWith(
                             fontSize: 15,
-                            color: Colors.black,
+                            letterSpacing: 0.6,
+                            color: palette.onAccent,
                           ),
                         ),
                 ),
@@ -254,7 +251,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   }
 }
 
-class _AuthTextField extends StatelessWidget {
+class _AuthTextField extends StatefulWidget {
   const _AuthTextField({
     required this.controller,
     required this.placeholder,
@@ -282,37 +279,95 @@ class _AuthTextField extends StatelessWidget {
   final String? error;
 
   @override
+  State<_AuthTextField> createState() => _AuthTextFieldState();
+}
+
+class _AuthTextFieldState extends State<_AuthTextField> {
+  // Focus tracking is visual only — it drives the accent focus border on the
+  // Field Manual input. When the caller passes a node (email), we listen to
+  // it; otherwise we own a private one. Input behavior is unchanged.
+  late FocusNode _focusNode;
+  bool _ownsNode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _attach(widget.focusNode);
+  }
+
+  void _attach(FocusNode? node) {
+    _ownsNode = node == null;
+    _focusNode = node ?? FocusNode();
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  void _detach() {
+    _focusNode.removeListener(_onFocusChanged);
+    if (_ownsNode) _focusNode.dispose();
+  }
+
+  @override
+  void didUpdateWidget(_AuthTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusNode != widget.focusNode) {
+      _detach();
+      _attach(widget.focusNode);
+    }
+  }
+
+  @override
+  void dispose() {
+    _detach();
+    super.dispose();
+  }
+
+  void _onFocusChanged() {
+    // Repaint the focus border.
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    final borderColor = widget.error != null
+        ? palette.destructive
+        : _focusNode.hasFocus
+            ? palette.accent
+            : FieldManual.hairline;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         CupertinoTextField(
-          controller: controller,
-          focusNode: focusNode,
-          placeholder: placeholder,
-          keyboardType: keyboardType,
-          obscureText: obscureText,
-          autocorrect: autocorrect,
-          textCapitalization: textCapitalization,
-          textInputAction: textInputAction,
-          onChanged: onChanged,
-          onSubmitted: onSubmitted,
+          controller: widget.controller,
+          focusNode: _focusNode,
+          placeholder: widget.placeholder,
+          keyboardType: widget.keyboardType,
+          obscureText: widget.obscureText,
+          autocorrect: widget.autocorrect,
+          textCapitalization: widget.textCapitalization,
+          textInputAction: widget.textInputAction,
+          onChanged: widget.onChanged,
+          onSubmitted: widget.onSubmitted,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
-            color: AppColors.darkSurface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: error != null ? AppColors.error : const Color(0x14FFFFFF),
-            ),
+            color: FieldManual.fieldRaised,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: borderColor),
           ),
-          style: const TextStyle(color: Colors.white),
+          style: FieldManual.body(),
+          placeholderStyle: FieldManual.body(color: FieldManual.mutedBone),
+          cursorColor: palette.accent,
         ),
-        if (error != null)
+        // Error is never color-alone — the message text carries it.
+        if (widget.error != null)
           Padding(
             padding: const EdgeInsets.only(top: 6, left: 4),
             child: Text(
-              error!,
-              style: const TextStyle(color: AppColors.error, fontSize: 12),
+              widget.error!,
+              style: FieldManual.body(
+                fontSize: 12,
+                color: palette.destructive,
+              ),
             ),
           ),
       ],

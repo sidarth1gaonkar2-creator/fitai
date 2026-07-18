@@ -11,14 +11,18 @@ class OnboardingIllustration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Reduce Motion: skip the scale/opacity pop, render the badge at rest.
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 400);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.6, end: 1.0),
-      duration: const Duration(milliseconds: 400),
+      duration: duration,
       curve: Curves.easeOutBack,
       builder: (context, scale, child) {
         return TweenAnimationBuilder<double>(
           tween: Tween(begin: 0.0, end: 1.0),
-          duration: const Duration(milliseconds: 400),
+          duration: duration,
           builder: (context, opacity, _) {
             return Opacity(
               opacity: opacity,

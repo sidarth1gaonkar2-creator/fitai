@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/tdee_calculator.dart';
 import '../../../../core/utils/unit_converter.dart';
 import '../../../../models/enums.dart';
@@ -16,7 +17,7 @@ class SummaryStep extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(onboardingControllerProvider);
     final units = ref.watch(unitSystemProvider);
-    final textTheme = Theme.of(context).textTheme;
+    final palette = AppColors.of(context);
 
     final breakdown = (state.weight != null &&
             state.height != null &&
@@ -44,59 +45,49 @@ class SummaryStep extends ConsumerWidget {
             child: OnboardingIllustration(icon: Icons.check_circle_outline),
           ),
           const SizedBox(height: 24),
+          // Sentence case: the headline carries the recruit's name — user
+          // content is never uppercased. The sergeant praises completed work,
+          // and doesn't gush — no exclamation.
           Text(
-            "You're all set, ${state.name}!",
-            style: textTheme.headlineMedium?.copyWith(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 28,
-              color: AppColors.of(context).text,
-            ),
+            'Intake complete, ${state.name}.',
+            style: FieldManual.prompt(color: palette.text),
           ),
           const SizedBox(height: 8),
           Text(
-            'Here is your personalised summary.',
-            style: textTheme.bodyLarge?.copyWith(
-              fontFamily: 'LeagueSpartan',
-              fontWeight: FontWeight.w400,
-              color: AppColors.of(context).textSecondary,
-            ),
+            'Your numbers. The sergeant has them too.',
+            style: FieldManual.body(color: palette.textSecondary),
           ),
           const SizedBox(height: 32),
 
           // Profile card
           Container(
             decoration: BoxDecoration(
-              color: AppColors.of(context).surfaceElevated,
-              borderRadius: BorderRadius.circular(16),
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: palette.border),
             ),
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Your Profile',
-                  style: textTheme.titleSmall?.copyWith(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.of(context).accent,
-                  ),
-                ),
+                Text('YOUR PROFILE', style: FieldManual.label()),
                 const SizedBox(height: 12),
                 _SummaryRow(label: 'Name', value: state.name),
-                _SummaryRow(label: 'Age', value: '${state.age}'),
+                _SummaryRow(label: 'Age', value: '${state.age}', mono: true),
                 _SummaryRow(label: 'Sex', value: state.sex?.label ?? ''),
                 _SummaryRow(
                   label: 'Weight',
                   value: state.weight == null
                       ? '—'
                       : UnitConverter.formatWeight(state.weight!, units),
+                  mono: true,
                 ),
                 _SummaryRow(
                   label: 'Height',
                   value: state.height == null
                       ? '—'
                       : UnitConverter.formatHeight(state.height!, units),
+                  mono: true,
                 ),
                 _SummaryRow(label: 'Goal', value: state.goal?.label ?? ''),
                 _SummaryRow(
@@ -112,12 +103,9 @@ class SummaryStep extends ConsumerWidget {
           if (breakdown != null)
             Container(
               decoration: BoxDecoration(
-                color: AppColors.of(context).surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.of(context).border,
-                  width: 1,
-                ),
+                color: palette.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: palette.border),
               ),
               padding: const EdgeInsets.all(20),
               child: _CalculationBreakdownCard(
@@ -127,7 +115,8 @@ class SummaryStep extends ConsumerWidget {
             ),
           const SizedBox(height: 32),
 
-          // Get Started button
+          // Get Started button — sentence case kept to match the pinned
+          // "Next" labels earlier in the flow.
           FilledButton(
             onPressed: state.isSaving
                 ? null
@@ -135,28 +124,25 @@ class SummaryStep extends ConsumerWidget {
                     .read(onboardingControllerProvider.notifier)
                     .calculateAndSave(),
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.of(context).accent,
-              foregroundColor: Colors.white,
+              backgroundColor: palette.accent,
+              foregroundColor: palette.onAccent,
               minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(4),
               ),
             ),
             child: state.isSaving
-                ? const SizedBox(
+                ? SizedBox(
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.black,
+                      color: palette.onAccent,
                     ),
                   )
-                : const Text(
+                : Text(
                     'Get Started',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: FieldManual.title(color: palette.onAccent),
                   ),
           ),
           const SizedBox(height: 24),
@@ -177,43 +163,46 @@ class _CalculationBreakdownCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final palette = AppColors.of(context);
-    final monoStyle = textTheme.bodyMedium?.copyWith(
-      fontFeatures: [const FontFeature.tabularFigures()],
-      color: palette.text,
+    final labelStyle =
+        FieldManual.body(fontSize: 13, color: palette.textSecondary);
+    // Every figure the recruit trains against is a mono readout
+    // (Instrument Panel Rule).
+    final valueStyle = FieldManual.readout(fontSize: 13, color: palette.text);
+    final emphasisLabelStyle =
+        FieldManual.body(fontSize: 13, color: palette.text).copyWith(
+      fontVariations: const [FontVariation('wght', 600)],
+      fontWeight: FontWeight.w600,
     );
+    final emphasisValueStyle =
+        FieldManual.readout(fontSize: 14, color: palette.text);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Calorie Calculation',
-          style: textTheme.titleSmall?.copyWith(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: palette.accent,
-          ),
-        ),
+        Text('CALORIE CALCULATION', style: FieldManual.label()),
         const SizedBox(height: 12),
 
         // BMR calculation
         _CalcRow(
           label: 'Base metabolic rate',
           value: breakdown.baseValue.round().toString(),
-          style: monoStyle,
+          labelStyle: labelStyle,
+          valueStyle: valueStyle,
         ),
         _CalcRow(
           label: 'Sex adjustment (${state.sex?.label})',
           value:
               '${breakdown.sexConstant >= 0 ? '+' : ''}${breakdown.sexConstant.round()}',
-          style: monoStyle,
+          labelStyle: labelStyle,
+          valueStyle: valueStyle,
         ),
         Divider(height: 16, color: palette.border),
         _CalcRow(
           label: 'BMR',
           value: '${breakdown.bmr.round()} kcal',
-          style: monoStyle?.copyWith(fontWeight: FontWeight.w600),
+          labelStyle: emphasisLabelStyle,
+          valueStyle: emphasisValueStyle,
         ),
         const SizedBox(height: 12),
 
@@ -221,13 +210,15 @@ class _CalculationBreakdownCard extends StatelessWidget {
         _CalcRow(
           label: 'Activity multiplier (${state.activityLevel?.shortLabel})',
           value: '× ${breakdown.activityMultiplier.toStringAsFixed(2)}',
-          style: monoStyle,
+          labelStyle: labelStyle,
+          valueStyle: valueStyle,
         ),
         Divider(height: 16, color: palette.border),
         _CalcRow(
           label: 'TDEE',
           value: '${breakdown.tdee.round()} kcal',
-          style: monoStyle?.copyWith(fontWeight: FontWeight.w600),
+          labelStyle: emphasisLabelStyle,
+          valueStyle: emphasisValueStyle,
         ),
         const SizedBox(height: 12),
 
@@ -237,7 +228,8 @@ class _CalculationBreakdownCard extends StatelessWidget {
             label: 'Goal adjustment (${state.goal?.label})',
             value:
                 '${breakdown.calorieAdjustment > 0 ? '+' : ''}${breakdown.calorieAdjustment}',
-            style: monoStyle,
+            labelStyle: labelStyle,
+            valueStyle: valueStyle,
           ),
         Divider(height: 16, color: palette.border),
 
@@ -248,18 +240,13 @@ class _CalculationBreakdownCard extends StatelessWidget {
             Flexible(
               child: Text(
                 'Daily calorie target',
-                style: textTheme.titleMedium?.copyWith(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  color: palette.text,
-                ),
+                style: FieldManual.title(color: palette.text),
               ),
             ),
             Text(
               '${breakdown.goalAdjustedTarget.round()} kcal',
-              style: textTheme.titleLarge?.copyWith(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w700,
+              style: FieldManual.readout(
+                fontSize: 20,
                 color: palette.accent,
               ),
             ),
@@ -274,12 +261,14 @@ class _CalcRow extends StatelessWidget {
   const _CalcRow({
     required this.label,
     required this.value,
-    this.style,
+    this.labelStyle,
+    this.valueStyle,
   });
 
   final String label;
   final String value;
-  final TextStyle? style;
+  final TextStyle? labelStyle;
+  final TextStyle? valueStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -288,8 +277,8 @@ class _CalcRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Flexible(child: Text(label, style: style)),
-          Text(value, style: style),
+          Flexible(child: Text(label, style: labelStyle)),
+          Text(value, style: valueStyle),
         ],
       ),
     );
@@ -300,14 +289,18 @@ class _SummaryRow extends StatelessWidget {
   const _SummaryRow({
     required this.label,
     required this.value,
+    this.mono = false,
   });
 
   final String label;
   final String value;
 
+  /// True for numeric values (age, weight, height) — they render in the
+  /// mono readout face per the Instrument Panel Rule.
+  final bool mono;
+
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final palette = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -316,16 +309,20 @@ class _SummaryRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: textTheme.bodyLarge?.copyWith(
+            style: FieldManual.body(
+              fontSize: 14,
               color: palette.textSecondary,
             ),
           ),
           Text(
             value,
-            style: textTheme.bodyLarge?.copyWith(
-              color: palette.text,
-              fontWeight: FontWeight.w600,
-            ),
+            style: mono
+                ? FieldManual.readout(fontSize: 14, color: palette.text)
+                : FieldManual.body(fontSize: 14, color: palette.text)
+                    .copyWith(
+                    fontVariations: const [FontVariation('wght', 600)],
+                    fontWeight: FontWeight.w600,
+                  ),
           ),
         ],
       ),
