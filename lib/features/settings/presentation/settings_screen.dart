@@ -70,6 +70,10 @@ class SettingsScreen extends ConsumerWidget {
     final palette = AppColors.of(context);
     final overallRank =
         ref.watch(overallRankProvider).valueOrNull ?? MilitaryRank.private_e1;
+    // Airborne subscribers see their OWN current rank brass-mounted. The About
+    // card is the user's own earned rank with no purchase affordance nearby —
+    // guardrail-safe (same pattern as the My Ranks hero / rank strip).
+    final airborne = ref.watch(airborneActiveProvider);
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -700,7 +704,11 @@ class SettingsScreen extends ConsumerWidget {
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
-                      child: RankInsignia(rank: overallRank, size: 26),
+                      child: RankInsignia(
+                        rank: overallRank,
+                        size: 26,
+                        airborne: airborne,
+                      ),
                     ),
                     title: Text(
                       overallRank.displayName,
