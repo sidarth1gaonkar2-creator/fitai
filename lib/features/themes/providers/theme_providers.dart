@@ -29,12 +29,18 @@ final activeThemeProvider = Provider<AppThemeData>((ref) {
   return themeById(state.equippedThemeId);
 });
 
-/// Set of all owned theme IDs (including the implicit default). Ownership ==
-/// bought with coins (or granted free); see [unlockedThemesProvider] for what
-/// the user can actually equip.
+/// Set of all owned theme IDs (including the implicit default and any
+/// [AppThemeData.ownedByDefault] grants — the default plus cash skins in
+/// preview while their IAP is deferred). Ownership == bought with coins or
+/// granted free; see [unlockedThemesProvider] for what the user can equip.
 final ownedThemesProvider = Provider<Set<String>>((ref) {
   final state = ref.watch(userThemeStateProvider);
-  return {defaultTheme.id, ...state.ownedThemeIds};
+  return {
+    defaultTheme.id,
+    for (final t in themeRegistry)
+      if (t.ownedByDefault) t.id,
+    ...state.ownedThemeIds,
+  };
 });
 
 /// Everything the user can equip right now: coin-owned themes plus — while

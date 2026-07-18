@@ -230,6 +230,46 @@ const List<AppThemeData> themeRegistry = [
     darkBorder: _hairline,
     darkSeparator: _separator,
   ),
+
+  // 10. Night Ops — the first FULL SKIN (not an accent swap): a pure-black
+  // OLED tactical skin with a night-vision HUD readout feel. It restyles
+  // surfaces (true #000 ground), geometry (near-zero regulation corners), and
+  // type (display face → mono terminal) on top of an amber tactical accent —
+  // the new full-skin tier above the Accent Swap Rule (DESIGN.md). Insignia
+  // keep their tier colours and the Airborne mount stays brass (both drawn
+  // from constants a skin can't touch), so the sacred carve-outs hold.
+  //
+  // ECONOMY: a $2.99 CASH pack (cashPriceCents), NOT a coin theme —
+  // price 0 keeps it out of isStandardCoinTheme / Airborne unlocks. IAP is
+  // deferred; ownedByDefault grants it for on-device preview until StoreKit
+  // is wired. Every colour holds WCAG AA on true black (bone 16.8:1, amber
+  // 11.6:1, ink-on-amber 8.7:1).
+  AppThemeData(
+    id: 'night_ops',
+    name: 'Night Ops',
+    accent: Color(0xFFFFB000), // amber phosphor — 11.6:1 on #000
+    accentLight: Color(0xFFFFC94D),
+    success: _fmSuccess,
+    surfaceTint: Color(0xFFFFB000),
+    darkBackground: Color(0xFF000000), // true black, OLED
+    darkSurface: Color(0xFF0A0A0A), // whisper-lift so cards read
+    lightAccent: Color(0xFF8A5A00), // dark amber, AA on white (light retired)
+    price: 0, // sold for cash, not coins — see cashPriceCents
+    cashPriceCents: 299,
+    ownedByDefault: true, // previewable on device; IAP deferred
+    accentPressed: Color(0xFFD19000), // amber × 0.82 — the reference ratio
+    darkText: _bone,
+    darkTextSecondary: _mutedBone,
+    darkTextTertiary: _liftedOlive,
+    darkSurfaceElevated: Color(0xFF161616),
+    darkBorder: Color(0x29E8E4D8), // bone @16% — holds as a hairline on black
+    darkSeparator: Color(0x1AE8E4D8), // bone @10%
+    // Full-skin overrides:
+    cardRadius: 2, // sharp regulation corners (FM 8)
+    sheetRadius: 4, // (FM 12)
+    buttonRadius: 2, // (FM 4)
+    displayFontFamily: 'JetBrainsMono', // terminal HUD headers (FM Oswald)
+  ),
 ];
 
 /// The default theme — guaranteed to be in [themeRegistry] (first entry).

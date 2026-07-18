@@ -51,6 +51,8 @@ class AppThemeData {
     this.displayWeight,
     this.headlineWeight,
     this.titleWeight,
+    this.cashPriceCents,
+    this.ownedByDefault = false,
   });
 
   final String id;
@@ -125,7 +127,20 @@ class AppThemeData {
 
   // ── Commerce ─────────────────────────────────────────────────────────────
   /// Price in coins — the app's single currency, earned in-app (workouts,
-  /// streaks, PRs, etc.). 0 = free / always owned.
+  /// streaks, PRs, etc.). 0 = free / always owned / sold outside the coin
+  /// economy (see [cashPriceCents]).
   final int price;
   final bool isPremium;
+
+  /// Real-money price in US cents for a *cash* theme pack (a full skin sold
+  /// for money, not coins). Non-null marks a future StoreKit product. Kept
+  /// out of the coin economy: such themes carry `price: 0` so they never
+  /// register as standard coin themes and are never Airborne-unlocked.
+  /// The IAP/StoreKit wiring is deferred — see [ownedByDefault].
+  final int? cashPriceCents;
+
+  /// Granted to every user without purchase — the implicit default, free
+  /// grants, and cash products in **preview** while their IAP is unwired.
+  /// Lets a cash skin be equipped/tested on device before StoreKit exists.
+  final bool ownedByDefault;
 }
