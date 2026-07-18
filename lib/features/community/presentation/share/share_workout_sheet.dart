@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
 import '../../../ranks/domain/military_ranks.dart';
@@ -102,10 +103,12 @@ class _ShareWorkoutSheetState extends ConsumerState<ShareWorkoutSheet> {
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
 
+    // Field Manual sheet: field surface, 12px top corners, modality from the
+    // scrim — no shadow (DESIGN.md §Cards/Elevation).
     return Container(
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -127,37 +130,30 @@ class _ShareWorkoutSheetState extends ConsumerState<ShareWorkoutSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Title
+              // Title — condensed uppercase command (visual only).
               Text(
-                'Share Workout',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                  color: palette.text,
-                ),
+                'SHARE WORKOUT',
+                semanticsLabel: 'Share workout',
+                style: FieldManual.headline(color: palette.text)
+                    .copyWith(fontSize: 18),
               ),
               const SizedBox(height: 16),
               // Workout summary
               _buildSummaryCard(palette),
               const SizedBox(height: 16),
-              // Caption
+              // Caption — FM input: raised field fill, hairline border, 8px
+              // corners (DESIGN.md §Inputs). What the user types is Inter.
               CupertinoTextField(
                 controller: _captionController,
                 placeholder: 'Add a caption...',
-                placeholderStyle: TextStyle(
-                  fontFamily: 'LeagueSpartan',
+                placeholderStyle: FieldManual.body(
                   fontSize: 14,
                   color: palette.textSecondary,
                 ),
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  fontSize: 14,
-                  color: palette.text,
-                ),
+                style: FieldManual.body(fontSize: 14, color: palette.text),
                 decoration: BoxDecoration(
                   color: palette.surfaceElevated,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: palette.border),
                 ),
                 padding:
@@ -172,8 +168,7 @@ class _ShareWorkoutSheetState extends ConsumerState<ShareWorkoutSheet> {
                 children: [
                   Text(
                     'Public',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
+                    style: FieldManual.body(
                       fontSize: 15,
                       color: palette.text,
                     ),
@@ -186,7 +181,9 @@ class _ShareWorkoutSheetState extends ConsumerState<ShareWorkoutSheet> {
                 ],
               ),
               const SizedBox(height: 20),
-              // Buttons
+              // Buttons — FM issue: accent fill, sharp 4px, condensed
+              // uppercase; label on the fill is palette.onAccent, never
+              // hardcoded white/ink.
               Row(
                 children: [
                   Expanded(
@@ -194,11 +191,14 @@ class _ShareWorkoutSheetState extends ConsumerState<ShareWorkoutSheet> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       onPressed: () => Navigator.of(context).pop(false),
                       child: Text(
-                        'Skip',
+                        'SKIP',
+                        semanticsLabel: 'Skip',
                         style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 16,
+                          fontFamily: 'Oswald',
+                          fontVariations: const [FontVariation('wght', 600)],
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          letterSpacing: 0.6,
                           color: palette.textSecondary,
                         ),
                       ),
@@ -209,19 +209,24 @@ class _ShareWorkoutSheetState extends ConsumerState<ShareWorkoutSheet> {
                     child: CupertinoButton(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       color: palette.accent,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(4),
                       onPressed: _isSharing ? null : _share,
                       child: _isSharing
-                          ? const CupertinoActivityIndicator(
-                              color: CupertinoColors.white,
+                          ? CupertinoActivityIndicator(
+                              color: palette.onAccent,
                             )
-                          : const Text(
-                              'Share',
+                          : Text(
+                              'SHARE',
+                              semanticsLabel: 'Share',
                               style: TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Oswald',
+                                fontVariations: const [
+                                  FontVariation('wght', 600)
+                                ],
                                 fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                color: CupertinoColors.white,
+                                fontSize: 15,
+                                letterSpacing: 0.6,
+                                color: palette.onAccent,
                               ),
                             ),
                     ),
@@ -237,32 +242,35 @@ class _ShareWorkoutSheetState extends ConsumerState<ShareWorkoutSheet> {
   }
 
   Widget _buildSummaryCard(Palette palette) {
+    // Instrument-panel summary: raised field ground, hairline border, mono
+    // readout for the trained-against numbers.
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: palette.surfaceElevated,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: palette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Workout title is user content \u2014 Inter, never uppercased.
           Text(
             widget.workoutName,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
+            style: FieldManual.body(
               fontSize: 16,
               color: palette.text,
+            ).copyWith(
+              fontWeight: FontWeight.w600,
+              fontVariations: const [FontVariation('wght', 600)],
             ),
           ),
           const SizedBox(height: 6),
           Text(
             '${widget.exercises.length} exercises \u00b7 ${widget.totalSets} sets \u00b7 ${widget.duration}min',
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontSize: 13,
+            style: FieldManual.readout(
+              fontSize: 12,
               color: palette.textSecondary,
             ),
           ),

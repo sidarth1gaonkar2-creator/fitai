@@ -4,6 +4,7 @@ import 'package:flutter/material.dart' show CircleAvatar;
 import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/field_manual.dart';
 import '../../../../ranks/presentation/widgets/user_rank_badge.dart';
 import '../../../domain/comment.dart';
 
@@ -37,15 +38,18 @@ class CommentTile extends StatelessWidget {
                 Row(
                   children: [
                     Flexible(
+                      // Username is user content: Inter, never uppercased;
+                      // w600 is the permitted emphasis.
                       child: Text(
                         comment.username,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.bold,
+                        style: FieldManual.body(
                           fontSize: 13,
                           color: palette.text,
+                        ).copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontVariations: const [FontVariation('wght', 600)],
                         ),
                       ),
                     ),
@@ -55,8 +59,7 @@ class CommentTile extends StatelessWidget {
                       comment.createdAt != null
                           ? timeago.format(comment.createdAt!)
                           : '',
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
+                      style: FieldManual.label(
                         fontSize: 11,
                         color: palette.textSecondary,
                       ),
@@ -64,25 +67,24 @@ class CommentTile extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 2),
+                // Comment body is a human voice: Inter, sentence case.
                 Text(
                   comment.text,
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                    fontSize: 14,
-                    color: palette.text,
-                  ),
+                  style: FieldManual.body(fontSize: 14, color: palette.text),
                 ),
               ],
             ),
           ),
           if (isOwn && onDelete != null)
+            // Quiet but discoverable — alert red belongs to the confirm
+            // step, not the resting entry point.
             CupertinoButton(
               padding: EdgeInsets.zero,
               onPressed: onDelete, minimumSize: Size(24, 24),
               child: Icon(
                 CupertinoIcons.trash,
                 size: 16,
-                color: palette.destructive,
+                color: palette.textSecondary,
                 semanticLabel: 'Delete comment',
               ),
             ),
@@ -107,11 +109,13 @@ class CommentTile extends StatelessWidget {
         comment.username.isNotEmpty
             ? comment.username[0].toUpperCase()
             : '?',
-        style: const TextStyle(
-          fontFamily: 'Poppins',
+        style: TextStyle(
+          fontFamily: 'Inter',
+          fontVariations: const [FontVariation('wght', 700)],
           fontWeight: FontWeight.bold,
           fontSize: 10,
-          color: CupertinoColors.white,
+          // Sits on the accent fill — never hardcoded ink/white.
+          color: palette.onAccent,
         ),
       ),
     );

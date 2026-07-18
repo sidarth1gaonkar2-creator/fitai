@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
+import '../../../../core/utils/logger.dart';
+import '../../../../core/widgets/fm_segmented.dart';
 import '../../../../data/premade_challenges.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
@@ -43,44 +45,45 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: CupertinoSlidingSegmentedControl<int>(
-                    groupValue: _selectedTab,
-                    thumbColor: palette.accent,
-                    backgroundColor: palette.surface,
-                    children: {
-                      0: _segLabel('Browse', _selectedTab == 0, palette),
-                      1: _segLabel(
-                          'My Challenges', _selectedTab == 1, palette),
-                    },
-                    onValueChanged: (value) {
-                      if (value != null) {
-                        HapticFeedback.selectionClick();
-                        setState(() => _selectedTab = value);
-                      }
-                    },
+                  child: FmSegmented<int>(
+                    segments: const [(0, 'Browse'), (1, 'My Challenges')],
+                    selected: _selectedTab,
+                    onChanged: (value) =>
+                        setState(() => _selectedTab = value),
                   ),
                 ),
                 const SizedBox(width: 12),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () {
-                    HapticFeedback.selectionClick();
-                    context.push('/community/challenge/create');
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: palette.accent,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'Create',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: CupertinoColors.white,
+                // Spoken label stays sentence case; uppercase is visual only.
+                Semantics(
+                  label: 'Create challenge',
+                  button: true,
+                  child: ExcludeSemantics(
+                    child: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        context.push('/community/challenge/create');
+                      },
+                      child: Container(
+                        alignment: Alignment.center,
+                        constraints:
+                            const BoxConstraints(minHeight: 44, minWidth: 44),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: palette.accent,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'CREATE',
+                          style: TextStyle(
+                            fontFamily: 'Oswald',
+                            fontVariations: const [FontVariation('wght', 600)],
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            letterSpacing: 0.6,
+                            color: palette.onAccent,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -100,21 +103,6 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
     );
   }
 
-  Widget _segLabel(String text, bool selected, Palette palette) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: selected ? CupertinoColors.white : palette.text,
-        ),
-      ),
-    );
-  }
-
   // ─── Browse tab ──────────────────────────────────────────────────────────
 
   Widget _buildBrowseTab(Palette palette) {
@@ -124,7 +112,9 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
         _sectionHeader(palette, 'Featured Challenges'),
         const SizedBox(height: 8),
         SizedBox(
-          height: 248,
+          // Scales with Dynamic Type so the card's internal Column can't
+          // overflow at accessibility text sizes.
+          height: MediaQuery.textScalerOf(context).scale(248),
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             scrollDirection: Axis.horizontal,
@@ -150,16 +140,12 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
   }
 
   Widget _sectionHeader(Palette palette, String title) {
+    // Section headers wear the condensed display face in bone (DESIGN.md).
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       child: Text(
-        title,
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.w700,
-          fontSize: 16,
-          color: palette.text,
-        ),
+        title.toUpperCase(),
+        style: FieldManual.title(color: palette.text),
       ),
     );
   }
@@ -275,6 +261,7 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
     required String title,
     required String subtitle,
   }) {
+    // Drill-sergeant eyebrow + sentence-case guidance (DESIGN.md).
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -284,21 +271,18 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
             Icon(icon, size: 48, color: palette.textSecondary),
             const SizedBox(height: 12),
             Text(
-              title,
+              title.toUpperCase(),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 17,
-                color: palette.text,
+              style: FieldManual.label(
+                fontSize: 12,
+                color: palette.textSecondary,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
+              style: FieldManual.body(
                 fontSize: 14,
                 color: palette.textSecondary,
               ),
@@ -310,19 +294,16 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
   }
 
   Widget _buildError(Palette palette, Object error, StackTrace? stack) {
-    debugPrint('[Challenges] load failed: $error');
-    if (stack != null) debugPrint('$stack');
-
-    String detail;
-    if (error is FirebaseException) {
-      detail = 'Firestore ${error.code}: ${error.message ?? ''}';
-      if (error.code == 'failed-precondition') {
-        detail += '\n\nThis query needs a composite index. '
-            'Check the debug console for a link to create it in Firebase.';
-      }
-    } else {
-      detail = '$error';
+    // Full diagnostics (incl. any missing-composite-index hint) go to the
+    // log; the user gets a plain sentence.
+    var reason = '[Challenges] load failed';
+    if (error is FirebaseException && error.code == 'failed-precondition') {
+      reason += ' (query likely needs a composite index — check the '
+          'console for the creation link)';
     }
+    AppLogger.error(reason, error: error, stack: stack);
+
+    const detail = "Couldn't load challenges. Try again in a moment.";
 
     return Center(
       child: Padding(
@@ -330,25 +311,22 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline,
+            Icon(CupertinoIcons.exclamationmark_triangle,
                 size: 40, color: palette.textSecondary),
             const SizedBox(height: 12),
             Text(
-              'Could not load challenges',
+              'COULD NOT LOAD CHALLENGES',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-                color: palette.text,
+              style: FieldManual.label(
+                fontSize: 12,
+                color: palette.textSecondary,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               detail,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
+              style: FieldManual.body(
                 fontSize: 12,
                 color: palette.textSecondary,
               ),
@@ -380,8 +358,7 @@ class _CommunityChallengesSection extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         child: Text(
           'Could not load community challenges.',
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
+          style: FieldManual.body(
             fontSize: 13,
             color: palette.textSecondary,
           ),
@@ -397,8 +374,7 @@ class _CommunityChallengesSection extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
             child: Text(
               'No community challenges yet. Create the first one!',
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
+              style: FieldManual.body(
                 fontSize: 14,
                 color: palette.textSecondary,
               ),
@@ -435,18 +411,6 @@ class _PremadeCard extends StatelessWidget {
   final bool starting;
   final VoidCallback onStart;
 
-  Color _difficultyColor() {
-    switch (premade.difficulty) {
-      case 'Easy':
-        return palette.success;
-      case 'Hard':
-        return palette.destructive;
-      case 'Medium':
-      default:
-        return palette.warning;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -454,8 +418,8 @@ class _PremadeCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: palette.border, width: 0.5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: palette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -464,11 +428,15 @@ class _PremadeCard extends StatelessWidget {
             children: [
               Text(premade.icon, style: const TextStyle(fontSize: 24)),
               const Spacer(),
-              _chip(premade.difficulty, _difficultyColor()),
+              // Difficulty is metadata, not a consequence — quiet mono stamp,
+              // not a coloured alert (the One Voice Rule).
+              _chip(premade.difficulty, palette.textSecondary),
             ],
           ),
           const SizedBox(height: 8),
-          // Target rank badge (or goal pill for weight challenges).
+          // Target rank badge (or goal pill for weight challenges). Insignia
+          // and abbreviation render in canonical tier colours (RankBadge uses
+          // rank.textColor for the small text itself).
           if (premade.targetRankIndex != null)
             Align(
               alignment: Alignment.centerLeft,
@@ -479,7 +447,7 @@ class _PremadeCard extends StatelessWidget {
                   color: rankFromIndex(premade.targetRankIndex!)
                       .color
                       .withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: RankBadge(
                   rank: rankFromIndex(premade.targetRankIndex!),
@@ -494,16 +462,12 @@ class _PremadeCard extends StatelessWidget {
               child: _chip(premade.category, palette.accent),
             ),
           const SizedBox(height: 8),
+          // Premade titles are system designations — they may wear the bark.
           Text(
-            premade.title,
+            premade.title.toUpperCase(),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
-              color: palette.text,
-            ),
+            style: FieldManual.title(color: palette.text),
           ),
           const SizedBox(height: 6),
           Expanded(
@@ -511,11 +475,9 @@ class _PremadeCard extends StatelessWidget {
               premade.description,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
+              style: FieldManual.body(
                 fontSize: 12,
                 color: palette.textSecondary,
-                height: 1.3,
               ),
             ),
           ),
@@ -526,10 +488,10 @@ class _PremadeCard extends StatelessWidget {
                   size: 13, color: palette.textSecondary),
               const SizedBox(width: 4),
               Text(
-                '${premade.durationDays} days',
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  fontSize: 12,
+                // Duration is a trained-against number — mono readout.
+                '${premade.durationDays} DAYS',
+                style: FieldManual.label(
+                  fontSize: 11,
                   color: palette.textSecondary,
                 ),
               ),
@@ -539,10 +501,9 @@ class _PremadeCard extends StatelessWidget {
                     size: 13, color: palette.textSecondary),
                 const SizedBox(width: 4),
                 Text(
-                  'Photo',
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                    fontSize: 12,
+                  'PHOTO',
+                  style: FieldManual.label(
+                    fontSize: 11,
                     color: palette.textSecondary,
                   ),
                 ),
@@ -552,24 +513,32 @@ class _PremadeCard extends StatelessWidget {
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
-            child: CupertinoButton(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              color: palette.accent,
-              borderRadius: BorderRadius.circular(10),
-              onPressed: starting ? null : onStart,
-              child: starting
-                  ? const CupertinoActivityIndicator(
-                      color: CupertinoColors.white,
-                    )
-                  : const Text(
-                      'Start Challenge',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: CupertinoColors.white,
-                      ),
-                    ),
+            child: Semantics(
+              label: 'Start challenge',
+              button: true,
+              child: ExcludeSemantics(
+                child: CupertinoButton(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  color: palette.accent,
+                  borderRadius: BorderRadius.circular(4),
+                  onPressed: starting ? null : onStart,
+                  child: starting
+                      ? CupertinoActivityIndicator(color: palette.onAccent)
+                      : Text(
+                          'START CHALLENGE',
+                          style: TextStyle(
+                            fontFamily: 'Oswald',
+                            fontVariations: const [
+                              FontVariation('wght', 600),
+                            ],
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            letterSpacing: 0.6,
+                            color: palette.onAccent,
+                          ),
+                        ),
+                ),
+              ),
             ),
           ),
         ],
@@ -579,19 +548,15 @@ class _PremadeCard extends StatelessWidget {
 
   Widget _chip(String text, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(6),
+        color: palette.surfaceElevated,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: palette.border),
       ),
       child: Text(
-        text,
-        style: TextStyle(
-          fontFamily: 'LeagueSpartan',
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
+        text.toUpperCase(),
+        style: FieldManual.label(fontSize: 10, color: color),
       ),
     );
   }
@@ -615,68 +580,80 @@ class _ChallengeCard extends ConsumerWidget {
         ? (elapsed / challenge.durationDays).clamp(0.0, 1.0)
         : 0.0;
 
-    return GestureDetector(
-      onTap: () =>
-          context.push('/community/challenge/${challenge.challengeId}'),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: palette.border, width: 0.5),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Semantics(
+      button: true,
+      label: [
+        challenge.title,
+        if (!challenge.isRankGoal) '$daysRemaining days left',
+        '${challenge.participantCount} participants',
+      ].join(', '),
+      child: GestureDetector(
+        onTap: () =>
+            context.push('/community/challenge/${challenge.challengeId}'),
+        child: ExcludeSemantics(
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: palette.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (challenge.icon != null) ...[
-                  Text(challenge.icon!, style: const TextStyle(fontSize: 20)),
-                  const SizedBox(width: 8),
-                ],
-                Expanded(
-                  child: Text(
-                    challenge.title,
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                      color: palette.text,
+                Row(
+                  children: [
+                    if (challenge.icon != null) ...[
+                      Text(challenge.icon!, style: const TextStyle(fontSize: 20)),
+                      const SizedBox(width: 8),
+                    ],
+                    Expanded(
+                      child: Text(
+                        // User-created titles are never uppercased and never wear
+                        // the display face (the Bark Budget Rule).
+                        challenge.title,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontVariations: const [FontVariation('wght', 600)],
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: palette.text,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                    const SizedBox(width: 8),
+                    if (challenge.isRankGoal)
+                      ChallengeTargetBadge(challenge: challenge, size: 18)
+                    else
+                      _typeChip(),
+                  ],
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(height: 12),
+
+                // Rank-goal: show the user's progress toward the rank objective.
+                // Legacy challenge: keep the day-count bar.
                 if (challenge.isRankGoal)
-                  ChallengeTargetBadge(challenge: challenge, size: 18)
-                else
-                  _typeChip(),
+                  ChallengeGoalProgressView(challenge: challenge, dense: true)
+                else ...[
+                  _dayBar(dayProgress),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$daysRemaining DAYS LEFT',
+                    style: FieldManual.label(
+                      fontSize: 11,
+                      color: palette.textSecondary,
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 12),
+                // Participants: count + top-3 rank badges.
+                _ParticipantStrip(challenge: challenge, palette: palette),
               ],
             ),
-            const SizedBox(height: 12),
-
-            // Rank-goal: show the user's progress toward the rank objective.
-            // Legacy challenge: keep the day-count bar.
-            if (challenge.isRankGoal)
-              ChallengeGoalProgressView(challenge: challenge, dense: true)
-            else ...[
-              _dayBar(dayProgress),
-              const SizedBox(height: 8),
-              Text(
-                '$daysRemaining days left',
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  fontSize: 12,
-                  color: palette.textSecondary,
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 12),
-            // Participants: count + top-3 rank badges.
-            _ParticipantStrip(challenge: challenge, palette: palette),
-          ],
+          ),
         ),
       ),
     );
@@ -685,40 +662,39 @@ class _ChallengeCard extends ConsumerWidget {
   Widget _typeChip() => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: palette.accent.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(6),
+          color: palette.accent.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
-          challenge.typeLabel,
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: palette.accent,
-          ),
+          challenge.typeLabel.toUpperCase(),
+          style: FieldManual.label(fontSize: 10, color: palette.accent),
         ),
       );
 
-  Widget _dayBar(double progress) => ClipRRect(
-        borderRadius: BorderRadius.circular(3),
-        child: SizedBox(
-          height: 6,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              return Stack(
-                children: [
-                  Container(width: width, color: palette.surfaceElevated),
-                  Container(
-                    width: width * progress,
-                    decoration: BoxDecoration(
-                      color: palette.accent,
-                      borderRadius: BorderRadius.circular(3),
+  Widget _dayBar(double progress) => Semantics(
+        label: 'Challenge time elapsed',
+        value: '${(progress * 100).round()}%',
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: SizedBox(
+            height: 6,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                return Stack(
+                  children: [
+                    Container(width: width, color: palette.surfaceElevated),
+                    Container(
+                      width: width * progress,
+                      decoration: BoxDecoration(
+                        color: palette.accent,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
                     ),
-                  ),
-                ],
-              );
-            },
+                  ],
+                );
+              },
+            ),
           ),
         ),
       );
@@ -742,35 +718,43 @@ class _ParticipantStrip extends ConsumerWidget {
       ..sort((a, b) => b.rankIndex!.compareTo(a.rankIndex!));
     final top = ranked.take(3).toList();
 
-    return Row(
-      children: [
-        Icon(CupertinoIcons.person_2_fill,
-            size: 14, color: palette.textSecondary),
-        const SizedBox(width: 4),
-        Text(
-          '${challenge.participantCount}',
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontSize: 13,
-            color: palette.textSecondary,
-          ),
-        ),
-        const Spacer(),
-        for (final p in top)
-          Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Container(
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(
-                color: rankFromIndex(p.rankIndex!).color.withValues(alpha: 0.16),
-                shape: BoxShape.circle,
+    return Semantics(
+      label: '${challenge.participantCount} participants',
+      child: ExcludeSemantics(
+        child: Row(
+          children: [
+            Icon(CupertinoIcons.person_2_fill,
+                size: 14, color: palette.textSecondary),
+            const SizedBox(width: 4),
+            Text(
+              // Participant count is a stat — mono.
+              '${challenge.participantCount}',
+              style: FieldManual.label(
+                fontSize: 12,
+                color: palette.textSecondary,
               ),
-              alignment: Alignment.center,
-              child: RankInsignia(rank: rankFromIndex(p.rankIndex!), size: 17),
             ),
-          ),
-      ],
+            const Spacer(),
+            for (final p in top)
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    color: rankFromIndex(p.rankIndex!)
+                        .color
+                        .withValues(alpha: 0.16),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: RankInsignia(
+                      rank: rankFromIndex(p.rankIndex!), size: 17),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

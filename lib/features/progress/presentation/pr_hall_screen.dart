@@ -1,13 +1,17 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors, Icons;
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../models/enums.dart';
 import '../../../providers/personal_records_hall_providers.dart';
+import '../../../core/widgets/fm_segmented.dart';
 import 'widgets/pr_card.dart';
 
+/// The trophy room — an instrument surface. Quiet FM chrome; the mono PR
+/// readouts on each card carry the room.
 class PRHallScreen extends ConsumerWidget {
   const PRHallScreen({super.key});
 
@@ -17,13 +21,12 @@ class PRHallScreen extends ConsumerWidget {
     final sortMode = ref.watch(prSortModeProvider);
     final muscleFilter = ref.watch(prFilterMuscleProvider);
 
-    final palette = AppColors.of(context);
     return CupertinoPageScaffold(
-      backgroundColor: palette.background,
+      backgroundColor: FieldManual.ink,
       navigationBar: CupertinoNavigationBar(
-        middle: const Text('Personal Records'),
-        backgroundColor: palette.background.withValues(alpha: 0.8),
-        border: null,
+        middle: Text('PERSONAL RECORDS', style: FieldManual.title()),
+        backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+        border: const Border(bottom: BorderSide(color: FieldManual.hairline)),
       ),
       child: SafeArea(
         child: Column(
@@ -31,44 +34,23 @@ class PRHallScreen extends ConsumerWidget {
             // Sort control
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: CupertinoSlidingSegmentedControl<PRSortMode>(
-                groupValue: sortMode,
-                backgroundColor: palette.surface,
-                thumbColor: palette.accent,
-                children: const {
-                  PRSortMode.byRank: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6),
-                    child: Text('Rank',
-                        style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
-                  ),
-                  PRSortMode.byDate: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6),
-                    child: Text('Recent',
-                        style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
-                  ),
-                  PRSortMode.byMuscleGroup: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6),
-                    child: Text('Muscle',
-                        style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
-                  ),
-                  PRSortMode.alphabetical: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6),
-                    child: Text('A-Z',
-                        style: TextStyle(fontFamily: 'Poppins', fontSize: 13)),
-                  ),
-                },
-                onValueChanged: (mode) {
-                  if (mode != null) {
-                    HapticFeedback.selectionClick();
-                    ref.read(prSortModeProvider.notifier).state = mode;
-                  }
-                },
+              child: FmSegmented<PRSortMode>(
+                segments: const [
+                  (PRSortMode.byRank, 'Rank'),
+                  (PRSortMode.byDate, 'Recent'),
+                  (PRSortMode.byMuscleGroup, 'Muscle'),
+                  (PRSortMode.alphabetical, 'A-Z'),
+                ],
+                selected: sortMode,
+                fontSize: 10,
+                onChanged: (mode) =>
+                    ref.read(prSortModeProvider.notifier).state = mode,
               ),
             ),
 
             // Muscle group filter chips
             SizedBox(
-              height: 40,
+              height: MediaQuery.textScalerOf(context).scale(44),
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -107,26 +89,17 @@ class PRHallScreen extends ConsumerWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.emoji_events,
-                              size: 64,
-                              color: palette.warning.withValues(alpha: 0.3)),
+                          const Icon(Icons.emoji_events,
+                              size: 56, color: FieldManual.olive),
                           const SizedBox(height: 16),
-                          Text(
-                            'No personal records yet',
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w600,
-                              fontSize: 17,
-                              color: palette.text,
-                            ),
-                          ),
+                          Text('NO RECORDS YET', style: FieldManual.title()),
                           const SizedBox(height: 6),
                           Text(
                             'Complete workouts to set your first PR!',
-                            style: TextStyle(
-                              fontFamily: 'LeagueSpartan',
+                            textAlign: TextAlign.center,
+                            style: FieldManual.body(
                               fontSize: 14,
-                              color: palette.textSecondary,
+                              color: FieldManual.mutedBone,
                             ),
                           ),
                         ],
@@ -151,7 +124,7 @@ class PRHallScreen extends ConsumerWidget {
                         child: ShimmerBox(
                           width: double.infinity,
                           height: 80,
-                          borderRadius: 16,
+                          borderRadius: 8,
                         ),
                       ),
                     ),
@@ -160,7 +133,7 @@ class PRHallScreen extends ConsumerWidget {
                 error: (_, _) => Center(
                   child: Text(
                     'Failed to load personal records.',
-                    style: TextStyle(color: palette.text),
+                    style: FieldManual.body(color: FieldManual.mutedBone),
                   ),
                 ),
               ),
@@ -172,6 +145,8 @@ class PRHallScreen extends ConsumerWidget {
   }
 }
 
+/// FM filter chip: sharp 4px, field ground with hairline border; selected
+/// fills with the live accent carrying on-accent mono type.
 class _FilterChip extends StatelessWidget {
   const _FilterChip({
     required this.label,
@@ -186,24 +161,33 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? palette.accent : palette.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? palette.accent : palette.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w500,
-            fontSize: 12,
-            color: isSelected ? Colors.white : palette.textSecondary,
+    // Spoken label stays sentence case; the uppercase is visual only.
+    return Semantics(
+      label: label,
+      button: true,
+      selected: isSelected,
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: isSelected ? palette.accent : FieldManual.field,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: isSelected ? palette.accent : FieldManual.hairline,
+              ),
+            ),
+            child: Text(
+              label.toUpperCase(),
+              style: FieldManual.label(
+                fontSize: 10,
+                color:
+                    isSelected ? palette.onAccent : FieldManual.mutedBone,
+              ),
+            ),
           ),
         ),
       ),

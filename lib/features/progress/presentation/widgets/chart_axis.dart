@@ -3,6 +3,31 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/field_manual.dart';
+
+// ─── Field Manual chart chrome ───────────────────────────────────────────────
+// One instrument voice for every chart in the app (DESIGN.md): mono axis
+// ticks, hairline gridlines, raised-field tooltips. Restraint over
+// decoration — the data carries the chart.
+
+/// The single axis-tick style used on every axis of every chart: JetBrains
+/// Mono readout at 11pt, muted bone. Scales with Dynamic Type via the
+/// ambient text scaler like all FM type.
+final TextStyle chartAxisLabelStyle =
+    FieldManual.readout(fontSize: 11, color: FieldManual.mutedBone);
+
+/// Tooltip values are trained-against numbers — mono, bone (the Instrument
+/// Panel Rule).
+final TextStyle chartTooltipTextStyle =
+    FieldManual.readout(fontSize: 12, color: FieldManual.bone);
+
+/// Hairline border around chart tooltips.
+const BorderSide chartTooltipBorder = BorderSide(color: FieldManual.hairline);
+
+/// Horizontal gridline: FM hairline, 1px. Charts draw horizontal rules only.
+FlLine chartGridLine(double _) =>
+    const FlLine(color: FieldManual.hairline, strokeWidth: 1);
+
 const _monthAbbrev = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
@@ -11,6 +36,18 @@ const _monthAbbrev = [
 /// Short "MMM d" date label, e.g. "May 5". Used on every time-series X-axis.
 String formatShortDate(DateTime date) =>
     '${_monthAbbrev[date.month - 1]} ${date.day}';
+
+/// The one left-axis width shared by the progress charts so stacked plots
+/// align their Y-axes.
+const double chartLeftAxisReservedSize = 44;
+
+/// Y-axis tick label for [value] on an axis stepping by [interval]. Whole
+/// values on whole intervals stay integral; fractional intervals (e.g. 2.5)
+/// keep one decimal so "72.5" doesn't truncate to "72".
+String formatAxisValue(double value, double interval) {
+  final fractional = interval % 1 != 0 || value % 1 != 0;
+  return fractional ? value.toStringAsFixed(1) : value.toInt().toString();
+}
 
 /// Bottom-axis [AxisTitles] for a time-series chart whose `FlSpot` x-values are
 /// *whole days since [firstDate]* (the convention used by the strength and
@@ -24,7 +61,7 @@ String formatShortDate(DateTime date) =>
 AxisTitles dateAxisTitles({
   required DateTime firstDate,
   required double spanDays,
-  required TextStyle? style,
+  TextStyle? style,
   int targetLabels = 4,
 }) {
   final raw = spanDays <= 0 ? 1.0 : spanDays / targetLabels;
@@ -41,7 +78,7 @@ AxisTitles dateAxisTitles({
         final date = firstDate.add(Duration(days: value.round()));
         return Padding(
           padding: const EdgeInsets.only(top: 6),
-          child: Text(formatShortDate(date), style: style),
+          child: Text(formatShortDate(date), style: style ?? chartAxisLabelStyle),
         );
       },
     ),

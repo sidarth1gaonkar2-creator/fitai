@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/unit_converter.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
@@ -47,7 +48,9 @@ class _MiniProfileSheet extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        // Sheets are the 12px surface (DESIGN.md).
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+        border: Border(top: BorderSide(color: palette.border)),
       ),
       child: SafeArea(
         top: false,
@@ -89,8 +92,7 @@ class _MiniProfileSheet extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 40),
         child: Text(
           text,
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
+          style: FieldManual.body(
             fontSize: 14,
             color: palette.textSecondary,
           ),
@@ -141,9 +143,11 @@ class _Content extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         Text(
+          // Usernames are user content — Inter, never uppercased.
           '@${user.username}',
           style: TextStyle(
-            fontFamily: 'Poppins',
+            fontFamily: 'Inter',
+            fontVariations: const [FontVariation('wght', 700)],
             fontWeight: FontWeight.w700,
             fontSize: 18,
             color: palette.text,
@@ -151,22 +155,26 @@ class _Content extends ConsumerWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          rank.displayName,
+          // Rank designation wears the display face; at this size the text
+          // uses the rank's AA-lifted tone, never the raw ramp colour.
+          rank.displayName.toUpperCase(),
           style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w700,
+            fontFamily: 'Oswald',
+            fontVariations: const [FontVariation('wght', 600)],
+            fontWeight: FontWeight.w600,
             fontSize: 15,
-            color: rank.color,
+            letterSpacing: 0.4,
+            color: rank.textColor,
           ),
         ),
         if (user.createdAt != null) ...[
           const SizedBox(height: 4),
           Text(
-            'Enlisted ${_MiniProfileSheet._months[user.createdAt!.month - 1]} '
+            // Enlistment date is a designation stamp — mono.
+            'ENLISTED ${_MiniProfileSheet._months[user.createdAt!.month - 1].toUpperCase()} '
             '${user.createdAt!.year}',
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontSize: 13,
+            style: FieldManual.label(
+              fontSize: 11,
               color: palette.textSecondary,
             ),
           ),
@@ -201,29 +209,39 @@ class _Content extends ConsumerWidget {
                 ),
               ),
             if (!isSelf && currentUserId != null) const SizedBox(width: 10),
+            // Secondary action: transparent, hairline border, sharp corners.
             Expanded(
-              child: CupertinoButton(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                color: palette.surfaceElevated,
-                borderRadius: BorderRadius.circular(12),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  context.push('/profile/${user.userId}');
-                },
-                child: Text(
-                  'View Profile',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: palette.text,
+              child: Semantics(
+                label: 'View profile',
+                button: true,
+                child: ExcludeSemantics(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      context.push('/profile/${user.userId}');
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      constraints: const BoxConstraints(minHeight: 44),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: palette.border),
+                      ),
+                      child: Text(
+                        'VIEW PROFILE',
+                        style: _miniButtonStyle(palette.text),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ],
         ),
-        // Block (Guideline 1.2) — only for other users.
+        // Block (Guideline 1.2) — only for other users. Alert red: blocking
+        // is a consequence.
         if (!isSelf && currentUserId != null) ...[
           const SizedBox(height: 4),
           CupertinoButton(
@@ -239,11 +257,12 @@ class _Content extends ConsumerWidget {
             },
             child: Text(
               'Block @${user.username}',
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
+              style: FieldManual.body(
                 fontSize: 13,
-                color: CupertinoColors.systemRed,
+                color: palette.destructive,
+              ).copyWith(
+                fontVariations: const [FontVariation('wght', 600)],
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -252,6 +271,17 @@ class _Content extends ConsumerWidget {
     );
   }
 }
+
+/// Field Manual button label for the sheet's compact actions: condensed
+/// uppercase Oswald.
+TextStyle _miniButtonStyle(Color color) => TextStyle(
+      fontFamily: 'Oswald',
+      fontVariations: const [FontVariation('wght', 600)],
+      fontWeight: FontWeight.w600,
+      fontSize: 14,
+      letterSpacing: 0.6,
+      color: color,
+    );
 
 class _Avatar extends StatelessWidget {
   const _Avatar({required this.user, required this.palette});
@@ -290,10 +320,11 @@ class _Avatar extends StatelessWidget {
   Widget _fallback(String letter, {bool onAccent = false}) => Text(
         letter,
         style: TextStyle(
-          fontFamily: 'Poppins',
+          fontFamily: 'Inter',
+          fontVariations: const [FontVariation('wght', 700)],
           fontWeight: FontWeight.w700,
           fontSize: 30,
-          color: onAccent ? CupertinoColors.white : palette.textSecondary,
+          color: onAccent ? palette.onAccent : palette.textSecondary,
         ),
       );
 }
@@ -322,57 +353,62 @@ class _ScoreBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Overall Rank Score',
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 13,
+              // Mono eyebrow over the readout (Stat Readout component).
+              'OVERALL RANK SCORE',
+              style: FieldManual.label(
+                fontSize: 11,
                 color: palette.textSecondary,
               ),
             ),
             Text(
-              '$score pts',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-                color: palette.text,
-              ),
+              '$score PTS',
+              style: FieldManual.readout(fontSize: 15, color: palette.text),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: SizedBox(
-            height: 8,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Stack(
-                  children: [
-                    Container(
-                      width: constraints.maxWidth,
-                      color: palette.surfaceElevated,
-                    ),
-                    Container(
-                      width: constraints.maxWidth * progress.clamp(0.0, 1.0),
-                      decoration: BoxDecoration(
-                        color: rankColor,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ],
-                );
-              },
+        // Rank progress: the tier colour is the instrument's fill — insignia
+        // territory, not an accent swap.
+        Semantics(
+          label: 'Progress to next rank',
+          value: '${(progress.clamp(0.0, 1.0) * 100).round()}%',
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: palette.border),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: SizedBox(
+                height: 8,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Stack(
+                      children: [
+                        Container(
+                          width: constraints.maxWidth,
+                          color: palette.surfaceElevated,
+                        ),
+                        Container(
+                          width:
+                              constraints.maxWidth * progress.clamp(0.0, 1.0),
+                          color: rankColor,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ),
           ),
         ),
         const SizedBox(height: 6),
         Text(
+          // '{n}% to {rank}' is a figure — mono, matching ranks_screen.
           caption,
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontSize: 12,
-            color: palette.textSecondary,
+          style: FieldManual.label(
+            fontSize: 11,
+            color: FieldManual.mutedBone,
           ),
         ),
       ],
@@ -398,26 +434,22 @@ class _TopLifts extends ConsumerWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: palette.surfaceElevated,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: palette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Top Lifts',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: palette.text,
-            ),
+            'TOP LIFTS',
+            style: FieldManual.title(color: palette.text)
+                .copyWith(fontSize: 13),
           ),
           const SizedBox(height: 10),
           if (!hasData)
             Text(
               'No big-3 lifts logged yet.',
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
+              style: FieldManual.body(
                 fontSize: 13,
                 color: palette.textSecondary,
               ),
@@ -442,34 +474,23 @@ class _TopLifts extends ConsumerWidget {
           width: 72,
           child: Text(
             label,
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontSize: 13.5,
-              color: palette.text,
-            ),
+            style: FieldManual.body(fontSize: 13, color: palette.text),
           ),
         ),
         Expanded(
           child: Text(
+            // Best lifts are trained-against numbers — mono readout.
             UnitConverter.formatWeight(kg, units),
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-              color: palette.text,
-            ),
+            style: FieldManual.readout(fontSize: 14, color: palette.text),
           ),
         ),
+        // Insignia in canonical tier colour; the small abbreviation wears the
+        // rank's AA-lifted text tone, never the raw ramp colour.
         RankInsignia(rank: rank, size: 16),
         const SizedBox(width: 4),
         Text(
           rank.abbreviation,
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontWeight: FontWeight.w700,
-            fontSize: 11,
-            color: rank.color,
-          ),
+          style: FieldManual.label(fontSize: 11, color: rank.textColor),
         ),
       ],
     );
@@ -518,24 +539,29 @@ class _MiniFollowButtonState extends ConsumerState<_MiniFollowButton> {
     final following =
         ref.watch(isFollowingProvider(widget.targetUserId)).valueOrNull ?? false;
 
-    return CupertinoButton(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      color: following ? palette.surfaceElevated : palette.accent,
-      borderRadius: BorderRadius.circular(12),
-      onPressed: _loading ? null : () => _toggle(following),
-      child: _loading
-          ? CupertinoActivityIndicator(
-              color: following ? palette.accent : CupertinoColors.white,
-            )
-          : Text(
-              following ? 'Following' : 'Follow',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                color: following ? palette.text : CupertinoColors.white,
-              ),
-            ),
+    // Follow state is exposed to assistive tech, not carried by colour alone.
+    return Semantics(
+      button: true,
+      toggled: following,
+      label: following ? 'Following. Double tap to unfollow.' : 'Follow',
+      child: ExcludeSemantics(
+        child: CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          color: following ? palette.surfaceElevated : palette.accent,
+          borderRadius: BorderRadius.circular(4),
+          onPressed: _loading ? null : () => _toggle(following),
+          child: _loading
+              ? CupertinoActivityIndicator(
+                  color: following ? palette.accent : palette.onAccent,
+                )
+              : Text(
+                  following ? 'FOLLOWING' : 'FOLLOW',
+                  style: _miniButtonStyle(
+                    following ? palette.text : palette.onAccent,
+                  ),
+                ),
+        ),
+      ),
     );
   }
 }

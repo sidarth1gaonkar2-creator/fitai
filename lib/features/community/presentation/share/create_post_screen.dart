@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../models/workout.dart';
 import '../../../../providers/auth_provider.dart';
@@ -183,26 +184,21 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     return CupertinoPageScaffold(
       backgroundColor: palette.background,
       navigationBar: CupertinoNavigationBar(
-        backgroundColor: palette.surface,
+        // Field Manual chrome: ink ground over a hairline (DESIGN.md §Nav).
+        backgroundColor: palette.background.withValues(alpha: 0.82),
         border: Border(bottom: BorderSide(color: palette.border)),
-        middle: Text(
-          'New Post',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: palette.text,
-          ),
-        ),
+        middle:
+            Text('NEW POST', style: FieldManual.title(color: palette.text)),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: _canShare ? _share : null,
           child: _isSharing
               ? const CupertinoActivityIndicator()
               : Text(
-                  'Share',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
+                  // Command action — condensed uppercase (visual only).
+                  'SHARE',
+                  semanticsLabel: 'Share',
+                  style: FieldManual.title(
                     color: _canShare ? palette.accent : palette.textSecondary,
                   ),
                 ),
@@ -228,28 +224,24 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               orElse: () => const SizedBox.shrink(),
             ),
 
-            // Caption
+            // Caption — FM input: raised field fill, hairline border, 8px
+            // corners (DESIGN.md §Inputs). What the user types is Inter body.
             CupertinoTextField(
               controller: _captionController,
               placeholder: 'Share progress, ask a question, or introduce '
                   'yourself…',
               maxLength: 500,
               maxLines: 4,
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 15,
-                color: palette.text,
-              ),
-              placeholderStyle: TextStyle(
-                fontFamily: 'LeagueSpartan',
+              style: FieldManual.body(fontSize: 15, color: palette.text),
+              placeholderStyle: FieldManual.body(
                 fontSize: 15,
                 color: palette.textSecondary,
               ),
               padding: const EdgeInsets.symmetric(
                   horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: palette.surface,
-                borderRadius: BorderRadius.circular(12),
+                color: palette.surfaceElevated,
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: palette.border),
               ),
             ),
@@ -261,7 +253,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                   horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: palette.surface,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: palette.border),
               ),
               child: Row(
@@ -269,8 +261,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 children: [
                   Text(
                     'Public',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
+                    style: FieldManual.body(
                       fontSize: 15,
                       color: palette.text,
                     ),
@@ -285,14 +276,13 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Attach Workout section (optional — a caption alone is postable)
+            // Attach Workout section (optional — a caption alone is postable).
+            // Section label — mono eyebrow designation.
             Text(
-              'Attach a workout (optional)',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-                color: palette.text,
+              'ATTACH A WORKOUT (OPTIONAL)',
+              style: FieldManual.label(
+                fontSize: 12,
+                color: palette.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -305,8 +295,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
                   'Could not load workouts: $e',
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
+                  style: FieldManual.body(
                     fontSize: 13,
                     color: palette.destructive,
                   ),
@@ -319,8 +308,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                     child: Text(
                       'No workouts to attach yet — your caption alone will post.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
+                      style: FieldManual.body(
                         fontSize: 14,
                         color: palette.textSecondary,
                       ),
@@ -365,62 +353,67 @@ class _WorkoutTile extends ConsumerWidget {
     // show just the name/date, which is fine for the picker.
     final exerciseCount = workout.exercises.length;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? palette.accent.withValues(alpha: 0.12)
-              : palette.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? palette.accent : palette.border,
-            width: isSelected ? 1.5 : 0.5,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          // Selection shifts the hairline to the live accent over a raised
+          // field ground \u2014 no glow (DESIGN.md \u00a7Inputs).
+          decoration: BoxDecoration(
+            color: isSelected ? palette.surfaceElevated : palette.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected ? palette.accent : palette.border,
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              isSelected
-                  ? CupertinoIcons.checkmark_circle_fill
-                  : CupertinoIcons.circle,
-              color: isSelected ? palette.accent : palette.textSecondary,
-              size: 22,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    workout.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: palette.text,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _formatDate(workout.date) +
-                        (exerciseCount > 0
-                            ? ' \u00b7 $exerciseCount exercises'
-                            : ''),
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontSize: 12,
-                      color: palette.textSecondary,
-                    ),
-                  ),
-                ],
+          child: Row(
+            children: [
+              Icon(
+                isSelected
+                    ? CupertinoIcons.checkmark_circle_fill
+                    : CupertinoIcons.circle,
+                color: isSelected ? palette.accent : palette.textSecondary,
+                size: 22,
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Workout title is user content \u2014 Inter, never uppercased.
+                    Text(
+                      workout.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: FieldManual.body(
+                        fontSize: 14,
+                        color: palette.text,
+                      ).copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontVariations: const [FontVariation('wght', 600)],
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    // Meta row \u2014 mono readout.
+                    Text(
+                      _formatDate(workout.date) +
+                          (exerciseCount > 0
+                              ? ' \u00b7 $exerciseCount exercises'
+                              : ''),
+                      style: FieldManual.label(
+                        fontSize: 11,
+                        color: palette.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -456,62 +449,63 @@ class _QuickShareTemplate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: busy ? null : onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: palette.accent.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: palette.accent.withValues(alpha: 0.4)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: palette.accent.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(10),
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: busy ? null : onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          // Accent-tinted command card: the one loud action on this screen.
+          decoration: BoxDecoration(
+            color: palette.accent.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: palette.accent.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: palette.accent.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                alignment: Alignment.center,
+                child: Icon(CupertinoIcons.bolt_fill,
+                    size: 20, color: palette.accent),
               ),
-              alignment: Alignment.center,
-              child: Icon(CupertinoIcons.bolt_fill,
-                  size: 20, color: palette.accent),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Share last workout',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      color: palette.text,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Command heading — condensed uppercase (visual only).
+                    Text(
+                      'SHARE LAST WORKOUT',
+                      semanticsLabel: 'Share last workout',
+                      style: FieldManual.title(color: palette.text),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'One tap · $workoutTitle · with your rank badge',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontSize: 12.5,
-                      color: palette.textSecondary,
+                    const SizedBox(height: 2),
+                    // Contains the user's workout title — Inter, sentence case.
+                    Text(
+                      'One tap · $workoutTitle · with your rank badge',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: FieldManual.body(
+                        fontSize: 12.5,
+                        color: palette.textSecondary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            busy
-                ? const CupertinoActivityIndicator()
-                : Icon(CupertinoIcons.arrow_right_circle_fill,
-                    size: 26, color: palette.accent),
-          ],
+              busy
+                  ? const CupertinoActivityIndicator()
+                  : Icon(CupertinoIcons.arrow_right_circle_fill,
+                      size: 26, color: palette.accent),
+            ],
+          ),
         ),
       ),
     );

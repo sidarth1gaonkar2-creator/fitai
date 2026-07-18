@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart'
-    show FloatingActionButton, Icons, Scaffold;
+import 'package:flutter/material.dart' show Scaffold;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/logger.dart';
+import '../../../../core/widgets/cupertino_helpers.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
 import '../../data/post_repository.dart';
@@ -180,12 +181,37 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
     return Scaffold(
       backgroundColor: palette.background,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: palette.accent,
-        foregroundColor: CupertinoColors.white,
-        onPressed: _openComposer,
-        tooltip: 'New post',
-        child: const Icon(Icons.add),
+      // Field Manual issue: accent fill, sharp 4px, condensed uppercase label
+      // (same idiom as the workouts START WORKOUT action). One tap → composer.
+      floatingActionButton: Semantics(
+        label: 'New post',
+        button: true,
+        child: ExcludeSemantics(
+          child: CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            color: palette.accent,
+            borderRadius: BorderRadius.circular(4),
+            onPressed: _openComposer,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(CupertinoIcons.add, color: palette.onAccent, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  'NEW POST',
+                  style: TextStyle(
+                    fontFamily: 'Oswald',
+                    fontVariations: const [FontVariation('wght', 600)],
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    letterSpacing: 0.6,
+                    color: palette.onAccent,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       body: visible.isEmpty
           ? _buildPlaceholder(palette, feedState)
@@ -247,6 +273,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   Widget _buildErrorState(Palette palette) {
+    // Mono eyebrow + sentence-case Inter guidance (DESIGN.md empty/error idiom).
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -260,42 +287,28 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             ),
             const SizedBox(height: 14),
             Text(
-              'Couldn\'t load the feed',
+              'FEED UNREACHABLE',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 17,
-                color: palette.text,
+              style: FieldManual.label(
+                fontSize: 12,
+                color: palette.textSecondary,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               'Something went wrong. Check your connection and try again.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
+              style: FieldManual.body(
                 fontSize: 14,
                 color: palette.textSecondary,
               ),
             ),
             const SizedBox(height: 18),
-            CupertinoButton(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              color: palette.accent,
-              borderRadius: BorderRadius.circular(10),
+            CupertinoPrimaryButton(
+              label: 'Retry',
+              expanded: false,
               onPressed: () =>
                   ref.read(feedControllerProvider.notifier).refresh(),
-              child: const Text(
-                'Retry',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: CupertinoColors.white,
-                ),
-              ),
             ),
           ],
         ),
@@ -304,6 +317,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   Widget _buildEmptyState(Palette palette) {
+    // Drill-sergeant eyebrow + sentence-case Inter guidance (DESIGN.md).
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -317,42 +331,28 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             ),
             const SizedBox(height: 14),
             Text(
-              'Fall in with the platoon, recruit',
+              'FALL IN, RECRUIT',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 17,
-                color: palette.text,
+              style: FieldManual.label(
+                fontSize: 12,
+                color: palette.textSecondary,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               'Be the first to post — share a workout, ask a question, or '
               'introduce yourself to the platoon.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
+              style: FieldManual.body(
                 fontSize: 14,
                 color: palette.textSecondary,
               ),
             ),
             const SizedBox(height: 18),
-            CupertinoButton(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 20, vertical: 10),
-              color: palette.accent,
-              borderRadius: BorderRadius.circular(10),
+            CupertinoPrimaryButton(
+              label: 'Create a post',
+              expanded: false,
               onPressed: _openComposer,
-              child: const Text(
-                'Create a post',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: CupertinoColors.white,
-                ),
-              ),
             ),
           ],
         ),

@@ -1,13 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show CircleAvatar, Colors;
+import 'package:flutter/material.dart' show CircleAvatar;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/relative_time.dart';
 import '../../../../core/utils/unit_converter.dart';
+import '../../../../core/widgets/fm_segmented.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../models/personal_record.dart';
 import '../../../../models/workout.dart';
@@ -47,10 +49,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       navigationBar: CupertinoNavigationBar(
         middle: userAsync.whenOrNull(
           data: (user) => Text(
+            // Usernames are user content — Inter, never uppercased.
             user?.username ?? '',
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Inter',
+              fontVariations: const [FontVariation('wght', 600)],
               fontWeight: FontWeight.w600,
+              fontSize: 16,
               color: colors.text,
             ),
           ),
@@ -60,29 +65,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 padding: EdgeInsets.zero,
                 child: Text(
                   'Edit',
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                    color: colors.accent,
-                    fontSize: 16,
+                  style: FieldManual.body(fontSize: 16, color: colors.accent)
+                      .copyWith(
+                    fontVariations: const [FontVariation('wght', 600)],
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 onPressed: () => context.push('/profile/edit'),
               )
             : null,
-        backgroundColor: colors.surface,
-        border: Border(
-          bottom: BorderSide(color: colors.border, width: 0.5),
-        ),
+        backgroundColor: colors.background.withValues(alpha: 0.82),
+        border: Border(bottom: BorderSide(color: colors.border)),
       ),
       child: userAsync.when(
         loading: () => const _ProfileShimmer(),
         error: (e, _) => Center(
           child: Text(
             'Could not load profile.',
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              color: colors.textSecondary,
-            ),
+            style: FieldManual.body(color: colors.textSecondary),
           ),
         ),
         data: (user) {
@@ -90,10 +90,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             return Center(
               child: Text(
                 'User not found.',
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  color: colors.textSecondary,
-                ),
+                style: FieldManual.body(color: colors.textSecondary),
               ),
             );
           }
@@ -170,9 +167,12 @@ class _ProfileHeader extends ConsumerWidget {
           ),
           const SizedBox(height: 14),
           Text(
+            // Usernames are user content — Inter (may be w600+), never
+            // uppercased, never the display face.
             '@${user.username}',
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Inter',
+              fontVariations: const [FontVariation('wght', 700)],
               fontWeight: FontWeight.w700,
               fontSize: 20,
               color: colors.text,
@@ -183,8 +183,7 @@ class _ProfileHeader extends ConsumerWidget {
             const SizedBox(height: 2),
             Text(
               user.displayName,
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
+              style: FieldManual.body(
                 fontSize: 15,
                 color: colors.textSecondary,
               ),
@@ -195,11 +194,7 @@ class _ProfileHeader extends ConsumerWidget {
             Text(
               user.bio,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 15,
-                color: colors.text,
-              ),
+              style: FieldManual.body(fontSize: 15, color: colors.text),
             ),
           ],
           const SizedBox(height: 20),
@@ -260,10 +255,11 @@ class _Avatar extends StatelessWidget {
   Widget _fallback(String letter, {bool onAccent = false}) => Text(
         letter,
         style: TextStyle(
-          fontFamily: 'Poppins',
+          fontFamily: 'Inter',
+          fontVariations: const [FontVariation('wght', 600)],
           fontSize: 32,
           fontWeight: FontWeight.w600,
-          color: onAccent ? CupertinoColors.white : colors.textSecondary,
+          color: onAccent ? colors.onAccent : colors.textSecondary,
         ),
       );
 }
@@ -323,24 +319,19 @@ class _StatCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Stat readout: mono figure over a mono eyebrow (Instrument Panel Rule).
     final child = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           count.toString(),
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-            color: colors.text,
-          ),
+          style: FieldManual.readout(fontSize: 18, color: colors.text),
         ),
         const SizedBox(height: 2),
         Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontSize: 13,
+          label.toUpperCase(),
+          style: FieldManual.label(
+            fontSize: 11,
             color: colors.textSecondary,
           ),
         ),
@@ -349,10 +340,16 @@ class _StatCell extends StatelessWidget {
 
     return Expanded(
       child: onTap != null
-          ? GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onTap,
-              child: child,
+          ? Semantics(
+              button: true,
+              label: '$count $label',
+              child: ExcludeSemantics(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onTap,
+                  child: child,
+                ),
+              ),
             )
           : child,
     );
@@ -368,29 +365,49 @@ class _EditProfileButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Secondary button: transparent, hairline border, sharp 4px corners.
+    // Spoken label stays sentence case; uppercase is visual only.
     return SizedBox(
       width: double.infinity,
-      child: CupertinoButton(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        color: colors.surfaceElevated,
-        borderRadius: BorderRadius.circular(12),
-        onPressed: () {
-          HapticFeedback.selectionClick();
-          context.push('/profile/edit');
-        },
-        child: Text(
-          'Edit Profile',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
-            color: colors.text,
+      child: Semantics(
+        label: 'Edit profile',
+        button: true,
+        child: ExcludeSemantics(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              context.push('/profile/edit');
+            },
+            child: Container(
+              alignment: Alignment.center,
+              constraints: const BoxConstraints(minHeight: 44),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: colors.border),
+              ),
+              child: Text(
+                'EDIT PROFILE',
+                style: _buttonLabelStyle(colors.text),
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 }
+
+/// Field Manual button label: condensed uppercase Oswald.
+TextStyle _buttonLabelStyle(Color color, {double fontSize = 15}) => TextStyle(
+      fontFamily: 'Oswald',
+      fontVariations: const [FontVariation('wght', 600)],
+      fontWeight: FontWeight.w600,
+      fontSize: fontSize,
+      letterSpacing: 0.6,
+      color: color,
+    );
 
 // ─── Follow / Unfollow button ────────────────────────────────────────────────
 
@@ -434,26 +451,34 @@ class _FollowButtonState extends ConsumerState<_FollowButton> {
     final followAsync = ref.watch(isFollowingProvider(widget.targetUserId));
     final isFollowing = followAsync.valueOrNull ?? false;
 
+    // Follow = primary accent fill; Following = quiet raised surface. The
+    // follow state is exposed to assistive tech, not carried by colour alone.
     return SizedBox(
       width: double.infinity,
-      child: CupertinoButton(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        color: isFollowing ? colors.surfaceElevated : colors.accent,
-        borderRadius: BorderRadius.circular(12),
-        onPressed: _isLoading ? null : () => _toggle(isFollowing),
-        child: _isLoading
-            ? CupertinoActivityIndicator(
-                color: isFollowing ? colors.accent : Colors.white,
-              )
-            : Text(
-                isFollowing ? 'Following' : 'Follow',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                  color: isFollowing ? colors.text : Colors.white,
-                ),
-              ),
+      child: Semantics(
+        button: true,
+        toggled: isFollowing,
+        label: isFollowing
+            ? 'Following. Double tap to unfollow.'
+            : 'Follow',
+        child: ExcludeSemantics(
+          child: CupertinoButton(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            color: isFollowing ? colors.surfaceElevated : colors.accent,
+            borderRadius: BorderRadius.circular(4),
+            onPressed: _isLoading ? null : () => _toggle(isFollowing),
+            child: _isLoading
+                ? CupertinoActivityIndicator(
+                    color: isFollowing ? colors.accent : colors.onAccent,
+                  )
+                : Text(
+                    isFollowing ? 'FOLLOWING' : 'FOLLOW',
+                    style: _buttonLabelStyle(
+                      isFollowing ? colors.text : colors.onAccent,
+                    ),
+                  ),
+          ),
+        ),
       ),
     );
   }
@@ -467,42 +492,20 @@ class _ProfileTabs extends StatelessWidget {
   final int selected;
   final ValueChanged<int> onChanged;
 
-  static const _labels = {0: 'Posts', 1: 'Workouts', 2: 'PRs'};
+  static const _segments = <(int, String)>[
+    (0, 'Posts'),
+    (1, 'Workouts'),
+    (2, 'PRs'),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: SizedBox(
-        width: double.infinity,
-        child: CupertinoSlidingSegmentedControl<int>(
-          groupValue: selected,
-          thumbColor: palette.accent,
-          backgroundColor: palette.surface,
-          onValueChanged: (v) {
-            if (v != null) onChanged(v);
-          },
-          children: _labels.map(
-            (k, v) => MapEntry(
-              k,
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: Text(
-                  v,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: selected == k ? CupertinoColors.white : palette.text,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
+      child: FmSegmented<int>(
+        segments: _segments,
+        selected: selected,
+        onChanged: onChanged,
       ),
     );
   }
@@ -645,70 +648,83 @@ class _WorkoutTile extends StatelessWidget {
     final exerciseCount = workout.exercises.length;
     final duration = workout.durationMinutes ?? 0;
 
-    return GestureDetector(
-      // KNOWN LATENT BUG — documented for a follow-up, intentionally NOT fixed
-      // in this PR. This profile route is standalone (outside the shell), so
-      // push-ing the shell-nested /workouts/:id clones a second
-      // StatefulShellRoute → duplicate _shellStateKey GlobalKey → black screen
-      // in release (same crash class as the coach "Start now" bug). A plain
-      // `go` would fix the crash but regress back-nav (back would land on the
-      // Workouts tab instead of returning to this profile). Proper fix: host
-      // /workouts/:id on a ROOT-navigator route (parentNavigatorKey:
-      // rootNavigatorKey) so it stacks on top of this standalone route and
-      // preserves back-to-profile.
-      onTap: () => context.push('/workouts/${workout.id}'),
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: colors.border, width: 0.5),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: colors.accent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(CupertinoIcons.flame_fill,
-                  color: colors.accent, size: 20),
+    return Semantics(
+      button: true,
+      label: '${workout.title}, ${formatRelativeTime(workout.date)}, '
+          '$exerciseCount exercises, $duration minutes',
+      child: GestureDetector(
+        // KNOWN LATENT BUG — documented for a follow-up, intentionally NOT
+        // fixed in this PR. This profile route is standalone (outside the
+        // shell), so push-ing the shell-nested /workouts/:id clones a second
+        // StatefulShellRoute → duplicate _shellStateKey GlobalKey → black
+        // screen in release (same crash class as the coach "Start now" bug).
+        // A plain `go` would fix the crash but regress back-nav (back would
+        // land on the Workouts tab instead of returning to this profile).
+        // Proper fix: host /workouts/:id on a ROOT-navigator route
+        // (parentNavigatorKey: rootNavigatorKey) so it stacks on top of this
+        // standalone route and preserves back-to-profile.
+        onTap: () => context.push('/workouts/${workout.id}'),
+        child: ExcludeSemantics(
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: colors.border),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    workout.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: colors.text,
-                    ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: colors.accent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${formatRelativeTime(workout.date)} · '
-                    '$exerciseCount ex · ${duration}m',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontSize: 12,
-                      color: colors.textSecondary,
-                    ),
+                  child: Icon(CupertinoIcons.flame_fill,
+                      color: colors.accent, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        // Workout titles are user content — Inter.
+                        workout.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontVariations: const [FontVariation('wght', 600)],
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: colors.text,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        // Timestamp + counts are readouts — quiet mono.
+                        '${formatRelativeTime(workout.date)} · '
+                        '$exerciseCount ex · ${duration}m',
+                        style: TextStyle(
+                          fontFamily: 'JetBrainsMono',
+                          fontVariations: const [FontVariation('wght', 500)],
+                          fontWeight: FontWeight.w500,
+                          fontSize: 11,
+                          letterSpacing: 0.2,
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                Icon(CupertinoIcons.chevron_right,
+                    size: 16, color: colors.textSecondary),
+              ],
             ),
-            Icon(CupertinoIcons.chevron_right,
-                size: 16, color: colors.textSecondary),
-          ],
+          ),
         ),
       ),
     );
@@ -794,8 +810,8 @@ class _PRTile extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.border, width: 0.5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colors.border),
       ),
       child: Row(
         children: [
@@ -803,11 +819,12 @@ class _PRTile extends ConsumerWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: colors.warning.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10),
+              // PRs are earned brass, not a warning.
+              color: colors.accent.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(4),
             ),
             child: Icon(CupertinoIcons.rosette,
-                color: colors.warning, size: 20),
+                color: colors.accent, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -819,7 +836,8 @@ class _PRTile extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Inter',
+                    fontVariations: const [FontVariation('wght', 600)],
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                     color: colors.text,
@@ -827,10 +845,14 @@ class _PRTile extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
+                  // Timestamps set in quiet mono.
                   formatRelativeTime(pr.dateAchieved),
                   style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                    fontSize: 12,
+                    fontFamily: 'JetBrainsMono',
+                    fontVariations: const [FontVariation('wght', 500)],
+                    fontWeight: FontWeight.w500,
+                    fontSize: 11,
+                    letterSpacing: 0.2,
                     color: colors.textSecondary,
                   ),
                 ),
@@ -838,13 +860,9 @@ class _PRTile extends ConsumerWidget {
             ),
           ),
           Text(
+            // A best lift is a trained-against number — mono readout.
             UnitConverter.formatWeight(pr.weightKg, units),
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              color: colors.accent,
-            ),
+            style: FieldManual.readout(fontSize: 16, color: colors.accent),
           ),
         ],
       ),
@@ -873,6 +891,7 @@ class _TabEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Drill-sergeant eyebrow + sentence-case guidance (DESIGN.md).
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 60),
       child: Column(
@@ -880,49 +899,50 @@ class _TabEmpty extends StatelessWidget {
           Icon(icon, size: 42, color: colors.textSecondary),
           const SizedBox(height: 12),
           Text(
-            title,
+            title.toUpperCase(),
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-              color: colors.text,
+            style: FieldManual.label(
+              fontSize: 12,
+              color: colors.textSecondary,
             ),
           ),
           if (subtitle.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 13,
+              style: FieldManual.body(
+                fontSize: 14,
                 color: colors.textSecondary,
               ),
             ),
           ],
           if (ctaLabel != null && onCta != null) ...[
             const SizedBox(height: 16),
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () {
-                HapticFeedback.selectionClick();
-                onCta!();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 18, vertical: 10),
-                decoration: BoxDecoration(
-                  color: colors.accent,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  ctaLabel!,
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: CupertinoColors.white,
+            Semantics(
+              label: ctaLabel,
+              button: true,
+              child: ExcludeSemantics(
+                child: CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    onCta!();
+                  },
+                  child: Container(
+                    constraints:
+                        const BoxConstraints(minHeight: 44, minWidth: 44),
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: colors.accent,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      ctaLabel!.toUpperCase(),
+                      style: _buttonLabelStyle(colors.onAccent, fontSize: 14),
+                    ),
                   ),
                 ),
               ),

@@ -3,12 +3,13 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show CircleAvatar, Colors, Icons;
+import 'package:flutter/material.dart' show CircleAvatar, Icons;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
@@ -255,108 +256,81 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       backgroundColor: colors.background,
       navigationBar: CupertinoNavigationBar(
         middle: Text(
-          'Set Up Profile',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: colors.text,
-          ),
+          'SET UP PROFILE',
+          style: FieldManual.title(color: colors.text),
         ),
-        backgroundColor: colors.surface,
-        border: Border(
-          bottom: BorderSide(color: colors.border, width: 0.5),
-        ),
+        backgroundColor: colors.background.withValues(alpha: 0.82),
+        border: Border(bottom: BorderSide(color: colors.border)),
       ),
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             children: [
-              // --- Profile picture ---
-              GestureDetector(
-                onTap: _pickImage,
-                child: Stack(
-                  alignment: Alignment.bottomRight,
-                  children: [
-                    CircleAvatar(
-                      radius: 80,
-                      backgroundColor: colors.surfaceElevated,
-                      backgroundImage: _imageFile != null
-                          ? FileImage(_imageFile!)
-                          : null,
-                      child: _imageFile == null
-                          ? Icon(
-                              Icons.person,
-                              size: 64,
-                              color: colors.textSecondary,
-                            )
-                          : null,
+              // --- Profile picture (icon-only control, so it is labeled) ---
+              Semantics(
+                label: 'Add profile photo',
+                button: true,
+                child: ExcludeSemantics(
+                  child: GestureDetector(
+                    onTap: _pickImage,
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        CircleAvatar(
+                          radius: 80,
+                          backgroundColor: colors.surfaceElevated,
+                          backgroundImage: _imageFile != null
+                              ? FileImage(_imageFile!)
+                              : null,
+                          child: _imageFile == null
+                              ? Icon(
+                                  Icons.person,
+                                  size: 64,
+                                  color: colors.textSecondary,
+                                )
+                              : null,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: colors.accent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.camera_alt,
+                            size: 20,
+                            color: colors.onAccent,
+                          ),
+                        ),
+                      ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: colors.accent,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        size: 20,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
 
               // --- Username ---
-              CupertinoTextField(
+              _FMTextField(
                 controller: _usernameController,
                 placeholder: 'Username',
                 maxLength: 20,
                 autocorrect: false,
                 onChanged: _onUsernameChanged,
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  color: colors.text,
-                ),
-                placeholderStyle: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  color: colors.textSecondary,
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: colors.surfaceElevated,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colors.border),
-                ),
+                errored: _usernameStatus == 'taken' ||
+                    _usernameStatus == 'invalid' ||
+                    _usernameStatus == 'error',
               ),
               const SizedBox(height: 8),
               _buildUsernameStatus(colors),
               const SizedBox(height: 20),
 
               // --- Bio ---
-              CupertinoTextField(
+              _FMTextField(
                 controller: _bioController,
                 placeholder: 'Bio (optional)',
                 maxLength: 150,
                 maxLines: 3,
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  color: colors.text,
-                ),
-                placeholderStyle: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  color: colors.textSecondary,
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: colors.surfaceElevated,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colors.border),
-                ),
               ),
               const SizedBox(height: 24),
 
@@ -366,7 +340,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: colors.surface,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: colors.border),
                 ),
                 child: Row(
@@ -374,10 +348,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                   children: [
                     Text(
                       'Public Account',
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
-                        fontSize: 16,
-                        color: colors.text,
+                      style: FieldManual.body(fontSize: 15, color: colors.text)
+                          .copyWith(
+                        fontVariations: const [FontVariation('wght', 600)],
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     CupertinoSwitch(
@@ -391,26 +365,37 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               const SizedBox(height: 40),
 
               // --- Continue button ---
+              // Spoken label stays sentence case; uppercase is visual only.
               SizedBox(
                 width: double.infinity,
-                child: CupertinoButton(
-                  color: colors.accent,
-                  disabledColor: colors.accent.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(14),
-                  onPressed: _canContinue ? _onContinue : null,
-                  child: _isSaving
-                      ? const CupertinoActivityIndicator(
-                          color: Colors.white,
-                        )
-                      : const Text(
-                          'Continue',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            fontSize: 17,
-                          ),
-                        ),
+                child: Semantics(
+                  label: 'Continue',
+                  button: true,
+                  child: ExcludeSemantics(
+                    child: CupertinoButton(
+                      color: colors.accent,
+                      disabledColor: colors.accent.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(4),
+                      onPressed: _canContinue ? _onContinue : null,
+                      child: _isSaving
+                          ? CupertinoActivityIndicator(
+                              color: colors.onAccent,
+                            )
+                          : Text(
+                              'CONTINUE',
+                              style: TextStyle(
+                                fontFamily: 'Oswald',
+                                fontVariations: const [
+                                  FontVariation('wght', 600),
+                                ],
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                                letterSpacing: 0.6,
+                                color: colors.onAccent,
+                              ),
+                            ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -424,6 +409,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     String text;
     Color color;
 
+    // Never colour alone: every state carries a plain-language message.
     switch (_usernameStatus) {
       case 'checking':
         text = 'Checking...';
@@ -439,7 +425,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         color = colors.textSecondary;
       case 'invalid':
         text = 'Letters, numbers, and underscores only';
-        color = colors.warning;
+        color = colors.destructive;
       case 'error':
         text = _usernameErrorDetail.isNotEmpty
             ? 'Could not check username: $_usernameErrorDetail'
@@ -453,11 +439,85 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       alignment: Alignment.centerLeft,
       child: Text(
         text,
-        style: TextStyle(
-          fontFamily: 'LeagueSpartan',
-          fontSize: 13,
-          color: color,
-        ),
+        style: FieldManual.body(fontSize: 13, color: color),
+      ),
+    );
+  }
+}
+
+/// Field Manual text input: field-raised fill, hairline border that shifts to
+/// the live accent on focus and to alert red when [errored], no glow
+/// (DESIGN.md §Inputs). Purely visual — behaviour is the inner
+/// [CupertinoTextField]'s.
+class _FMTextField extends StatefulWidget {
+  const _FMTextField({
+    required this.controller,
+    required this.placeholder,
+    this.maxLength,
+    this.maxLines = 1,
+    this.autocorrect = true,
+    this.onChanged,
+    this.errored = false,
+  });
+
+  final TextEditingController controller;
+  final String placeholder;
+  final int? maxLength;
+  final int maxLines;
+  final bool autocorrect;
+  final ValueChanged<String>? onChanged;
+  final bool errored;
+
+  @override
+  State<_FMTextField> createState() => _FMTextFieldState();
+}
+
+class _FMTextFieldState extends State<_FMTextField> {
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() => setState(() {});
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChanged);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    final focused = _focusNode.hasFocus;
+    final borderColor = widget.errored
+        ? palette.destructive
+        : focused
+            ? palette.accent
+            : palette.border;
+    return CupertinoTextField(
+      controller: widget.controller,
+      focusNode: _focusNode,
+      placeholder: widget.placeholder,
+      maxLength: widget.maxLength,
+      maxLines: widget.maxLines,
+      autocorrect: widget.autocorrect,
+      onChanged: widget.onChanged,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      cursorColor: palette.accent,
+      style: FieldManual.body(fontSize: 15, color: palette.text),
+      placeholderStyle: FieldManual.body(
+        fontSize: 15,
+        color: palette.textSecondary,
+      ),
+      decoration: BoxDecoration(
+        color: palette.surfaceElevated,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor),
       ),
     );
   }

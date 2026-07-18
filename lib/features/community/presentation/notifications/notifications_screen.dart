@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/relative_time.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../providers/auth_provider.dart';
@@ -25,17 +26,11 @@ class NotificationsScreen extends ConsumerWidget {
     return CupertinoPageScaffold(
       backgroundColor: palette.background,
       navigationBar: CupertinoNavigationBar(
-        backgroundColor: palette.surface,
-        border: Border(
-          bottom: BorderSide(color: palette.border, width: 0.5),
-        ),
+        backgroundColor: palette.background.withValues(alpha: 0.82),
+        border: Border(bottom: BorderSide(color: palette.border)),
         middle: Text(
-          'Notifications',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: palette.text,
-          ),
+          'NOTIFICATIONS',
+          style: FieldManual.title(color: palette.text),
         ),
         trailing: userId == null
             ? null
@@ -49,10 +44,12 @@ class NotificationsScreen extends ConsumerWidget {
                 },
                 child: Text(
                   'Mark all read',
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
+                  style: FieldManual.body(
                     fontSize: 14,
                     color: palette.accent,
+                  ).copyWith(
+                    fontVariations: const [FontVariation('wght', 600)],
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -66,10 +63,7 @@ class NotificationsScreen extends ConsumerWidget {
           error: (_, _) => Center(
             child: Text(
               'Could not load notifications.',
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                color: palette.textSecondary,
-              ),
+              style: FieldManual.body(color: palette.textSecondary),
             ),
           ),
           data: (items) {
@@ -100,6 +94,7 @@ class NotificationsScreen extends ConsumerWidget {
   }
 
   Widget _buildEmpty(Palette palette) {
+    // Drill-sergeant eyebrow + sentence-case guidance (DESIGN.md).
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -110,21 +105,18 @@ class NotificationsScreen extends ConsumerWidget {
                 size: 48, color: palette.textSecondary),
             const SizedBox(height: 12),
             Text(
-              'All caught up',
+              'ALL QUIET',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 17,
-                color: palette.text,
+              style: FieldManual.label(
+                fontSize: 12,
+                color: palette.textSecondary,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
-              'You have no new notifications.',
+              'No new notifications. Carry on, soldier.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
+              style: FieldManual.body(
                 fontSize: 14,
                 color: palette.textSecondary,
               ),
@@ -194,89 +186,91 @@ class _NotifTile extends StatelessWidget {
     }
   }
 
-  Color _iconColor() {
-    switch (notif.type) {
-      case 'like':
-        return palette.destructive;
-      case 'follow':
-      case 'challenge_join':
-        return palette.accent;
-      case 'comment':
-      default:
-        return palette.warning;
-    }
-  }
+  // Quiet list: type icons stay muted — no red badges without a true
+  // consequence, and only the unread dot wears the accent (One Voice Rule).
+  Color _iconColor() => palette.textSecondary;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        color: notif.isRead
-            ? palette.background
-            : palette.accent.withValues(alpha: 0.07),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
+    // The unread state is spoken, not carried by colour alone.
+    return Semantics(
+      button: true,
+      label:
+          '${notif.message}, ${formatRelativeTime(notif.createdAt)}'
+          '${notif.isRead ? '' : ', unread'}',
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: notif.isRead
+                ? palette.background
+                : palette.accent.withValues(alpha: 0.07),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _avatar(),
-                Positioned(
-                  bottom: -2,
-                  right: -2,
-                  child: Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      color: palette.surface,
-                      shape: BoxShape.circle,
+                Stack(
+                  children: [
+                    _avatar(),
+                    Positioned(
+                      bottom: -2,
+                      right: -2,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          color: palette.surface,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(_iconForType(),
+                            size: 12, color: _iconColor()),
+                      ),
                     ),
-                    child: Icon(_iconForType(),
-                        size: 12, color: _iconColor()),
+                  ],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        notif.message,
+                        style: FieldManual.body(
+                          fontSize: 14,
+                          color: palette.text,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        // Timestamps set in quiet mono.
+                        formatRelativeTime(notif.createdAt),
+                        style: TextStyle(
+                          fontFamily: 'JetBrainsMono',
+                          fontVariations: const [FontVariation('wght', 500)],
+                          fontWeight: FontWeight.w500,
+                          fontSize: 11,
+                          letterSpacing: 0.2,
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                if (!notif.isRead)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8, top: 6),
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: palette.accent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
               ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    notif.message,
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontSize: 14,
-                      color: palette.text,
-                      height: 1.35,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    formatRelativeTime(notif.createdAt),
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontSize: 12,
-                      color: palette.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (!notif.isRead)
-              Padding(
-                padding: const EdgeInsets.only(left: 8, top: 6),
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: palette.accent,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-          ],
+          ),
         ),
       ),
     );
@@ -299,11 +293,12 @@ class _NotifTile extends StatelessWidget {
       backgroundColor: palette.accent,
       child: Text(
         letter,
-        style: const TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.bold,
+        style: TextStyle(
+          fontFamily: 'Inter',
+          fontVariations: const [FontVariation('wght', 700)],
+          fontWeight: FontWeight.w700,
           fontSize: 16,
-          color: CupertinoColors.white,
+          color: palette.onAccent,
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
 import '../../data/post_repository.dart';
@@ -82,16 +83,10 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     return CupertinoPageScaffold(
       backgroundColor: palette.background,
       navigationBar: CupertinoNavigationBar(
-        backgroundColor: palette.surface,
+        // Field Manual chrome: ink ground over a hairline (DESIGN.md §Nav).
+        backgroundColor: palette.background.withValues(alpha: 0.82),
         border: Border(bottom: BorderSide(color: palette.border)),
-        middle: Text(
-          'Post',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: palette.text,
-          ),
-        ),
+        middle: Text('POST', style: FieldManual.title(color: palette.text)),
       ),
       child: SafeArea(
         child: Column(
@@ -171,13 +166,12 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 8),
+                    // Section label — mono eyebrow designation.
                     child: Text(
-                      'Comments',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: palette.text,
+                      'COMMENTS',
+                      style: FieldManual.label(
+                        fontSize: 12,
+                        color: palette.textSecondary,
                       ),
                     ),
                   ),
@@ -188,8 +182,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                           padding: const EdgeInsets.all(16),
                           child: Text(
                             'No comments yet. Be the first!',
-                            style: TextStyle(
-                              fontFamily: 'LeagueSpartan',
+                            style: FieldManual.body(
                               fontSize: 14,
                               color: palette.textSecondary,
                             ),
@@ -202,11 +195,8 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                             CommentTile(
                               comment: comment,
                               isOwn: comment.userId == currentUserId,
-                              onDelete: comment.userId == currentUserId
-                                  ? () {
-                                      // Delete not yet implemented in repo
-                                    }
-                                  : null,
+                              // Delete returns once the repo supports it.
+                              onDelete: null,
                             ),
                         ],
                       );
@@ -219,8 +209,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                       padding: const EdgeInsets.all(16),
                       child: Text(
                         'Failed to load comments.',
-                        style: TextStyle(
-                          fontFamily: 'LeagueSpartan',
+                        style: FieldManual.body(
                           fontSize: 14,
                           color: palette.destructive,
                         ),
@@ -247,22 +236,19 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
       child: Row(
         children: [
           Expanded(
+            // FM input: raised field fill, hairline border, 8px corners
+            // (DESIGN.md §Inputs).
             child: CupertinoTextField(
               controller: _commentController,
               placeholder: 'Add a comment...',
-              placeholderStyle: TextStyle(
-                fontFamily: 'LeagueSpartan',
+              placeholderStyle: FieldManual.body(
                 fontSize: 14,
                 color: palette.textSecondary,
               ),
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 14,
-                color: palette.text,
-              ),
+              style: FieldManual.body(fontSize: 14, color: palette.text),
               decoration: BoxDecoration(
                 color: palette.surfaceElevated,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: palette.border),
               ),
               padding:
@@ -273,13 +259,15 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
           const SizedBox(width: 8),
           CupertinoButton(
             padding: EdgeInsets.zero,
-            onPressed: _isSending ? null : _sendComment, minimumSize: Size(36, 36),
+            onPressed: _isSending ? null : _sendComment,
+            minimumSize: const Size(44, 44),
             child: _isSending
                 ? const CupertinoActivityIndicator()
                 : Icon(
                     CupertinoIcons.arrow_up_circle_fill,
                     size: 32,
                     color: palette.accent,
+                    semanticLabel: 'Send comment',
                   ),
           ),
         ],

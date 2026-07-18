@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
@@ -33,15 +34,11 @@ class FollowersListScreen extends ConsumerWidget {
     return CupertinoPageScaffold(
       backgroundColor: palette.background,
       navigationBar: CupertinoNavigationBar(
-        backgroundColor: palette.surface,
+        backgroundColor: palette.background.withValues(alpha: 0.82),
         border: Border(bottom: BorderSide(color: palette.border)),
         middle: Text(
-          title,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: palette.text,
-          ),
+          title.toUpperCase(),
+          style: FieldManual.title(color: palette.text),
         ),
       ),
       child: SafeArea(
@@ -51,15 +48,35 @@ class FollowersListScreen extends ConsumerWidget {
                 ? idsRaw.toList()
                 : (idsRaw as List<String>);
             if (ids.isEmpty) {
+              // Drill-sergeant eyebrow + sentence-case guidance (DESIGN.md).
               return Center(
-                child: Text(
-                  isFollowers
-                      ? 'No followers yet'
-                      : 'Not following anyone yet',
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                    fontSize: 15,
-                    color: palette.textSecondary,
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        isFollowers
+                            ? 'NO FOLLOWERS YET'
+                            : 'NOT FOLLOWING ANYONE',
+                        textAlign: TextAlign.center,
+                        style: FieldManual.label(
+                          fontSize: 12,
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        isFollowers
+                            ? 'Soldiers who follow this account will report here.'
+                            : 'Search for soldiers and follow them to build your unit.',
+                        textAlign: TextAlign.center,
+                        style: FieldManual.body(
+                          fontSize: 14,
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -78,8 +95,7 @@ class FollowersListScreen extends ConsumerWidget {
           error: (_, _) => Center(
             child: Text(
               'Failed to load list.',
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
+              style: FieldManual.body(
                 fontSize: 15,
                 color: palette.destructive,
               ),
@@ -113,7 +129,12 @@ class _UserTile extends ConsumerWidget {
         final isFollowing = isFollowingAsync.valueOrNull ?? false;
         final isSelf = currentUserId == userId;
 
-        return GestureDetector(
+        // The row is one profile button; the nested follow button keeps its
+        // own semantics node.
+        return Semantics(
+          button: true,
+          label: "View ${user.username}'s profile",
+          child: GestureDetector(
           onTap: () => context.push('/profile/$userId'),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -124,69 +145,95 @@ class _UserTile extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                _buildAvatar(user.profilePictureUrl, user.username),
+                ExcludeSemantics(
+                  child: _buildAvatar(user.profilePictureUrl, user.username),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.username,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: palette.text,
-                        ),
-                      ),
-                      if (user.displayName.isNotEmpty &&
-                          user.displayName != user.username)
+                  child: ExcludeSemantics(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          user.displayName,
+                          // Usernames are user content — Inter, never
+                          // uppercased.
+                          user.username,
                           style: TextStyle(
-                            fontFamily: 'LeagueSpartan',
-                            fontSize: 13,
-                            color: palette.textSecondary,
+                            fontFamily: 'Inter',
+                            fontVariations: const [
+                              FontVariation('wght', 600),
+                            ],
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: palette.text,
                           ),
                         ),
-                    ],
+                        if (user.displayName.isNotEmpty &&
+                            user.displayName != user.username)
+                          Text(
+                            user.displayName,
+                            style: FieldManual.body(
+                              fontSize: 13,
+                              color: palette.textSecondary,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
                 if (!isSelf)
-                  CupertinoButton(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 6),
-                    color: isFollowing
-                        ? palette.surfaceElevated
-                        : palette.accent,
-                    borderRadius: BorderRadius.circular(8),
-                    onPressed: () async {
-                      if (currentUserId == null) return;
-                      final followRepo =
-                          ref.read(followRepositoryProvider);
-                      if (isFollowing) {
-                        await followRepo.unfollow(currentUserId, userId);
-                      } else {
-                        await followRepo.follow(currentUserId, userId);
-                      }
-                      ref.invalidate(isFollowingProvider(userId));
-                      ref.invalidate(followingIdsProvider);
-                      ref.invalidate(followerIdsProvider(userId));
-                    }, minimumSize: Size(0, 0),
-                    child: Text(
-                      isFollowing ? 'Unfollow' : 'Follow',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                  // Follow state is exposed to assistive tech, not carried
+                  // by colour alone. Spoken label stays sentence case.
+                  Semantics(
+                    button: true,
+                    toggled: isFollowing,
+                    label: isFollowing
+                        ? 'Following. Double tap to unfollow.'
+                        : 'Follow',
+                    child: ExcludeSemantics(
+                      child: CupertinoButton(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
                         color: isFollowing
-                            ? palette.text
-                            : CupertinoColors.white,
+                            ? palette.surfaceElevated
+                            : palette.accent,
+                        borderRadius: BorderRadius.circular(4),
+                        onPressed: () async {
+                          if (currentUserId == null) return;
+                          final followRepo =
+                              ref.read(followRepositoryProvider);
+                          if (isFollowing) {
+                            await followRepo.unfollow(currentUserId, userId);
+                          } else {
+                            await followRepo.follow(currentUserId, userId);
+                          }
+                          ref.invalidate(isFollowingProvider(userId));
+                          ref.invalidate(followingIdsProvider);
+                          ref.invalidate(followerIdsProvider(userId));
+                        },
+                        // ≥44pt touch target.
+                        minimumSize: const Size(44, 44),
+                        child: Text(
+                          isFollowing ? 'UNFOLLOW' : 'FOLLOW',
+                          style: TextStyle(
+                            fontFamily: 'Oswald',
+                            fontVariations: const [
+                              FontVariation('wght', 600),
+                            ],
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            letterSpacing: 0.6,
+                            color: isFollowing
+                                ? palette.text
+                                : palette.onAccent,
+                          ),
+                        ),
                       ),
                     ),
                   ),
               ],
             ),
+          ),
           ),
         );
       },
@@ -210,8 +257,7 @@ class _UserTile extends ConsumerWidget {
               Expanded(
                 child: Text(
                   'Could not load this user.',
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
+                  style: FieldManual.body(
                     fontSize: 13,
                     color: palette.textSecondary,
                   ),
@@ -219,7 +265,7 @@ class _UserTile extends ConsumerWidget {
               ),
               CupertinoButton(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                minimumSize: const Size(0, 0),
+                minimumSize: const Size(44, 44),
                 onPressed: () => ref.invalidate(userByIdProvider(userId)),
                 child: const Text('Retry',
                     style: TextStyle(fontSize: 13)),
@@ -244,11 +290,12 @@ class _UserTile extends ConsumerWidget {
       backgroundColor: palette.accent,
       child: Text(
         username.isNotEmpty ? username[0].toUpperCase() : '?',
-        style: const TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.bold,
+        style: TextStyle(
+          fontFamily: 'Inter',
+          fontVariations: const [FontVariation('wght', 700)],
+          fontWeight: FontWeight.w700,
           fontSize: 16,
-          color: CupertinoColors.white,
+          color: palette.onAccent,
         ),
       ),
     );

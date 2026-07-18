@@ -1,15 +1,17 @@
 import 'package:fl_chart/fl_chart.dart';
-import 'chart_axis.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/unit_converter.dart';
 import '../../../../core/widgets/error_card.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../../providers/progress_providers.dart';
 import '../../../../providers/unit_system_provider.dart';
+import 'chart_axis.dart';
+import '../../../../core/widgets/fm_segmented.dart';
+import 'strength_chart.dart' show ExercisePickerDropdown;
 
 /// Which metric the user is currently viewing on the strength curve chart.
 /// Persisted in a StateProvider so toggling the metric doesn't reset the
@@ -30,8 +32,6 @@ class StrengthCurveChart extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final exerciseNamesAsync = ref.watch(exerciseNamesProvider);
     final selected = ref.watch(selectedExerciseProvider);
     final metric = ref.watch(strengthMetricProvider);
@@ -46,16 +46,12 @@ class StrengthCurveChart extends ConsumerWidget {
             if (names.isEmpty) {
               return Text(
                 'Complete workouts to track strength.',
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: FieldManual.body(color: FieldManual.mutedBone),
               );
             }
-            return DropdownMenu<String>(
-              hintText: 'Select exercise',
-              initialSelection: selected,
-              dropdownMenuEntries: names
-                  .map((n) => DropdownMenuEntry(value: n, label: n))
-                  .toList(),
+            return ExercisePickerDropdown(
+              names: names,
+              selected: selected,
               onSelected: (value) =>
                   ref.read(selectedExerciseProvider.notifier).state = value,
             );
@@ -67,7 +63,17 @@ class StrengthCurveChart extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 10),
-        _MetricTabs(metric: metric),
+        FmSegmented<StrengthMetric>(
+          segments: const [
+            (StrengthMetric.oneRepMax, 'Est. 1RM'),
+            (StrengthMetric.maxWeight, 'Max Weight'),
+            (StrengthMetric.volume, 'Volume'),
+          ],
+          selected: metric,
+          fontSize: 10,
+          onChanged: (value) =>
+              ref.read(strengthMetricProvider.notifier).state = value,
+        ),
         const SizedBox(height: 12),
         if (selected != null)
           _CurveChart(exerciseName: selected, metric: metric)
@@ -77,73 +83,11 @@ class StrengthCurveChart extends ConsumerWidget {
             child: Center(
               child: Text(
                 'Select an exercise above.',
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: FieldManual.body(color: FieldManual.mutedBone),
               ),
             ),
           ),
       ],
-    );
-  }
-}
-
-class _MetricTabs extends ConsumerWidget {
-  const _MetricTabs({required this.metric});
-
-  final StrengthMetric metric;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = AppColors.of(context);
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: palette.surfaceElevated,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          _tab(ref, palette, StrengthMetric.oneRepMax, 'Est. 1RM'),
-          _tab(ref, palette, StrengthMetric.maxWeight, 'Max Weight'),
-          _tab(ref, palette, StrengthMetric.volume, 'Volume'),
-        ],
-      ),
-    );
-  }
-
-  Widget _tab(
-    WidgetRef ref,
-    Palette palette,
-    StrengthMetric value,
-    String label,
-  ) {
-    final active = metric == value;
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          HapticFeedback.selectionClick();
-          ref.read(strengthMetricProvider.notifier).state = value;
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: active ? palette.accent : null,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-              color: active ? Colors.white : palette.text,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -154,17 +98,22 @@ class _CurveChart extends ConsumerWidget {
   final String exerciseName;
   final StrengthMetric metric;
 
+  String get _metricLabel => switch (metric) {
+        StrengthMetric.oneRepMax => 'estimated one-rep max',
+        StrengthMetric.maxWeight => 'max weight',
+        StrengthMetric.volume => 'volume',
+      };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final palette = AppColors.of(context);
     final units = ref.watch(unitSystemProvider);
     final unitLabel = UnitConverter.weightUnit(units);
     final async = ref.watch(strengthCurveProvider(exerciseName));
 
     return async.when(
       loading: () => const ShimmerBox(
-          width: double.infinity, height: 200, borderRadius: 12),
+          width: double.infinity, height: 200, borderRadius: 8),
       error: (_, _) => ErrorCard(
         message: 'Could not load strength data.',
         onRetry: () =>
@@ -177,8 +126,7 @@ class _CurveChart extends ConsumerWidget {
             child: Center(
               child: Text(
                 'Need at least 2 sessions to chart.',
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: FieldManual.body(color: FieldManual.mutedBone),
               ),
             ),
           );
@@ -223,15 +171,9 @@ class _CurveChart extends ConsumerWidget {
           minHeadroomFactor: 1.10,
         );
 
-        final color = switch (metric) {
-          StrengthMetric.oneRepMax => colorScheme.primary,
-          StrengthMetric.maxWeight => colorScheme.tertiary,
-          StrengthMetric.volume => colorScheme.secondary,
-        };
-
         final caption = metric == StrengthMetric.volume
-            ? 'Volume ($unitLabel)'
-            : 'Weight ($unitLabel)';
+            ? 'VOLUME ($unitLabel)'
+            : 'WEIGHT ($unitLabel)';
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,122 +181,108 @@ class _CurveChart extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(left: 4, bottom: 4),
               child: Text(
-                caption,
-                style: textTheme.bodySmall
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                caption.toUpperCase(),
+                style: FieldManual.label(),
               ),
             ),
-            SizedBox(
-              height: 200,
-              child: LineChart(
-                LineChartData(
-                  minY: range.minY,
-                  maxY: range.maxY,
-              gridData: FlGridData(
-                show: true,
-                drawVerticalLine: false,
-                horizontalInterval: range.interval,
-                getDrawingHorizontalLine: (value) => FlLine(
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-                  strokeWidth: 1,
-                ),
-              ),
-              titlesData: FlTitlesData(
-                topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false)),
-                bottomTitles: dateAxisTitles(
-                  firstDate: firstDate,
-                  spanDays: spanDays,
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: colorScheme.onSurfaceVariant),
-                ),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 52,
-                    interval: range.interval,
-                    getTitlesWidget: (value, meta) {
-                      if (value > range.maxY - range.interval * 0.01) {
-                        return const SizedBox.shrink();
-                      }
-                      // Whole numbers only, no per-label unit suffix — the
-                      // unit is shown once in the caption above the chart so
-                      // the labels never wrap ("220.5 lbs" → "220").
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Text(
-                          metric == StrengthMetric.volume
-                              ? _volumeAxisLabel(value)
-                              : value.toStringAsFixed(0),
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
+            Semantics(
+              label: '$exerciseName $_metricLabel chart: '
+                  '${points.length} sessions since '
+                  '${formatShortDate(firstDate)}, latest '
+                  '${spots.last.y.toStringAsFixed(0)} $unitLabel.',
+              child: SizedBox(
+                height: 200,
+                child: LineChart(
+                  LineChartData(
+                    minY: range.minY,
+                    maxY: range.maxY,
+                    gridData: FlGridData(
+                      show: true,
+                      drawVerticalLine: false,
+                      horizontalInterval: range.interval,
+                      getDrawingHorizontalLine: chartGridLine,
+                    ),
+                    titlesData: FlTitlesData(
+                      topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
+                      bottomTitles: dateAxisTitles(
+                        firstDate: firstDate,
+                        spanDays: spanDays,
+                      ),
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: chartLeftAxisReservedSize,
+                          interval: range.interval,
+                          getTitlesWidget: (value, meta) {
+                            if (value > range.maxY - range.interval * 0.01) {
+                              return const SizedBox.shrink();
+                            }
+                            // No per-label unit suffix — the unit is shown
+                            // once in the caption above the chart. Fractional
+                            // intervals keep one decimal ("72.5" must not
+                            // truncate to "72").
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Text(
+                                metric == StrengthMetric.volume
+                                    ? shortenAxisLabel(value)
+                                    : formatAxisValue(value, range.interval),
+                                style: chartAxisLabelStyle,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    borderData: FlBorderData(show: false),
+                    lineTouchData: LineTouchData(
+                      touchTooltipData: LineTouchTooltipData(
+                        getTooltipColor: (_) => FieldManual.fieldRaised,
+                        tooltipBorder: chartTooltipBorder,
+                        tooltipRoundedRadius: 4,
+                        getTooltipItems: (spots) => spots
+                            .map((s) => LineTooltipItem(
+                                  metric == StrengthMetric.volume
+                                      ? _formatVolume(s.y, unitLabel)
+                                      : '${s.y.toStringAsFixed(1)} $unitLabel',
+                                  chartTooltipTextStyle,
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: spots,
+                        isCurved: true,
+                        curveSmoothness: 0.25,
+                        color: palette.accent,
+                        barWidth: 2,
+                        dotData: FlDotData(
+                          show: true,
+                          getDotPainter: (spot, percent, bar, index) =>
+                              FlDotCirclePainter(
+                            radius: 3.5,
+                            color: palette.accent,
+                            strokeWidth: 0,
                           ),
                         ),
-                      );
-                    },
+                        belowBarData: BarAreaData(
+                          show: true,
+                          color: palette.accent.withValues(alpha: 0.08),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              borderData: FlBorderData(show: false),
-              lineTouchData: LineTouchData(
-                touchTooltipData: LineTouchTooltipData(
-                  getTooltipItems: (spots) => spots
-                      .map((s) => LineTooltipItem(
-                            metric == StrengthMetric.volume
-                                ? _formatVolume(s.y, unitLabel)
-                                : '${s.y.toStringAsFixed(1)} $unitLabel',
-                            TextStyle(
-                              color: colorScheme.onSurface,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                          ))
-                      .toList(),
-                ),
-              ),
-              lineBarsData: [
-                LineChartBarData(
-                  spots: spots,
-                  isCurved: true,
-                  curveSmoothness: 0.25,
-                  color: color,
-                  barWidth: 2.5,
-                  dotData: FlDotData(
-                    show: true,
-                    getDotPainter: (spot, percent, bar, index) =>
-                        FlDotCirclePainter(
-                      radius: 3.5,
-                      color: color,
-                      strokeWidth: 0,
-                    ),
-                  ),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    color: color.withValues(alpha: 0.08),
-                  ),
-                ),
-              ],
-            ),
-          ),
             ),
           ],
         );
       },
     );
-  }
-
-  /// Volume Y-axis label — abbreviated and unit-less (the unit lives in the
-  /// caption above the chart): "12k", "8.5k", "850".
-  static String _volumeAxisLabel(double value) {
-    if (value >= 1000) {
-      final v = value / 1000;
-      return v == v.truncateToDouble()
-          ? '${v.toInt()}k'
-          : '${v.toStringAsFixed(1)}k';
-    }
-    return value.toStringAsFixed(0);
   }
 
   /// Volume tooltip label — keeps the unit suffix for the touch tooltip.

@@ -1,6 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/unit_converter.dart';
 import '../../../../core/widgets/error_card.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
@@ -8,14 +10,78 @@ import '../../../../providers/progress_providers.dart';
 import '../../../../providers/unit_system_provider.dart';
 import 'chart_axis.dart';
 
+/// Field Manual exercise picker — the stock Material [DropdownMenu] restyled
+/// onto FM chrome (raised-field input, hairline border, 4px radius, accent
+/// focus). Behavior and tap count are unchanged; shared by [StrengthChart]
+/// and the strength curve chart.
+class ExercisePickerDropdown extends StatelessWidget {
+  const ExercisePickerDropdown({
+    super.key,
+    required this.names,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<String> names;
+  final String? selected;
+  final ValueChanged<String?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    OutlineInputBorder border(Color color) => OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: color),
+        );
+    return DropdownMenu<String>(
+      hintText: 'Select exercise',
+      initialSelection: selected,
+      textStyle: FieldManual.body(),
+      trailingIcon: const Icon(Icons.arrow_drop_down,
+          color: FieldManual.mutedBone),
+      selectedTrailingIcon: const Icon(Icons.arrow_drop_up,
+          color: FieldManual.mutedBone),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: FieldManual.fieldRaised,
+        hintStyle: FieldManual.body(color: FieldManual.mutedBone),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        enabledBorder: border(FieldManual.hairline),
+        focusedBorder: border(palette.accent),
+        border: border(FieldManual.hairline),
+      ),
+      menuStyle: MenuStyle(
+        backgroundColor: const WidgetStatePropertyAll(FieldManual.field),
+        surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+        elevation: const WidgetStatePropertyAll(0),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: const BorderSide(color: FieldManual.hairline),
+          ),
+        ),
+      ),
+      dropdownMenuEntries: names
+          .map((n) => DropdownMenuEntry(
+                value: n,
+                label: n,
+                style: MenuItemButton.styleFrom(
+                  foregroundColor: FieldManual.bone,
+                  textStyle: FieldManual.body(fontSize: 14),
+                ),
+              ))
+          .toList(),
+      onSelected: onSelected,
+    );
+  }
+}
+
 class StrengthChart extends ConsumerWidget {
   const StrengthChart({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
     final exerciseNamesAsync = ref.watch(exerciseNamesProvider);
     final selected = ref.watch(selectedExerciseProvider);
 
@@ -28,16 +94,12 @@ class StrengthChart extends ConsumerWidget {
             if (names.isEmpty) {
               return Text(
                 'Complete workouts to track strength.',
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: FieldManual.body(color: FieldManual.mutedBone),
               );
             }
-            return DropdownMenu<String>(
-              hintText: 'Select exercise',
-              initialSelection: selected,
-              dropdownMenuEntries: names
-                  .map((n) => DropdownMenuEntry(value: n, label: n))
-                  .toList(),
+            return ExercisePickerDropdown(
+              names: names,
+              selected: selected,
               onSelected: (value) =>
                   ref.read(selectedExerciseProvider.notifier).state = value,
             );
@@ -58,8 +120,7 @@ class StrengthChart extends ConsumerWidget {
             child: Center(
               child: Text(
                 'Select an exercise above.',
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: FieldManual.body(color: FieldManual.mutedBone),
               ),
             ),
           ),
@@ -75,14 +136,13 @@ class _StrengthLineChart extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final palette = AppColors.of(context);
     final historyAsync = ref.watch(strengthHistoryProvider(exerciseName));
     final units = ref.watch(unitSystemProvider);
 
     return historyAsync.when(
       loading: () =>
-          const ShimmerBox(width: double.infinity, height: 200, borderRadius: 12),
+          const ShimmerBox(width: double.infinity, height: 200, borderRadius: 8),
       error: (_, _) => ErrorCard(
         message: 'Could not load strength data.',
         onRetry: () => ref.invalidate(strengthHistoryProvider(exerciseName)),
@@ -94,8 +154,7 @@ class _StrengthLineChart extends ConsumerWidget {
             child: Center(
               child: Text(
                 'Need at least 2 sessions to chart.',
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: FieldManual.body(color: FieldManual.mutedBone),
               ),
             ),
           );
@@ -130,99 +189,97 @@ class _StrengthLineChart extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(left: 4, bottom: 4),
               child: Text(
-                'Weight ($unitLabel)',
-                style: textTheme.bodySmall
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                'WEIGHT ($unitLabel)'.toUpperCase(),
+                style: FieldManual.label(),
               ),
             ),
-            SizedBox(
-              height: 200,
-              child: LineChart(
-                LineChartData(
-                  minY: range.minY,
-                  maxY: range.maxY,
-              gridData: FlGridData(
-                show: true,
-                drawVerticalLine: false,
-                horizontalInterval: range.interval,
-                getDrawingHorizontalLine: (value) => FlLine(
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-                  strokeWidth: 1,
-                ),
-              ),
-              titlesData: FlTitlesData(
-                topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false)),
-                bottomTitles: dateAxisTitles(
-                  firstDate: firstDate,
-                  spanDays: spanDays,
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: colorScheme.onSurfaceVariant),
-                ),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 44,
-                    interval: range.interval,
-                    getTitlesWidget: (value, meta) {
-                      if (value > range.maxY - range.interval * 0.01) {
-                        return const SizedBox.shrink();
-                      }
-                      // Whole numbers only, no per-label unit suffix — the
-                      // unit is shown once in the caption above the chart.
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Text(
-                          value.toStringAsFixed(0),
-                          style: textTheme.bodySmall
-                              ?.copyWith(color: colorScheme.onSurfaceVariant),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              borderData: FlBorderData(show: false),
-              lineTouchData: LineTouchData(
-                touchTooltipData: LineTouchTooltipData(
-                  getTooltipItems: (spots) => spots
-                      .map((s) => LineTooltipItem(
-                            '${s.y.toStringAsFixed(0)} $unitLabel',
-                            TextStyle(
-                              color: colorScheme.onSurface,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                          ))
-                      .toList(),
-                ),
-              ),
-              lineBarsData: [
-                LineChartBarData(
-                  spots: spots,
-                  isCurved: true,
-                  curveSmoothness: 0.25,
-                  color: colorScheme.tertiary,
-                  barWidth: 2.5,
-                  dotData: FlDotData(
-                    show: true,
-                    getDotPainter: (spot, percent, bar, index) =>
-                        FlDotCirclePainter(
-                      radius: 3.5,
-                      color: colorScheme.tertiary,
-                      strokeWidth: 0,
+            Semantics(
+              label: '$exerciseName strength chart: ${points.length} sessions '
+                  'since ${formatShortDate(firstDate)}, latest '
+                  '${spots.last.y.toStringAsFixed(0)} $unitLabel.',
+              child: SizedBox(
+                height: 200,
+                child: LineChart(
+                  LineChartData(
+                    minY: range.minY,
+                    maxY: range.maxY,
+                    gridData: FlGridData(
+                      show: true,
+                      drawVerticalLine: false,
+                      horizontalInterval: range.interval,
+                      getDrawingHorizontalLine: chartGridLine,
                     ),
-                  ),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    color: colorScheme.tertiary.withValues(alpha: 0.08),
+                    titlesData: FlTitlesData(
+                      topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
+                      bottomTitles: dateAxisTitles(
+                        firstDate: firstDate,
+                        spanDays: spanDays,
+                      ),
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: chartLeftAxisReservedSize,
+                          interval: range.interval,
+                          getTitlesWidget: (value, meta) {
+                            if (value > range.maxY - range.interval * 0.01) {
+                              return const SizedBox.shrink();
+                            }
+                            // No per-label unit suffix — the unit is shown
+                            // once in the caption above. Fractional
+                            // intervals keep one decimal.
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Text(
+                                formatAxisValue(value, range.interval),
+                                style: chartAxisLabelStyle,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    borderData: FlBorderData(show: false),
+                    lineTouchData: LineTouchData(
+                      touchTooltipData: LineTouchTooltipData(
+                        getTooltipColor: (_) => FieldManual.fieldRaised,
+                        tooltipBorder: chartTooltipBorder,
+                        tooltipRoundedRadius: 4,
+                        getTooltipItems: (spots) => spots
+                            .map((s) => LineTooltipItem(
+                                  '${s.y.toStringAsFixed(0)} $unitLabel',
+                                  chartTooltipTextStyle,
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: spots,
+                        isCurved: true,
+                        curveSmoothness: 0.25,
+                        color: palette.accent,
+                        barWidth: 2,
+                        dotData: FlDotData(
+                          show: true,
+                          getDotPainter: (spot, percent, bar, index) =>
+                              FlDotCirclePainter(
+                            radius: 3.5,
+                            color: palette.accent,
+                            strokeWidth: 0,
+                          ),
+                        ),
+                        belowBarData: BarAreaData(
+                          show: true,
+                          color: palette.accent.withValues(alpha: 0.08),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
             ),
           ],
         );

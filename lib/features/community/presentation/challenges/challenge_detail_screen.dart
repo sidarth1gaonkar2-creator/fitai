@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
@@ -33,16 +34,18 @@ class ChallengeDetailScreen extends ConsumerWidget {
     return CupertinoPageScaffold(
       backgroundColor: palette.background,
       navigationBar: CupertinoNavigationBar(
-        backgroundColor: palette.surface,
-        border: Border(
-          bottom: BorderSide(color: palette.border, width: 0.5),
-        ),
+        backgroundColor: palette.background.withValues(alpha: 0.82),
+        border: Border(bottom: BorderSide(color: palette.border)),
         middle: asyncChallenge.whenOrNull(
           data: (c) => Text(
+            // Challenge titles are user content — Inter, never uppercased
+            // (the Bark Budget Rule).
             c?.title ?? 'Challenge',
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Inter',
+              fontVariations: const [FontVariation('wght', 600)],
               fontWeight: FontWeight.w600,
+              fontSize: 16,
               color: palette.text,
             ),
           ),
@@ -53,8 +56,7 @@ class ChallengeDetailScreen extends ConsumerWidget {
         error: (_, _) => Center(
           child: Text(
             'Failed to load challenge.',
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
+            style: FieldManual.body(
               fontSize: 14,
               color: palette.textSecondary,
             ),
@@ -65,8 +67,7 @@ class ChallengeDetailScreen extends ConsumerWidget {
             return Center(
               child: Text(
                 'Challenge not found.',
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
+                style: FieldManual.body(
                   fontSize: 14,
                   color: palette.textSecondary,
                 ),
@@ -130,8 +131,7 @@ class _Body extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       "Couldn't check your join status.",
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
+                      style: FieldManual.body(
                         fontSize: 13,
                         color: palette.textSecondary,
                       ),
@@ -139,7 +139,7 @@ class _Body extends ConsumerWidget {
                   ),
                   CupertinoButton(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    minimumSize: const Size(0, 0),
+                    minimumSize: const Size(44, 44),
                     onPressed: () => ref.invalidate(
                         isParticipantProvider(challenge.challengeId)),
                     child:
@@ -155,22 +155,31 @@ class _Body extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 24),
-          Text(
-            'Participants (${challenge.participantCount})',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
-              color: palette.text,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                'PARTICIPANTS',
+                style: FieldManual.title(color: palette.text),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                // Roster size is a stat — mono readout.
+                '${challenge.participantCount}',
+                style: FieldManual.label(
+                  fontSize: 12,
+                  color: palette.textSecondary,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           asyncParticipants.when(
             loading: () => const Center(child: CupertinoActivityIndicator()),
             error: (_, _) => Text(
               'Could not load participants.',
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
+              style: FieldManual.body(
                 fontSize: 13,
                 color: palette.textSecondary,
               ),
@@ -179,8 +188,7 @@ class _Body extends ConsumerWidget {
               if (participants.isEmpty) {
                 return Text(
                   'No participants yet. Be the first!',
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
+                  style: FieldManual.body(
                     fontSize: 14,
                     color: palette.textSecondary,
                   ),
@@ -253,8 +261,8 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: palette.border, width: 0.5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: palette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,7 +273,7 @@ class _Header extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: palette.accent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   challenge.icon ?? '🏆',
@@ -278,21 +286,39 @@ class _Header extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      challenge.typeLabel,
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
-                        fontSize: 12,
+                      // Type designation — mono stamp in the live accent.
+                      challenge.typeLabel.toUpperCase(),
+                      style: FieldManual.label(
+                        fontSize: 10,
                         color: palette.accent,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    Text(
-                      '${challenge.durationDays} days · by ${challenge.creatorUsername.isEmpty ? 'DrillFit' : challenge.creatorUsername}',
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
-                        fontSize: 13,
-                        color: palette.textSecondary,
-                      ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          // Duration is a trained-against number — mono.
+                          '${challenge.durationDays} DAYS',
+                          style: FieldManual.label(
+                            fontSize: 11,
+                            color: palette.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            // Creator names are user content — Inter, never
+                            // uppercased.
+                            '· by ${challenge.creatorUsername.isEmpty ? 'DrillFit' : challenge.creatorUsername}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: FieldManual.body(
+                              fontSize: 13,
+                              color: palette.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -303,12 +329,7 @@ class _Header extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               challenge.description,
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 14,
-                color: palette.text,
-                height: 1.4,
-              ),
+              style: FieldManual.body(fontSize: 14, color: palette.text),
             ),
           ],
           const SizedBox(height: 14),
@@ -320,8 +341,7 @@ class _Header extends StatelessWidget {
                 Expanded(
                   child: Text(
                     challengeGoalSummary(challenge),
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
+                    style: FieldManual.body(
                       fontSize: 13,
                       color: palette.textSecondary,
                     ),
@@ -334,7 +354,7 @@ class _Header extends StatelessWidget {
               progress: progress,
               palette: palette,
               caption:
-                  'Day ${elapsed.clamp(0, challenge.durationDays)} of ${challenge.durationDays}',
+                  'DAY ${elapsed.clamp(0, challenge.durationDays)} OF ${challenge.durationDays}',
             ),
         ],
       ),
@@ -363,20 +383,16 @@ class _MyProgressCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: palette.accent.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: palette.accent.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Your Progress',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-              color: palette.text,
-            ),
+            'YOUR PROGRESS',
+            style: FieldManual.title(color: palette.text)
+                .copyWith(fontSize: 14),
           ),
           const SizedBox(height: 10),
           if (challenge.isRankGoal)
@@ -386,7 +402,7 @@ class _MyProgressCard extends StatelessWidget {
               progress: fraction,
               palette: palette,
               caption:
-                  '$completedDays / ${challenge.durationDays} days ' '(${(fraction * 100).toStringAsFixed(0)}%)',
+                  '$completedDays / ${challenge.durationDays} DAYS ' '(${(fraction * 100).toStringAsFixed(0)}%)',
             ),
         ],
       ),
@@ -410,37 +426,46 @@ class _ProgressBar extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: SizedBox(
-            height: 8,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Stack(
-                  children: [
-                    Container(
-                      width: constraints.maxWidth,
-                      color: palette.surfaceElevated,
-                    ),
-                    Container(
-                      width: constraints.maxWidth * progress.clamp(0.0, 1.0),
-                      decoration: BoxDecoration(
-                        color: palette.accent,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ],
-                );
-              },
+        // Instrument: accent fill on a hairline track, spoken as a value.
+        Semantics(
+          label: 'Challenge progress',
+          value: '${(progress.clamp(0.0, 1.0) * 100).round()}%',
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: palette.border),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: SizedBox(
+                height: 8,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Stack(
+                      children: [
+                        Container(
+                          width: constraints.maxWidth,
+                          color: palette.surfaceElevated,
+                        ),
+                        Container(
+                          width:
+                              constraints.maxWidth * progress.clamp(0.0, 1.0),
+                          color: palette.accent,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ),
           ),
         ),
         const SizedBox(height: 8),
         Text(
+          // Day counts are readouts — mono.
           caption,
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontSize: 13,
+          style: FieldManual.label(
+            fontSize: 11,
             color: palette.textSecondary,
           ),
         ),
@@ -482,8 +507,9 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
       );
       await ref.read(challengeRepositoryProvider).joinChallenge(p);
       _invalidate();
-    } catch (e) {
-      _showError('Could not join: $e');
+    } catch (e, st) {
+      AppLogger.error('Challenge detail: join failed', error: e, stack: st);
+      _showError("Couldn't join the challenge. Try again in a moment.");
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -551,8 +577,10 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
             proofFile: proof,
           );
       _invalidate();
-    } catch (e) {
-      _showError('Could not check in: $e');
+    } catch (e, st) {
+      AppLogger.error('Challenge detail: check-in failed',
+          error: e, stack: st);
+      _showError("Couldn't check in. Try again in a moment.");
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -593,20 +621,22 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
     }
 
     if (!widget.isJoined) {
+      // Spoken label stays sentence case; the uppercase is visual only.
       return SizedBox(
         width: double.infinity,
-        child: CupertinoButton(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          color: palette.accent,
-          borderRadius: BorderRadius.circular(12),
-          onPressed: _join,
-          child: const Text(
-            'Join Challenge',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-              color: CupertinoColors.white,
+        child: Semantics(
+          label: 'Join challenge',
+          button: true,
+          child: ExcludeSemantics(
+            child: CupertinoButton(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              color: palette.accent,
+              borderRadius: BorderRadius.circular(4),
+              onPressed: _join,
+              child: Text(
+                'JOIN CHALLENGE',
+                style: _ctaStyle(palette.onAccent),
+              ),
             ),
           ),
         ),
@@ -616,30 +646,40 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
     final checkedInToday = ref
         .read(challengeRepositoryProvider)
         .didCheckInToday(widget.participant);
+    final checkInLabel = checkedInToday
+        ? 'Checked in today'
+        : widget.challenge.requiresPhotoProof
+            ? 'Log today with photo'
+            : 'Log today';
 
     return Column(
       children: [
         SizedBox(
           width: double.infinity,
-          child: CupertinoButton(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            color: checkedInToday
-                ? palette.surfaceElevated
-                : palette.accent,
-            borderRadius: BorderRadius.circular(12),
-            onPressed: checkedInToday ? null : _checkIn,
-            child: Text(
-              checkedInToday
-                  ? 'Checked In Today ✓'
-                  : widget.challenge.requiresPhotoProof
-                      ? 'Log Today (Photo)'
-                      : 'Log Today',
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-                color:
-                    checkedInToday ? palette.text : CupertinoColors.white,
+          child: Semantics(
+            label: checkInLabel,
+            button: true,
+            child: ExcludeSemantics(
+              child: CupertinoButton(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                color: checkedInToday
+                    ? palette.surfaceElevated
+                    : palette.accent,
+                // Keep the Field Manual surface when disabled — never the
+                // iOS quaternarySystemFill fallback.
+                disabledColor: palette.surfaceElevated,
+                borderRadius: BorderRadius.circular(4),
+                onPressed: checkedInToday ? null : _checkIn,
+                child: Text(
+                  checkedInToday
+                      ? 'CHECKED IN TODAY ✓'
+                      : widget.challenge.requiresPhotoProof
+                          ? 'LOG TODAY (PHOTO)'
+                          : 'LOG TODAY',
+                  style: _ctaStyle(
+                    checkedInToday ? palette.text : palette.onAccent,
+                  ),
+                ),
               ),
             ),
           ),
@@ -649,17 +689,28 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
           padding: EdgeInsets.zero,
           onPressed: _leave,
           child: Text(
+            // Alert red — leaving discards progress (a consequence).
             'Leave Challenge',
-            style: TextStyle(
-              fontFamily: 'LeagueSpartan',
-              fontSize: 14,
-              color: palette.destructive,
+            style: FieldManual.body(fontSize: 14, color: palette.destructive)
+                .copyWith(
+              fontVariations: const [FontVariation('wght', 600)],
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
       ],
     );
   }
+
+  /// Field Manual primary-CTA label: condensed uppercase Oswald.
+  TextStyle _ctaStyle(Color color) => TextStyle(
+        fontFamily: 'Oswald',
+        fontVariations: const [FontVariation('wght', 600)],
+        fontWeight: FontWeight.w600,
+        fontSize: 15,
+        letterSpacing: 0.6,
+        color: color,
+      );
 }
 
 class _ParticipantRow extends StatelessWidget {
@@ -685,112 +736,151 @@ class _ParticipantRow extends StatelessWidget {
         ? null
         : rankFromIndex(participant.rankIndex!);
 
-    return GestureDetector(
-      onTap: () => context.push('/profile/${participant.userId}'),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isMe
-              ? palette.accent.withValues(alpha: 0.1)
-              : palette.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: palette.border, width: 0.5),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 24,
-              child: Text(
-                '$position',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: palette.text,
-                ),
+    final semanticsLabel = showRank && rank != null
+        ? '$position, ${participant.username}, ${rank.displayName}'
+        : '$position, ${participant.username}, '
+            'streak ${participant.currentStreak}, '
+            '${participant.completedDays} days';
+
+    return Semantics(
+      button: true,
+      label: semanticsLabel,
+      child: GestureDetector(
+        onTap: () => context.push('/profile/${participant.userId}'),
+        child: ExcludeSemantics(
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: isMe
+                  ? palette.accent.withValues(alpha: 0.1)
+                  : palette.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isMe ? palette.accent : palette.border,
               ),
             ),
-            const SizedBox(width: 8),
-            // Rank challenges lead with the rank insignia disc.
-            if (showRank && rank != null) ...[
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: rank.color.withValues(alpha: 0.16),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: RankInsignia(rank: rank, size: 21),
-              ),
-              const SizedBox(width: 10),
-            ] else ...[
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: palette.surfaceElevated,
-                backgroundImage: participant.profilePictureUrl != null
-                    ? CachedNetworkImageProvider(participant.profilePictureUrl!)
-                    : null,
-                child: participant.profilePictureUrl == null
-                    ? Icon(CupertinoIcons.person_fill,
-                        size: 16, color: palette.textSecondary)
-                    : null,
-              ),
-              const SizedBox(width: 10),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    participant.username,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 24,
+                  child: Text(
+                    // Roster position is a stat — mono.
+                    '$position',
+                    textAlign: TextAlign.center,
+                    style: FieldManual.readout(
                       fontSize: 13,
                       color: palette.text,
                     ),
                   ),
+                ),
+                const SizedBox(width: 8),
+                // Rank challenges lead with the rank insignia disc.
+                if (showRank && rank != null) ...[
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: rank.color.withValues(alpha: 0.16),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: RankInsignia(rank: rank, size: 21),
+                  ),
+                  const SizedBox(width: 10),
+                ] else ...[
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: palette.surfaceElevated,
+                    backgroundImage: participant.profilePictureUrl != null
+                        ? CachedNetworkImageProvider(participant.profilePictureUrl!)
+                        : null,
+                    child: participant.profilePictureUrl == null
+                        ? Icon(CupertinoIcons.person_fill,
+                            size: 16, color: palette.textSecondary)
+                        : null,
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        // Usernames are user content — Inter, never uppercased.
+                        participant.username,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontVariations: const [FontVariation('wght', 600)],
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: palette.text,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      if (showRank && rank != null)
+                        Text(
+                          // Rank-coloured small text wears the AA-lifted tone,
+                          // never the raw rank colour.
+                          rank.displayName.toUpperCase(),
+                          style: TextStyle(
+                            fontFamily: 'Oswald',
+                            fontVariations: const [FontVariation('wght', 500)],
+                            fontWeight: FontWeight.w500,
+                            fontSize: 12,
+                            letterSpacing: 0.4,
+                            color: rank.textColor,
+                          ),
+                        )
+                      else
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              // Streak is a stat — mono.
+                              'STREAK ${participant.currentStreak}',
+                              style: FieldManual.label(
+                                fontSize: 11,
+                                color: palette.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+                            Icon(
+                              CupertinoIcons.flame,
+                              size: 12,
+                              // Accent marks the viewer's own streak.
+                              color: isMe
+                                  ? palette.accent
+                                  : palette.textSecondary,
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+                if (showRank && rank != null)
                   Text(
-                    showRank && rank != null
-                        ? rank.displayName
-                        : 'Streak ${participant.currentStreak}🔥',
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
+                    // Rank abbreviations are mono designations in the lifted tone.
+                    rank.abbreviation,
+                    style: FieldManual.label(
                       fontSize: 12,
-                      color: showRank && rank != null
-                          ? rank.color
-                          : palette.textSecondary,
+                      color: rank.textColor,
+                    ),
+                  )
+                else
+                  Text(
+                    // Check-in count is a stat — mono readout.
+                    '${participant.completedDays} D',
+                    style: FieldManual.readout(
+                      fontSize: 14,
+                      color: palette.accent,
                     ),
                   ),
-                ],
-              ),
+              ],
             ),
-            if (showRank && rank != null)
-              Text(
-                rank.abbreviation,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: rank.color,
-                ),
-              )
-            else
-              Text(
-                '${participant.completedDays} d',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: palette.accent,
-                ),
-              ),
-          ],
+          ),
         ),
       ),
     );
@@ -809,13 +899,8 @@ class _ProofFeed extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Proof Feed',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-            color: palette.text,
-          ),
+          'PROOF FEED',
+          style: FieldManual.title(color: palette.text),
         ),
         const SizedBox(height: 12),
         GridView.builder(

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
 import '../../../ranks/domain/military_ranks.dart';
 import '../../../ranks/presentation/widgets/rank_badge.dart';
 import '../../../ranks/providers/rank_providers.dart';
@@ -31,32 +32,29 @@ class ChallengeTargetBadge extends StatelessWidget {
 
     if (isRankTarget && idx != null) {
       final rank = rankFromIndex(idx);
+      // Insignia + abbreviation render in canonical tier colours (RankBadge
+      // sets the small text in rank.textColor, the AA-lifted tone).
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: rank.color.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(4),
           border: Border.all(color: rank.color.withValues(alpha: 0.5), width: 0.8),
         ),
         child: RankBadge(rank: rank, compact: true, size: size),
       );
     }
 
-    // Weight goal — show the icon in a neutral goal pill.
+    // Weight goal — a quiet mono designation stamp in the live accent.
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: palette.accent.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        '${challenge.icon ?? '🎯'} Goal',
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.w700,
-          fontSize: size * 0.46,
-          color: palette.accent,
-        ),
+        '${challenge.icon ?? '🎯'} GOAL',
+        style: FieldManual.label(fontSize: 10, color: palette.accent),
       ),
     );
   }
@@ -116,33 +114,45 @@ class ChallengeGoalProgressView extends ConsumerWidget {
     String percent, {
     bool complete = false,
   }) {
-    final fill = complete ? palette.success : palette.accent;
+    // Progress is an instrument: accent fill on a hairline track. A completed
+    // goal celebrates quietly in the same accent — no confetti, no green.
+    final fill = palette.accent;
     final captionSize = dense ? 11.5 : 13.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: SizedBox(
-            height: dense ? 6 : 8,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Stack(
-                  children: [
-                    Container(
-                      width: constraints.maxWidth,
-                      color: palette.surfaceElevated,
-                    ),
-                    Container(
-                      width: constraints.maxWidth * progress.clamp(0.0, 1.0),
-                      decoration: BoxDecoration(
-                        color: fill,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ],
-                );
-              },
+        Semantics(
+          label: complete
+              ? 'Challenge goal complete'
+              : 'Progress toward challenge goal',
+          value: '${(progress.clamp(0.0, 1.0) * 100).round()}%',
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: palette.border),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: SizedBox(
+                height: dense ? 6 : 8,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Stack(
+                      children: [
+                        Container(
+                          width: constraints.maxWidth,
+                          color: palette.surfaceElevated,
+                        ),
+                        Container(
+                          width:
+                              constraints.maxWidth * progress.clamp(0.0, 1.0),
+                          color: fill,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ),
           ),
         ),
@@ -151,25 +161,24 @@ class ChallengeGoalProgressView extends ConsumerWidget {
           children: [
             Expanded(
               child: Text(
+                // '{current} → {target}' carries weights/scores — mono.
                 caption,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
-                  fontSize: captionSize,
-                  color: palette.textSecondary,
+                style: FieldManual.label(
+                  fontSize: 11,
+                  color: FieldManual.mutedBone,
                 ),
               ),
             ),
             if (percent.isNotEmpty) ...[
               const SizedBox(width: 8),
               Text(
+                // The percentage is a trained-against number — mono readout.
                 percent,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w700,
-                  fontSize: captionSize,
-                  color: complete ? palette.success : palette.text,
+                style: FieldManual.readout(
+                  fontSize: captionSize < 12 ? 12 : captionSize,
+                  color: complete ? palette.accent : palette.text,
                 ),
               ),
             ],

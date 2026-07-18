@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
+import '../../../../core/widgets/fm_segmented.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
 import '../../../ranks/domain/military_ranks.dart';
@@ -189,17 +191,11 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
     return CupertinoPageScaffold(
       backgroundColor: palette.background,
       navigationBar: CupertinoNavigationBar(
-        backgroundColor: palette.surface,
-        border: Border(
-          bottom: BorderSide(color: palette.border, width: 0.5),
-        ),
+        backgroundColor: palette.background.withValues(alpha: 0.82),
+        border: Border(bottom: BorderSide(color: palette.border)),
         middle: Text(
-          'Create Challenge',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: palette.text,
-          ),
+          'CREATE CHALLENGE',
+          style: FieldManual.title(color: palette.text),
         ),
       ),
       child: SafeArea(
@@ -208,85 +204,35 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
           children: [
             _label(palette, 'Title'),
             const SizedBox(height: 6),
-            CupertinoTextField(
+            _FMTextField(
               controller: _titleController,
               placeholder: 'Challenge title',
               maxLength: 60,
               maxLines: 1,
-              padding: const EdgeInsets.all(14),
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 15,
-                color: palette.text,
-              ),
-              placeholderStyle: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 15,
-                color: palette.textSecondary,
-              ),
-              decoration: _fieldDecoration(palette),
             ),
 
             const SizedBox(height: 20),
 
             _label(palette, 'Description'),
             const SizedBox(height: 6),
-            CupertinoTextField(
+            _FMTextField(
               controller: _descController,
               placeholder: 'What is this challenge about?',
               maxLength: 500,
               maxLines: 4,
-              padding: const EdgeInsets.all(14),
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 15,
-                color: palette.text,
-              ),
-              placeholderStyle: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 15,
-                color: palette.textSecondary,
-              ),
-              decoration: _fieldDecoration(palette),
             ),
 
             const SizedBox(height: 20),
 
             _label(palette, 'Goal'),
             const SizedBox(height: 6),
-            SizedBox(
-              width: double.infinity,
-              child: CupertinoSlidingSegmentedControl<int>(
-                groupValue: _goalIndex,
-                thumbColor: palette.accent,
-                backgroundColor: palette.surface,
-                children: _goalLabels.map(
-                  (key, label) => MapEntry(
-                    key,
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 6),
-                      child: Text(
-                        label,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w500,
-                          color: _goalIndex == key
-                              ? CupertinoColors.white
-                              : palette.text,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                onValueChanged: (value) {
-                  if (value != null) {
-                    HapticFeedback.selectionClick();
-                    setState(() => _goalIndex = value);
-                  }
-                },
-              ),
+            FmSegmented<int>(
+              segments: [
+                for (final MapEntry(:key, :value) in _goalLabels.entries)
+                  (key, value),
+              ],
+              selected: _goalIndex,
+              onChanged: (value) => setState(() => _goalIndex = value),
             ),
 
             // Goal-specific inputs.
@@ -295,7 +241,8 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
               _label(palette, 'Target rank'),
               const SizedBox(height: 6),
               SizedBox(
-                height: 38,
+                // ≥44pt touch targets; scales with Dynamic Type.
+                height: MediaQuery.textScalerOf(context).scale(44),
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: MilitaryRank.values.length,
@@ -303,26 +250,42 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
                   itemBuilder: (context, index) {
                     final rank = MilitaryRank.values[index];
                     final selected = _targetRankIndex == index;
-                    return GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        setState(() => _targetRankIndex = index);
-                      },
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? rank.color.withValues(alpha: 0.18)
-                              : palette.surface,
-                          borderRadius: BorderRadius.circular(19),
-                          border: Border.all(
-                            color: selected ? rank.color : palette.border,
-                            width: selected ? 1.2 : 0.5,
+                    // Insignia + abbreviation stay in canonical tier colours;
+                    // the selected chip borrows the rank colour for structure
+                    // (border/tint), never for reading text.
+                    return Semantics(
+                      button: true,
+                      selected: selected,
+                      label: rank.displayName,
+                      child: ExcludeSemantics(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setState(() => _targetRankIndex = index);
+                          },
+                          child: Container(
+                            alignment: Alignment.center,
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              // 0.14 alpha keeps every tier's textColor at
+                              // ≥4.5:1 on the tinted ground (tier 4 fails
+                              // at 0.18).
+                              color: selected
+                                  ? rank.color.withValues(alpha: 0.14)
+                                  : palette.surface,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color:
+                                    selected ? rank.color : palette.border,
+                                width: selected ? 1.2 : 1.0,
+                              ),
+                            ),
+                            child:
+                                RankBadge(rank: rank, compact: true, size: 16),
                           ),
                         ),
-                        child: RankBadge(rank: rank, compact: true, size: 16),
                       ),
                     );
                   },
@@ -333,37 +296,13 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
               const SizedBox(height: 12),
               _label(palette, 'Lift'),
               const SizedBox(height: 6),
-              SizedBox(
-                width: double.infinity,
-                child: CupertinoSlidingSegmentedControl<int>(
-                  groupValue: _goalLiftIndex,
-                  thumbColor: palette.accent,
-                  backgroundColor: palette.surface,
-                  children: {
-                    for (var i = 0; i < _liftOptions.length; i++)
-                      i: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        child: Text(
-                          _liftOptions[i].$2,
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: _goalLiftIndex == i
-                                ? CupertinoColors.white
-                                : palette.text,
-                          ),
-                        ),
-                      ),
-                  },
-                  onValueChanged: (value) {
-                    if (value != null) {
-                      HapticFeedback.selectionClick();
-                      setState(() => _goalLiftIndex = value);
-                    }
-                  },
-                ),
+              FmSegmented<int>(
+                segments: [
+                  for (var i = 0; i < _liftOptions.length; i++)
+                    (i, _liftOptions[i].$2),
+                ],
+                selected: _goalLiftIndex,
+                onChanged: (value) => setState(() => _goalLiftIndex = value),
               ),
               const SizedBox(height: 10),
               _targetWeightField(palette, 'Target weight (lbs)'),
@@ -379,78 +318,27 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
             if (_goalType == RankGoalType.none) ...[
               _label(palette, 'Type'),
               const SizedBox(height: 6),
-              SizedBox(
-                width: double.infinity,
-                child: CupertinoSlidingSegmentedControl<int>(
-                  groupValue: _typeIndex,
-                  thumbColor: palette.accent,
-                  backgroundColor: palette.surface,
-                  children: _typeLabels.map(
-                    (key, label) => MapEntry(
-                      key,
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        child: Text(
-                          label,
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: _typeIndex == key
-                                ? CupertinoColors.white
-                                : palette.text,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  onValueChanged: (value) {
-                    if (value != null) {
-                      HapticFeedback.selectionClick();
-                      setState(() => _typeIndex = value);
-                    }
-                  },
-                ),
+              FmSegmented<int>(
+                segments: [
+                  for (final MapEntry(:key, :value) in _typeLabels.entries)
+                    (key, value),
+                ],
+                selected: _typeIndex,
+                onChanged: (value) => setState(() => _typeIndex = value),
               ),
               const SizedBox(height: 20),
             ],
 
             _label(palette, 'Duration'),
             const SizedBox(height: 6),
-            SizedBox(
-              width: double.infinity,
-              child: CupertinoSlidingSegmentedControl<int>(
-                groupValue: _durationIndex,
-                thumbColor: palette.accent,
-                backgroundColor: palette.surface,
-                children: _durationLabels.map(
-                  (key, label) => MapEntry(
-                    key,
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 6),
-                      child: Text(
-                        label,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: _durationIndex == key
-                              ? CupertinoColors.white
-                              : palette.text,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                onValueChanged: (value) {
-                  if (value != null) {
-                    HapticFeedback.selectionClick();
-                    setState(() => _durationIndex = value);
-                  }
-                },
-              ),
+            FmSegmented<int>(
+              segments: [
+                for (final MapEntry(:key, :value) in _durationLabels.entries)
+                  (key, value),
+              ],
+              selected: _durationIndex,
+              onChanged: (value) => setState(() => _durationIndex = value),
+              fontSize: 10,
             ),
 
             const SizedBox(height: 20),
@@ -472,31 +360,42 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
             ),
 
             const SizedBox(height: 32),
+            // Spoken label stays sentence case; uppercase is visual only.
             SizedBox(
               width: double.infinity,
-              child: CupertinoButton(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                color: palette.accent,
-                borderRadius: BorderRadius.circular(12),
-                onPressed: _isSaving
-                    ? null
-                    : () {
-                        HapticFeedback.mediumImpact();
-                        _create();
-                      },
-                child: _isSaving
-                    ? const CupertinoActivityIndicator(
-                        color: CupertinoColors.white,
-                      )
-                    : const Text(
-                        'Create Challenge',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                          color: CupertinoColors.white,
-                        ),
-                      ),
+              child: Semantics(
+                label: 'Create challenge',
+                button: true,
+                child: ExcludeSemantics(
+                  child: CupertinoButton(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    color: palette.accent,
+                    borderRadius: BorderRadius.circular(4),
+                    onPressed: _isSaving
+                        ? null
+                        : () {
+                            HapticFeedback.mediumImpact();
+                            _create();
+                          },
+                    child: _isSaving
+                        ? CupertinoActivityIndicator(
+                            color: palette.onAccent,
+                          )
+                        : Text(
+                            'CREATE CHALLENGE',
+                            style: TextStyle(
+                              fontFamily: 'Oswald',
+                              fontVariations: const [
+                                FontVariation('wght', 600),
+                              ],
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              letterSpacing: 0.6,
+                              color: palette.onAccent,
+                            ),
+                          ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -505,41 +404,20 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
     );
   }
 
-  BoxDecoration _fieldDecoration(Palette palette) => BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: palette.border, width: 0.5),
-      );
-
+  /// Mono designation eyebrow above each form group.
   Widget _label(Palette palette, String text) {
     return Text(
-      text,
-      style: TextStyle(
-        fontFamily: 'Poppins',
-        fontWeight: FontWeight.w500,
-        fontSize: 13,
-        color: palette.textSecondary,
-      ),
+      text.toUpperCase(),
+      style: FieldManual.label(fontSize: 11, color: palette.textSecondary),
     );
   }
 
   Widget _targetWeightField(Palette palette, String placeholder) {
-    return CupertinoTextField(
+    return _FMTextField(
       controller: _targetWeightController,
       placeholder: placeholder,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      padding: const EdgeInsets.all(14),
-      style: TextStyle(
-        fontFamily: 'LeagueSpartan',
-        fontSize: 15,
-        color: palette.text,
-      ),
-      placeholderStyle: TextStyle(
-        fontFamily: 'LeagueSpartan',
-        fontSize: 15,
-        color: palette.textSecondary,
-      ),
-      decoration: _fieldDecoration(palette),
+      mono: true,
     );
   }
 
@@ -553,7 +431,11 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
     return Container(
       padding:
           const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: _fieldDecoration(palette),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: palette.border),
+      ),
       child: Row(
         children: [
           Expanded(
@@ -562,18 +444,16 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                    color: palette.text,
+                  style: FieldManual.body(fontSize: 14, color: palette.text)
+                      .copyWith(
+                    fontVariations: const [FontVariation('wght', 600)],
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
+                  style: FieldManual.body(
                     fontSize: 12,
                     color: palette.textSecondary,
                   ),
@@ -587,6 +467,80 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
             onChanged: onChanged,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Field Manual text input: field-raised fill, hairline border that shifts to
+/// the live accent on focus, no glow (DESIGN.md §Inputs). Numeric entry sets
+/// [mono] for instrument-panel digits. Purely visual — behaviour is the inner
+/// [CupertinoTextField]'s.
+class _FMTextField extends StatefulWidget {
+  const _FMTextField({
+    required this.controller,
+    required this.placeholder,
+    this.maxLength,
+    this.maxLines = 1,
+    this.keyboardType,
+    this.mono = false,
+  });
+
+  final TextEditingController controller;
+  final String placeholder;
+  final int? maxLength;
+  final int maxLines;
+  final TextInputType? keyboardType;
+  final bool mono;
+
+  @override
+  State<_FMTextField> createState() => _FMTextFieldState();
+}
+
+class _FMTextFieldState extends State<_FMTextField> {
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() => setState(() {});
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChanged);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    final focused = _focusNode.hasFocus;
+    return CupertinoTextField(
+      controller: widget.controller,
+      focusNode: _focusNode,
+      placeholder: widget.placeholder,
+      maxLength: widget.maxLength,
+      maxLines: widget.maxLines,
+      keyboardType: widget.keyboardType,
+      padding: const EdgeInsets.all(14),
+      cursorColor: palette.accent,
+      style: widget.mono
+          ? FieldManual.readout(fontSize: 15, color: palette.text)
+          : FieldManual.body(fontSize: 15, color: palette.text),
+      placeholderStyle: FieldManual.body(
+        fontSize: 15,
+        color: palette.textSecondary,
+      ),
+      decoration: BoxDecoration(
+        color: palette.surfaceElevated,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: focused ? palette.accent : palette.border,
+        ),
       ),
     );
   }

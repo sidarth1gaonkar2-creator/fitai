@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
+import '../../../core/widgets/fm_segmented.dart';
 import '../../../providers/community_providers.dart';
 import 'feed/feed_screen.dart';
 import 'leaderboard/leaderboard_screen.dart';
@@ -20,12 +22,12 @@ class CommunityScreen extends ConsumerStatefulWidget {
 class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   int _selectedSegment = 0;
 
-  static const _segmentLabels = <int, String>{
-    0: 'Feed',
-    1: 'Leaderboard',
-    2: 'Challenges',
-    3: 'Search',
-  };
+  static const _segments = <(int, String)>[
+    (0, 'Feed'),
+    (1, 'Leaderboard'),
+    (2, 'Challenges'),
+    (3, 'Search'),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -34,18 +36,10 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     return CupertinoPageScaffold(
       backgroundColor: palette.background,
       navigationBar: CupertinoNavigationBar(
-        backgroundColor: palette.surface,
-        border: Border(
-          bottom: BorderSide(color: palette.border, width: 0.5),
-        ),
-        middle: Text(
-          'Community',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: palette.text,
-          ),
-        ),
+        // Field Manual chrome: ink ground over a hairline (DESIGN.md §Nav).
+        backgroundColor: palette.background.withValues(alpha: 0.82),
+        border: Border(bottom: BorderSide(color: palette.border)),
+        middle: Text('COMMUNITY', style: FieldManual.title(color: palette.text)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -73,47 +67,11 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
             // ─── Segment control ───────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: CupertinoSlidingSegmentedControl<int>(
-                  groupValue: _selectedSegment,
-                  thumbColor: palette.accent,
-                  backgroundColor: palette.surface,
-                  children: _segmentLabels.map(
-                    (key, label) => MapEntry(
-                      key,
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 6,
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            overflow: TextOverflow.visible,
-                            softWrap: false,
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: _selectedSegment == key
-                                  ? CupertinoColors.white
-                                  : palette.text,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  onValueChanged: (value) {
-                    if (value != null) {
-                      HapticFeedback.selectionClick();
-                      setState(() => _selectedSegment = value);
-                    }
-                  },
-                ),
+              child: FmSegmented<int>(
+                segments: _segments,
+                selected: _selectedSegment,
+                onChanged: (value) =>
+                    setState(() => _selectedSegment = value),
               ),
             ),
 
@@ -157,29 +115,35 @@ class _NotificationsBell extends ConsumerWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Icon(CupertinoIcons.bell, color: palette.accent),
+          Icon(
+            CupertinoIcons.bell,
+            color: palette.accent,
+            semanticLabel:
+                unread > 0 ? 'Notifications, $unread unread' : 'Notifications',
+          ),
           if (unread > 0)
             Positioned(
               top: -3,
               right: -6,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 5, vertical: 1),
-                constraints: const BoxConstraints(minWidth: 16),
-                decoration: BoxDecoration(
-                  color: palette.destructive,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: palette.surface, width: 1),
-                ),
-                child: Text(
-                  unread > 99 ? '99+' : '$unread',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: CupertinoColors.white,
-                    height: 1.2,
+              // Unread count wears the live accent, not alert red — red is
+              // for consequences, not decoration (the One Voice Rule).
+              child: ExcludeSemantics(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 5, vertical: 1),
+                  constraints: const BoxConstraints(minWidth: 16),
+                  decoration: BoxDecoration(
+                    color: palette.accent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: palette.surface, width: 1),
+                  ),
+                  child: Text(
+                    unread > 99 ? '99+' : '$unread',
+                    textAlign: TextAlign.center,
+                    style: FieldManual.readout(
+                      fontSize: 11,
+                      color: palette.onAccent,
+                    ),
                   ),
                 ),
               ),

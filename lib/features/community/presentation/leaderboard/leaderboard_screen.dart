@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/field_manual.dart';
+import '../../../../core/widgets/fm_segmented.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/community_providers.dart';
 import '../../data/leaderboard_repository.dart';
@@ -53,7 +55,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
 
             // ── Segment chips ──
             SizedBox(
-              height: 36,
+              // ≥44pt touch targets; scales with Dynamic Type.
+              height: MediaQuery.textScalerOf(context).scale(44),
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -81,19 +84,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SizedBox(
                 width: 220,
-                child: CupertinoSlidingSegmentedControl<bool>(
-                  groupValue: _isGlobal,
-                  backgroundColor: palette.surface,
-                  children: {
-                    true: _toggleLabel('Global', palette),
-                    false: _toggleLabel('Friends', palette),
-                  },
-                  onValueChanged: (value) {
-                    if (value != null) {
-                      HapticFeedback.selectionClick();
-                      setState(() => _isGlobal = value);
-                    }
-                  },
+                child: FmSegmented<bool>(
+                  segments: const [(true, 'Global'), (false, 'Friends')],
+                  selected: _isGlobal,
+                  onChanged: (value) => setState(() => _isGlobal = value),
                 ),
               ),
             ),
@@ -106,18 +100,6 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
       ),
     );
   }
-
-  Widget _toggleLabel(String text, Palette palette) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        child: Text(
-          text,
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontSize: 13,
-            color: palette.text,
-          ),
-        ),
-      );
 
   Widget _buildList(Palette palette, String? userId) {
     if (!_isGlobal) {
@@ -183,8 +165,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
   Widget _buildError(Palette palette) => Center(
         child: Text(
           'Something went wrong.',
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
+          style: FieldManual.body(
             fontSize: 14,
             color: palette.textSecondary,
           ),
@@ -192,17 +173,31 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
       );
 
   Widget _buildEmptyState(Palette palette) {
+    // Drill-sergeant eyebrow + sentence-case guidance (DESIGN.md).
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: Text(
-          'Log a rankable lift to claim your spot on the board, soldier.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'LeagueSpartan',
-            fontSize: 15,
-            color: palette.textSecondary,
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'BOARD UNCLAIMED',
+              textAlign: TextAlign.center,
+              style: FieldManual.label(
+                fontSize: 12,
+                color: palette.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Log a rankable lift to claim your spot on the board, soldier.',
+              textAlign: TextAlign.center,
+              style: FieldManual.body(
+                fontSize: 14,
+                color: palette.textSecondary,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -224,27 +219,32 @@ class _SegmentChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: selected ? palette.accent : palette.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: selected ? palette.accent : palette.border,
-            width: 0.5,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: selected ? CupertinoColors.white : palette.text,
+    // Spoken label stays sentence case; uppercase is visual only.
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: selected ? palette.accent : palette.surface,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: selected ? palette.accent : palette.border,
+              ),
+            ),
+            child: Text(
+              label.toUpperCase(),
+              style: FieldManual.label(
+                fontSize: 11,
+                color: selected ? palette.onAccent : palette.textSecondary,
+              ),
+            ),
           ),
         ),
       ),
