@@ -99,51 +99,58 @@ class RankInsignia extends StatelessWidget {
   }
 }
 
-/// Insignia layout for one rank — chevron count plus the senior-rank marks.
+/// Insignia layout for one rank in the authentic US Army enlisted progression:
+/// chevrons (top) → rockers (arcs below) → centre and flanking stars, with the
+/// Specialist eagle-device and the blank Private sleeve as the two exceptions.
 class _Insignia {
-  const _Insignia(
-    this.chevrons, {
-    this.circle = false,
-    this.star = false,
-    this.eagle = false,
-    this.bold = false,
+  const _Insignia({
+    this.chevrons = 0,
+    this.rockers = 0,
+    this.centerStar = false,
+    this.flankingStars = false,
+    this.specialist = false,
+    this.baseMark = false,
   });
-  final int chevrons;
-  final bool circle; // Specialist disk
-  final bool star; // Sergeant Major
-  final bool eagle; // SMA
-  final bool bold; // Sergeant — slightly heavier chevrons
+  final int chevrons; // 0–3, pointing up, nested at the top
+  final int rockers; // 0–3, arcs nested below the chevrons
+  final bool centerStar; // Sergeant Major — star in the central void
+  final bool flankingStars; // SMA — a star either side of the centre star
+  final bool specialist; // SPC — the eagle "speck" device, no chevrons
+  final bool baseMark; // Private — a single quiet field-stripe
 }
 
 _Insignia _insigniaFor(MilitaryRank rank) {
   switch (rank) {
     case MilitaryRank.private_e1:
-      return const _Insignia(1);
+      return const _Insignia(baseMark: true);
     case MilitaryRank.privateFc_e2:
-      return const _Insignia(2);
+      return const _Insignia(chevrons: 1);
     case MilitaryRank.corporal_e3:
-      return const _Insignia(3);
+      return const _Insignia(chevrons: 2);
     case MilitaryRank.specialist_e4:
-      return const _Insignia(3, circle: true);
+      return const _Insignia(specialist: true);
     case MilitaryRank.sergeant_e5:
-      return const _Insignia(3, bold: true);
+      return const _Insignia(chevrons: 3);
     case MilitaryRank.staffSergeant_e6:
-      return const _Insignia(4);
+      return const _Insignia(chevrons: 3, rockers: 1);
     case MilitaryRank.sergeantFc_e7:
-      return const _Insignia(5);
+      return const _Insignia(chevrons: 3, rockers: 2);
     case MilitaryRank.masterSergeant_e8:
-      return const _Insignia(6);
+      return const _Insignia(chevrons: 3, rockers: 3);
     case MilitaryRank.sergeantMajor_e9:
-      return const _Insignia(3, star: true);
+      return const _Insignia(chevrons: 3, rockers: 3, centerStar: true);
     case MilitaryRank.sgmArmy_e10:
-      return const _Insignia(3, star: true, eagle: true);
+      return const _Insignia(
+          chevrons: 3, rockers: 3, centerStar: true, flankingStars: true);
   }
 }
 
-/// Paints a [MilitaryRank]'s insignia — chevrons plus any senior-rank star /
-/// eagle / specialist-disk marks — into [canvas], filling [size] and tinted
-/// [color]. Extracted as a free function so the [RankInsignia] widget (used both
-/// in-app and inside the captured rank card) draws from one source of truth.
+/// Paints a [MilitaryRank]'s insignia into [canvas], filling [size] and tinted
+/// [color]. Chevrons nest at the top, rockers arc below them, and the senior
+/// stars sit in the central void — the whole group is centred in [size] so the
+/// one renderer reads crisply from the rank strip up to the celebration
+/// overlay. Extracted as a free function so every surface (My Ranks ladder,
+/// rank strip, celebration, share card, preview) draws one source of truth.
 void paintRankInsignia(
   Canvas canvas,
   Size size,
@@ -159,54 +166,112 @@ void paintRankInsignia(
     ..color = color
     ..style = PaintingStyle.stroke
     ..strokeCap = StrokeCap.round
-    ..strokeJoin = StrokeJoin.round;
+    ..strokeJoin = StrokeJoin.round
+    ..strokeWidth = (h * 0.082).clamp(1.3, h);
   final fill = Paint()
     ..color = color
     ..style = PaintingStyle.fill;
 
-  // Reserve a top band for the senior-rank emblems; the chevrons fill the
-  // rest below them.
-  var top = 0.0;
-  if (cfg.eagle) top += h * 0.20;
-  if (cfg.star) top += h * 0.16;
-  if (cfg.circle) top += h * 0.18;
-
-  final bandTop = top;
-  final bandBottom = h * 0.98;
-  final bandH = math.max(0.0, bandBottom - bandTop);
-  final n = cfg.chevrons;
-
-  if (n > 0 && bandH > 0) {
-    final step = bandH / (n + 0.4);
-    final armDrop = step * 1.3;
-    final halfW = w * 0.34;
-    final sw = (step * 0.5 * (cfg.bold ? 1.25 : 1.0)).clamp(1.2, h * 0.18);
-    stroke.strokeWidth = sw;
-
-    for (var i = 0; i < n; i++) {
-      // i == 0 is the bottom (widest-feeling) chevron.
-      final peakY = bandBottom - armDrop - i * step;
-      final path = Path()
-        ..moveTo(cx - halfW, peakY + armDrop)
-        ..lineTo(cx, peakY)
-        ..lineTo(cx + halfW, peakY + armDrop);
-      canvas.drawPath(path, stroke);
-    }
+  // Private — a single quiet field-stripe. The blank sleeve reads as "recruit"
+  // without impersonating a chevron.
+  if (cfg.baseMark) {
+    final bar = Paint()
+      ..color = color.withValues(alpha: 0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = (h * 0.09).clamp(1.4, h);
+    canvas.drawLine(
+        Offset(cx - w * 0.22, h / 2), Offset(cx + w * 0.22, h / 2), bar);
+    return;
   }
 
-  // Emblems, drawn top-to-bottom within the reserved band.
-  var ey = 0.0;
-  if (cfg.eagle) {
-    _drawEagle(canvas, fill, Offset(cx, ey + h * 0.10), w * 0.46);
-    ey += h * 0.20;
+  // Specialist — the eagle "speck" device, no chevrons.
+  if (cfg.specialist) {
+    _drawSpecialist(canvas, stroke, fill, cx, h / 2, w, h);
+    return;
   }
-  if (cfg.star) {
-    _drawStar(canvas, fill, Offset(cx, ey + h * 0.08), h * 0.085);
-    ey += h * 0.16;
+
+  final halfW = w * 0.42;
+  final arm = h * 0.15;
+  final step = h * 0.10;
+  final hasCenter = cfg.centerStar || cfg.flankingStars;
+  final voidHalf = (cfg.rockers > 0 || hasCenter) ? h * 0.085 : 0.0;
+
+  // Positions relative to a provisional centre (0); the whole group is centred
+  // in the box afterward so ranks with fewer rows don't float to one edge.
+  final chevPeaks = <double>[
+    for (var i = 0; i < cfg.chevrons; i++) -voidHalf - arm - i * step,
+  ];
+  final rockerEnds = <double>[
+    for (var j = 0; j < cfg.rockers; j++) voidHalf + j * step,
+  ];
+
+  double minY = 0, maxY = 0;
+  if (chevPeaks.isNotEmpty) minY = chevPeaks.last;
+  if (rockerEnds.isNotEmpty) {
+    maxY = rockerEnds.last + arm;
+  } else if (chevPeaks.isNotEmpty) {
+    maxY = chevPeaks.first + arm;
   }
-  if (cfg.circle) {
-    canvas.drawCircle(Offset(cx, ey + h * 0.09), h * 0.06, fill);
+  if (chevPeaks.isEmpty && rockerEnds.isEmpty) {
+    minY = -voidHalf;
+    maxY = voidHalf;
   }
+  final cy = h / 2 - (minY + maxY) / 2;
+
+  for (final e in rockerEnds) {
+    _rocker(canvas, stroke, cx, cy + e, halfW, arm);
+  }
+  for (final pk in chevPeaks) {
+    _chevron(canvas, stroke, cx, cy + pk, halfW, arm);
+  }
+
+  if (cfg.flankingStars) {
+    _drawStar(canvas, fill, Offset(cx, cy), h * 0.088);
+    _drawStar(canvas, fill, Offset(cx - halfW * 0.62, cy), h * 0.06);
+    _drawStar(canvas, fill, Offset(cx + halfW * 0.62, cy), h * 0.06);
+  } else if (cfg.centerStar) {
+    _drawStar(canvas, fill, Offset(cx, cy), h * 0.092);
+  }
+}
+
+/// A chevron pointing up: peak at (cx, peakY), arms dropping to ±[halfW].
+void _chevron(
+    Canvas canvas, Paint p, double cx, double peakY, double halfW, double arm) {
+  final path = Path()
+    ..moveTo(cx - halfW, peakY + arm)
+    ..lineTo(cx, peakY)
+    ..lineTo(cx + halfW, peakY + arm);
+  canvas.drawPath(path, p);
+}
+
+/// A rocker: a shallow arc whose ends sit at [endY] and whose middle bulges
+/// down — the mirror of a chevron, nested below the chevron stack.
+void _rocker(
+    Canvas canvas, Paint p, double cx, double endY, double halfW, double arm) {
+  final path = Path()
+    ..moveTo(cx - halfW, endY)
+    ..quadraticBezierTo(cx, endY + arm * 1.7, cx + halfW, endY);
+  canvas.drawPath(path, p);
+}
+
+/// The Specialist eagle-device: a shield with a concave, flared top and a
+/// rounded base, a small spread-wing eagle set inside it.
+void _drawSpecialist(Canvas canvas, Paint stroke, Paint fill, double cx,
+    double cy, double w, double h) {
+  final sw = w * 0.30;
+  final st = cy - h * 0.30;
+  final sb = cy + h * 0.32;
+  final shield = Path()
+    ..moveTo(cx - sw, st + h * 0.05)
+    ..quadraticBezierTo(cx - sw, st, cx - sw * 0.46, st + h * 0.01)
+    ..quadraticBezierTo(cx, st + h * 0.11, cx + sw * 0.46, st + h * 0.01)
+    ..quadraticBezierTo(cx + sw, st, cx + sw, st + h * 0.05)
+    ..lineTo(cx + sw * 0.86, sb - h * 0.12)
+    ..quadraticBezierTo(cx, sb, cx - sw * 0.86, sb - h * 0.12)
+    ..close();
+  canvas.drawPath(shield, stroke);
+  _drawEagle(canvas, fill, Offset(cx, cy - h * 0.01), w * 0.34);
 }
 
 /// A filled 5-pointed star centred at [c] with circum-radius [r].
