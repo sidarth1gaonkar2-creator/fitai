@@ -1,6 +1,7 @@
 import 'package:flutter/painting.dart';
 
 import '../../features/themes/domain/app_theme_data.dart';
+import 'surface_texture.dart';
 
 /// The resolved, app-wide "skin" behind [FieldManual] — the surface, geometry,
 /// and type tokens that a *full skin* (e.g. Night Ops) may override beyond the
@@ -29,6 +30,9 @@ class FmSkin {
     required this.displayWeight,
     required this.headlineWeight,
     required this.titleWeight,
+    this.surfaceTexture,
+    this.cardBrackets = false,
+    this.accentGlow = false,
   });
 
   // ── Surfaces ──────────────────────────────────────────────────────────────
@@ -52,6 +56,20 @@ class FmSkin {
   final double headlineWeight;
   final double titleWeight;
 
+  // ── Material: the "full skin" tier ────────────────────────────────────────
+  /// Mottled dark texture painted behind background/header surfaces. Null on
+  /// accent-swap themes → solid fills, byte-identical.
+  final SurfaceTexture? surfaceTexture;
+
+  /// HUD viewport treatment on cards: hairline frame + corner brackets.
+  final bool cardBrackets;
+
+  /// Lets the accent bloom on true black (HUD signal). Off by default; on for
+  /// Night Ops, where DESIGN.md's quiet-chrome rule is relaxed for a HUD.
+  final bool accentGlow;
+
+  bool get hasTexture => surfaceTexture != null;
+
   /// The Field Manual defaults — the shipping look. Every value matches the
   /// constants [FieldManual] carried before full skins, so a theme that
   /// overrides nothing is pixel-for-pixel unchanged.
@@ -68,7 +86,10 @@ class FmSkin {
         monoFamily = 'JetBrainsMono',
         displayWeight = 700,
         headlineWeight = 600,
-        titleWeight = 600;
+        titleWeight = 600,
+        surfaceTexture = null,
+        cardBrackets = false,
+        accentGlow = false;
 
   /// Resolve a theme's optional full-skin overrides against the FM defaults.
   /// Surfaces reuse the theme's existing colour tokens (`darkBackground`,
@@ -91,6 +112,9 @@ class FmSkin {
       displayWeight: t.displayWeight ?? fm.displayWeight,
       headlineWeight: t.headlineWeight ?? fm.headlineWeight,
       titleWeight: t.titleWeight ?? fm.titleWeight,
+      surfaceTexture: t.surfaceTexture,
+      cardBrackets: t.cardBrackets,
+      accentGlow: t.accentGlow,
     );
   }
 }

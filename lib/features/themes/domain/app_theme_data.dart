@@ -1,5 +1,7 @@
 import 'package:flutter/painting.dart';
 
+import '../../../core/theme/surface_texture.dart';
+
 /// One purchasable visual palette. Pure data — built into the binary via the
 /// static registry in `theme_registry.dart`, never persisted. The user's
 /// equipped + owned themes are stored separately in the `UserThemeState`
@@ -53,6 +55,9 @@ class AppThemeData {
     this.titleWeight,
     this.cashPriceCents,
     this.ownedByDefault = false,
+    this.surfaceTexture,
+    this.cardBrackets = false,
+    this.accentGlow = false,
   });
 
   final String id;
@@ -143,4 +148,15 @@ class AppThemeData {
   /// grants, and cash products in **preview** while their IAP is unwired.
   /// Lets a cash skin be equipped/tested on device before StoreKit exists.
   final bool ownedByDefault;
+
+  // ── Full-skin material (null/false → solid fills, byte-identical) ─────────
+  /// Mottled dark texture painted behind background/header surfaces — the
+  /// signature of a full skin (Night Ops). Null on accent-swap themes.
+  final SurfaceTexture? surfaceTexture;
+
+  /// HUD viewport card treatment: hairline frame + corner brackets.
+  final bool cardBrackets;
+
+  /// Allow the accent to bloom on true black (a HUD signal). Off by default.
+  final bool accentGlow;
 }

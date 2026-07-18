@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors;
 import '../theme/app_colors.dart';
 import '../theme/field_manual.dart';
+import 'tactical_surface.dart';
 
 /// Shared Cupertino-styled helpers used throughout the app.
 /// These replace Material chrome widgets (Card, ExpansionTile, SnackBar, etc.)
@@ -32,14 +33,21 @@ class CupertinoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
-    final content = Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: color ?? palette.surface,
-        borderRadius: BorderRadius.circular(borderRadius ?? FieldManual.cardRadius),
-        border: Border.all(color: palette.border, width: FieldManual.borderWidth),
+    final r = borderRadius ?? FieldManual.cardRadius;
+    // On a HUD skin, overlay a viewport frame + corner brackets; otherwise
+    // HudFrame is a pass-through, so non-HUD themes are byte-identical.
+    final Widget content = HudFrame(
+      color: palette.border,
+      radius: r,
+      child: Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          color: color ?? palette.surface,
+          borderRadius: BorderRadius.circular(r),
+          border: Border.all(color: palette.border, width: FieldManual.borderWidth),
+        ),
+        child: child,
       ),
-      child: child,
     );
     if (onTap == null) return content;
     return GestureDetector(
