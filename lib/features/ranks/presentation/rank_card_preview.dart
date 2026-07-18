@@ -15,6 +15,7 @@ import '../../../core/utils/logger.dart';
 import '../../../core/utils/unit_converter.dart';
 import '../../../core/widgets/brand_mark.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
+import '../../../providers/entitlement_providers.dart';
 import '../../../providers/unit_system_provider.dart';
 import '../domain/military_ranks.dart';
 import '../providers/rank_providers.dart';
@@ -157,6 +158,7 @@ class _RankCardPreviewScreenState extends ConsumerState<RankCardPreviewScreen> {
           ),
           data: (calc) {
             final rank = calc.overall;
+            final airborne = ref.watch(airborneActiveProvider);
             final hasData = calc.exerciseScores.isNotEmpty;
             final benchKg = calc.exerciseBestWeightKg[_benchId];
             final squatKg = calc.exerciseBestWeightKg[_squatId];
@@ -209,6 +211,7 @@ class _RankCardPreviewScreenState extends ConsumerState<RankCardPreviewScreen> {
                               statsLine: statsLine,
                               hasData: hasData,
                               width: w,
+                              airborne: airborne,
                             ),
                           ),
                         );
@@ -289,12 +292,17 @@ class RankCardWidget extends StatelessWidget {
     required this.statsLine,
     required this.hasData,
     this.width = 340,
+    this.airborne = false,
   });
 
   final MilitaryRank rank;
   final String? statsLine;
   final bool hasData;
   final double width;
+
+  /// Brass-mount the shared rank for an Airborne subscriber. This card always
+  /// shows the user's own current rank, so the flag is safe here.
+  final bool airborne;
 
   @override
   Widget build(BuildContext context) {
@@ -347,7 +355,8 @@ class RankCardWidget extends StatelessWidget {
               border: Border.all(color: color.withValues(alpha: 0.6), width: 2),
             ),
             alignment: Alignment.center,
-            child: RankInsignia(rank: rank, size: discSize * 0.62),
+            child: RankInsignia(
+                rank: rank, size: discSize * 0.62, airborne: airborne),
           ),
           SizedBox(height: width * 0.05),
           // Rank name.

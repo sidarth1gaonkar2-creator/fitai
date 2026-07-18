@@ -10,6 +10,7 @@ import '../../../core/utils/unit_converter.dart';
 import '../../../core/widgets/error_card.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../data/exercise_library.dart';
+import '../../../providers/entitlement_providers.dart';
 import '../../../providers/unit_system_provider.dart';
 import '../../workouts/presentation/widgets/muscle_highlight_widget.dart';
 import '../domain/drill_sergeant.dart';
@@ -29,6 +30,9 @@ class RanksScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = AppColors.of(context);
     final async = ref.watch(rankCalculatorProvider);
+    // Airborne subscribers see their OWN current rank brass-mounted — the hero
+    // and the "you are here" ladder rung only. Every other rung stays base.
+    final airborne = ref.watch(airborneActiveProvider);
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -57,11 +61,11 @@ class RanksScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _OverallSection(calc: calc),
+              _OverallSection(calc: calc, airborne: airborne),
               const SizedBox(height: 24),
               _SectionLabel('Your Rank'),
               const SizedBox(height: 10),
-              _RankLadder(current: calc.overall),
+              _RankLadder(current: calc.overall, airborne: airborne),
               const SizedBox(height: 24),
               _SectionLabel('Strength Map'),
               const SizedBox(height: 10),
@@ -104,8 +108,9 @@ class RanksScreen extends ConsumerWidget {
 // ─── Overall rank ───────────────────────────────────────────────────────────
 
 class _OverallSection extends StatelessWidget {
-  const _OverallSection({required this.calc});
+  const _OverallSection({required this.calc, this.airborne = false});
   final RankCalculation calc;
+  final bool airborne;
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +139,7 @@ class _OverallSection extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: RankInsignia(rank: rank, size: 56),
+            child: RankInsignia(rank: rank, size: 56, airborne: airborne),
           ),
           const SizedBox(height: 12),
           // The rank designation — the sergeant's bark.
@@ -200,8 +205,9 @@ class _OverallSection extends StatelessWidget {
 /// user's current rank highlighted, so where they stand among the ranks is
 /// obvious at a glance without decoding "E3" / "CPL".
 class _RankLadder extends StatefulWidget {
-  const _RankLadder({required this.current});
+  const _RankLadder({required this.current, this.airborne = false});
   final MilitaryRank current;
+  final bool airborne;
 
   @override
   State<_RankLadder> createState() => _RankLadderState();
@@ -265,6 +271,7 @@ class _RankLadderState extends State<_RankLadder>
                     isLast: i == ranks.length - 1,
                     pulse: _pulse,
                     palette: palette,
+                    airborne: widget.airborne,
                   ),
               ],
             );
@@ -283,6 +290,7 @@ class _RankLadderRow extends StatelessWidget {
     required this.isLast,
     required this.pulse,
     required this.palette,
+    this.airborne = false,
   });
 
   final MilitaryRank rank;
@@ -291,6 +299,7 @@ class _RankLadderRow extends StatelessWidget {
   final bool isLast;
   final Animation<double> pulse;
   final Palette palette;
+  final bool airborne;
 
   @override
   Widget build(BuildContext context) {
@@ -389,7 +398,11 @@ class _RankLadderRow extends StatelessWidget {
             Opacity(
               opacity: isCurrent ? 1.0 : (isEarned ? 0.9 : 0.55),
               // 20pt floor — MSG's six chevrons turn to mush below it.
-              child: RankInsignia(rank: rank, size: 20),
+              // GUARDRAIL: the mount is applied ONLY to the user's own current
+              // rung — never to other rungs (earned or locked). Rank is earned,
+              // never bought; the ladder must not imply buying rank.
+              child: RankInsignia(
+                  rank: rank, size: 20, airborne: airborne && isCurrent),
             ),
             const SizedBox(width: 10),
             Expanded(

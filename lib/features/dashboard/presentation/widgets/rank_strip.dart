@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
+import '../../../../providers/entitlement_providers.dart';
 import '../../../ranks/domain/military_ranks.dart';
 import '../../../ranks/presentation/widgets/rank_badge.dart';
 import '../../../ranks/providers/rank_providers.dart';
@@ -26,6 +27,9 @@ class RankStrip extends ConsumerWidget {
     final hasData = calc != null && calc.exerciseScores.isNotEmpty;
     final rank = calc?.overall ?? MilitaryRank.private_e1;
     final points = calc?.overallPoints ?? 0;
+    // Airborne subscribers see their OWN current rank brass-mounted. This strip
+    // only ever shows the user's current earned rank, so the flag is safe here.
+    final airborne = ref.watch(airborneActiveProvider);
 
     final isApex = rank == MilitaryRank.sgmArmy_e10;
     final progressFraction =
@@ -73,7 +77,7 @@ class RankStrip extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: FieldManual.hairlineStrong),
                     ),
-                    child: RankInsignia(rank: rank, size: 32),
+                    child: RankInsignia(rank: rank, size: 32, airborne: airborne),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

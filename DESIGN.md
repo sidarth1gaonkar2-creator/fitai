@@ -125,6 +125,7 @@ The site's Field Manual palette, promoted to app chrome: a two-step dark ground,
 ### Named Rules
 **The Accent Swap Rule.** Theme packs survive as accent swaps inside Field Manual chrome: ink/field surfaces, bone text, type, and insignia are constant; a pack replaces brass with its accent (emerald, crimson, ocean, …) and its pressed variant. Brass is the default issue. The coin/Airborne economy is untouched.
 **The One Voice Rule.** Exactly one accent is live at a time (brass, or the equipped pack's accent). Rank colors belong to insignia and ceremonies; alert red belongs to consequences. No screen mixes accents.
+**The Airborne Brass Rule.** The Airborne insignia mount (a subscriber's earned rank, brass-mounted) is always brass regardless of the equipped theme pack — an Accent Swap carve-out; never tint the mount to the pack accent. It renders only on the user's own current earned rank, never on locked/future rungs or beside a purchase affordance (rank stays earned, never bought).
 **The Olive Floor Rule.** Olive never carries reading text. Secondary copy is Muted Bone (≥4.5:1 on ink); olive is for large labels and structure only.
 
 ## 3. Typography

@@ -16,10 +16,15 @@ class RankCelebrationOverlay extends StatefulWidget {
     super.key,
     required this.rank,
     required this.onDismiss,
+    this.airborne = false,
   });
 
   final MilitaryRank rank;
   final VoidCallback onDismiss;
+
+  /// Brass-mount the just-earned rank for an Airborne subscriber. This overlay
+  /// only ever shows the user's own new current rank, so the flag is safe here.
+  final bool airborne;
 
   @override
   State<RankCelebrationOverlay> createState() => _RankCelebrationOverlayState();
@@ -129,7 +134,8 @@ class _RankCelebrationOverlayState extends State<RankCelebrationOverlay>
                             ],
                           ),
                           alignment: Alignment.center,
-                          child: RankInsignia(rank: rank, size: 96),
+                          child: RankInsignia(
+                              rank: rank, size: 96, airborne: widget.airborne),
                         ),
                       ),
                       const SizedBox(height: 24),

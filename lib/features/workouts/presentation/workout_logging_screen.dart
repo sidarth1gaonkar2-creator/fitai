@@ -13,6 +13,7 @@ import '../../../data/exercise_library.dart';
 import '../../../data/workout_templates.dart';
 import '../../../models/saved_workout_template.dart';
 import '../../../providers/auth_provider.dart' show currentUserIdProvider;
+import '../../../providers/entitlement_providers.dart';
 import '../../../providers/unit_system_provider.dart'
     show sharedPreferencesProvider;
 import '../../ranks/domain/drill_sergeant.dart';
@@ -304,6 +305,7 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
             transitionDuration: const Duration(milliseconds: 250),
             pageBuilder: (ctx, _, _) => RankCelebrationOverlay(
               rank: newRank,
+              airborne: ref.read(airborneActiveProvider),
               onDismiss: () => Navigator.of(ctx).pop(),
             ),
           );
