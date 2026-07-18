@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/field_manual.dart';
 import '../../../core/utils/logger.dart';
+import '../../../core/widgets/brand_mark.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../providers/auth_provider.dart';
 import 'apple_sign_in_button.dart';
@@ -48,19 +49,11 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
             children: [
               const Spacer(flex: 3),
 
-              // Logo — the DrillFit app icon PNG (mirror of the iOS
-              // AppIcon-180). iOS uses a 22%-of-width corner radius for app
-              // icons (~21px on a 96-wide rendering), so we clip with a
-              // matching RRect to read as the system app icon.
-              ClipRRect(
-                borderRadius: BorderRadius.circular(21),
-                child: Image.asset(
-                  'assets/images/app-icon.png',
-                  width: 96,
-                  height: 96,
-                  fit: BoxFit.cover,
-                ),
-              ),
+              // Logo — the DrillFit brand mark drawn in code (brass chevrons
+              // on ink, iOS app-icon corner). Mirrors the shipped launcher
+              // icon geometry via BrandMark, so it can never drift out of sync
+              // the way the old baked-in blue PNG did.
+              const BrandMark(size: 96),
               const SizedBox(height: 24),
 
               // Wordmark — Oswald display, tracked caps (Field Manual).

@@ -13,6 +13,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/utils/unit_converter.dart';
+import '../../../core/widgets/brand_mark.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../providers/unit_system_provider.dart';
 import '../domain/military_ranks.dart';
@@ -320,15 +321,7 @@ class RankCardWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(width * 0.022),
-                child: Image.asset(
-                  'assets/images/app-icon.png',
-                  width: width * 0.1,
-                  height: width * 0.1,
-                  fit: BoxFit.cover,
-                ),
-              ),
+              BrandMark(size: width * 0.1),
               SizedBox(width: width * 0.028),
               Text(
                 'DRILLFIT',
