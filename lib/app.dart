@@ -13,7 +13,6 @@ import 'providers/auth_provider.dart';
 import 'providers/gym_streak_provider.dart';
 import 'providers/isar_provider.dart';
 import 'providers/notification_reconciler.dart';
-import 'providers/settings_providers.dart';
 import 'routing/app_router.dart';
 import 'services/revenuecat_service.dart';
 
@@ -62,19 +61,20 @@ class DrillFitApp extends ConsumerWidget {
       );
     });
 
-    final themeMode = ref.watch(themeModeProvider);
     // Watch the equipped theme so the entire app rebuilds when the user
     // equips a new pack — that's what propagates the new accent / surface
     // colours through `AppColors.of(context)` everywhere downstream.
     final activeTheme = ref.watch(activeThemeProvider);
-    final isLight = themeMode == ThemeMode.light;
-    final brightness = isLight ? Brightness.light : Brightness.dark;
+    // Light mode retired (batch #3): the Field Manual is dark by doctrine.
+    // AppColors keeps its light mappings for theme packs / a possible future
+    // "Daylight Ops" pack, so the resolve(theme:, brightness:) shape stays.
+    const brightness = Brightness.dark;
     // Derive the palette directly from the active theme, since this widget
     // sits above the ProviderScope's CupertinoApp and can't go through
     // `AppColors.of(context)` for itself.
     final palette = AppColors.resolve(theme: activeTheme, brightness: brightness);
-    // Bone on the Field Manual default, white on legacy packs, black in
-    // light mode — all via the palette's text token.
+    // Bone on every pack — packs are accent swaps on Field Manual chrome —
+    // via the palette's text token.
     final textColor = palette.text;
 
     return CupertinoApp.router(
@@ -92,7 +92,9 @@ class DrillFitApp extends ConsumerWidget {
       theme: CupertinoThemeData(
         brightness: brightness,
         primaryColor: palette.accent,
-        primaryContrastingColor: palette.text,
+        // Ink on the accent, not bone — this is the on-accent contrasting tone
+        // Cupertino paints atop primaryColor fills.
+        primaryContrastingColor: palette.onAccent,
         scaffoldBackgroundColor: palette.background,
         barBackgroundColor: palette.background.withValues(alpha: 0.8),
         // Field Manual faces (DESIGN.md): Inter carries reading text, Oswald
@@ -136,11 +138,10 @@ class DrillFitApp extends ConsumerWidget {
       // and after the Cupertino migration.
       builder: (context, child) {
         // Material widgets that remain in the tree need a ThemeData ancestor.
-        // We always feed them the dark Material theme since the app's surfaces
-        // are still dark-grouped even in light mode (white cards over the
-        // light grouped background).
+        // Always the dark Material theme — the Field Manual is dark by
+        // doctrine.
         return Theme(
-          data: isLight ? AppTheme.light : AppTheme.dark,
+          data: AppTheme.dark,
           child: Material(
             type: MaterialType.transparency,
             // Tutorial overlay floats above all routes — including modals and

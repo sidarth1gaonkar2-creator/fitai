@@ -12,6 +12,7 @@ import '../../../core/utils/scoped_prefs.dart';
 import '../../../core/utils/unit_converter.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../core/widgets/error_card.dart';
+import '../../../core/widgets/fm_segmented.dart';
 import '../../../core/widgets/jump_wings.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../data/motivator_messages.dart';
@@ -28,7 +29,6 @@ import '../../../providers/isar_provider.dart';
 import '../../../providers/onboarding_gate_provider.dart';
 import '../../../providers/nutrition_providers.dart';
 import '../../../providers/progress_providers.dart';
-import '../../../providers/settings_providers.dart';
 import '../../themes/providers/theme_providers.dart';
 import '../../../providers/supplement_providers.dart';
 import '../../../providers/unit_system_provider.dart';
@@ -65,7 +65,6 @@ class SettingsScreen extends ConsumerWidget {
     final profileAsync = ref.watch(userProfileProvider);
     final currentEmail = ref.watch(firebaseAuthProvider).currentUser?.email;
     final isAdmin = _adminEmails.contains(currentEmail?.toLowerCase());
-    final themeMode = ref.watch(themeModeProvider);
     final units = ref.watch(unitSystemProvider);
     final textTheme = Theme.of(context).textTheme;
     final palette = AppColors.of(context);
@@ -75,9 +74,10 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: palette.background,
       appBar: CupertinoNavigationBar(
-        middle: const Text('Settings'),
-        backgroundColor: palette.background.withValues(alpha: 0.8),
-        border: null,
+        // Field Manual nav: Oswald designation over ink, hairline rule.
+        middle: Text('SETTINGS', style: FieldManual.title()),
+        backgroundColor: palette.background.withValues(alpha: 0.82),
+        border: Border(bottom: BorderSide(color: palette.border, width: 0.5)),
       ),
       body: ListView(
         children: [
@@ -106,33 +106,39 @@ class SettingsScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Appearance section
-                _SectionLabel(label: 'Appearance', textTheme: textTheme),
+                _SectionLabel(label: 'Appearance'),
                 const SizedBox(height: 8),
                 _SettingsCard(
                   child: Builder(builder: (context) {
                     final activeTheme = ref.watch(activeThemeProvider);
                     final coins = ref.watch(coinBalanceProvider);
                     return CupertinoListTile(
+                      // Honest Accent Swap Rule swatch: ink→field ground with
+                      // the equipped pack's accent. No gradient.
                       leading: Container(
                         width: 40,
                         height: 40,
+                        padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              activeTheme.darkBackground,
-                              activeTheme.accent,
-                            ],
-                          ),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: activeTheme.accentLight
-                                .withValues(alpha: 0.4),
-                          ),
+                          color: activeTheme.darkBackground,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: palette.border),
                         ),
-                        child: const Icon(
-                          CupertinoIcons.paintbrush,
-                          color: CupertinoColors.white,
-                          size: 18,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: activeTheme.darkSurfaceElevated ??
+                                activeTheme.darkSurface,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          alignment: Alignment.center,
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: activeTheme.accent,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                         ),
                       ),
                       title: Text(
@@ -142,10 +148,23 @@ class SettingsScreen extends ConsumerWidget {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      subtitle: Text(
-                        '${activeTheme.name} · $coins coins',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: palette.textSecondary,
+                      subtitle: Text.rich(
+                        TextSpan(
+                          text: '${activeTheme.name} · ',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: palette.textSecondary,
+                          ),
+                          children: [
+                            // Coin count is an instrument readout — mono.
+                            TextSpan(
+                              text: '$coins',
+                              style: FieldManual.label(
+                                fontSize: 11,
+                                color: palette.textSecondary,
+                              ),
+                            ),
+                            const TextSpan(text: ' coins'),
+                          ],
                         ),
                       ),
                       trailing: Icon(
@@ -157,68 +176,22 @@ class SettingsScreen extends ConsumerWidget {
                     );
                   }),
                 ),
-                const SizedBox(height: 12),
-                _SettingsCard(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
-                    child: Row(
-                      children: [
-                        _SettingsIconBadge(
-                          icon: Icons.dark_mode_outlined,
-                          color: palette.accent,
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Dark Mode',
-                                style: textTheme.bodyLarge?.copyWith(
-                                  color: palette.text,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                themeMode == ThemeMode.system
-                                    ? 'System default'
-                                    : themeMode == ThemeMode.dark
-                                        ? 'On'
-                                        : 'Off',
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: palette.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        CupertinoSwitch(
-                          value: themeMode == ThemeMode.dark,
-                          activeTrackColor: palette.accent,
-                          onChanged: (value) {
-                            HapticFeedback.selectionClick();
-                            ref
-                                .read(themeModeProvider.notifier)
-                                .toggle(value);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                // Light mode retired (batch #3): the Field Manual is dark by doctrine.
+                // A first-class light look can return someday as a "Daylight Ops" theme
+                // pack (Accent Swap Rule permitting a light chrome variant) — not as a
+                // global brightness toggle.
                 const SizedBox(height: 24),
 
                 // Airborne section — subscription entry point + restore. No
                 // launch nags anywhere; this row and the in-context prompts
                 // (AI Coach limit, locked themes) are the only paywall doors.
-                _SectionLabel(label: 'Airborne', textTheme: textTheme),
+                _SectionLabel(label: 'Airborne'),
                 const SizedBox(height: 8),
                 const _AirborneSection(),
                 const SizedBox(height: 24),
 
                 // Units section
-                _SectionLabel(label: 'Units', textTheme: textTheme),
+                _SectionLabel(label: 'Units'),
                 const SizedBox(height: 8),
                 _SettingsCard(
                   child: Padding(
@@ -254,27 +227,16 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ),
                         SizedBox(
-                          width: 160,
-                          child: CupertinoSegmentedControl<UnitSystem>(
-                            groupValue: units,
-                            onValueChanged: (value) {
-                              HapticFeedback.selectionClick();
-                              ref
-                                  .read(unitSystemProvider.notifier)
-                                  .setUnit(value);
-                            },
-                            children: const {
-                              UnitSystem.metric: Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8),
-                                child: Text('Metric',
-                                    style: TextStyle(fontSize: 13)),
-                              ),
-                              UnitSystem.imperial: Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8),
-                                child: Text('Imperial',
-                                    style: TextStyle(fontSize: 13)),
-                              ),
-                            },
+                          width: 180,
+                          child: FmSegmented<UnitSystem>(
+                            segments: const [
+                              (UnitSystem.metric, 'Metric'),
+                              (UnitSystem.imperial, 'Imperial'),
+                            ],
+                            selected: units,
+                            onChanged: (value) => ref
+                                .read(unitSystemProvider.notifier)
+                                .setUnit(value),
                           ),
                         ),
                       ],
@@ -284,13 +246,14 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // Notifications section
-                _SectionLabel(label: 'Notifications', textTheme: textTheme),
+                _SectionLabel(label: 'Notifications'),
                 const SizedBox(height: 8),
                 _SettingsCard(
                   child: CupertinoListTile(
                     leading: _SettingsIconBadge(
+                      // One accent voice — no gold/warning tint on chrome.
                       icon: CupertinoIcons.bell,
-                      color: palette.warning,
+                      color: palette.accent,
                     ),
                     title: Text(
                       'Notifications',
@@ -316,7 +279,7 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // Motivation Style section (Toxic Motivator / Drill Sergeant)
-                _SectionLabel(label: 'Motivation Style', textTheme: textTheme),
+                _SectionLabel(label: 'Motivation Style'),
                 const SizedBox(height: 8),
                 const _DrillSergeantSection(),
                 const SizedBox(height: 24),
@@ -327,14 +290,14 @@ class SettingsScreen extends ConsumerWidget {
                 if (Platform.isIOS &&
                     (ref.watch(healthAvailableProvider).valueOrNull ??
                         false)) ...[
-                  _SectionLabel(label: 'Apple Health', textTheme: textTheme),
+                  _SectionLabel(label: 'Apple Health'),
                   const SizedBox(height: 8),
                   const _AppleHealthSection(),
                   const SizedBox(height: 24),
                 ],
 
                 // Supplements section
-                _SectionLabel(label: 'Supplements', textTheme: textTheme),
+                _SectionLabel(label: 'Supplements'),
                 const SizedBox(height: 8),
                 _SettingsCard(
                   child: CupertinoListTile(
@@ -366,7 +329,7 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // My Ranks section
-                _SectionLabel(label: 'Ranks', textTheme: textTheme),
+                _SectionLabel(label: 'Ranks'),
                 const SizedBox(height: 8),
                 _SettingsCard(
                   child: CupertinoListTile(
@@ -398,7 +361,7 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // Account section
-                _SectionLabel(label: 'Account', textTheme: textTheme),
+                _SectionLabel(label: 'Account'),
                 const SizedBox(height: 8),
                 _SettingsCard(
                   child: CupertinoListTile(
@@ -429,7 +392,7 @@ class SettingsScreen extends ConsumerWidget {
                 Container(
                   decoration: BoxDecoration(
                     color: palette.destructive.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: palette.destructive.withValues(alpha: 0.4),
                     ),
@@ -448,8 +411,11 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     subtitle: Text(
                       'Permanently delete your account and all data',
+                      // Prose stays mutedBone (AA on the tint); the title, icon
+                      // and border carry the destructive signal. destructive@0.7
+                      // composited to 2.74:1 here — below the 4.5 floor.
                       style: textTheme.bodySmall?.copyWith(
-                        color: palette.destructive.withValues(alpha: 0.7),
+                        color: FieldManual.mutedBone,
                       ),
                     ),
                     trailing: Icon(
@@ -463,7 +429,7 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // Data section
-                _SectionLabel(label: 'Data', textTheme: textTheme),
+                _SectionLabel(label: 'Data'),
                 const SizedBox(height: 8),
                 _SettingsCard(
                   child: CupertinoListTile(
@@ -481,7 +447,7 @@ class SettingsScreen extends ConsumerWidget {
                     subtitle: Text(
                       'Delete all workouts, nutrition, and chat history',
                       style: textTheme.bodySmall?.copyWith(
-                        color: palette.destructive.withValues(alpha: 0.7),
+                        color: FieldManual.mutedBone,
                       ),
                     ),
                     trailing: Icon(
@@ -495,7 +461,7 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // Help section
-                _SectionLabel(label: 'Help', textTheme: textTheme),
+                _SectionLabel(label: 'Help'),
                 const SizedBox(height: 8),
                 _SettingsCard(
                   child: CupertinoListTile(
@@ -545,7 +511,7 @@ class SettingsScreen extends ConsumerWidget {
                 // build mode (TestFlight and release); never shown to the
                 // Apple review account or regular users.
                 if (isAdmin) ...[
-                  _SectionLabel(label: 'Developer', textTheme: textTheme),
+                  _SectionLabel(label: 'Developer'),
                   const SizedBox(height: 8),
                   _SettingsCard(
                     child: CupertinoListTile(
@@ -690,8 +656,9 @@ class SettingsScreen extends ConsumerWidget {
                   _SettingsCard(
                     child: CupertinoListTile(
                       leading: _SettingsIconBadge(
+                        // Dev tool, not a consequence — accent, not alert.
                         icon: CupertinoIcons.heart_circle,
-                        color: palette.destructive,
+                        color: palette.accent,
                       ),
                       title: Text(
                         'HealthKit Debug',
@@ -718,7 +685,7 @@ class SettingsScreen extends ConsumerWidget {
                 ],
 
                 // About section
-                _SectionLabel(label: 'About', textTheme: textTheme),
+                _SectionLabel(label: 'About'),
                 const SizedBox(height: 8),
                 // Current overall rank with full insignia — taps through to the
                 // dedicated Ranks screen.
@@ -742,10 +709,23 @@ class SettingsScreen extends ConsumerWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    subtitle: Text(
-                      'Overall rank · ${overallRank.abbreviation} (E${overallRank.tier})',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: palette.textSecondary,
+                    subtitle: Text.rich(
+                      TextSpan(
+                        text: 'Overall rank · ',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                        children: [
+                          // Rank abbreviation + tier are readouts — mono.
+                          TextSpan(
+                            text:
+                                '${overallRank.abbreviation} (E${overallRank.tier})',
+                            style: FieldManual.label(
+                              fontSize: 11,
+                              color: palette.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     trailing: Icon(
@@ -778,10 +758,16 @@ class SettingsScreen extends ConsumerWidget {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      subtitle: Text(
-                        'Version 1.0.0',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: palette.textSecondary,
+                      subtitle: Semantics(
+                        label: 'Version 1.0.0',
+                        child: ExcludeSemantics(
+                          child: Text(
+                            'V1.0.0',
+                            style: FieldManual.label(
+                              fontSize: 11,
+                              color: palette.textSecondary,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -1340,55 +1326,91 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final palette = AppColors.of(context);
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-        color: AppColors.of(context).accent,
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: Colors.white.withValues(alpha: 0.2),
-              child: Text(
-                name.isNotEmpty ? name[0].toUpperCase() : '?',
-                style: textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+    // Field surface with a hairline rule — no accent banner, no white text
+    // (the Field Manual keeps chrome quiet; brass is for actions).
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            border: Border(bottom: BorderSide(color: palette.border)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: palette.surfaceElevated,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: palette.border),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : '?',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontVariations: const [FontVariation('wght', 600)],
+                    fontWeight: FontWeight.w600,
+                    fontSize: 22,
+                    color: palette.text,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontVariations: const [FontVariation('wght', 600)],
+                        fontWeight: FontWeight.w600,
+                        fontSize: 17,
+                        height: 1.3,
+                        color: palette.text,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${goal.label} · ${tdee.toInt()} kcal TDEE',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.8),
+                    const SizedBox(height: 4),
+                    Text.rich(
+                      TextSpan(
+                        text: '${goal.label} · ',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          height: 1.4,
+                          color: palette.textSecondary,
+                        ),
+                        children: [
+                          // TDEE is a trained-against number — mono readout.
+                          TextSpan(
+                            text: '${tdee.toInt()} KCAL TDEE',
+                            style: FieldManual.label(
+                              fontSize: 11,
+                              color: palette.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const Icon(
-              Icons.chevron_right,
-              color: Colors.white,
-              size: 24,
-            ),
-          ],
+              Icon(
+                CupertinoIcons.chevron_right,
+                color: palette.textSecondary,
+                size: 18,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1407,18 +1429,25 @@ class _ProfileHeaderShimmer extends StatelessWidget {
 // ─── Section label ────────────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.label, required this.textTheme});
+  const _SectionLabel({required this.label});
 
   final String label;
-  final TextTheme textTheme;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: textTheme.labelLarge?.copyWith(
-        color: AppColors.of(context).accent,
-        letterSpacing: 0.5,
+    // FM mono eyebrow. Uppercase is visual only — VoiceOver gets the
+    // sentence-case label.
+    return Semantics(
+      header: true,
+      label: label,
+      child: ExcludeSemantics(
+        child: Text(
+          label.toUpperCase(),
+          style: FieldManual.label(
+            fontSize: 11,
+            color: AppColors.of(context).textSecondary,
+          ),
+        ),
       ),
     );
   }
@@ -1437,7 +1466,8 @@ class _SettingsCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(16),
+        // Field Manual cards are 8px (DESIGN.md §Cards).
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: palette.border),
       ),
       child: child,
@@ -1478,13 +1508,13 @@ class _AirborneSection extends ConsumerWidget {
               ),
             ),
             title: Text(
-              airborne ? 'Airborne' : 'GO AIRBORNE',
-              style: textTheme.bodyLarge?.copyWith(
+              airborne ? 'AIRBORNE' : 'GO AIRBORNE',
+              // A command wears Oswald, not uppercase Inter. Brass stays: the
+              // one accent the equipped theme never swaps.
+              style: FieldManual.title(
                 color: airborne
                     ? palette.text
                     : FieldManual.brassOn(palette.background),
-                fontWeight: FontWeight.w600,
-                letterSpacing: airborne ? null : 0.5,
               ),
             ),
             subtitle: Text(
@@ -1891,14 +1921,19 @@ class _SettingsIconBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppColors.of(context);
+    // Quiet FM plate: field-raised ground, hairline edge, the icon carries
+    // the voice (accent, or alert red for destructive rows).
     return Container(
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
+        color: palette.surfaceElevated,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: palette.border),
       ),
-      child: Icon(icon, color: Colors.white, size: 20),
+      alignment: Alignment.center,
+      child: Icon(icon, color: color, size: 20),
     );
   }
 }
@@ -1943,9 +1978,11 @@ class _DrillSergeantSection extends ConsumerWidget {
             // Main toggle row
             Row(
               children: [
+                // One Voice Rule: the drill sergeant is loud in copy, not in
+                // alert red — red is reserved for consequences.
                 _SettingsIconBadge(
                   icon: CupertinoIcons.flame_fill,
-                  color: palette.destructive,
+                  color: palette.accent,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -1978,7 +2015,7 @@ class _DrillSergeantSection extends ConsumerWidget {
                 ),
                 CupertinoSwitch(
                   value: prefs.enabled,
-                  activeTrackColor: palette.destructive,
+                  activeTrackColor: palette.accent,
                   onChanged: (value) async {
                     HapticFeedback.selectionClick();
                     if (value) {
@@ -2006,7 +2043,10 @@ class _DrillSergeantSection extends ConsumerWidget {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: palette.destructive.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: palette.destructive.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -2018,8 +2058,11 @@ class _DrillSergeantSection extends ConsumerWidget {
                           "Notifications are off — the Drill Sergeant can't "
                           'reach you. Tap to enable, or turn them on in iOS '
                           'Settings › DrillFit.',
+                          // Bone prose (AA on the tint); the bell-slash icon and
+                          // border carry the alert. destructive text here was
+                          // 4.06:1 — below the 4.5 floor for body copy.
                           style: textTheme.bodySmall
-                              ?.copyWith(color: palette.destructive),
+                              ?.copyWith(color: FieldManual.bone),
                         ),
                       ),
                     ],
@@ -2031,13 +2074,27 @@ class _DrillSergeantSection extends ConsumerWidget {
               const SizedBox(height: 16),
               Divider(height: 1, color: palette.separator),
               const SizedBox(height: 12),
-              Text(
-                'Intensity',
-                style: textTheme.labelLarge?.copyWith(color: palette.text),
+              Semantics(
+                header: true,
+                label: 'Intensity',
+                child: ExcludeSemantics(
+                  child: Text(
+                    'INTENSITY',
+                    style: FieldManual.label(
+                      fontSize: 11,
+                      color: palette.textSecondary,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 8),
-              _IntensityPicker(
-                intensity: prefs.intensity,
+              FmSegmented<int>(
+                segments: const [
+                  (1, 'Mild Roast'),
+                  (2, 'Medium Roast'),
+                  (3, 'Full Savage'),
+                ],
+                selected: prefs.intensity,
                 onChanged: (v) async {
                   await ref
                       .read(drillSergeantProvider.notifier)
@@ -2078,7 +2135,7 @@ class _DrillSergeantSection extends ConsumerWidget {
                     ),
                     CupertinoSwitch(
                       value: prefs.fullMetalEnabled,
-                      activeTrackColor: palette.destructive,
+                      activeTrackColor: palette.accent,
                       onChanged: (value) async {
                         HapticFeedback.selectionClick();
                         await ref
@@ -2117,7 +2174,7 @@ class _DrillSergeantSection extends ConsumerWidget {
                   ),
                   CupertinoSwitch(
                     value: prefs.morningEnabled,
-                    activeTrackColor: palette.destructive,
+                    activeTrackColor: palette.accent,
                     onChanged: (value) async {
                       await ref
                           .read(drillSergeantProvider.notifier)
@@ -2192,7 +2249,12 @@ class _DrillSergeantSection extends ConsumerWidget {
       context: context,
       builder: (ctx) => Container(
         height: 280,
-        color: CupertinoColors.systemBackground.resolveFrom(ctx),
+        // Field surface, 12px sheet radius (DESIGN.md §Cards).
+        decoration: BoxDecoration(
+          color: AppColors.of(ctx).surface,
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(12)),
+        ),
         child: SafeArea(
           top: false,
           child: Column(
@@ -2237,63 +2299,6 @@ class _DrillSergeantSection extends ConsumerWidget {
     );
     if (ok == true) return (pickedHour, pickedMinute);
     return null;
-  }
-}
-
-class _IntensityPicker extends StatelessWidget {
-  const _IntensityPicker({required this.intensity, required this.onChanged});
-
-  final int intensity;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: palette.surfaceElevated,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          _seg('Mild Roast', 1, palette),
-          _seg('Medium Roast', 2, palette),
-          _seg('Full Savage', 3, palette),
-        ],
-      ),
-    );
-  }
-
-  Widget _seg(String label, int value, Palette palette) {
-    final active = intensity == value;
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onChanged(value);
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: active ? palette.destructive : null,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-              color: active ? Colors.white : palette.text,
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -2359,9 +2364,10 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
               placeholder: _confirmWord,
               textInputAction: TextInputAction.done,
               style: TextStyle(color: palette.text),
+              // FM input: field-raised fill, sharp 4px, hairline border.
               decoration: BoxDecoration(
-                color: palette.surface,
-                borderRadius: BorderRadius.circular(8),
+                color: palette.surfaceElevated,
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: palette.border),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),

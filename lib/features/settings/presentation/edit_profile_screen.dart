@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:isar/isar.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../core/utils/imperial_height_formatter.dart';
 import '../../../core/utils/tdee_calculator.dart';
 import '../../../core/utils/unit_converter.dart';
@@ -214,6 +215,36 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
   }
 
+  /// The Instrument Panel Rule: numeric entry sets in mono.
+  TextStyle _monoInputStyle(Palette palette) =>
+      FieldManual.readout(fontSize: 16, color: palette.text);
+
+  /// Neutralizes the M3 tint on [SegmentedButton] into the Field Manual
+  /// idiom: field ground, hairline border, sharp 4px geometry, the selected
+  /// segment filled with the live accent carrying on-accent mono type.
+  ButtonStyle _segmentedStyle(Palette palette) => ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? palette.accent
+              : FieldManual.field,
+        ),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? palette.onAccent
+              : FieldManual.mutedBone,
+        ),
+        textStyle: WidgetStatePropertyAll(FieldManual.label(fontSize: 12)),
+        side: const WidgetStatePropertyAll(
+          BorderSide(color: FieldManual.hairline),
+        ),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        ),
+        minimumSize: const WidgetStatePropertyAll(Size(44, 44)),
+        overlayColor:
+            WidgetStatePropertyAll(palette.accent.withValues(alpha: 0.12)),
+      );
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -233,9 +264,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     return Scaffold(
       backgroundColor: palette.background,
       appBar: CupertinoNavigationBar(
-        middle: const Text('Edit Profile'),
-        backgroundColor: palette.background.withValues(alpha: 0.8),
-        border: null,
+        // Field Manual nav: Oswald designation, hairline rule.
+        middle: Text('EDIT PROFILE', style: FieldManual.title()),
+        backgroundColor: palette.background.withValues(alpha: 0.82),
+        border: Border(bottom: BorderSide(color: palette.border, width: 0.5)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -253,11 +285,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               TextFormField(
                 controller: _ageController,
                 decoration: const InputDecoration(labelText: 'Age'),
+                // Numeric entry sets in mono — the Instrument Panel Rule.
+                style: _monoInputStyle(palette),
                 keyboardType: TextInputType.number,
                 validator: validateAge,
               ),
               const SizedBox(height: 16),
-              Text('Sex', style: textTheme.labelLarge),
+              const _FieldLabel('Sex'),
               const SizedBox(height: 8),
               SegmentedButton<Sex>(
                 segments: Sex.values
@@ -267,18 +301,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 selected: _sex != null ? {_sex!} : {},
                 onSelectionChanged: (s) =>
                     setState(() => _sex = s.first),
-                style: SegmentedButton.styleFrom(
-                  selectedBackgroundColor: palette.accent,
-                  selectedForegroundColor: palette.text,
-                  foregroundColor: palette.text.withValues(alpha: 0.7),
-                  backgroundColor: palette.surface,
-                  side: BorderSide(color: palette.border),
-                ),
+                style: _segmentedStyle(palette),
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _weightController,
                 decoration: InputDecoration(labelText: weightLabel),
+                style: _monoInputStyle(palette),
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 validator: (v) => validatePositiveNumber(v, 'Weight'),
@@ -290,6 +319,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   labelText: heightLabel,
                   hintText: units == UnitSystem.imperial ? "6'1\"" : '185',
                 ),
+                style: _monoInputStyle(palette),
                 keyboardType: units == UnitSystem.imperial
                     ? TextInputType.text
                     : const TextInputType.numberWithOptions(decimal: true),
@@ -299,7 +329,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 validator: _validateHeight,
               ),
               const SizedBox(height: 16),
-              Text('Goal', style: textTheme.labelLarge),
+              const _FieldLabel('Goal'),
               const SizedBox(height: 8),
               SegmentedButton<Goal>(
                 segments: Goal.values
@@ -309,38 +339,37 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 selected: _goal != null ? {_goal!} : {},
                 onSelectionChanged: (s) =>
                     setState(() => _goal = s.first),
-                style: SegmentedButton.styleFrom(
-                  selectedBackgroundColor: palette.accent,
-                  selectedForegroundColor: palette.text,
-                  foregroundColor: palette.text.withValues(alpha: 0.7),
-                  backgroundColor: palette.surface,
-                  side: BorderSide(color: palette.border),
-                ),
+                style: _segmentedStyle(palette),
               ),
               const SizedBox(height: 16),
-              Text('Activity Level', style: textTheme.labelLarge),
+              const _FieldLabel('Activity Level'),
               const SizedBox(height: 4),
               ...ActivityLevel.values.map((level) {
                 final selected = _activityLevel == level;
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => setState(() => _activityLevel = level),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Row(
-                      children: [
-                        Icon(
-                          selected
-                              ? CupertinoIcons.checkmark_circle_fill
-                              : CupertinoIcons.circle,
-                          color: selected
-                              ? palette.accent
-                              : palette.text.withValues(alpha: 0.4),
-                          size: 22,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(child: Text(level.label)),
-                      ],
+                return Semantics(
+                  button: true,
+                  selected: selected,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _activityLevel = level),
+                    child: Padding(
+                      // ≥44pt row: 22pt glyph + 2×12 vertical padding.
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Row(
+                        children: [
+                          Icon(
+                            selected
+                                ? CupertinoIcons.checkmark_circle_fill
+                                : CupertinoIcons.circle,
+                            color: selected
+                                ? palette.accent
+                                : palette.textSecondary,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(level.label)),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -351,7 +380,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: palette.surface,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: palette.border),
                   ),
                   child: Column(
@@ -359,7 +388,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     children: [
                       Row(
                         children: [
-                          Text('Daily targets', style: textTheme.labelLarge),
+                          const _FieldLabel('Daily targets'),
                           const SizedBox(width: 8),
                           if (overridesActive)
                             Container(
@@ -367,7 +396,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                   horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: palette.accent.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 'Custom · set by Coach',
@@ -377,23 +406,38 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
+                      // The most trained-against numbers in the app — mono, the
+                      // Instrument Panel Rule.
                       Text(
-                        '${targets.calories.toInt()} kcal · '
-                        '${targets.protein.toInt()}g P · '
-                        '${targets.carbs.toInt()}g C · '
-                        '${targets.fat.toInt()}g F',
-                        style: textTheme.bodyMedium,
+                        '${targets.calories.toInt()} KCAL · '
+                        '${targets.protein.toInt()}G P · '
+                        '${targets.carbs.toInt()}G C · '
+                        '${targets.fat.toInt()}G F',
+                        style: FieldManual.readout(fontSize: 14),
                       ),
                       if (overridesActive) ...[
-                        const SizedBox(height: 8),
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: _resetTargetsToRecommended,
-                          child: Text(
-                            'Reset to recommended',
-                            style: textTheme.labelLarge
-                                ?.copyWith(color: palette.accent),
+                        const SizedBox(height: 12),
+                        // Secondary idiom: transparent + hairline border, bone
+                        // label, ≥44pt (was a bare ~20pt accent-text tap zone
+                        // that failed AA on the lower-contrast packs).
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: _resetTargetsToRecommended,
+                          child: Container(
+                            height: 44,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: palette.border),
+                            ),
+                            child: Text(
+                              'RESET TO RECOMMENDED',
+                              style: FieldManual.label(
+                                fontSize: 12,
+                                color: FieldManual.bone,
+                              ),
+                            ),
                           ),
                         ),
                       ] else
@@ -415,17 +459,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 color: palette.accent,
                 disabledColor: palette.accent.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(4),
                 onPressed: _isSaving ? null : _save,
                 child: _isSaving
-                    ? const CupertinoActivityIndicator(color: Colors.black)
-                    : const Text(
-                        'Save Changes',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: 'Poppins',
-                        ),
+                    ? CupertinoActivityIndicator(color: palette.onAccent)
+                    : Text(
+                        'SAVE CHANGES',
+                        style: FieldManual.title(color: palette.onAccent),
                       ),
               ),
               const SizedBox(height: 24),
@@ -435,4 +475,21 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       ),
     );
   }
+}
+
+/// Uppercase mono section label above a form control group. The uppercase is
+/// visual; callers pass sentence case so semantics speak it naturally.
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        header: true,
+        label: text,
+        child: ExcludeSemantics(
+          child: Text(text.toUpperCase(), style: FieldManual.label()),
+        ),
+      );
 }

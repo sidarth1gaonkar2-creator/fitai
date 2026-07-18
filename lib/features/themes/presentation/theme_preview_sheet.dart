@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/services.dart';
@@ -11,11 +13,14 @@ import '../../../providers/entitlement_providers.dart';
 import '../../paywall/presentation/airborne_paywall.dart';
 import '../domain/app_theme_data.dart';
 import '../domain/theme_gate.dart';
+import '../domain/theme_registry.dart';
 import '../providers/theme_providers.dart';
 
-/// Bottom sheet shown when a theme card is tapped. Previews the theme on a
-/// fake dashboard fragment (ring + macro bars + card), then shows the right
-/// CTA — Buy / Equip / Equipped ✓ — based on ownership state.
+/// Bottom sheet shown when a theme card is tapped. Previews the pack's accent
+/// on a fake Field Manual dashboard fragment (gauge + macro bars + card) —
+/// per the Accent Swap Rule the chrome is identical across packs, so the
+/// accent is the whole story — then shows the right CTA — Buy / Equip /
+/// Equipped ✓ — based on ownership state.
 class ThemePreviewSheet extends ConsumerWidget {
   const ThemePreviewSheet({super.key, required this.theme});
 
@@ -39,13 +44,18 @@ class ThemePreviewSheet extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: const BoxDecoration(
+        // FM sheet: ink ground, top radius 12; the scrim behind the modal
+        // conveys modality — no shadow.
+        color: FieldManual.ink,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       child: SafeArea(
         top: false,
-        child: Column(
+        // Scrolls rather than overflows: the mock dashboard + CTA stack can
+        // exceed screen height at max Dynamic Type.
+        child: SingleChildScrollView(
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -55,28 +65,22 @@ class ThemePreviewSheet extends ConsumerWidget {
                 width: 36,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: palette.textSecondary.withValues(alpha: 0.4),
+                  color: FieldManual.mutedBone.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
             const SizedBox(height: 18),
             Text(
-              theme.name,
+              theme.name.toUpperCase(),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w700,
-                fontSize: 22,
-                color: palette.text,
-              ),
+              style: FieldManual.headline(),
             ),
             const SizedBox(height: 4),
             _PriceLine(
               theme: theme,
               isOwned: isOwned,
               isAirborneUnlock: isUnlocked && !isOwned,
-              palette: palette,
             ),
             const SizedBox(height: 18),
             _MockDashboard(theme: theme),
@@ -106,19 +110,16 @@ class ThemePreviewSheet extends ConsumerWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    JumpWings(
-                      width: 24,
-                      color: FieldManual.brassOn(palette.surface),
-                    ),
+                    // Airborne brand moment — brass, not the live accent.
+                    // The sheet ground is ink by doctrine, where brass reads.
+                    const JumpWings(width: 24),
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
                         'Or go Airborne — every standard theme, issued.',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
+                        style: FieldManual.body(
                           fontSize: 13,
-                          color: FieldManual.brassOn(palette.surface),
+                          color: FieldManual.brass,
                         ),
                       ),
                     ),
@@ -131,14 +132,14 @@ class ThemePreviewSheet extends ConsumerWidget {
               Text(
                 'Not enough coins — finish more workouts to earn more.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
+                style: FieldManual.body(
                   fontSize: 12,
-                  color: palette.textSecondary,
+                  color: FieldManual.mutedBone,
                 ),
               ),
             ],
           ],
+        ),
         ),
       ),
     );
@@ -208,7 +209,6 @@ class _PriceLine extends StatelessWidget {
     required this.theme,
     required this.isOwned,
     required this.isAirborneUnlock,
-    required this.palette,
   });
 
   final AppThemeData theme;
@@ -216,50 +216,38 @@ class _PriceLine extends StatelessWidget {
 
   /// Equippable via the Airborne subscription rather than coin ownership.
   final bool isAirborneUnlock;
-  final Palette palette;
 
   @override
   Widget build(BuildContext context) {
-    if (isOwned || theme.id == 'midnight_blue') {
+    if (isOwned || theme.id == defaultTheme.id) {
       return Text(
-        'Owned',
+        'OWNED',
         textAlign: TextAlign.center,
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 13,
-          color: palette.textSecondary,
-        ),
+        style: FieldManual.label(),
       );
     }
     if (isAirborneUnlock) {
+      // Airborne entitlement stamp — a brand moment, so brass (not the live
+      // accent) on the sheet's ink ground.
       return Text(
-        'Included with Airborne',
+        'INCLUDED WITH AIRBORNE',
         textAlign: TextAlign.center,
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.w600,
-          fontSize: 13,
-          color: palette.accent,
-        ),
+        style: FieldManual.label(color: FieldManual.brass),
       );
     }
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(
-          Icons.monetization_on,
-          size: 14,
-          color: palette.warning,
+        // Neutral coin token in mutedBone — never the warning dollar-sign.
+        const Icon(
+          CupertinoIcons.hexagon_fill,
+          size: 13,
+          color: FieldManual.mutedBone,
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 5),
         Text(
-          '${theme.price} coins',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-            color: palette.text,
-          ),
+          '${theme.price} COINS',
+          style: FieldManual.readout(fontSize: 13),
         ),
       ],
     );
@@ -288,31 +276,36 @@ class _ActionButton extends StatelessWidget {
     String label;
     bool enabled;
     if (isEquipped) {
-      label = 'Equipped ✓';
+      label = 'EQUIPPED ✓';
       enabled = false;
     } else if (isUnlocked) {
-      label = 'Equip';
+      label = 'EQUIP';
       enabled = true;
     } else if (!canAfford) {
-      label = 'Not enough coins';
+      label = 'NOT ENOUGH COINS';
       enabled = false;
     } else {
-      label = 'Buy for ${theme.price} coins';
+      label = 'BUY FOR ${theme.price} COINS';
       enabled = true;
     }
+    // Text on the CANDIDATE pack's accent mirrors [Palette.onAccent] (ink on
+    // bright accents, bone on dark ones like Stealth) — palette.onAccent only
+    // knows the live accent, and this button paints the candidate's.
+    final onAccent = theme.accent.computeLuminance() >= 0.18
+        ? FieldManual.ink
+        : FieldManual.bone;
     return SizedBox(
       width: double.infinity,
       child: CupertinoButton(
-        color: enabled ? theme.accent : palette.surfaceElevated,
-        disabledColor: palette.surfaceElevated,
-        borderRadius: BorderRadius.circular(12),
+        color: enabled ? theme.accent : FieldManual.fieldRaised,
+        disabledColor: FieldManual.fieldRaised,
+        borderRadius: BorderRadius.circular(4),
         onPressed: enabled ? onPressed : null,
         child: Text(
           label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            color: enabled ? CupertinoColors.white : palette.textSecondary,
+          style: FieldManual.label(
+            fontSize: 13,
+            color: enabled ? onAccent : FieldManual.mutedBone,
           ),
         ),
       ),
@@ -320,9 +313,13 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-/// Fake dashboard preview: a calorie-ring stand-in, three macro bars, and a
-/// "card". Each element is painted with the candidate theme's colours so the
-/// user sees the equip effect before committing.
+/// Fake dashboard preview: a kcal-gauge stand-in, three macro readout bars,
+/// and a streak "card", all on Field Manual chrome. Per the Accent Swap Rule
+/// only the accent family varies between packs — the ground stays ink/field
+/// (the pack surface tokens below ARE ink/field since the registry re-cut)
+/// and the macro bars stay bone, exactly as on the real dashboard. The accent
+/// shows where it really lands: the gauge sweep and the icon chip (plus the
+/// CTA button above).
 class _MockDashboard extends StatelessWidget {
   const _MockDashboard({required this.theme});
 
@@ -333,28 +330,26 @@ class _MockDashboard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: theme.darkBackground,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Color(0x14FFFFFF)),
+        color: theme.darkBackground, // ink on every pack
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: FieldManual.hairline),
       ),
       child: Column(
         children: [
-          _MockRing(theme: theme),
+          _MockGauge(theme: theme),
           const SizedBox(height: 14),
-          _MockMacroBar(label: 'Protein', value: 0.7, theme: theme),
+          const _MockMacroBar(label: 'PROTEIN', value: 0.7),
           const SizedBox(height: 8),
-          _MockMacroBar(label: 'Carbs', value: 0.45, theme: theme),
+          const _MockMacroBar(label: 'CARBS', value: 0.45),
           const SizedBox(height: 8),
-          _MockMacroBar(label: 'Fat', value: 0.3, theme: theme),
+          const _MockMacroBar(label: 'FAT', value: 0.3),
           const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: theme.darkSurface,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: theme.accent.withValues(alpha: 0.25),
-              ),
+              color: theme.darkSurface, // field on every pack
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: FieldManual.hairline),
             ),
             child: Row(
               children: [
@@ -363,10 +358,13 @@ class _MockDashboard extends StatelessWidget {
                   height: 28,
                   decoration: BoxDecoration(
                     color: theme.accent.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Icon(Icons.local_fire_department,
-                      color: theme.accent, size: 16),
+                  child: Icon(
+                    Icons.local_fire_department,
+                    color: theme.accent,
+                    size: 16,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -374,21 +372,15 @@ class _MockDashboard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        '5-day streak',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                          color: CupertinoColors.white,
-                        ),
+                      Text(
+                        '5-DAY STREAK',
+                        style: FieldManual.readout(fontSize: 12),
                       ),
                       Text(
                         'Keep it up.',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
+                        style: FieldManual.body(
                           fontSize: 11,
-                          color: const Color(0xFF8E8E93),
+                          color: FieldManual.mutedBone,
                         ),
                       ),
                     ],
@@ -403,30 +395,24 @@ class _MockDashboard extends StatelessWidget {
   }
 }
 
-class _MockRing extends StatelessWidget {
-  const _MockRing({required this.theme});
+/// Miniature of the real dashboard instrument (kcal_gauge.dart): a 240° arc
+/// opening at the bottom with tick etching — a speedometer, not an Apple ring.
+/// Previewing the pack "as on the real dashboard" means drawing the real shape.
+class _MockGauge extends StatelessWidget {
+  const _MockGauge({required this.theme});
   final AppThemeData theme;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 96,
-      height: 96,
+      width: 104,
+      height: 92,
       child: CustomPaint(
-        painter: _RingPainter(
-          progress: 0.65,
-          ringColor: theme.accent,
-          trackColor: theme.darkSurface,
-        ),
-        child: const Center(
-          child: Text(
-            '1,420',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 18,
-              color: CupertinoColors.white,
-            ),
+        painter: _GaugeMockPainter(fraction: 0.65, accent: theme.accent),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Text('1,420', style: FieldManual.readout(fontSize: 18)),
           ),
         ),
       ),
@@ -434,93 +420,96 @@ class _MockRing extends StatelessWidget {
   }
 }
 
-class _RingPainter extends CustomPainter {
-  _RingPainter({
-    required this.progress,
-    required this.ringColor,
-    required this.trackColor,
-  });
+class _GaugeMockPainter extends CustomPainter {
+  _GaugeMockPainter({required this.fraction, required this.accent});
 
-  final double progress;
-  final Color ringColor;
-  final Color trackColor;
+  final double fraction;
+  final Color accent;
+
+  // 240° arc, opening at the bottom: 150° → 390° — the real gauge's geometry.
+  static final _start = _rad(150);
+  static final _sweep = _rad(240);
+  static double _rad(double deg) => deg * math.pi / 180;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final centre = Offset(size.width / 2, size.height / 2);
-    final radius = (size.shortestSide - 8) / 2;
+    final center = Offset(size.width / 2, size.height * 0.58);
+    final radius = math.min(size.width, size.height * 1.28) / 2 - 10;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
     final track = Paint()
-      ..color = trackColor
-      ..strokeWidth = 8
       ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    final foreground = Paint()
-      ..color = ringColor
-      ..strokeWidth = 8
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    canvas.drawCircle(centre, radius, track);
-    final sweep = 2 * 3.1415926535 * progress;
-    canvas.drawArc(
-      Rect.fromCircle(center: centre, radius: radius),
-      -3.1415926535 / 2,
-      sweep,
-      false,
-      foreground,
-    );
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round
+      ..color = FieldManual.hairlineStrong;
+    canvas.drawArc(rect, _start, _sweep, false, track);
+
+    // Tick etching: minor every 5%, major every 25%.
+    final minorTick = Paint()
+      ..strokeWidth = 1
+      ..color = FieldManual.bone.withValues(alpha: 0.35);
+    final majorTick = Paint()
+      ..strokeWidth = 1.4
+      ..color = FieldManual.bone.withValues(alpha: 0.65);
+    for (var i = 0; i <= 20; i++) {
+      final isMajor = i % 5 == 0;
+      final angle = _start + _sweep * (i / 20);
+      final outer = radius + 5;
+      final inner = outer + (isMajor ? 6 : 3);
+      final from = center + Offset(math.cos(angle), math.sin(angle)) * outer;
+      final to = center + Offset(math.cos(angle), math.sin(angle)) * inner;
+      canvas.drawLine(from, to, isMajor ? majorTick : minorTick);
+    }
+
+    // Progress arc — the accent needle-sweep.
+    if (fraction > 0) {
+      final progress = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 5
+        ..strokeCap = StrokeCap.round
+        ..color = accent;
+      canvas.drawArc(rect, _start, _sweep * fraction, false, progress);
+    }
   }
 
   @override
-  bool shouldRepaint(_RingPainter old) =>
-      old.progress != progress ||
-      old.ringColor != ringColor ||
-      old.trackColor != trackColor;
+  bool shouldRepaint(_GaugeMockPainter old) =>
+      old.fraction != fraction || old.accent != accent;
 }
 
+/// Mirrors the real MacroReadout: mono label, bone fill on a hairline track.
+/// Deliberately NOT accent-painted — macro bars are bone on every pack, and
+/// the preview must not promise otherwise.
 class _MockMacroBar extends StatelessWidget {
-  const _MockMacroBar({
-    required this.label,
-    required this.value,
-    required this.theme,
-  });
+  const _MockMacroBar({required this.label, required this.value});
 
   final String label;
   final double value;
-  final AppThemeData theme;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         SizedBox(
-          width: 56,
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 11,
-              color: Color(0xFF8E8E93),
-            ),
-          ),
+          width: 64,
+          child: Text(label, style: FieldManual.label()),
         ),
         Expanded(
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Stack(
-              children: [
-                Container(height: 6, color: theme.darkSurface),
-                FractionallySizedBox(
-                  widthFactor: value.clamp(0.0, 1.0),
-                  child: Container(
-                    height: 6,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [theme.accent, theme.accentLight],
-                      ),
+            borderRadius: BorderRadius.circular(1),
+            child: SizedBox(
+              height: 3,
+              child: Stack(
+                children: [
+                  Container(color: FieldManual.hairline),
+                  FractionallySizedBox(
+                    widthFactor: value.clamp(0.0, 1.0),
+                    child: Container(
+                      color: FieldManual.bone.withValues(alpha: 0.85),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

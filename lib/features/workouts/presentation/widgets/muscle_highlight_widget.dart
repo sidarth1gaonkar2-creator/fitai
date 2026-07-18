@@ -169,11 +169,11 @@ class MuscleHighlightWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = MediaQuery.platformBrightnessOf(context);
-    final origDir = brightness == Brightness.light
-        ? 'assets/images/anatomy/light'
-        : 'assets/images/anatomy';
-    final maskDir = '$origDir/masks';
+    // The Field Manual is dark by doctrine (batch #3) — always the dark
+    // anatomy art, regardless of the device's system brightness. The light
+    // sprites stay on disk for a future "Daylight Ops" theme pack.
+    const origDir = 'assets/images/anatomy';
+    const maskDir = '$origDir/masks';
 
     if (heatMapRanks != null) {
       return _buildHeatMap(origDir, maskDir);

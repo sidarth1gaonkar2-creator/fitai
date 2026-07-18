@@ -1,23 +1,30 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../domain/app_theme_data.dart';
 import '../domain/theme_registry.dart';
 import '../providers/theme_providers.dart';
 import 'theme_preview_sheet.dart';
 
-/// 2-column grid of every theme in the registry. Each cell shows a swatch
-/// preview + price/ownership state; tapping opens [ThemePreviewSheet] with a
-/// mock-dashboard preview and the buy/equip CTA.
+/// Readable tone for text sitting ON a pack's accent fill: ink for bright
+/// accents, bone for the dark ones (e.g. Stealth). Mirrors [Palette.onAccent],
+/// which only knows the LIVE accent — store cells paint candidate accents.
+Color _onPackAccent(Color accent) =>
+    accent.computeLuminance() >= 0.18 ? FieldManual.ink : FieldManual.bone;
+
+/// 2-column grid of every theme pack in the registry. Per the Accent Swap
+/// Rule every pack rides the same Field Manual ink/field chrome, so each cell
+/// shows the FM ground with the pack's accent family + price/ownership state;
+/// tapping opens [ThemePreviewSheet] with a mock-dashboard preview and the
+/// buy/equip CTA.
 class ThemeStoreScreen extends ConsumerWidget {
   const ThemeStoreScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final palette = AppColors.of(context);
     final coins = ref.watch(coinBalanceProvider);
     final equippedId = ref.watch(activeThemeProvider).id;
     final owned = ref.watch(ownedThemesProvider);
@@ -25,16 +32,14 @@ class ThemeStoreScreen extends ConsumerWidget {
     final unlocked = ref.watch(unlockedThemesProvider);
 
     return CupertinoPageScaffold(
-      backgroundColor: palette.background,
+      backgroundColor: FieldManual.ink,
       navigationBar: CupertinoNavigationBar(
-        middle: const Text('Theme Store'),
-        backgroundColor: palette.background.withValues(alpha: 0.85),
-        border: null,
-        trailing: _CurrencyChip(
-          icon: Icons.monetization_on,
-          color: palette.warning,
-          amount: coins,
+        middle: Text('THEME STORE', style: FieldManual.title()),
+        backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
+        border: const Border(
+          bottom: BorderSide(color: FieldManual.hairline),
         ),
+        trailing: _CurrencyChip(amount: coins),
       ),
       child: SafeArea(
         child: GridView.builder(
@@ -84,33 +89,41 @@ class _ThemeCard extends StatelessWidget {
   final bool isOwned;
 
   /// Equippable via the Airborne subscription (not coin-owned) — badged
-  /// "Included" so it never masquerades as permanent ownership.
+  /// "INCLUDED" so it never masquerades as permanent ownership.
   final bool isAirborneUnlock;
   final bool isEquipped;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isEquipped ? theme.accent : palette.border,
-            width: isEquipped ? 2 : 1,
-          ),
-        ),
+    final String stateLabel = isEquipped
+        ? 'equipped'
+        : isOwned
+            ? (isAirborneUnlock ? 'included with Airborne' : 'owned')
+            : '${theme.price} coins';
+    return Semantics(
+      button: true,
+      label: '${theme.name}, $stateLabel',
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Container(
+            decoration: BoxDecoration(
+              color: FieldManual.field,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isEquipped ? theme.accent : FieldManual.hairline,
+                width: isEquipped ? 2 : 1,
+              ),
+            ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(13),
+                  top: Radius.circular(7),
                 ),
                 child: Stack(
                   fit: StackFit.expand,
@@ -120,13 +133,16 @@ class _ThemeCard extends StatelessWidget {
                       Positioned(
                         top: 8,
                         right: 8,
+                        // Premium chip: mono label on an accent tint —
+                        // blended over ink so it stays opaque and legible on
+                        // any swatch pixel. No gold, no gradient.
                         child: _Badge(
-                          label: 'Premium',
-                          background:
-                              CupertinoColors.black.withValues(alpha: 0.55),
-                          textColor: CupertinoColors.white,
-                          icon: Icons.star,
-                          iconColor: palette.warning,
+                          label: 'PREMIUM',
+                          background: Color.alphaBlend(
+                            theme.accent.withValues(alpha: 0.18),
+                            FieldManual.ink,
+                          ),
+                          textColor: FieldManual.bone,
                         ),
                       ),
                     if (isEquipped)
@@ -134,9 +150,9 @@ class _ThemeCard extends StatelessWidget {
                         top: 8,
                         left: 8,
                         child: _Badge(
-                          label: 'Equipped',
+                          label: 'EQUIPPED',
                           background: theme.accent,
-                          textColor: CupertinoColors.white,
+                          textColor: _onPackAccent(theme.accent),
                         ),
                       )
                     else if (isOwned)
@@ -144,10 +160,9 @@ class _ThemeCard extends StatelessWidget {
                         top: 8,
                         left: 8,
                         child: _Badge(
-                          label: isAirborneUnlock ? 'Included' : 'Owned',
-                          background:
-                              CupertinoColors.black.withValues(alpha: 0.55),
-                          textColor: CupertinoColors.white,
+                          label: isAirborneUnlock ? 'INCLUDED' : 'OWNED',
+                          background: FieldManual.fieldRaised,
+                          textColor: FieldManual.mutedBone,
                         ),
                       ),
                   ],
@@ -161,13 +176,8 @@ class _ThemeCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    theme.name,
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: palette.text,
-                    ),
+                    theme.name.toUpperCase(),
+                    style: FieldManual.title().copyWith(fontSize: 14),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -176,18 +186,24 @@ class _ThemeCard extends StatelessWidget {
                     theme: theme,
                     isOwned: isOwned,
                     isEquipped: isEquipped,
-                    palette: palette,
                   ),
                 ],
               ),
             ),
           ],
         ),
+          ),
+        ),
       ),
     );
   }
 }
 
+/// Pack swatch, honest to the Accent Swap Rule: every pack rides the same
+/// ink→field Field Manual ground (the gradient derives from the pack's own
+/// surface tokens, which ARE ink/field since the registry re-cut), and only
+/// the accent family varies — shown as an accent-filled instrument bar plus
+/// the accent/accent-light dots.
 class _Swatch extends StatelessWidget {
   const _Swatch({required this.theme});
   final AppThemeData theme;
@@ -197,41 +213,62 @@ class _Swatch extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.darkBackground,
-            theme.darkSurface,
-            theme.accent,
-            theme.accentLight,
-          ],
-          stops: const [0.0, 0.45, 0.85, 1.0],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [theme.darkBackground, theme.darkSurface],
         ),
       ),
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (final c in [theme.accent, theme.accentLight, theme.success])
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: c,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: CupertinoColors.white.withValues(alpha: 0.4),
-                      width: 1,
-                    ),
+      child: Stack(
+        children: [
+          // Where the accent really lands: a gauge/progress fill on a
+          // hairline track.
+          Center(
+            child: SizedBox(
+              width: 64,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(1),
+                child: SizedBox(
+                  height: 3,
+                  child: Stack(
+                    children: [
+                      Container(color: FieldManual.hairline),
+                      FractionallySizedBox(
+                        widthFactor: 0.65,
+                        child: Container(color: theme.accent),
+                      ),
+                    ],
                   ),
                 ),
-            ],
+              ),
+            ),
           ),
-        ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // The accent and its pressed tone — the two accent states the
+                  // pack actually renders. (accentLight is consumed by no
+                  // product widget, so showing it here oversold a colour the
+                  // pack never delivers.)
+                  for (final c in [theme.accent, theme.accentPressed])
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: c,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: FieldManual.hairlineStrong),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -242,15 +279,11 @@ class _Badge extends StatelessWidget {
     required this.label,
     required this.background,
     required this.textColor,
-    this.icon,
-    this.iconColor,
   });
 
   final String label;
   final Color background;
   final Color textColor;
-  final IconData? icon;
-  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -258,26 +291,9 @@ class _Badge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(4),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 10, color: iconColor ?? textColor),
-            const SizedBox(width: 3),
-          ],
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-              fontSize: 9,
-              color: textColor,
-            ),
-          ),
-        ],
-      ),
+      child: Text(label, style: FieldManual.label(color: textColor)),
     );
   }
 }
@@ -287,92 +303,66 @@ class _PriceLabel extends StatelessWidget {
     required this.theme,
     required this.isOwned,
     required this.isEquipped,
-    required this.palette,
   });
 
   final AppThemeData theme;
   final bool isOwned;
   final bool isEquipped;
-  final Palette palette;
 
   @override
   Widget build(BuildContext context) {
     if (isEquipped) {
-      return Text(
-        'Equipped',
-        style: TextStyle(
-          fontSize: 11,
-          color: theme.accent,
-          fontWeight: FontWeight.w600,
-        ),
-      );
+      // Quiet stamp — the card's accent border and swatch badge already
+      // carry the equipped state.
+      return Text('EQUIPPED', style: FieldManual.label());
     }
     if (isOwned) {
       return Text(
         'Tap to equip',
-        style: TextStyle(
-          fontSize: 11,
-          color: palette.textSecondary,
-        ),
+        style: FieldManual.body(fontSize: 12, color: FieldManual.mutedBone),
       );
     }
     return Row(
       children: [
-        Icon(
-          Icons.monetization_on,
-          size: 11,
-          color: palette.warning,
-        ),
-        const SizedBox(width: 3),
-        Text(
-          '${theme.price}',
-          style: TextStyle(
-            fontSize: 11,
-            color: palette.text,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        const Icon(_kCoinGlyph, size: 11, color: FieldManual.mutedBone),
+        const SizedBox(width: 4),
+        Text('${theme.price}', style: FieldManual.readout(fontSize: 12)),
       ],
     );
   }
 }
 
-class _CurrencyChip extends StatelessWidget {
-  const _CurrencyChip({
-    required this.icon,
-    required this.color,
-    required this.amount,
-  });
+/// The coin token: a neutral hexagon glyph in mutedBone, never the warning
+/// dollar-sign — coins are earned, not purchased, and warning orange is a
+/// foreign accent on a themed store.
+const IconData _kCoinGlyph = CupertinoIcons.hexagon_fill;
 
-  final IconData icon;
-  final Color color;
+class _CurrencyChip extends StatelessWidget {
+  const _CurrencyChip({required this.amount});
+
   final int amount;
 
   @override
   Widget build(BuildContext context) {
-    final palette = AppColors.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: palette.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            '$amount',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: palette.text,
-            ),
+    return Semantics(
+      label: '$amount coins',
+      child: ExcludeSemantics(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: FieldManual.field,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: FieldManual.hairline),
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(_kCoinGlyph, size: 12, color: FieldManual.mutedBone),
+              const SizedBox(width: 5),
+              Text('$amount', style: FieldManual.readout(fontSize: 13)),
+            ],
+          ),
+        ),
       ),
     );
   }

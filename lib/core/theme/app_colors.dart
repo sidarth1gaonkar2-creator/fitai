@@ -97,16 +97,6 @@ abstract final class AppColors {
   static const Color accentPressed = Color(0xFFA38443); // brass-pressed
   static const Color accentTint = Color(0x2EC8A24B);
 
-  // ─── Activity rings (Apple Fitness inspired) ────────────────
-  static const Color ringMove = Color(0xFFFA114F);
-  static const Color ringExercise = Color(0xFF92E82A);
-  static const Color ringStand = Color(0xFF00C2FF);
-
-  // ─── Macro nutrients ─────────────────────────────────────────
-  static const Color macroProtein = Color(0xFFE55B5B);
-  static const Color macroCarbs = Color(0xFFF0A830);
-  static const Color macroFat = Color(0xFF6FBF73);
-
   // ─── Brightness-only fallbacks ──────────────────────────────
   //  Some code paths still want a compile-time-constant Palette (e.g. as
   //  a hard fallback inside the tutorial overlay). These mirror the

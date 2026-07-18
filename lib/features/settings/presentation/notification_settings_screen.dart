@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/field_manual.dart';
 import '../../../providers/gym_streak_provider.dart';
 import '../../../providers/notification_providers.dart';
 import '../../../providers/training_schedule_provider.dart';
@@ -34,9 +34,10 @@ class NotificationSettingsScreen extends ConsumerWidget {
     return CupertinoPageScaffold(
       backgroundColor: palette.background,
       navigationBar: CupertinoNavigationBar(
-        middle: const Text('Notifications'),
-        backgroundColor: palette.background.withValues(alpha: 0.8),
-        border: null,
+        // Field Manual nav: Oswald designation, hairline rule.
+        middle: Text('NOTIFICATIONS', style: FieldManual.title()),
+        backgroundColor: palette.background.withValues(alpha: 0.82),
+        border: Border(bottom: BorderSide(color: palette.border, width: 0.5)),
       ),
       child: SafeArea(
         child: ListView(
@@ -53,9 +54,13 @@ class NotificationSettingsScreen extends ConsumerWidget {
                 },
                 child: Container(
                   padding: const EdgeInsets.all(12),
+                  // Alert red is earned here — a real consequence callout.
                   decoration: BoxDecoration(
                     color: palette.destructive.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: palette.destructive.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -66,11 +71,9 @@ class NotificationSettingsScreen extends ConsumerWidget {
                         child: Text(
                           'Notifications are off in iOS Settings. Tap to '
                           'enable, or turn them on in Settings › DrillFit.',
-                          style: TextStyle(
-                            fontFamily: 'LeagueSpartan',
-                            fontSize: 13,
-                            color: palette.destructive,
-                          ),
+                          // Bone prose (AA on the tint); the icon + border carry
+                          // the alert. destructive body text was 4.06:1 here.
+                          style: FieldManual.body(fontSize: 13),
                         ),
                       ),
                     ],
@@ -84,15 +87,15 @@ class NotificationSettingsScreen extends ConsumerWidget {
             // gym-streak coin economy, so they're ALWAYS editable: setting a
             // schedule must not require turning on reminders. The reminder
             // toggle + time picker below are an optional layer on these days.
-            _SectionHeader(
-                title: 'Training Schedule', icon: Icons.fitness_center),
+            const _SectionHeader(title: 'Training Schedule'),
             Padding(
               padding: const EdgeInsets.only(top: 4, bottom: 8),
               child: Text(
                 'Pick your gym days to track your streak',
                 style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Inter',
                   fontSize: 13,
+                  height: 1.4,
                   color: palette.textSecondary,
                 ),
               ),
@@ -106,17 +109,25 @@ class NotificationSettingsScreen extends ConsumerWidget {
             if (schedule.isConfigured)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  gymStreak.currentStreak > 0
-                      ? '🔥 ${gymStreak.currentStreak}-day gym streak'
-                      : 'Streak tracking on — log a workout on a gym day',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: palette.accent,
-                  ),
-                ),
+                // A live streak is an instrument readout — mono. The idle
+                // hint stays sentence-case Inter.
+                child: gymStreak.currentStreak > 0
+                    ? Text(
+                        '${gymStreak.currentStreak}-DAY GYM STREAK',
+                        style: FieldManual.label(
+                          fontSize: 11,
+                          color: palette.accent,
+                        ),
+                      )
+                    : Text(
+                        'Streak tracking on — log a workout on a gym day',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          height: 1.4,
+                          color: palette.textSecondary,
+                        ),
+                      ),
               ),
             const SizedBox(height: 12),
             // Optional reminders for the chosen days — independent of the
@@ -140,7 +151,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
             const SizedBox(height: 24),
 
             // ─── Meal Reminders ─────────────────────────────────────────
-            _SectionHeader(title: 'Meal Reminders', icon: CupertinoIcons.square_favorites_alt),
+            const _SectionHeader(title: 'Meal Reminders'),
             _ToggleRow(
               label: 'Breakfast',
               value: settings.breakfastEnabled,
@@ -185,7 +196,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
             const SizedBox(height: 24),
 
             // ─── Water & Streak ─────────────────────────────────────────
-            _SectionHeader(title: 'Hydration & Streaks', icon: CupertinoIcons.drop),
+            const _SectionHeader(title: 'Hydration & Streaks'),
             _ToggleRow(
               label: 'Hourly Water Reminder',
               subtitle: '8am - 10pm',
@@ -202,7 +213,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
             const SizedBox(height: 24),
 
             // ─── PR & Supplements ───────────────────────────────────────
-            _SectionHeader(title: 'Achievements & Supplements', icon: Icons.emoji_events),
+            const _SectionHeader(title: 'Achievements & Supplements'),
             _ToggleRow(
               label: 'PR Celebration',
               subtitle: 'Notification when new PR is set',
@@ -225,30 +236,29 @@ class NotificationSettingsScreen extends ConsumerWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.icon});
+  const _SectionHeader({required this.title});
 
   final String title;
-  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
+    // FM mono eyebrow. Uppercase is visual only — VoiceOver gets the
+    // sentence-case label.
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Icon(icon, color: palette.accent, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-              color: palette.text,
+      child: Semantics(
+        header: true,
+        label: title,
+        child: ExcludeSemantics(
+          child: Text(
+            title.toUpperCase(),
+            style: FieldManual.label(
+              fontSize: 11,
+              color: palette.textSecondary,
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -270,11 +280,13 @@ class _ToggleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
+    // Field card, 8px, hairline — sentence-case Inter copy.
     return Container(
+      constraints: const BoxConstraints(minHeight: 44),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: palette.border),
       ),
       child: Row(
@@ -286,9 +298,11 @@ class _ToggleRow extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
+                    fontFamily: 'Inter',
+                    fontVariations: const [FontVariation('wght', 600)],
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    height: 1.35,
                     color: palette.text,
                   ),
                 ),
@@ -296,8 +310,9 @@ class _ToggleRow extends StatelessWidget {
                   Text(
                     subtitle!,
                     style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
+                      fontFamily: 'Inter',
                       fontSize: 12,
+                      height: 1.4,
                       color: palette.textSecondary,
                     ),
                   ),
@@ -341,60 +356,77 @@ class _TimePickerRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 6),
-      child: GestureDetector(
-        onTap: () async {
-          await showCupertinoModalPopup(
-            context: context,
-            builder: (pickerCtx) => Container(
-              height: 216,
-              color: AppColors.of(pickerCtx).surface,
-              child: CupertinoDatePicker(
-                mode: CupertinoDatePickerMode.time,
-                initialDateTime: DateTime(2024, 1, 1, hour, minute),
-                onDateTimeChanged: (dt) => onChanged(dt.hour, dt.minute),
-              ),
+      child: Semantics(
+        button: true,
+        label: '$label, $_formatted',
+        child: ExcludeSemantics(
+          child: GestureDetector(
+            onTap: () async {
+              await showCupertinoModalPopup(
+                context: context,
+                builder: (pickerCtx) => Container(
+                  height: 216,
+                  // Field surface, 12px sheet radius (DESIGN.md §Cards).
+                  decoration: BoxDecoration(
+                    color: AppColors.of(pickerCtx).surface,
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(12)),
+                  ),
+                  child: CupertinoDatePicker(
+                    mode: CupertinoDatePickerMode.time,
+                    initialDateTime: DateTime(2024, 1, 1, hour, minute),
+                    onDateTimeChanged: (dt) => onChanged(dt.hour, dt.minute),
+                  ),
+                ),
+              );
+            },
+            child: Builder(
+              builder: (context) {
+                final palette = AppColors.of(context);
+                // FM input surface: field-raised, sharp 4px, hairline. The
+                // time is an instrument readout — mono.
+                return Container(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    color: palette.surfaceElevated,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: palette.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        label.toUpperCase(),
+                        style: FieldManual.label(
+                          fontSize: 11,
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        _formatted,
+                        // Value reads in bone — accent mono on fieldRaised fell
+                        // below 4.5:1 for 5 packs (1.5:1 on Stealth). The accent
+                        // lives on the chevron affordance.
+                        style: FieldManual.label(
+                          fontSize: 12,
+                          color: palette.text,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        CupertinoIcons.chevron_right,
+                        size: 14,
+                        color: palette.accent,
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-          );
-        },
-        child: Builder(
-          builder: (context) {
-            final palette = AppColors.of(context);
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: palette.background,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontFamily: 'LeagueSpartan',
-                      fontSize: 13,
-                      color: palette.textSecondary,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    _formatted,
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                      color: palette.accent,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    CupertinoIcons.chevron_right,
-                    size: 14,
-                    color: palette.textSecondary,
-                  ),
-                ],
-              ),
-            );
-          },
+          ),
         ),
       ),
     );
