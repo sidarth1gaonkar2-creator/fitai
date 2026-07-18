@@ -73,19 +73,30 @@ class RankBadge extends StatelessWidget {
   }
 }
 
+/// The command accent (DESIGN.md `brass`). An Airborne brand moment always
+/// wears brass — the one accent the equipped theme pack never swaps.
+const Color _brass = Color(0xFFC8A24B);
+
 /// Just the rank insignia mark (no text). [size] is its height; the width is
 /// slightly narrower. Optionally tint with [color] instead of the rank colour.
+///
+/// [airborne] renders the enriched, brass-mounted finish for a subscriber's
+/// EARNED rank (same rank, elevated finish). It is dormant by default — every
+/// existing call site renders the base insignia until Stage 2 gates it on the
+/// Airborne entitlement.
 class RankInsignia extends StatelessWidget {
   const RankInsignia({
     super.key,
     required this.rank,
     this.size = 24,
     this.color,
+    this.airborne = false,
   });
 
   final MilitaryRank rank;
   final double size;
   final Color? color;
+  final bool airborne;
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +104,8 @@ class RankInsignia extends StatelessWidget {
       width: size * 0.92,
       height: size,
       child: CustomPaint(
-        painter: _RankInsigniaPainter(rank: rank, color: color ?? rank.color),
+        painter: _RankInsigniaPainter(
+            rank: rank, color: color ?? rank.color, airborne: airborne),
       ),
     );
   }
@@ -151,7 +163,78 @@ _Insignia _insigniaFor(MilitaryRank rank) {
 /// one renderer reads crisply from the rank strip up to the celebration
 /// overlay. Extracted as a free function so every surface (My Ranks ladder,
 /// rank strip, celebration, share card, preview) draws one source of truth.
+///
+/// [airborne] wraps the earned insignia in the flat brass issued-mount — a
+/// brass-tinted backing plate, a brass hairline frame, and corner rivets — the
+/// enriched finish for an Airborne subscriber's own rank. The mount adds no
+/// footprint (the marks inset to make room), stays flat (no glow/bevel), and
+/// never recolours the tier marks: the rank you see is the rank you earned.
 void paintRankInsignia(
+  Canvas canvas,
+  Size size,
+  MilitaryRank rank,
+  Color color, {
+  bool airborne = false,
+}) {
+  if (!airborne) {
+    _paintMarks(canvas, size, rank, color);
+    return;
+  }
+  _paintAirborneMount(canvas, size);
+  // Inset the marks so the frame reads without enlarging the insignia box. Ease
+  // the inset at rank-strip sizes so the tier mark keeps its size (the frame
+  // alone already signals "mounted") instead of the container out-shouting it.
+  final short = math.min(size.width, size.height);
+  final insetFrac = short < 34 ? 0.08 : 0.11;
+  final dx = size.width * insetFrac;
+  final dy = size.height * insetFrac;
+  canvas.save();
+  canvas.translate(dx, dy);
+  _paintMarks(
+      canvas, Size(size.width - dx * 2, size.height - dy * 2), rank, color);
+  canvas.restore();
+}
+
+/// The flat brass "issued mount" behind an Airborne rank: a brass-tinted plate,
+/// a brass hairline frame, and four corner rivets. Flat and tonal by doctrine
+/// (Quiet Chrome) — no glow, no bevel — it reads as the rank struck onto issued
+/// brass hardware and survives down to the rank-strip size.
+void _paintAirborneMount(Canvas canvas, Size size) {
+  final w = size.width, h = size.height;
+  final short = math.min(w, h);
+  final inset = short * 0.04;
+  final rect =
+      Rect.fromLTWH(inset, inset, w - inset * 2, h - inset * 2);
+  // Sharp regulation radius (near the system 4/8/12 scale), not a soft
+  // consumer-badge roundness.
+  final rrect = RRect.fromRectAndRadius(rect, Radius.circular(short * 0.10));
+  // Brass-tinted backing plate — flat, low alpha so the tier colour stays legible.
+  canvas.drawRRect(rrect, Paint()..color = _brass.withValues(alpha: 0.15));
+  // Brass hairline frame.
+  canvas.drawRRect(
+      rrect,
+      Paint()
+        ..color = _brass
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = (short * 0.042).clamp(1.0, short));
+  // Corner rivets — the mounted-issue tell. Dropped below ~30px, where they'd
+  // shrink to noise; the frame + plate carry the signal at rank-strip size.
+  if (short >= 30) {
+    final rr = short * 0.05;
+    final ci = short * 0.19;
+    final rivet = Paint()..color = _brass;
+    for (final c in [
+      Offset(ci, ci),
+      Offset(w - ci, ci),
+      Offset(ci, h - ci),
+      Offset(w - ci, h - ci),
+    ]) {
+      canvas.drawCircle(c, rr, rivet);
+    }
+  }
+}
+
+void _paintMarks(
   Canvas canvas,
   Size size,
   MilitaryRank rank,
@@ -320,16 +403,21 @@ void _drawEagle(Canvas canvas, Paint paint, Offset c, double width) {
 }
 
 class _RankInsigniaPainter extends CustomPainter {
-  _RankInsigniaPainter({required this.rank, required this.color});
+  _RankInsigniaPainter({
+    required this.rank,
+    required this.color,
+    this.airborne = false,
+  });
 
   final MilitaryRank rank;
   final Color color;
+  final bool airborne;
 
   @override
   void paint(Canvas canvas, Size size) =>
-      paintRankInsignia(canvas, size, rank, color);
+      paintRankInsignia(canvas, size, rank, color, airborne: airborne);
 
   @override
   bool shouldRepaint(_RankInsigniaPainter old) =>
-      old.rank != rank || old.color != color;
+      old.rank != rank || old.color != color || old.airborne != airborne;
 }
