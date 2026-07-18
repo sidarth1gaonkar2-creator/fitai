@@ -90,6 +90,16 @@ class MenuItemCacheService {
             ..servingUnit = r.servingUnit
             ..sodiumMg = r.sodiumMgPer100g
             ..fibre = r.fibrePer100g
+            ..sugar = r.sugarPer100g
+            ..vitaminDMcg = r.vitaminDMcgPer100g
+            ..ironMg = r.ironMgPer100g
+            ..calciumMg = r.calciumMgPer100g
+            ..vitaminCMg = r.vitaminCMgPer100g
+            ..magnesiumMg = r.magnesiumMgPer100g
+            ..potassiumMg = r.potassiumMgPer100g
+            ..zincMg = r.zincMgPer100g
+            ..vitaminB12Mcg = r.vitaminB12McgPer100g
+            ..folateMcg = r.folateMcgPer100g
             ..fetchedAt = DateTime.now())
           .toList();
       await _isar.cachedMenuItems.putAll(rows);
@@ -120,6 +130,16 @@ class MenuItemCacheService {
         servingUnit: c.servingUnit,
         sodiumMgPer100g: c.sodiumMg,
         fibrePer100g: c.fibre,
+        sugarPer100g: c.sugar,
+        vitaminDMcgPer100g: c.vitaminDMcg,
+        ironMgPer100g: c.ironMg,
+        calciumMgPer100g: c.calciumMg,
+        vitaminCMgPer100g: c.vitaminCMg,
+        magnesiumMgPer100g: c.magnesiumMg,
+        potassiumMgPer100g: c.potassiumMg,
+        zincMgPer100g: c.zincMg,
+        vitaminB12McgPer100g: c.vitaminB12Mcg,
+        folateMcgPer100g: c.folateMcg,
         source: FoodSource.spoonacular,
       );
 }

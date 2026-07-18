@@ -37,8 +37,24 @@ class CachedMenuItem {
   double defaultServingSize = 100;
   String servingUnit = 'g';
 
+  // Micronutrients (per 100 g), mirroring the full set FoodSearchResult /
+  // FoodEntry carry. Nullable: a restaurant item only stores the micros
+  // Spoonacular actually reported. Historically only [sodiumMg] and [fibre]
+  // were persisted, which silently dropped every other micro on a cache hit —
+  // restored to the full set so cached restaurant items log the same
+  // micronutrients as a fresh fetch (and as regular USDA foods).
   double? sodiumMg;
   double? fibre;
+  double? sugar;
+  double? vitaminDMcg;
+  double? ironMg;
+  double? calciumMg;
+  double? vitaminCMg;
+  double? magnesiumMg;
+  double? potassiumMg;
+  double? zincMg;
+  double? vitaminB12Mcg;
+  double? folateMcg;
 
   /// Wall-clock fetched timestamp. Cache is honored for 7 days from this
   /// value; older rows are ignored and refreshed on the next online query.
