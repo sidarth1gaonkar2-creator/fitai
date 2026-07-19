@@ -10,7 +10,7 @@ colors:
   brass: "#C8A24B"
   brass-pressed: "#A38443"
   olive: "#6B7257"
-  alert: "#C24A38"
+  alert: "#F07A63"
   rank-pvt: "#A8A06A"
   rank-pfc: "#C9B97A"
   rank-spc: "#3FBF4A"
@@ -110,7 +110,7 @@ The site's Field Manual palette, promoted to app chrome: a two-step dark ground,
 
 ### Secondary
 - **Olive** (#6B7257): secondary structure — inactive meta, dividers-with-presence, tertiary labels at large sizes. Never body text (it fails 4.5:1 on ink at reading sizes; use Muted Bone instead).
-- **Alert Red** (#C24A38): sparing — destructive actions, missed-target callouts, the occasional stamp. Not an accent.
+- **Alert Red** (#F07A63): sparing — destructive actions, missed-target callouts, the occasional stamp. Not an accent. Lifted from the original brick #C24A38, which could not hold 4.5:1 for body text on any FM surface (3.54 / 3.24 / 2.85:1); this tone clears ≥5.05:1 on all three. Because it is light, a glyph or label sitting **on** an alert fill is **ink**, never bone — bone on alert reads ~2.2:1.
 
 ### Tertiary
 - **Rank ramp** (rank-pvt #A8A06A → rank-sma #D14B3A): one color per enlisted tier, used on insignia, rank abbreviations, and promotion ceremonies. The ladder heats up as you climb — aged brass at Private, burning red at the apex (product decision, reskin batch #3). The palette is shared with drillfit.com's ladder but runs in the opposite order there; the site re-syncs to this direction as a follow-up.

@@ -107,7 +107,13 @@ class FmSkin {
         displayWeight = 700,
         headlineWeight = 600,
         titleWeight = 600,
-        alert = const Color(0xFFC24A38),
+        // Lifted from the original brick #C24A38, which failed WCAG AA for
+        // body text on every FM surface (3.54 / 3.24 / 2.85:1) — a red that
+        // dark simply cannot carry text on ink. This tone holds ≥5.05:1 on
+        // all three while staying firmly red (hue 10°, 59% sat).
+        // Consequence: it is now LIGHT enough that a glyph sitting ON an
+        // alert fill must be ink, not bone.
+        alert = const Color(0xFFF07A63),
         displayTrackingEm = null,
         surfaceTexture = null,
         headerTexture = null,

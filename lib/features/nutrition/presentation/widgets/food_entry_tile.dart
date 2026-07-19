@@ -215,8 +215,11 @@ class _SwipeTileState extends State<_SwipeTile> {
                 ? AppColors.of(context).destructive.withValues(alpha: 0.9)
                 : FieldManual.fieldRaised,
             child: Icon(
+              // On the red fill the glyph is ink — the AA-safe alert red is
+              // light (bone would read 2.53:1, ink 5.33:1). On the neutral
+              // field-raised fill it stays mutedBone.
               Icons.delete,
-              color: showRed ? FieldManual.bone : FieldManual.mutedBone,
+              color: showRed ? FieldManual.ink : FieldManual.mutedBone,
             ),
           ),
           child: widget.child,

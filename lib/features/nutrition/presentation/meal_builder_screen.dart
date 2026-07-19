@@ -1633,8 +1633,10 @@ class _MealCartSheet extends ConsumerWidget {
                         alignment: Alignment.centerRight,
                         padding: const EdgeInsets.only(right: 20),
                         color: FieldManual.alert,
-                        child: const Icon(CupertinoIcons.delete,
-                            color: FieldManual.bone),
+                        // Ink, not bone: the AA-safe alert red is light, so a
+                        // bone glyph on it falls to ~2.2:1. Ink reads 6.26:1.
+                        child: Icon(CupertinoIcons.delete,
+                            color: FieldManual.ink),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),

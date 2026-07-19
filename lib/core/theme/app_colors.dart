@@ -150,7 +150,15 @@ class Palette {
       success = theme.success,
       // Skin-overridable so a red-accent skin (Night Ops) routes destructive
       // off red to amber, keeping alerts distinct from the accent.
-      destructive = theme.darkAlert ?? const Color(0xFFFF453A),
+      //
+      // The fallback is the Field Manual alert and is shared by the eight
+      // accent-swap packs (which ride FM chrome and set no darkAlert). It was
+      // iOS red #FF453A, which failed AA on field-raised (4.06:1) and, worse,
+      // disagreed with FieldManual.alert — the default theme had TWO different
+      // alert reds depending on which token a screen happened to read. Both
+      // now resolve to the same AA-safe tone. The three full skins override
+      // darkAlert explicitly and are untouched.
+      destructive = theme.darkAlert ?? const Color(0xFFF07A63),
       warning = const Color(0xFFFF9F0A);
 
   // Light mode mapping. Background/surface stay fixed (Apple grouped-light
@@ -188,7 +196,7 @@ class Palette {
       accentPressed = const Color(0xFFA38443),
       accentLight = const Color(0xFFE0C27E),
       success = const Color(0xFF3FBF4A),
-      destructive = const Color(0xFFFF453A),
+      destructive = const Color(0xFFF07A63), // AA-safe FM alert
       warning = const Color(0xFFFF9F0A);
 
   const Palette._defaultLight()

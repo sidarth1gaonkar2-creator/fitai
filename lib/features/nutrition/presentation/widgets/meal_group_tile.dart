@@ -190,7 +190,8 @@ class _MealGroupTileState extends State<MealGroupTile> {
           color: palette.destructive.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(Icons.delete, color: FieldManual.bone),
+        // Ink on the light AA-safe alert red (5.33:1); bone would be 2.53:1.
+        child: Icon(Icons.delete, color: FieldManual.ink),
       ),
       child: body,
     );

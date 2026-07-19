@@ -387,12 +387,13 @@ class _SavedMealRow extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
-          // 0.9 alpha over the dark surface keeps the bone icon ≥3:1
-          // (same idiom as food_entry_tile's swipe background).
+          // 0.9 alpha over the dark surface (same idiom as food_entry_tile's
+          // swipe background). The glyph is INK: the AA-safe alert red is
+          // light, so bone on this fill reads 2.53:1 while ink reads 5.33:1.
           color: palette.destructive.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(Icons.delete, color: FieldManual.bone),
+        child: Icon(Icons.delete, color: FieldManual.ink),
       ),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
