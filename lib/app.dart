@@ -74,6 +74,14 @@ class DrillFitApp extends ConsumerWidget {
     // packs resolve to the FM defaults, so they stay byte-identical.
     final skin = FmSkin.fromTheme(activeTheme);
     FieldManual.skin = skin;
+    // Start rasterizing this skin's tiles now rather than on first paint.
+    // Tile rasterization is asynchronous (see SurfaceTexture.ensureTile), so
+    // kicking it off at equip time means it is normally ready before the first
+    // frame that needs it; if it isn't, the surface paints its base colour for
+    // a frame and repaints via SurfaceTexture.tilesReady. Accent-swap packs
+    // have no textures, so this is a no-op for them.
+    skin.surfaceTexture?.ensureTile();
+    skin.headerTexture?.ensureTile();
     // Light mode retired (batch #3): the Field Manual is dark by doctrine.
     // AppColors keeps its light mappings for theme packs / a possible future
     // "Daylight Ops" pack, so the resolve(theme:, brightness:) shape stays.

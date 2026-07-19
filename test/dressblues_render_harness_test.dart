@@ -81,6 +81,15 @@ Future<ui.Image> _render(
   Size size = _screenSize,
 }) async {
   FieldManual.skin = FmSkin.fromTheme(theme);
+  // Tiles rasterize asynchronously now, so warm them BEFORE pumping. Without
+  // this the surface paints its base colour and the render silently passes
+  // with a flat, textureless panel — the very defect this harness exists to
+  // catch. runAsync is required: real async work can't complete under the
+  // fake-async test clock.
+  await tester.runAsync(() async {
+    await theme.surfaceTexture?.ensureTile();
+    await theme.headerTexture?.ensureTile();
+  });
   await tester.binding.setSurfaceSize(size);
   final key = GlobalKey();
   await tester.pumpWidget(
@@ -318,18 +327,18 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
-  test('both Dress Blues textures cache and tile seamlessly', () {
+  test('both Dress Blues textures cache and tile seamlessly', () async {
     final blues = themeById('dress_blues');
     for (final tex in [blues.surfaceTexture!, blues.headerTexture!]) {
       // The directional patterns are only seamless when the tile is a whole
       // multiple of the rib pitch; otherwise the weave visibly seams.
       expect(tex.tileSize % tex.ribPitch, 0,
           reason: '${tex.id} tile size is not a multiple of its rib pitch');
-      final first = tex.tile();
-      expect(identical(tex.tile(), first), isTrue,
+      final first = await tex.ensureTile();
+      expect(identical(tex.tileOrNull(), first), isTrue,
           reason: '${tex.id} is not cached — would rebuild every paint');
     }
-    const painter = SurfaceTexturePainter(_twillProbe,
+    final painter = SurfaceTexturePainter(_twillProbe,
         header: _metalProbe, headerHeight: 260);
     expect(painter.shouldRepaint(painter), isFalse,
         reason: 'texture painter repaints every frame');

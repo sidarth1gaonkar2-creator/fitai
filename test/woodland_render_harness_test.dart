@@ -99,6 +99,15 @@ Future<ui.Image> _render(
   Size size = _screenSize,
 }) async {
   FieldManual.skin = FmSkin.fromTheme(theme);
+  // Tiles rasterize asynchronously now, so warm them BEFORE pumping. Without
+  // this the surface paints its base colour and the render silently passes
+  // with a flat, textureless panel — the very defect this harness exists to
+  // catch. runAsync is required: real async work can't complete under the
+  // fake-async test clock.
+  await tester.runAsync(() async {
+    await theme.surfaceTexture?.ensureTile();
+    await theme.headerTexture?.ensureTile();
+  });
   await tester.binding.setSurfaceSize(size);
   final key = GlobalKey();
   await tester.pumpWidget(
@@ -365,7 +374,8 @@ void main() {
     expect(tex.lightestTone, const Color(0xFF1C1C1C));
   });
 
-  test('Woodland texture is generated once and cached (scroll perf gate)', () {
+  test('Woodland texture is generated once and cached (scroll perf gate)',
+      () async {
     final tex = themeById('woodland').surfaceTexture!;
 
     // Measure a genuine COLD build against a distinct cache id — the render
@@ -383,15 +393,15 @@ void main() {
       maxRadiusFactor: tex.maxRadiusFactor,
     );
     final sw = Stopwatch()..start();
-    cold.tile(); // records the picture and rasterises it, once
+    await cold.ensureTile(); // records the picture and rasterises it, once
     sw.stop();
     final coldMicros = sw.elapsedMicroseconds;
 
-    final first = tex.tile();
+    final first = await tex.ensureTile();
 
     final sw2 = Stopwatch()..start();
     for (var i = 0; i < 1000; i++) {
-      tex.tile();
+      tex.tileOrNull();
     }
     sw2.stop();
     final warmNanosEach = sw2.elapsedMicroseconds * 1000 / 1000;
@@ -404,13 +414,14 @@ void main() {
     // every paint is a map lookup + one tiled ImageShader draw. If the cache
     // ever stopped returning the same instance, scrolling would re-rasterise
     // a 420x420 picture per frame.
-    expect(identical(tex.tile(), first), isTrue,
+    expect(identical(tex.tileOrNull(), first), isTrue,
         reason: 'texture tile is not cached — would rebuild every paint');
     expect(warmNanosEach, lessThan(10000),
         reason: 'cached tile lookup is too slow to be a cache hit');
 
-    // And the painter must not invalidate itself between frames.
-    const painter = SurfaceTexturePainter(_woodlandProbe);
+    // And the painter must not invalidate itself between frames. Repaints are
+    // driven by SurfaceTexture.tilesReady instead, which fires once per tile.
+    final painter = SurfaceTexturePainter(_woodlandProbe);
     expect(painter.shouldRepaint(painter), isFalse,
         reason: 'texture painter repaints every frame');
   });

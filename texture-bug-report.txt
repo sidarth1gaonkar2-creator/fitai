@@ -1,0 +1,247 @@
+DrillFit — surface textures render as solid fill on device
+==========================================================
+Date:     2026-07-19
+Repo:     C:\Users\sidar\fitai   Branch: main   Tip at diagnosis: 5c9283b (build 100)
+Affects:  Night Ops, Woodland, Dress Blues (all three flagship full skins)
+Status:   ROOT CAUSE CONFIRMED. Written before any fix was implemented.
+
+IMPORTANT SCOPE NOTE ON VERIFICATION
+------------------------------------
+Per CLAUDE.md this is a Windows machine and cannot build or run iOS locally.
+I could NOT reproduce on device. Everything below is (a) engine-source
+evidence, (b) code-path evidence with file:line, and (c) two properties I
+confirmed empirically in `flutter test`. Where I could not observe something
+directly, I say so.
+
+
+1. CONFIRMED ROOT CAUSE
+-----------------------
+The texture tile is rasterized by `Picture.toImageSync()`, called lazily from
+INSIDE `CustomPainter.paint()`, and the returned image is cached permanently in
+a process-wide static map.
+
+`toImageSync` returns an image handle synchronously but rasterizes it
+ASYNCHRONOUSLY when a GPU context exists. The code then builds an `ImageShader`
+from that handle and draws it in the SAME paint pass — before rasterization has
+completed. The shader samples an empty texture, so only the base colour lands.
+Because the handle is cached forever, the surface never recovers for the life
+of the process.
+
+This is not a Flutter bug. It is documented behaviour being used incorrectly.
+
+
+2. EVIDENCE
+-----------
+2a. The engine's own contract (the decisive evidence)
+
+  flutter/bin/cache/pkg/sky_engine/lib/ui/painting.dart, Picture.toImageSync:
+
+    "The image object is created and returned synchronously, but is rasterized
+     asynchronously. If the rasterization fails, an exception will be thrown
+     when the image is drawn to a Canvas."
+
+    "If a GPU context is available, this image will be created as GPU resident
+     and not copied back to the host."
+
+    "If no GPU context is available, the image will be rasterized on the CPU."
+
+  That last sentence is precisely why the offline/preview path works and the
+  device path does not:
+
+    flutter test (headless, NO GPU context) -> CPU raster -> synchronous and
+      complete -> correct pixels -> harness PNGs correct, gates pass.
+    iOS device (GPU context, Impeller)      -> GPU-resident, ASYNC raster ->
+      shader drawn same-frame -> empty texture -> base colour only.
+
+  The same file defines `PictureRasterizationException` (line 8601) explicitly
+  for "an Image created via Picture.toImageSync that is in an invalid state …
+  if no GPU surface or context was available for rasterization at request
+  time" — i.e. the engine anticipates exactly this misuse.
+
+2b. The offending call path (file:line)
+
+  lib/core/theme/surface_texture.dart:291  SurfaceTexturePainter.paint()
+  lib/core/theme/surface_texture.dart:279    -> _fill()
+  lib/core/theme/surface_texture.dart:121      -> SurfaceTexture.tile()
+  lib/core/theme/surface_texture.dart:125         -> _buildTile()  [PictureRecorder]
+  lib/core/theme/surface_texture.dart:138            -> toImageSync(...)   <-- HERE
+  lib/core/theme/surface_texture.dart:117      static final Map<String, ui.Image> _cache
+
+  So: first paint of any skin surface synchronously kicks off a GPU rasterize
+  and immediately samples it, then memoises the result forever.
+
+2c. Observed, not assumed (test/unit/surface_texture_raster_test.dart)
+
+  Two properties confirmed by running `flutter test --no-test-assets`:
+
+    "the tile is rasterized as a side effect of paint()"  PASSES
+        cache is empty before paint; driving one paint() pass populates it.
+        => generation really does happen on the paint path.
+
+    "the cached tile is permanent"                        PASSES
+        two tile() calls return an identical instance.
+        => a bad first raster can never self-heal.
+
+2d. Symptom match
+
+  - "solid fill" == `_fill` still draws `Paint()..color = tex.base` (line 280)
+    successfully; only the shader draw contributes nothing.
+  - Dress Blues' twill base IS #161B2C, the same navy as darkBackground —
+    hence "solid navy".
+  - Brass trim / accent / colours are plain `Paint` colours routed through
+    Palette/AppColors and touch no image, so they are unaffected. Matches the
+    report exactly.
+  - All three skins share this one path, so all three fail together.
+
+
+3. THE FIVE HYPOTHESES, ANSWERED
+--------------------------------
+1) Is the painter actually CALLED?
+   YES — and it is the trigger. Confirmed in 2c: paint() alone populates the
+   tile cache. The painter runs; it is the shader source that is empty.
+
+2) Painted BEHIND an opaque surface? (your leading hypothesis)
+   NO. The three SkinBackground children are transparent —
+     dashboard_screen.dart:301   body: SkinBackground(child: body)
+     ranks_screen.dart:45        SkinBackground(child: async.when(... Padding/Column))
+     workout_logging_screen.dart:444 SkinBackground(child: Column(...))
+   Scaffold.backgroundColor paints BEHIND body, so it cannot occlude the
+   painter. Note the painter's own base-colour rect is landing (that IS the
+   solid fill you see), which by itself proves nothing is drawn over it.
+
+   DISCRIMINATOR you can confirm on device in 5 seconds: on Dress Blues the
+   header band base is #1C2139, a lighter navy than the #161B2C ground. If you
+   can see a faint lighter band across the top ~260pt, the painter is running
+   and only the shader is empty — which is this diagnosis. If the screen is
+   perfectly uniform with no band at all, tell me: that would point elsewhere.
+
+3) Opacity zeroed / near-zero?
+   NO, not as the cause. The tones are baked into the tile bitmap, not applied
+   as alpha, and Woodland's camo is high contrast (base #313A1E vs khaki
+   #524A2C, a 33-unit delta) — it would be plainly visible if it rendered at
+   all. Its failing too rules opacity out.
+   CAVEAT, separate issue: Dress Blues' twill is deliberately near-threshold
+   (tone deltas of only 1–6 per channel, chosen so it reads as depth not
+   pattern). Even once fixed it will be subtle by design. If it still looks
+   flat to you after the fix, that is a tuning decision, not this bug.
+
+4) RELEASE-MODE ONLY?
+   NO — and this matters for how you verify. The divergence is GPU-context
+   dependent, not build-mode dependent. A DEBUG build on the device will show
+   the same bug, because the device has a GPU context either way. The thing
+   that differs is `flutter test` (no GPU context -> CPU raster -> works).
+   So "it works in debug on my phone" would NOT clear this; if you see it work
+   in debug on device, my diagnosis is wrong and I want to know.
+
+5) Shader/image asset not bundled in release?
+   NO — definitively ruled out. The textures are 100% procedural: every tone is
+   drawn with Canvas calls in _buildTile (surface_texture.dart:125-138). There
+   is no image file, no shader file, no pubspec asset entry involved. Nothing
+   exists to fail to bundle. (The assets/.env precedent does not apply here.)
+
+
+4. PROPOSED FIX (minimal, shared, no per-skin special-casing)
+------------------------------------------------------------
+Take rasterization off the paint path and make painting tolerant of a tile that
+is not ready yet.
+
+  a) Rasterize with the ASYNC `Picture.toImage()` and await it, instead of
+     `toImageSync()`. This is the documented, GPU-safe API: the future
+     completes only once the image is actually rasterized.
+  b) Cache only COMPLETED images. Keep an in-flight map so concurrent painters
+     don't start duplicate work.
+  c) `paint()` becomes non-blocking: draw the base colour, then draw the shader
+     only if the tile is ready. One frame of base-only at worst.
+  d) Repaint when a tile lands: give SurfaceTexturePainter a `repaint:`
+     Listenable that fires on tile completion. (`shouldRepaint` stays false —
+     the Listenable is the correct channel.)
+  e) Pre-warm on skin change in app.dart so the tile is normally ready before
+     the first frame that needs it, making (c) a non-event in practice.
+
+  Preserved by construction:
+   - FM + the 8 accent-swap packs have surfaceTexture == null, take the
+     `ColoredBox` branch in SkinBackground, and never touch any of this.
+   - The AA gate is computed from `lightestTone`, which is derived from the
+     configured tones, not from pixels — unaffected.
+   - The perf property (generate once, cache, no per-frame work, no scroll
+     repaints) is unchanged; it gets strictly better, since generation moves
+     off the paint path entirely.
+
+5. HOW THE FIX WILL BE VALIDATED (and how it CANNOT false-pass)
+---------------------------------------------------------------
+The honest constraint first: I cannot run this on your device, so I cannot
+give you an on-device pass. What I can do is remove the failure mechanism and
+prove the mechanism is gone in a way a debug run cannot fake:
+
+  - A regression test asserting `paint()` NEVER rasterizes: driving a paint
+    pass on a cold texture must leave the cache empty. That is the exact
+    inversion of the diagnostic in 2c, and it is renderer-independent — it
+    would fail on any backend if the bug were reintroduced.
+  - A test asserting the async path produces a tile with real, varied pixels
+    (not a uniform fill), so "it rasterized" is checked by content, not by a
+    non-null handle.
+  - The existing 3-way / 4-way render harnesses must still produce textured
+    PNGs, proving the async path feeds the real widget tree.
+
+  What none of that can prove: that Impeller on your handset is happy. The
+  argument for the device is the engine contract in 2a — `toImage()` completing
+  means rasterization is done, which is the property `toImageSync()` does not
+  give. Final confirmation has to be your build 101 on the phone.
+
+
+6. FIX AS IMPLEMENTED  (appended after the fix landed)
+------------------------------------------------------
+lib/core/theme/surface_texture.dart
+  - `toImageSync()` is GONE. `_buildTile()` became `_recordTile()`, returning a
+    ui.Picture; `ensureTile()` awaits `Picture.toImage()` and only then caches.
+  - `tile()` (which rasterized inline) is replaced by `tileOrNull()`, which
+    returns the tile if ready and otherwise starts generation and returns null.
+  - `_inFlight` map so concurrent painters share one rasterization.
+  - `SurfaceTexture.tilesReady` Listenable; `SurfaceTexturePainter` passes it to
+    `super(repaint:)`. `shouldRepaint` still returns false — config-compare is
+    the wrong channel for "a tile arrived".
+  - `_fill()` draws the base, then returns early if `tileOrNull()` is null.
+lib/app.dart:76-84
+  - Pre-warms `skin.surfaceTexture` / `skin.headerTexture` at equip time, so
+    the tile is normally ready before the first frame that needs it.
+
+  Note the painter can no longer be `const` (it holds a Listenable); two test
+  call sites were updated accordingly.
+
+7. VERIFICATION PERFORMED
+-------------------------
+  flutter analyze                -> 27 issues (baseline, unchanged)
+  flutter test --no-test-assets  -> +191 / -14, the 14 pre-existing onboarding
+                                    failures, confirmed by name. No new failures.
+
+  test/unit/surface_texture_raster_test.dart (6 tests, all passing):
+    - "paint() NEVER rasterizes a tile inline" — the exact inversion of the
+      diagnostic that confirmed the bug. Renderer-independent.
+    - "painting a cold texture still lays down the base colour" — reads back
+      pixel 0 and asserts base + full alpha, so the degraded frame is flat
+      colour and never a transparent hole.
+    - "ensureTile completes with a tile carrying real, varied pixels" — asserts
+      by CONTENT (>1 distinct colour), so an unrasterized uniform image fails.
+    - "concurrent callers share one rasterization".
+    - "every shipped full-skin texture rasterizes to real content" — runs the
+      actual Night Ops / Woodland / Dress Blues configs, both directional
+      patterns and camo lobes.
+    - "accent-swap packs never touch the texture path".
+
+  Both render harnesses still produce textured output through the real widget
+  tree, with separation scores materially unchanged from before the fix:
+    Woodland    vs Night Ops 42.3 | vs FM 28.3   (was 42.3 / 28.4)
+    Dress Blues vs FM 26.0 | vs Night Ops 36.6 | vs Woodland 36.3
+                                                (was 26.1 / 36.6 / 36.3)
+  The harnesses now pre-warm tiles inside `tester.runAsync` before pumping.
+  That mattered: without it they would have rendered flat panels and PASSED
+  their own assertions — the same blind spot that let this ship.
+
+  HONEST LIMIT, restated: none of the above runs on iOS/Impeller. What has been
+  removed is the mechanism (sampling a handle whose rasterization has not
+  completed). Confirmation on hardware is still your build 101.
+
+  Regressions guarded: FM + the 8 accent-swap packs carry no texture and take
+  SkinBackground's ColoredBox branch — asserted. AA gates are computed from
+  configured tones, not pixels, so they are untouched. Perf is unchanged and
+  strictly better: generation moved off the paint path entirely.

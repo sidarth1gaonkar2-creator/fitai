@@ -1,7 +1,7 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 
 final Float64List _identity4 = Float64List.fromList(
@@ -22,6 +22,12 @@ final Float64List _identity4 = Float64List.fromList(
 /// author; text over the *lightest* tone must still clear WCAG AA. Night Ops
 /// caps at #1C1C1C → bone 13.6:1, amber 9.4:1. Texture is for background/header
 /// surfaces only — never painted directly under dense numbers (gate c).
+/// Exists only so tile completion can be broadcast: `notifyListeners` is
+/// protected, callable only from inside a [ChangeNotifier] subclass.
+class _TileReadyNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
+
 /// How a [SurfaceTexture] lays its tones down.
 ///
 /// [camoLobes] is the original and the default, so Night Ops and Woodland are
@@ -114,13 +120,62 @@ class SurfaceTexture {
     return worst;
   }
 
+  /// Completed tiles only — an entry here has finished rasterizing.
   static final Map<String, ui.Image> _cache = {};
 
-  /// The cached seamless camo tile. Generated once (synchronously, so the
-  /// first paint and headless render harness both get pixels), then reused.
-  ui.Image tile() => _cache.putIfAbsent(id, _buildTile);
+  /// Rasterizations already under way, so concurrent painters of the same
+  /// skin don't each start their own.
+  static final Map<String, Future<ui.Image>> _inFlight = {};
 
-  ui.Image _buildTile() {
+  /// Fires whenever a tile finishes rasterizing. [SurfaceTexturePainter]
+  /// listens, so a surface that painted base-only repaints with its material
+  /// the moment the tile lands.
+  static final _TileReadyNotifier _tilesReady = _TileReadyNotifier();
+  static Listenable get tilesReady => _tilesReady;
+
+  /// Test-only: whether [id]'s tile has already been rasterized and cached.
+  @visibleForTesting
+  static bool debugIsCached(String id) => _cache.containsKey(id);
+
+  /// Test-only: forget every cached tile, so a test can observe a cold start.
+  @visibleForTesting
+  static void debugClearCache() {
+    _cache.clear();
+    _inFlight.clear();
+  }
+
+  /// The tile if it is ready, otherwise null — and, if nothing is under way
+  /// yet, kicks off rasterization.
+  ///
+  /// **Never rasterizes inline.** `Picture.toImageSync` returns a handle that
+  /// is still rasterizing whenever a GPU context exists, so sampling it in the
+  /// same paint pass yields an empty texture — which is exactly how the three
+  /// full skins came to render as flat colour on device while looking correct
+  /// in the headless harness (no GPU context there, so the engine falls back
+  /// to a synchronous CPU raster). Painting must therefore tolerate a null.
+  ui.Image? tileOrNull() {
+    final ready = _cache[id];
+    if (ready != null) return ready;
+    ensureTile();
+    return null;
+  }
+
+  /// Rasterize the tile if needed and complete when it is genuinely ready.
+  /// `toImage` (async) is the GPU-safe counterpart to `toImageSync`: its future
+  /// completes only once rasterization has actually finished.
+  Future<ui.Image> ensureTile() {
+    final ready = _cache[id];
+    if (ready != null) return Future<ui.Image>.value(ready);
+    return _inFlight.putIfAbsent(id, () async {
+      final image = await _recordTile().toImage(tileSize, tileSize);
+      _cache[id] = image;
+      _inFlight.remove(id);
+      _tilesReady.notify();
+      return image;
+    });
+  }
+
+  ui.Picture _recordTile() {
     final t = tileSize.toDouble();
     final rec = ui.PictureRecorder();
     final canvas = Canvas(rec, Rect.fromLTWH(0, 0, t, t));
@@ -135,7 +190,7 @@ class SurfaceTexture {
       case SurfaceTexturePattern.brushedMetal:
         _paintBrushedMetal(canvas, t, rnd);
     }
-    return rec.endRecording().toImageSync(tileSize, tileSize);
+    return rec.endRecording();
   }
 
   /// Diagonal ribs at 45°. The family `x - y = k·pitch` is periodic in both
@@ -266,11 +321,15 @@ class SurfaceTexture {
 /// hardware over its twill ground. Null on every other skin, which therefore
 /// paints exactly as before.
 class SurfaceTexturePainter extends CustomPainter {
-  const SurfaceTexturePainter(
+  /// Repaints on [SurfaceTexture.tilesReady], so a surface that painted
+  /// base-only picks up its material as soon as the tile finishes. That is
+  /// the correct channel for this — [shouldRepaint] compares configuration,
+  /// which hasn't changed when a tile lands.
+  SurfaceTexturePainter(
     this.texture, {
     this.header,
     this.headerHeight = 0,
-  });
+  }) : super(repaint: SurfaceTexture.tilesReady);
 
   final SurfaceTexture texture;
   final SurfaceTexture? header;
@@ -278,8 +337,13 @@ class SurfaceTexturePainter extends CustomPainter {
 
   void _fill(Canvas canvas, Rect rect, SurfaceTexture tex) {
     canvas.drawRect(rect, Paint()..color = tex.base);
+    // Null until rasterization completes. Painting the base alone for a frame
+    // is the graceful degradation; sampling an unrasterized handle instead —
+    // which is what toImageSync gave us — degrades permanently.
+    final tile = tex.tileOrNull();
+    if (tile == null) return;
     final shader = ui.ImageShader(
-      tex.tile(),
+      tile,
       TileMode.repeated,
       TileMode.repeated,
       _identity4,
