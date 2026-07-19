@@ -56,7 +56,10 @@ class AppThemeData {
     this.displayTrackingEm,
     this.cashPriceCents,
     this.ownedByDefault = false,
+    this.airborneExclusive = false,
     this.surfaceTexture,
+    this.headerTexture,
+    this.headerBandHeight = 0,
     this.cardBrackets = false,
     this.accentGlow = false,
     this.darkAlert,
@@ -158,10 +161,30 @@ class AppThemeData {
   /// Lets a cash skin be equipped/tested on device before StoreKit exists.
   final bool ownedByDefault;
 
+  /// Equippable **only** while the Airborne subscription is active — the
+  /// subscriber's flagship. Never purchasable: not with coins (it carries
+  /// `price: 0`, so a coin check would read as "free"), not with cash, and
+  /// never permanently owned, so it re-locks the moment the sub lapses.
+  ///
+  /// Distinct from every other tier: `isPremium` themes are coin-only and
+  /// deliberately NOT Airborne-unlocked, standard coin themes are unlocked by
+  /// Airborne as a price bypass, and a cash theme uses [cashPriceCents]. This
+  /// is the only kind that the subscription alone can equip.
+  final bool airborneExclusive;
+
   // ── Full-skin material (null/false → solid fills, byte-identical) ─────────
   /// Mottled dark texture painted behind background/header surfaces — the
   /// signature of a full skin (Night Ops). Null on accent-swap themes.
   final SurfaceTexture? surfaceTexture;
+
+  /// A second texture painted as a band across the top of the screen ground
+  /// and faded into [surfaceTexture] below it. Lets a skin carry two
+  /// materials — Dress Blues lays brushed-metal hardware over twill cloth.
+  /// Null on every other theme, which paints a single material as before.
+  final SurfaceTexture? headerTexture;
+
+  /// Height in logical pixels of the [headerTexture] band.
+  final double headerBandHeight;
 
   /// HUD viewport card treatment: hairline frame + corner brackets.
   final bool cardBrackets;

@@ -19,12 +19,19 @@ class SkinBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final texture = FieldManual.skin.surfaceTexture;
+    final skin = FieldManual.skin;
+    final texture = skin.surfaceTexture;
     if (texture == null) {
       return ColoredBox(color: FieldManual.ink, child: child);
     }
     return CustomPaint(
-      painter: SurfaceTexturePainter(texture),
+      painter: SurfaceTexturePainter(
+        texture,
+        // A skin may band a second material across the top of the ground.
+        // Null/0 on every skin but Dress Blues, so the others are unchanged.
+        header: skin.headerTexture,
+        headerHeight: skin.headerBandHeight,
+      ),
       child: child,
     );
   }

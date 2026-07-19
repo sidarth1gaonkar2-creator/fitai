@@ -22,6 +22,26 @@ final Float64List _identity4 = Float64List.fromList(
 /// author; text over the *lightest* tone must still clear WCAG AA. Night Ops
 /// caps at #1C1C1C → bone 13.6:1, amber 9.4:1. Texture is for background/header
 /// surfaces only — never painted directly under dense numbers (gate c).
+/// How a [SurfaceTexture] lays its tones down.
+///
+/// [camoLobes] is the original and the default, so Night Ops and Woodland are
+/// untouched. The two directional patterns exist for Dress Blues, whose
+/// references are woven cloth and brushed hardware — neither of which can be
+/// expressed as blobs at any parameter setting.
+enum SurfaceTexturePattern {
+  /// Organic blotches — field camo. Night Ops (fine, hard-edged grain) and
+  /// Woodland (large, soft-edged M81 shapes).
+  camoLobes,
+
+  /// Fine diagonal ribs — the weave of wool serge. Depth without pattern:
+  /// at arm's length it reads as a richer surface, not as stripes.
+  twillWeave,
+
+  /// Fine horizontal streaks — anisotropic polished metal. Reserved for
+  /// header bands, where it reads as the brass-and-braid hardware register.
+  brushedMetal,
+}
+
 class SurfaceTexture {
   const SurfaceTexture({
     required this.id,
@@ -33,6 +53,8 @@ class SurfaceTexture {
     this.smooth = false,
     this.minRadiusFactor = 0.045,
     this.maxRadiusFactor = 0.13,
+    this.pattern = SurfaceTexturePattern.camoLobes,
+    this.ribPitch = 5,
   });
 
   /// Cache key — must be unique per distinct look.
@@ -62,6 +84,15 @@ class SurfaceTexture {
   /// fine grain; a skin with large shapes (Woodland) raises both.
   final double minRadiusFactor;
   final double maxRadiusFactor;
+
+  /// How the tones are laid down. Defaults to [SurfaceTexturePattern.camoLobes],
+  /// the original path, so existing skins generate an identical tile.
+  final SurfaceTexturePattern pattern;
+
+  /// Spacing in logical pixels between ribs/streaks for the directional
+  /// patterns. [tileSize] must be a whole multiple of it or the pattern seams
+  /// at the tile edge — asserted in the harness.
+  final int ribPitch;
 
   /// The lightest tone any text could sit on — callers use this to prove the
   /// AA gate against the real worst case.
@@ -96,6 +127,58 @@ class SurfaceTexture {
     canvas.drawRect(Rect.fromLTWH(0, 0, t, t), Paint()..color = base);
     // Deterministic PRNG so the tile is identical every run (stable goldens).
     final rnd = math.Random(seed);
+    switch (pattern) {
+      case SurfaceTexturePattern.camoLobes:
+        _paintCamo(canvas, t, rnd);
+      case SurfaceTexturePattern.twillWeave:
+        _paintTwill(canvas, t, rnd);
+      case SurfaceTexturePattern.brushedMetal:
+        _paintBrushedMetal(canvas, t, rnd);
+    }
+    return rec.endRecording().toImageSync(tileSize, tileSize);
+  }
+
+  /// Diagonal ribs at 45°. The family `x - y = k·pitch` is periodic in both
+  /// axes with period [ribPitch], so the tile wraps seamlessly whenever
+  /// `tileSize % ribPitch == 0`. Each rib picks a tone, giving the weave a
+  /// slight irregularity rather than a mechanical stripe.
+  void _paintTwill(Canvas canvas, double t, math.Random rnd) {
+    if (tones.isEmpty) return;
+    final pitch = ribPitch.toDouble();
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = pitch * 0.55
+      ..isAntiAlias = true;
+    // Sweep k across two tile widths so ribs entering from the left edge are
+    // drawn as well as those leaving the right.
+    for (var k = -t; k <= t * 2; k += pitch) {
+      paint.color = tones[rnd.nextInt(tones.length)];
+      canvas.drawLine(Offset(k, 0), Offset(k - t, t), paint);
+    }
+  }
+
+  /// Fine horizontal grain — anisotropic, like a brushed finish. Each row is
+  /// ONE full-width stroke in a single tone; the variation is row-to-row, not
+  /// along the row.
+  ///
+  /// An earlier version broke each row into random-length segments with a
+  /// different tone per segment. That reads as scan-line corruption, not
+  /// polished metal: real brushing varies across the grain, not along it.
+  /// Full-width strokes also wrap horizontally for free.
+  void _paintBrushedMetal(Canvas canvas, double t, math.Random rnd) {
+    if (tones.isEmpty) return;
+    final pitch = ribPitch.toDouble();
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = pitch * 0.6
+      ..isAntiAlias = true;
+    for (var y = 0.0; y <= t; y += pitch) {
+      paint.color = tones[rnd.nextInt(tones.length)];
+      canvas.drawLine(Offset(0, y), Offset(t, y), paint);
+    }
+  }
+
+  void _paintCamo(Canvas canvas, double t, math.Random rnd) {
     for (final tone in tones) {
       final paint = Paint()
         ..color = tone
@@ -121,7 +204,6 @@ class SurfaceTexture {
         }
       }
     }
-    return rec.endRecording().toImageSync(tileSize, tileSize);
   }
 
   /// One irregular, camo-like lobe: a closed loop whose vertices ride a
@@ -177,17 +259,27 @@ class SurfaceTexture {
 /// Paints a [SurfaceTexture] filling the canvas: the base colour, then the
 /// cached camo tile tiled with an [ui.ImageShader]. Static — repaints only
 /// when the texture identity changes.
+///
+/// A skin may supply a second [header] texture, painted as a band across the
+/// top and faded out over its lower third so it melts into the ground rather
+/// than ending on a hard line. Dress Blues uses this to lay brushed-metal
+/// hardware over its twill ground. Null on every other skin, which therefore
+/// paints exactly as before.
 class SurfaceTexturePainter extends CustomPainter {
-  const SurfaceTexturePainter(this.texture);
+  const SurfaceTexturePainter(
+    this.texture, {
+    this.header,
+    this.headerHeight = 0,
+  });
 
   final SurfaceTexture texture;
+  final SurfaceTexture? header;
+  final double headerHeight;
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRect(rect, Paint()..color = texture.base);
+  void _fill(Canvas canvas, Rect rect, SurfaceTexture tex) {
+    canvas.drawRect(rect, Paint()..color = tex.base);
     final shader = ui.ImageShader(
-      texture.tile(),
+      tex.tile(),
       TileMode.repeated,
       TileMode.repeated,
       _identity4,
@@ -196,6 +288,35 @@ class SurfaceTexturePainter extends CustomPainter {
   }
 
   @override
+  void paint(Canvas canvas, Size size) {
+    _fill(canvas, Offset.zero & size, texture);
+
+    final band = header;
+    if (band == null || headerHeight <= 0) return;
+    final h = math.min(headerHeight, size.height);
+    final rect = Rect.fromLTWH(0, 0, size.width, h);
+    // Fade the band's lower third to nothing, so the two materials meet as a
+    // gradient rather than a seam: isolate a layer, paint the band into it,
+    // then punch its alpha out with a vertical gradient via dstIn.
+    canvas.saveLayer(rect, Paint());
+    _fill(canvas, rect, band);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..blendMode = BlendMode.dstIn
+        ..shader = ui.Gradient.linear(
+          const Offset(0, 0),
+          Offset(0, h),
+          const [Color(0xFFFFFFFF), Color(0x00FFFFFF)],
+          const [0.62, 1.0],
+        ),
+    );
+    canvas.restore();
+  }
+
+  @override
   bool shouldRepaint(SurfaceTexturePainter oldDelegate) =>
-      oldDelegate.texture.id != texture.id;
+      oldDelegate.texture.id != texture.id ||
+      oldDelegate.header?.id != header?.id ||
+      oldDelegate.headerHeight != headerHeight;
 }

@@ -33,6 +33,8 @@ class FmSkin {
     required this.alert,
     this.displayTrackingEm,
     this.surfaceTexture,
+    this.headerTexture,
+    this.headerBandHeight = 0,
     this.cardBrackets = false,
     this.accentGlow = false,
   });
@@ -72,6 +74,13 @@ class FmSkin {
   /// accent-swap themes → solid fills, byte-identical.
   final SurfaceTexture? surfaceTexture;
 
+  /// Optional second material banded across the top of the ground, faded into
+  /// [surfaceTexture]. Null on every skin but Dress Blues.
+  final SurfaceTexture? headerTexture;
+
+  /// Height in logical pixels of the [headerTexture] band.
+  final double headerBandHeight;
+
   /// HUD viewport treatment on cards: hairline frame + corner brackets.
   final bool cardBrackets;
 
@@ -101,6 +110,8 @@ class FmSkin {
         alert = const Color(0xFFC24A38),
         displayTrackingEm = null,
         surfaceTexture = null,
+        headerTexture = null,
+        headerBandHeight = 0,
         cardBrackets = false,
         accentGlow = false;
 
@@ -128,6 +139,8 @@ class FmSkin {
       alert: t.darkAlert ?? fm.alert,
       displayTrackingEm: t.displayTrackingEm,
       surfaceTexture: t.surfaceTexture,
+      headerTexture: t.headerTexture,
+      headerBandHeight: t.headerBandHeight,
       cardBrackets: t.cardBrackets,
       accentGlow: t.accentGlow,
     );
