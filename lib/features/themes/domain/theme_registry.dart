@@ -16,6 +16,38 @@ const SurfaceTexture _nightOpsTexture = SurfaceTexture(
   seed: 7,
 );
 
+// Woodland surface texture — US M81 woodland camo (design-refs/
+// WTP-1000-US-Woodland-M81-Camo.jpg) at proper character: four distinct HUES,
+// not Night Ops's four neutral greys. That hue variety is what makes it read
+// as field camo while every tone stays dark enough for AA.
+//
+// Where Night Ops darkened its reference toward near-black, Woodland keeps the
+// print's warmth and caps LIGHTNESS instead. The khaki lobe (#524A2C) is the
+// lightest thing text can land on. The binding text tone is `alert`, not bone
+// and not muted bone — being the darkest tone, it fails first, and it sets the
+// ceiling at L <= 0.0801 for every ground and card surface in this skin.
+//
+// Shape differs from Night Ops by design: medium, smooth-edged lobes (M81 is a
+// soft print, not grain) instead of fine hard-edged ones. Sized so ~2 tile
+// repeats cross a phone screen — big enough to read as camo shapes, small
+// enough that several land in view. The near-black lobe is painted LAST, the
+// way the real four-colour print overlays its black.
+const SurfaceTexture _woodlandTexture = SurfaceTexture(
+  id: 'woodland',
+  base: Color(0xFF313A1E), // dominant olive drab
+  tones: [
+    Color(0xFF453823), // brown
+    Color(0xFF524A2C), // khaki/tan — lightest lobe; the AA worst case
+    Color(0xFF1B1F10), // near-black M81 overlay, painted on top
+  ],
+  blobsPerTone: 24, // fewer, larger shapes than Night Ops's 72 fine ones
+  tileSize: 420,
+  seed: 7,
+  smooth: true, // soft printed-fabric edges, not tactical grain
+  minRadiusFactor: 0.07,
+  maxRadiusFactor: 0.18,
+);
+
 /// Static catalogue of all themes shipped with the app. Order here defines
 /// the order shown in the store grid. The first entry MUST be the default
 /// (free, always owned) so [defaultTheme] never returns null.
@@ -289,6 +321,73 @@ const List<AppThemeData> themeRegistry = [
     sheetRadius: 4, // (FM 12)
     buttonRadius: 2, // (FM 4)
     displayFontFamily: 'JetBrainsMono', // terminal HUD headers (FM Oswald)
+  ),
+
+  // 12. Woodland — the second FULL SKIN: "issued field gear". The warm
+  // counterpart to Night Ops's cold OLED HUD. Where Night Ops is a targeting
+  // display (true black, sharp 2px corners, HUD brackets, glowing infrared),
+  // Woodland is worn kit (warm olive-drab, soft 14px corners, matte panels,
+  // no glow anywhere). Sold for COINS at the premium tier — earned, not IAP.
+  //
+  // Doctrine note: DESIGN.md §6 says "no camo textures". The full-skin tier
+  // (introduced by Night Ops) is the documented carve-out — a premium skin may
+  // change the MATERIAL, not just the accent. Woodland leans on it hardest, so
+  // the restraint rule is enforced structurally instead of by convention: the
+  // texture is a screen-ground material only, and every card/sheet fill is
+  // near-solid, so camo never lands under a number the user trains against.
+  AppThemeData(
+    id: 'woodland',
+    name: 'Woodland',
+    accent: Color(0xFFC2D473), // olive-khaki; hue 71° vs brass 42°, success 126°
+    accentLight: Color(0xFFD6E39A),
+    // Success lifts off FM's #3FBF4A so it clears AA on these warmer, lighter
+    // surfaces. It stays a true green (hue 126°) while the accent sits at
+    // hue 71° — a 55° gap, so "selected" never reads as "succeeded".
+    success: Color(0xFF7FDA88),
+    surfaceTint: Color(0xFFC2D473),
+    // Olive drab with real chroma (hue 79°), not a neutral dark that happens
+    // to be green-tinted. FM's ink is already tinted, so matching its hue and
+    // only lifting lightness made Woodland read as "FM, greener" — it has to
+    // win on saturation. Verified: mean-colour separation from FM 7.9 -> 39.7.
+    darkBackground: Color(0xFF313A1E), // deep olive drab — warm, never black
+    darkSurface: Color(0xFF3B4524), // canvas-pouch panel
+    lightAccent: Color(0xFF4A5825), // dark olive, AA on white (light retired)
+    price: 2000,
+    isPremium: true,
+    accentPressed: Color(0xFF9FAE5E), // accent × 0.82 — the reference ratio
+    // FM's brick red (#C24A38) only reaches 2.85–3.54:1 even on FM's own
+    // darker surfaces; on Woodland's lighter warm ground it fails outright.
+    // Routed to a faded stencil-warning coral that clears AA on every surface
+    // including the worst camo lobe — and reads as weathered paint. This is
+    // also the tone that BINDS the whole skin: being the darkest text tone it
+    // caps every surface at L <= 0.0801.
+    darkAlert: Color(0xFFF8B0A0),
+    darkText: _bone,
+    darkTextSecondary: _mutedBone,
+    darkTextTertiary: Color(0xFFC3CBA6), // lifted olive for these surfaces
+    darkSurfaceElevated: Color(0xFF47522B),
+    // Warm tan hairline instead of bone-alpha: the stitched edge of canvas
+    // webbing rather than a machined bezel. Carried at a higher alpha than the
+    // other skins' borders on purpose — over a patterned ground a card sits on
+    // a LIGHTER tan lobe in one place and a DARKER black lobe in another, so a
+    // faint hairline lets the panel edge dissolve wherever the two happen to
+    // match. The border is what keeps a card reading as a card.
+    darkBorder: Color(0x59D8C9A8),
+    darkSeparator: Color(0x33D8C9A8),
+    // Full-skin overrides — the material, not just the accent:
+    surfaceTexture: _woodlandTexture,
+    cardBrackets: false, // matte issued gear — the HUD frame is Night Ops only
+    accentGlow: false, // glow is Night-Ops HUD doctrine; worn gear is matte
+    cardRadius: 14, // softened, worn corners (FM 8, Night Ops 2)
+    sheetRadius: 20, // (FM 12, Night Ops 4)
+    buttonRadius: 10, // (FM 4, Night Ops 2)
+    // Type stays Oswald (no stencil face is bundled, and true stencil counters
+    // hurt legibility at label sizes). The stencil register comes from weight
+    // and tracking instead: every display style at 700, tracked wide so
+    // headers read as stamped crate marking, not condensed chrome.
+    headlineWeight: 700, // FM 600
+    titleWeight: 700, // FM 600
+    displayTrackingEm: 0.08, // FM ≈0.011em — the signature move
   ),
 ];
 
