@@ -41,7 +41,10 @@ class ThemePreviewSheet extends ConsumerWidget {
     final isOwned = owned.contains(theme.id);
     final isUnlocked = unlocked.contains(theme.id);
     final isEquipped = state.equippedThemeId == theme.id;
-    final canAfford = coins >= theme.price;
+    // Only ever "affordable" if it is actually sold for coins. The Airborne
+    // flagship carries price 0, so a bare `coins >= price` would offer it to
+    // everyone for nothing.
+    final canAfford = isCoinPurchasable(theme) && coins >= theme.price;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -101,9 +104,13 @@ class ThemePreviewSheet extends ConsumerWidget {
                 canAfford: canAfford,
               ),
             ),
-            // Airborne affordance on locked STANDARD themes — premium themes
-            // stay coin-only, and subscribers see no upsell.
-            if (!airborne && !isOwned && isStandardCoinTheme(theme)) ...[
+            // Airborne affordance on locked STANDARD themes and on the
+            // Airborne-exclusive flagship — for the flagship the subscription
+            // is the ONLY way in, so the upsell is the whole call to action.
+            // Premium coin themes stay coin-only; subscribers see no upsell.
+            if (!airborne &&
+                !isOwned &&
+                (isStandardCoinTheme(theme) || theme.airborneExclusive)) ...[
               const SizedBox(height: 8),
               CupertinoButton(
                 padding: const EdgeInsets.symmetric(vertical: 6),
@@ -128,7 +135,9 @@ class ThemePreviewSheet extends ConsumerWidget {
                 ),
               ),
             ],
-            if (!isUnlocked && !canAfford) ...[
+            // The coin-shortfall hint is about the wallet, so it must not
+            // appear on a theme coins can't buy in the first place.
+            if (!isUnlocked && !canAfford && isCoinPurchasable(theme)) ...[
               const SizedBox(height: 10),
               Text(
                 'Not enough coins — finish more workouts to earn more.',
@@ -231,7 +240,17 @@ class _PriceLine extends StatelessWidget {
       // Airborne entitlement stamp — a brand moment, so brass (not the live
       // accent) on the sheet's ink ground.
       return Text(
-        'INCLUDED WITH AIRBORNE',
+        theme.airborneExclusive
+            ? 'AIRBORNE EXCLUSIVE'
+            : 'INCLUDED WITH AIRBORNE',
+        textAlign: TextAlign.center,
+        style: FieldManual.label(color: FieldManual.brass),
+      );
+    }
+    // Locked flagship: never show a coin price for something coins can't buy.
+    if (theme.airborneExclusive) {
+      return Text(
+        'AIRBORNE EXCLUSIVE',
         textAlign: TextAlign.center,
         style: FieldManual.label(color: FieldManual.brass),
       );
@@ -282,6 +301,11 @@ class _ActionButton extends StatelessWidget {
     } else if (isUnlocked) {
       label = 'EQUIP';
       enabled = true;
+    } else if (theme.airborneExclusive) {
+      // Locked flagship: the subscription is the only route, and the paywall
+      // affordance sits directly beneath this button.
+      label = 'AIRBORNE ONLY';
+      enabled = false;
     } else if (!canAfford) {
       label = 'NOT ENOUGH COINS';
       enabled = false;

@@ -100,7 +100,11 @@ class _ThemeCard extends StatelessWidget {
         ? 'equipped'
         : isOwned
             ? (isAirborneUnlock ? 'included with Airborne' : 'owned')
-            : '${theme.price} coins';
+            // The flagship is price 0 but not free — never announce it as
+            // "0 coins" to the grid or to VoiceOver.
+            : theme.airborneExclusive
+                ? 'Airborne exclusive'
+                : '${theme.price} coins';
     return Semantics(
       button: true,
       label: '${theme.name}, $stateLabel',
@@ -129,7 +133,23 @@ class _ThemeCard extends StatelessWidget {
                   fit: StackFit.expand,
                   children: [
                     _Swatch(theme: theme),
-                    if (theme.isPremium)
+                    if (theme.airborneExclusive)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        // The flagship's own chip. Brass on ink — an Airborne
+                        // brand moment, per the Airborne Brass Rule, so it
+                        // stays brass whatever pack is equipped.
+                        child: _Badge(
+                          label: 'AIRBORNE',
+                          background: Color.alphaBlend(
+                            FieldManual.brass.withValues(alpha: 0.18),
+                            FieldManual.ink,
+                          ),
+                          textColor: FieldManual.brass,
+                        ),
+                      )
+                    else if (theme.isPremium)
                       Positioned(
                         top: 8,
                         right: 8,
@@ -320,6 +340,14 @@ class _PriceLabel extends StatelessWidget {
       return Text(
         'Tap to equip',
         style: FieldManual.body(fontSize: 12, color: FieldManual.mutedBone),
+      );
+    }
+    // Locked flagship: a coin figure would be a lie (price 0, but not free).
+    // Brass copy instead — the subscription is the only route in.
+    if (theme.airborneExclusive) {
+      return Text(
+        'With Airborne',
+        style: FieldManual.body(fontSize: 12, color: FieldManual.brass),
       );
     }
     return Row(

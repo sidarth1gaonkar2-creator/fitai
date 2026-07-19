@@ -9,7 +9,12 @@ import 'package:fitai/models/user_theme_state.dart';
 /// The five standard coin themes Airborne unlocks (spec list — hardcoded on
 /// purpose so a registry reclassification fails loudly here).
 const _standardIds = {'emerald', 'sunset', 'crimson', 'ocean', 'lavender'};
-const _premiumIds = {'neon_pulse', 'stealth'};
+const _premiumIds = {'neon_pulse', 'stealth', 'woodland'};
+
+/// Airborne-EXCLUSIVE skins: the subscription is the only way to equip them,
+/// they are never purchasable, and they re-lock when it lapses. Same spec-list
+/// treatment as above — a reclassification should fail loudly here.
+const _airborneExclusiveIds = {'dress_blues'};
 
 // ── In-memory Isar stand-in ──────────────────────────────────────────────────
 // UserThemeStateNotifier only touches the singleton row: getSync(1) on load,
@@ -81,9 +86,31 @@ void main() {
       expect(unlockedThemeIds(owned: owned, airborneActive: false), owned);
     });
 
-    test('with Airborne adds exactly the standard coin themes', () {
+    test('with Airborne adds exactly the standard coin + exclusive themes', () {
       final unlocked = unlockedThemeIds(owned: owned, airborneActive: true);
-      expect(unlocked, owned.union(_standardIds));
+      expect(unlocked, owned.union(_standardIds).union(_airborneExclusiveIds));
+    });
+
+    test('the Airborne-exclusive flagship re-locks when the sub lapses', () {
+      for (final id in _airborneExclusiveIds) {
+        expect(
+          unlockedThemeIds(owned: owned, airborneActive: true),
+          contains(id),
+        );
+        // Airborne never writes ownership, so it goes away with the sub —
+        // even for a user who had equipped it.
+        expect(
+          unlockedThemeIds(owned: owned, airborneActive: false),
+          isNot(contains(id)),
+        );
+      }
+    });
+
+    test('the flagship is never purchasable with coins', () {
+      for (final id in _airborneExclusiveIds) {
+        expect(isCoinPurchasable(themeById(id)), isFalse);
+        expect(isStandardCoinTheme(themeById(id)), isFalse);
+      }
     });
 
     test('premium themes are never Airborne-unlocked', () {

@@ -108,7 +108,15 @@ class UserThemeStateNotifier extends StateNotifier<UserThemeState> {
   ///   * `PurchaseResult.alreadyOwned` — was already owned (no-op aside
   ///     from equipping)
   ///   * `PurchaseResult.insufficientFunds` — not enough coins
+  ///   * `PurchaseResult.notPurchasable` — not sold for coins at all
   Future<PurchaseResult> purchase(AppThemeData theme) async {
+    // Deepest guard in the economy: a theme that isn't sold for coins can
+    // never be bought here, whatever the UI does. The Airborne flagship
+    // carries price 0, so without this a `coins >= price` check upstream
+    // would read as "affordable" and hand it over for nothing.
+    if (!isCoinPurchasable(theme) && theme.id != defaultTheme.id) {
+      return PurchaseResult.notPurchasable;
+    }
     if (state.ownedThemeIds.contains(theme.id) ||
         theme.id == defaultTheme.id) {
       await equip(theme.id);
@@ -186,4 +194,11 @@ class UserThemeStateNotifier extends StateNotifier<UserThemeState> {
 /// Tri-state result for [UserThemeStateNotifier.purchase]. The UI uses this
 /// to decide between a success toast, a "you already own this" no-op, and a
 /// "not enough coins" error dialog.
-enum PurchaseResult { success, alreadyOwned, insufficientFunds }
+enum PurchaseResult {
+  success,
+  alreadyOwned,
+  insufficientFunds,
+
+  /// Not sold for coins — a cash skin or the Airborne-exclusive flagship.
+  notPurchasable,
+}

@@ -8,6 +8,13 @@ import 'theme_registry.dart';
 bool isStandardCoinTheme(AppThemeData theme) =>
     theme.price > 0 && !theme.isPremium;
 
+/// Whether [theme] can be bought with coins at all. False for the free
+/// default, for cash skins, and for the Airborne-exclusive flagship — which
+/// carries `price: 0` and so would otherwise read as "affordable" to any
+/// `coins >= price` check. Every purchase path must consult this first.
+bool isCoinPurchasable(AppThemeData theme) =>
+    theme.price > 0 && !theme.airborneExclusive;
+
 /// The theme IDs the user can equip right now: everything coin-owned, plus —
 /// while Airborne is active — every standard coin theme.
 ///
@@ -24,6 +31,6 @@ Set<String> unlockedThemeIds({
   return {
     ...owned,
     for (final t in themeRegistry)
-      if (isStandardCoinTheme(t)) t.id,
+      if (isStandardCoinTheme(t) || t.airborneExclusive) t.id,
   };
 }
