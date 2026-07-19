@@ -53,6 +53,7 @@ class AppThemeData {
     this.displayWeight,
     this.headlineWeight,
     this.titleWeight,
+    this.displayTrackingEm,
     this.cashPriceCents,
     this.ownedByDefault = false,
     this.surfaceTexture,
@@ -130,6 +131,13 @@ class AppThemeData {
   final double? displayWeight;
   final double? headlineWeight;
   final double? titleWeight;
+
+  /// Letter-spacing for the display faces, as a fraction of font size (em).
+  /// Null keeps Field Manual's hand-tuned absolute values exactly, so every
+  /// existing theme is byte-identical. A skin sets it to re-voice the bark
+  /// without swapping the face — Woodland tracks Oswald wide so it reads as
+  /// stencilled crate marking rather than a condensed header.
+  final double? displayTrackingEm;
 
   // ── Commerce ─────────────────────────────────────────────────────────────
   /// Price in coins — the app's single currency, earned in-app (workouts,

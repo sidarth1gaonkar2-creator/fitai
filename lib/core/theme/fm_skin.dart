@@ -31,6 +31,7 @@ class FmSkin {
     required this.headlineWeight,
     required this.titleWeight,
     required this.alert,
+    this.displayTrackingEm,
     this.surfaceTexture,
     this.cardBrackets = false,
     this.accentGlow = false,
@@ -56,6 +57,10 @@ class FmSkin {
   final double displayWeight;
   final double headlineWeight;
   final double titleWeight;
+
+  /// Display-face letter-spacing as a fraction of font size. Null → keep FM's
+  /// absolute per-style values untouched (every non-Woodland theme).
+  final double? displayTrackingEm;
 
   /// Destructive/alert tone. Default FM brick red; a skin whose ACCENT is red
   /// (Night Ops infrared) routes this off red — to amber — so alerts never
@@ -94,6 +99,7 @@ class FmSkin {
         headlineWeight = 600,
         titleWeight = 600,
         alert = const Color(0xFFC24A38),
+        displayTrackingEm = null,
         surfaceTexture = null,
         cardBrackets = false,
         accentGlow = false;
@@ -120,6 +126,7 @@ class FmSkin {
       headlineWeight: t.headlineWeight ?? fm.headlineWeight,
       titleWeight: t.titleWeight ?? fm.titleWeight,
       alert: t.darkAlert ?? fm.alert,
+      displayTrackingEm: t.displayTrackingEm,
       surfaceTexture: t.surfaceTexture,
       cardBrackets: t.cardBrackets,
       accentGlow: t.accentGlow,

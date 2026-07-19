@@ -30,25 +30,58 @@ class SurfaceTexture {
     this.blobsPerTone = 46,
     this.tileSize = 480,
     this.seed = 7,
+    this.smooth = false,
+    this.minRadiusFactor = 0.045,
+    this.maxRadiusFactor = 0.13,
   });
 
   /// Cache key — must be unique per distinct look.
   final String id;
 
-  /// The darkest tone: fills the tile before the camo lobes.
+  /// The base tone: fills the tile before the camo lobes. Usually the darkest,
+  /// but a skin may paint darker lobes over a mid base — Woodland lays its
+  /// near-black M81 overlay last, the way real four-colour woodland prints do.
   final Color base;
 
-  /// Lighter camo tones, painted as organic lobes over [base]. Keep the
-  /// lightest ≤ ~#1C1C1C so text over it holds AA.
+  /// Camo tones painted as organic lobes over [base], in paint order (later
+  /// tones sit on top). Keep the *lightest* dark enough that secondary text
+  /// still holds AA over it — see [lightestTone].
   final List<Color> tones;
 
   final int blobsPerTone;
   final int tileSize;
   final int seed;
 
+  /// Round the lobes instead of drawing straight-edged polygons. Night Ops's
+  /// fine tactical grain wants the hard polygon edge (the default, so its tile
+  /// is unchanged); Woodland's large M81 shapes want the soft organic edge of
+  /// printed fabric.
+  final bool smooth;
+
+  /// Lobe radius as a fraction of [tileSize]. The defaults are Night Ops's
+  /// fine grain; a skin with large shapes (Woodland) raises both.
+  final double minRadiusFactor;
+  final double maxRadiusFactor;
+
   /// The lightest tone any text could sit on — callers use this to prove the
-  /// AA gate against the real worst case, not the base.
-  Color get lightestTone => tones.isEmpty ? base : tones.last;
+  /// AA gate against the real worst case.
+  ///
+  /// Measured by luminance across [base] *and* [tones] rather than assuming
+  /// the last entry is lightest: a skin whose final lobe is its darkest (an
+  /// M81 black overlay) would otherwise report a false worst case and let a
+  /// failing tone through the gate.
+  Color get lightestTone {
+    var worst = base;
+    var worstLum = base.computeLuminance();
+    for (final tone in tones) {
+      final l = tone.computeLuminance();
+      if (l > worstLum) {
+        worst = tone;
+        worstLum = l;
+      }
+    }
+    return worst;
+  }
 
   static final Map<String, ui.Image> _cache = {};
 
@@ -71,7 +104,8 @@ class SurfaceTexture {
       for (var i = 0; i < blobsPerTone; i++) {
         final cx = rnd.nextDouble() * t;
         final cy = rnd.nextDouble() * t;
-        final path = _blob(rnd, cx, cy, t * 0.045, t * 0.13);
+        final path =
+            _blob(rnd, cx, cy, t * minRadiusFactor, t * maxRadiusFactor);
         // Draw the lobe plus its eight wrapped copies so the tile is seamless.
         for (var dx = -1; dx <= 1; dx++) {
           for (var dy = -1; dy <= 1; dy++) {
@@ -90,22 +124,50 @@ class SurfaceTexture {
     return rec.endRecording().toImageSync(tileSize, tileSize);
   }
 
-  /// One irregular, camo-like lobe: a closed polygon whose vertices ride a
+  /// One irregular, camo-like lobe: a closed loop whose vertices ride a
   /// jittered radius so it reads organic rather than geometric.
+  ///
+  /// [smooth] picks the edge treatment. The straight-edge branch is the
+  /// original and stays bit-for-bit identical (same PRNG draw order, same
+  /// vertices) so Night Ops's cached tile is unchanged. The smooth branch
+  /// reuses those same vertices as Bézier control points, rounding the lobe
+  /// into the soft printed-fabric shape M81 woodland actually has.
   Path _blob(math.Random rnd, double cx, double cy, double minR, double maxR) {
     final verts = 7 + rnd.nextInt(5);
     final baseR = minR + rnd.nextDouble() * (maxR - minR);
-    final path = Path();
+    final pts = <Offset>[];
     for (var i = 0; i <= verts; i++) {
       final a = (i / verts) * 2 * math.pi;
       final r = baseR * (0.5 + rnd.nextDouble() * 0.95);
-      final x = cx + math.cos(a) * r;
-      final y = cy + math.sin(a) * r;
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
+      pts.add(Offset(cx + math.cos(a) * r, cy + math.sin(a) * r));
+    }
+
+    final path = Path();
+    if (!smooth) {
+      for (var i = 0; i < pts.length; i++) {
+        if (i == 0) {
+          path.moveTo(pts[i].dx, pts[i].dy);
+        } else {
+          path.lineTo(pts[i].dx, pts[i].dy);
+        }
       }
+      path.close();
+      return path;
+    }
+
+    // Quadratic through edge midpoints: each vertex becomes a control point,
+    // so corners round off and the outline reads as a soft blotch.
+    final n = verts; // pts[verts] duplicates pts[0]'s angle — use the first n
+    Offset mid(int i) => Offset(
+          (pts[i % n].dx + pts[(i + 1) % n].dx) / 2,
+          (pts[i % n].dy + pts[(i + 1) % n].dy) / 2,
+        );
+    final start = mid(0);
+    path.moveTo(start.dx, start.dy);
+    for (var i = 1; i <= n; i++) {
+      final ctrl = pts[i % n];
+      final end = mid(i);
+      path.quadraticBezierTo(ctrl.dx, ctrl.dy, end.dx, end.dy);
     }
     path.close();
     return path;

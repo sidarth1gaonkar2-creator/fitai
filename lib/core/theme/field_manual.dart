@@ -90,6 +90,15 @@ abstract final class FieldManual {
 
   static List<FontVariation> _wght(double w) => [FontVariation('wght', w)];
 
+  /// Display-face tracking: the skin's em-based value when it sets one,
+  /// otherwise the Field Manual's hand-tuned absolute value for that style.
+  /// The null branch returns [fmDefault] unchanged, so every theme that
+  /// doesn't opt in keeps its exact letter-spacing.
+  static double _tracking(double fontSize, double fmDefault) {
+    final em = skin.displayTrackingEm;
+    return em == null ? fmDefault : fontSize * em;
+  }
+
   /// Screen titles, ceremony headlines, rank names. Uppercase commands only.
   static TextStyle display({Color color = bone}) => TextStyle(
         fontFamily: skin.displayFamily,
@@ -97,7 +106,7 @@ abstract final class FieldManual {
         fontWeight: FontWeight.w700,
         fontSize: 28,
         height: 1.05,
-        letterSpacing: 0.3,
+        letterSpacing: _tracking(28, 0.3),
         color: color,
       );
 
@@ -108,7 +117,7 @@ abstract final class FieldManual {
         fontWeight: FontWeight.w600,
         fontSize: 21,
         height: 1.1,
-        letterSpacing: 0.35,
+        letterSpacing: _tracking(21, 0.35),
         color: color,
       );
 
@@ -119,7 +128,7 @@ abstract final class FieldManual {
         fontWeight: FontWeight.w600,
         fontSize: 16,
         height: 1.2,
-        letterSpacing: 0.4,
+        letterSpacing: _tracking(16, 0.4),
         color: color,
       );
 
