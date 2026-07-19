@@ -123,10 +123,19 @@ The site's Field Manual palette, promoted to app chrome: a two-step dark ground,
 - Borders: bone at low alpha (rgba(232,228,216,0.08–0.16)), hairline weight.
 
 ### Named Rules
-**The Accent Swap Rule.** Theme packs survive as accent swaps inside Field Manual chrome: ink/field surfaces, bone text, type, and insignia are constant; a pack replaces brass with its accent (emerald, crimson, ocean, …) and its pressed variant. Brass is the default issue. The coin/Airborne economy is untouched.
+**The Accent Swap Rule.** Theme packs survive as accent swaps inside Field Manual chrome: ink/field surfaces, bone text, type, and insignia are constant; a pack replaces brass with its accent (emerald, crimson, ocean, …) and its pressed variant. Brass is the default issue. The coin/Airborne economy is untouched. (A *flagship full-skin premium* theme is the one carve-out — see The Full-Skin Tier Rule below.)
 **The One Voice Rule.** Exactly one accent is live at a time (brass, or the equipped pack's accent). Rank colors belong to insignia and ceremonies; alert red belongs to consequences. No screen mixes accents.
 **The Airborne Brass Rule.** The Airborne insignia mount (a subscriber's earned rank, brass-mounted) is always brass regardless of the equipped theme pack — an Accent Swap carve-out; never tint the mount to the pack accent. It renders only on the user's own current earned rank, never on locked/future rungs or beside a purchase affordance (rank stays earned, never bought).
 **The Olive Floor Rule.** Olive never carries reading text. Secondary copy is Muted Bone (≥4.5:1 on ink); olive is for large labels and structure only.
+
+**The Full-Skin Tier Rule.** There is exactly one tier above the Accent Swap Rule, and it is narrow. A **flagship full-skin premium theme** — a paid or subscriber-exclusive skin, not a coin pack — may restyle the *material*: surface texture, corner geometry, and display-face weight/tracking. Everything else still holds: bone text, rank insignia colors, and the Airborne brass mount are constant across every skin.
+
+The base Field Manual and all eight accent-swap packs stay **texture-free** — their chrome is quiet by doctrine, and they remain flat tonal surfaces exactly as specified above. A full skin's texture is permitted only against two hard gates, both of which are enforced in test, not by convention:
+
+1. **The worst-case-lobe gate.** Every text tone the skin uses must hold WCAG AA (≥4.5:1) measured over the *lightest* tone in the texture — the real worst case a glyph can land on — not over the base color. The binding tone is whichever text color is darkest; on a light-ish skin that is typically the alert tone, not bone.
+2. **The dense-data exclusion.** Texture is a screen-*ground* material only. Cards, sheets, and any surface carrying numbers the user trains against are near-solid fills, so pattern never sits under a readout. Ergonomics still outrank theme (§6).
+
+Skins shipped under this rule: Night Ops (cash), Woodland (coin premium), Dress Blues (Airborne-exclusive flagship).
 
 ## 3. Typography
 
@@ -203,5 +212,5 @@ Full-screen earned moment: ink scrim, oversized insignia in tier color with glow
 - **Don't** use system blue (#0A84FF) as a brand color or default Apple grouped surfaces as chrome.
 - **Don't** show purchase affordances anywhere in rank progression UI — rank is sacred; Airborne never touches rank, coins, or streaks.
 - **Don't** let olive carry body text, or any text fall below 4.5:1 on its surface.
-- **Don't** play the military theme as cosplay — no camo textures, no gratuitous stamps on every panel. One stamp is a mark; five is a costume.
+- **Don't** play the military theme as cosplay — no gratuitous stamps on every panel. One stamp is a mark; five is a costume. **Surface texture is banned on the base Field Manual and on all eight accent-swap packs**; it is permitted *only* on a flagship full-skin premium theme, and only against both gates in The Full-Skin Tier Rule (§2). A texture that fails the worst-case-lobe gate, or that lands under dense data, is cosplay — ship it flat instead.
 - **Don't** celebrate the unearned — no confetti for opening the app, no praise for incomplete work.
