@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' show Icons, Scaffold;
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/tactical_surface.dart';
 import '../../tutorial/presentation/tutorial_anchor.dart';
 
 class ShellScreen extends StatelessWidget {
@@ -154,6 +155,9 @@ class _NavItem extends StatelessWidget {
     // the default issue), inactive tabs sit in tertiary structure — olive on
     // the Field Manual, classic gray on legacy packs (DESIGN.md §Navigation).
     final color = isSelected ? palette.accent : palette.textTertiary;
+    // Active tab wears the accent halo on a HUD skin (Night Ops); empty on
+    // every other theme, so the tab bar is byte-identical there.
+    final glow = isSelected ? skinAccentTextShadows(palette.accent) : null;
     return Semantics(
       button: true,
       selected: isSelected,
@@ -171,6 +175,7 @@ class _NavItem extends StatelessWidget {
                 isSelected ? activeIcon : icon,
                 color: color,
                 size: 24,
+                shadows: glow,
               ),
               const SizedBox(height: 3),
               Text(
@@ -185,6 +190,7 @@ class _NavItem extends StatelessWidget {
                   fontSize: 10,
                   letterSpacing: 0.8,
                   color: color,
+                  shadows: glow,
                   fontWeight:
                       isSelected ? FontWeight.w600 : FontWeight.w500,
                 ),

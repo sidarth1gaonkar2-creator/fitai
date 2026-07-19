@@ -474,12 +474,21 @@ class CupertinoPrimaryButton extends StatelessWidget {
       label: label,
       button: true,
       child: ExcludeSemantics(
-        child: CupertinoButton(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-          color: accent,
-          borderRadius: BorderRadius.circular(4),
-          onPressed: onPressed,
-          child: content,
+        // The accent halo (Night Ops HUD only; empty shadow list otherwise, so
+        // every other theme is byte-identical). A primary button is one-per-
+        // screen and never in a scrolling list, so the glow stays cheap.
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(FieldManual.buttonRadius),
+            boxShadow: skinAccentGlow(accent),
+          ),
+          child: CupertinoButton(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+            color: accent,
+            borderRadius: BorderRadius.circular(FieldManual.buttonRadius),
+            onPressed: onPressed,
+            child: content,
+          ),
         ),
       ),
     );

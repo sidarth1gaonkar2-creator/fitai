@@ -103,7 +103,7 @@ Future<void> _sideBySide(
   final c = Canvas(rec, Rect.fromLTWH(0, 0, totalW.toDouble(), totalH.toDouble()));
   c.drawRect(Rect.fromLTWH(0, 0, totalW.toDouble(), totalH.toDouble()),
       Paint()..color = const Color(0xFF161616));
-  _label(c, la, Offset(pad + w / 2, headerH / 2), 26, const Color(0xFFFFB000));
+  _label(c, la, Offset(pad + w / 2, headerH / 2), 26, const Color(0xFFFF3B3B));
   _label(c, lb, Offset(pad + w + gap + w / 2.0, headerH / 2), 26,
       const Color(0xFFC8A24B));
   c.drawImage(a, Offset(pad.toDouble(), headerH.toDouble()), Paint());
@@ -185,8 +185,8 @@ class _Showcase extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text('742',
-                          style: FieldManual.readout(
-                              fontSize: 22, color: p.accent)),
+                          style: FieldManual.readout(fontSize: 22, color: p.accent)
+                              .copyWith(shadows: skinAccentTextShadows(p.accent))),
                       Text('/ 900 SCORE', style: FieldManual.label(fontSize: 9)),
                     ],
                   ),
@@ -276,7 +276,9 @@ class _Showcase extends StatelessWidget {
                       Text('135 LB × 5', style: FieldManual.readout(fontSize: 18)),
                       const SizedBox(width: 8),
                       Icon(CupertinoIcons.checkmark_alt_circle_fill,
-                          color: p.accent, size: 20),
+                          color: p.accent,
+                          size: 20,
+                          shadows: skinAccentTextShadows(p.accent)),
                     ],
                   ),
                 ],
@@ -288,6 +290,19 @@ class _Showcase extends StatelessWidget {
                 Expanded(child: _btn(p, 'LOG SET', filled: true)),
                 const SizedBox(width: 10),
                 Expanded(child: _btn(p, 'ADD SET', filled: false)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Alert/destructive — routed off red in Night Ops so it stays
+            // distinct from the reticle-red accent (amber here, brick on FM).
+            Row(
+              children: [
+                Icon(CupertinoIcons.exclamationmark_triangle_fill,
+                    color: FieldManual.alert, size: 14),
+                const SizedBox(width: 6),
+                Text('2 SETS BELOW TARGET',
+                    style: FieldManual.label(
+                        fontSize: 10, color: FieldManual.alert)),
               ],
             ),
 
@@ -372,12 +387,17 @@ class _Showcase extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon,
-                  size: 22, color: active ? p.accent : p.textTertiary),
+                  size: 22,
+                  color: active ? p.accent : p.textTertiary,
+                  shadows: active ? skinAccentTextShadows(p.accent) : null),
               const SizedBox(height: 3),
               Text(label,
                   style: FieldManual.label(
-                      fontSize: 9,
-                      color: active ? p.accent : p.textTertiary)),
+                          fontSize: 9,
+                          color: active ? p.accent : p.textTertiary)
+                      .copyWith(
+                          shadows:
+                              active ? skinAccentTextShadows(p.accent) : null)),
             ],
           ),
         );

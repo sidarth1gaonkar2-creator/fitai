@@ -30,6 +30,7 @@ class FmSkin {
     required this.displayWeight,
     required this.headlineWeight,
     required this.titleWeight,
+    required this.alert,
     this.surfaceTexture,
     this.cardBrackets = false,
     this.accentGlow = false,
@@ -55,6 +56,11 @@ class FmSkin {
   final double displayWeight;
   final double headlineWeight;
   final double titleWeight;
+
+  /// Destructive/alert tone. Default FM brick red; a skin whose ACCENT is red
+  /// (Night Ops infrared) routes this off red — to amber — so alerts never
+  /// collide with the accent.
+  final Color alert;
 
   // ── Material: the "full skin" tier ────────────────────────────────────────
   /// Mottled dark texture painted behind background/header surfaces. Null on
@@ -87,6 +93,7 @@ class FmSkin {
         displayWeight = 700,
         headlineWeight = 600,
         titleWeight = 600,
+        alert = const Color(0xFFC24A38),
         surfaceTexture = null,
         cardBrackets = false,
         accentGlow = false;
@@ -112,6 +119,7 @@ class FmSkin {
       displayWeight: t.displayWeight ?? fm.displayWeight,
       headlineWeight: t.headlineWeight ?? fm.headlineWeight,
       titleWeight: t.titleWeight ?? fm.titleWeight,
+      alert: t.darkAlert ?? fm.alert,
       surfaceTexture: t.surfaceTexture,
       cardBrackets: t.cardBrackets,
       accentGlow: t.accentGlow,

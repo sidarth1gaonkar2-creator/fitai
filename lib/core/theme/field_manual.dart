@@ -62,8 +62,10 @@ abstract final class FieldManual {
   /// reading text (fails 4.5:1 on ink at body sizes — the Olive Floor Rule).
   static const olive = Color(0xFF6B7257);
 
-  /// Destructive actions and consequences. Not an accent.
-  static const alert = Color(0xFFC24A38);
+  /// Destructive actions and consequences. Not an accent. Skin-driven so a
+  /// red-accent skin (Night Ops) can route alerts off red to amber — keeping
+  /// them distinct from the accent. FM brick red for every other theme.
+  static Color get alert => skin.alert;
 
   /// Brass for light surfaces: dark enough to hold 4.5:1 on white. FM
   /// surfaces are always dark, but Airborne accents also appear on themed

@@ -148,7 +148,9 @@ class Palette {
       accentPressed = theme.accentPressed ?? theme.accent,
       accentLight = theme.accentLight,
       success = theme.success,
-      destructive = const Color(0xFFFF453A),
+      // Skin-overridable so a red-accent skin (Night Ops) routes destructive
+      // off red to amber, keeping alerts distinct from the accent.
+      destructive = theme.darkAlert ?? const Color(0xFFFF453A),
       warning = const Color(0xFFFF9F0A);
 
   // Light mode mapping. Background/surface stay fixed (Apple grouped-light

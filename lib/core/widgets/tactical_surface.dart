@@ -114,10 +114,28 @@ class _HudFramePainter extends CustomPainter {
       old.color != color || old.radius != radius;
 }
 
-/// The accent bloom for a HUD skin — a soft same-hue shadow to hang under
-/// amber fills/active states on true black. Empty (no glow) unless the skin
-/// opts in, so quiet-chrome themes are untouched.
-List<BoxShadow> skinAccentGlow(Color accent, {double blur = 14, double alpha = 0.45}) {
+/// The accent halo for a HUD skin — a controlled same-hue bloom to hang under
+/// accent fills / active states on true black (the reticle glow). Empty (no
+/// glow) unless the skin opts in, so every other theme is untouched.
+///
+/// A single `BoxShadow` with a small spread and a defined edge — a crisp halo,
+/// not a blurry smear. **Cost/limit (perf gate):** it's opt-in per element and
+/// only ever attached to primary/active/selected accent elements (buttons, the
+/// score, the tab indicator) — never to list rows — so it never multiplies
+/// across a scrolling list. Flutter rasterises `BoxShadow` on the GPU; a
+/// handful of static glowing elements per screen is negligible and constant.
+List<BoxShadow> skinAccentGlow(Color accent, {double blur = 11, double alpha = 0.6}) {
   if (!FieldManual.skin.accentGlow) return const [];
-  return [BoxShadow(color: accent.withValues(alpha: alpha), blurRadius: blur, spreadRadius: 0.5)];
+  return [
+    BoxShadow(color: accent.withValues(alpha: alpha), blurRadius: blur, spreadRadius: 1),
+  ];
+}
+
+/// The text/icon variant of [skinAccentGlow] — a same-hue glyph glow for accent
+/// TEXT and ICONS (the score number, the active tab indicator, selected labels)
+/// via the `shadows` slot on [TextStyle] / [Icon]. Empty unless the skin opts
+/// in. Same limit: attach to single accent glyphs, never to list rows.
+List<Shadow> skinAccentTextShadows(Color accent, {double blur = 8, double alpha = 0.7}) {
+  if (!FieldManual.skin.accentGlow) return const [];
+  return [Shadow(color: accent.withValues(alpha: alpha), blurRadius: blur)];
 }

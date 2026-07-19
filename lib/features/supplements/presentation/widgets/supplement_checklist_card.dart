@@ -198,7 +198,7 @@ class SupplementChecklistCard extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 CupertinoIcons.exclamationmark_circle,
                 size: 24,
                 color: FieldManual.alert,

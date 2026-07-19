@@ -261,17 +261,20 @@ const List<AppThemeData> themeRegistry = [
   AppThemeData(
     id: 'night_ops',
     name: 'Night Ops',
-    accent: Color(0xFFFFB000), // amber phosphor — 11.6:1 on #000
-    accentLight: Color(0xFFFFC94D),
+    accent: Color(0xFFFF3B3B), // infrared reticle red — 5.94:1 on #000 (AA)
+    accentLight: Color(0xFFFF7A7A),
     success: _fmSuccess,
-    surfaceTint: Color(0xFFFFB000),
+    surfaceTint: Color(0xFFFF3B3B),
     darkBackground: Color(0xFF000000), // true black, OLED
     darkSurface: Color(0xFF0A0A0A), // whisper-lift so cards read
-    lightAccent: Color(0xFF8A5A00), // dark amber, AA on white (light retired)
+    lightAccent: Color(0xFFB3261E), // dark red, AA on white (light retired)
     price: 0, // sold for cash, not coins — see cashPriceCents
     cashPriceCents: 299,
     ownedByDefault: true, // previewable on device; IAP deferred
-    accentPressed: Color(0xFFD19000), // amber × 0.82 — the reference ratio
+    accentPressed: Color(0xFFD13030), // red × 0.82 — the reference ratio
+    // Accent is red, so route destructive/alert OFF red to amber — a HUD
+    // caution tone, distinct from the reticle-red accent (alert collision).
+    darkAlert: Color(0xFFFFB000),
     darkText: _bone,
     darkTextSecondary: _mutedBone,
     darkTextTertiary: _liftedOlive,

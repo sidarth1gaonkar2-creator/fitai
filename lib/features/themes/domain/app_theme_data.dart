@@ -58,6 +58,7 @@ class AppThemeData {
     this.surfaceTexture,
     this.cardBrackets = false,
     this.accentGlow = false,
+    this.darkAlert,
   });
 
   final String id;
@@ -159,4 +160,9 @@ class AppThemeData {
 
   /// Allow the accent to bloom on true black (a HUD signal). Off by default.
   final bool accentGlow;
+
+  /// Destructive/alert tone override — feeds both FieldManual.alert and
+  /// Palette.destructive. A skin whose accent is red (Night Ops) sets this to
+  /// amber so alerts stay distinct from the accent. Null → the classic reds.
+  final Color? darkAlert;
 }
