@@ -78,6 +78,51 @@ const Color _hairline = Color(0x1FE8E4D8); // bone @12%
 const Color _separator = Color(0x14E8E4D8); // bone @8%
 const Color _fmSuccess = Color(0xFF3FBF4A);
 
+// Dress Blues surface textures — the ceremonial parade uniform
+// (design-refs/uniform.png, gold braid, brass buttons). TWO materials, unlike
+// the other skins:
+//
+// The ground is navy TWILL (design-refs/dark navy twill fabric texture.png):
+// fine diagonal ribs whose tones sit barely above the base. That restraint is
+// the point — this skin's premium quality comes from refinement, not from
+// ruggedness, so the texture must give depth without ever reading as pattern.
+// Camo lobes at any parameter setting would read as field kit, not parade
+// dress, which is why the directional weave generator exists.
+//
+// A BRUSHED-METAL band (design-refs/navy blue brushed metal texture.png) is
+// laid across the top of the ground and faded out into the twill — the
+// hardware register of the brass button and belt plate above the cloth.
+// Both textures are deliberately near the threshold of visibility. A first
+// pass ran the twill at pitch 6 with tone deltas up to +13/channel and it read
+// as diagonal SCRATCHES — the exact failure this skin can't afford, since a
+// visible pattern is ruggedness and ruggedness is the other two skins' job.
+// Refinement means the weave is felt, not seen: fine pitch, deltas of 2–5.
+const SurfaceTexture _dressBluesTwill = SurfaceTexture(
+  id: 'dress_blues_twill',
+  base: Color(0xFF161B2C),
+  tones: [Color(0xFF171C2E), Color(0xFF191E32)],
+  tileSize: 480,
+  seed: 7,
+  pattern: SurfaceTexturePattern.twillWeave,
+  ribPitch: 3, // 480 % 3 == 0, so the diagonal wraps seamlessly
+);
+
+// The header band sits just above the twill, so it reads as a sheen catching
+// the light across the top rather than as a separate lighter plate. Tuned
+// twice: the first pass was a distinct plate (#1E2540 base, streaks to
+// #2C3557) that looked like scan-line corruption; the correction went so far
+// the band vanished, which would have shipped a twill-only skin while
+// claiming two materials. This is the middle — perceptible, never noisy.
+const SurfaceTexture _dressBluesMetal = SurfaceTexture(
+  id: 'dress_blues_metal',
+  base: Color(0xFF1C2139),
+  tones: [Color(0xFF1F2540), Color(0xFF222948)],
+  tileSize: 480,
+  seed: 11,
+  pattern: SurfaceTexturePattern.brushedMetal,
+  ribPitch: 3,
+);
+
 const List<AppThemeData> themeRegistry = [
   // 1. Default — the Field Manual: brass on ink, the app's brand issue
   // (DESIGN.md). The id stays 'midnight_blue' so installs that persisted the
@@ -388,6 +433,69 @@ const List<AppThemeData> themeRegistry = [
     headlineWeight: 700, // FM 600
     titleWeight: 700, // FM 600
     displayTrackingEm: 0.08, // FM ≈0.011em — the signature move
+  ),
+
+  // 13. Dress Blues — the AIRBORNE-EXCLUSIVE FLAGSHIP full skin. Ceremonial
+  // parade uniform: deep dress navy, gold-braid accent, brass trim.
+  //
+  // The design risk here is the opposite of the other two full skins. Night
+  // Ops and Woodland earn their premium feel through rugged MATERIAL; if
+  // Dress Blues tried that it would just be a navy theme with a texture.
+  // Its premium quality has to come from REFINEMENT, so it is built from
+  // three restrained moves rather than one loud one:
+  //   1. a barely-there twill weave (depth, not pattern),
+  //   2. metallic brass TRIM — the gold hairline on every card and divider,
+  //      which is the actual ceremonial signal, and
+  //   3. crisp geometry and open, formal tracking; nothing busy.
+  //
+  // The trim costs no new painter code: CupertinoCard already strokes
+  // `palette.border`, so pointing darkBorder at gold puts a brass hairline on
+  // every card, sheet and separator app-wide.
+  AppThemeData(
+    id: 'dress_blues',
+    name: 'Dress Blues',
+    // Gold braid, not FM brass. Same hue family by definition — braid IS
+    // brass-family — but lifted well clear in luminance (0.518 vs 0.386) so
+    // it reads as polished bullion against navy rather than as FM's accent.
+    accent: Color(0xFFD9BC6A),
+    accentLight: Color(0xFFEBD79B),
+    success: Color(0xFF5BD16A),
+    surfaceTint: Color(0xFFD9BC6A),
+    darkBackground: Color(0xFF161B2C), // deepest dress navy
+    darkSurface: Color(0xFF1E2540), // card / panel
+    lightAccent: Color(0xFF7A5E1B), // dark gold, AA on white (light retired)
+    // NOT sold: price 0 with airborneExclusive, so isCoinPurchasable() is
+    // false and every purchase path refuses it. Not ownedByDefault either —
+    // it re-locks the moment the subscription lapses.
+    price: 0,
+    airborneExclusive: true,
+    accentPressed: Color(0xFFB29A57), // gold × 0.82 — the reference ratio
+    // FM's brick red is far too dark to hold AA on navy; lifted to a
+    // parade-sash red that clears 4.76:1 even on the lightest metal streak.
+    darkAlert: Color(0xFFF0857A),
+    darkText: _bone,
+    darkTextSecondary: _mutedBone,
+    darkTextTertiary: Color(0xFFA6B0CE), // steel blue — the uniform's shadow
+    darkSurfaceElevated: Color(0xFF29314F),
+    // THE BRASS TRIM. Gold at 60% is a hairline of bullion on every card and
+    // sheet; separators run weaker so rows stay quiet. This is the single
+    // highest-leverage line in the skin.
+    darkBorder: Color(0x99D9BC6A),
+    darkSeparator: Color(0x4DD9BC6A),
+    // Two materials: twill ground, brushed-metal header band faded into it.
+    surfaceTexture: _dressBluesTwill,
+    headerTexture: _dressBluesMetal,
+    headerBandHeight: 260,
+    cardBrackets: false, // brackets are Night Ops's HUD signature
+    accentGlow: false, // and glow is HUD doctrine, not ceremony
+    cardRadius: 6, // crisp and precise (FM 8, Night Ops 2, Woodland 14)
+    sheetRadius: 10,
+    buttonRadius: 3,
+    // Refinement reads as lighter and more open, not heavier: the display
+    // face drops to 600 (FM 700) and the tracking opens to a formal,
+    // inscription-like 0.05em — half of Woodland's stencil 0.08em.
+    displayWeight: 600,
+    displayTrackingEm: 0.05,
   ),
 ];
 
