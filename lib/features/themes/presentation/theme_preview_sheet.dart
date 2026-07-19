@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/field_manual.dart';
+import '../../../core/theme/surface_texture.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
 import '../../../core/widgets/jump_wings.dart';
 import '../../../providers/entitlement_providers.dart';
@@ -327,12 +328,22 @@ class _MockDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    // Read geometry/material from the PREVIEWED theme, never from
+    // FieldManual.skin — that reflects the theme currently *equipped*, which
+    // is precisely the one the user isn't looking at here. Accent-swap packs
+    // leave these null and resolve to the original literals, so their preview
+    // is unchanged; a full skin previews as the material it actually is.
+    final radius = theme.cardRadius ?? 8;
+    final borderColor = theme.darkBorder ?? FieldManual.hairline;
+    final texture = theme.surfaceTexture;
+
+    final panel = Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: theme.darkBackground, // ink on every pack
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: FieldManual.hairline),
+        // Left transparent when a texture paints behind, so the camo shows.
+        color: texture == null ? theme.darkBackground : null,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         children: [
@@ -348,8 +359,8 @@ class _MockDashboard extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: theme.darkSurface, // field on every pack
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: FieldManual.hairline),
+              borderRadius: BorderRadius.circular(radius),
+              border: Border.all(color: borderColor),
             ),
             child: Row(
               children: [
@@ -390,6 +401,17 @@ class _MockDashboard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+
+    if (texture == null) return panel;
+    // A full skin's texture IS the thing being bought. Previewing it as a flat
+    // fill would sell the skin on its accent alone.
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: CustomPaint(
+        painter: SurfaceTexturePainter(texture),
+        child: panel,
       ),
     );
   }
