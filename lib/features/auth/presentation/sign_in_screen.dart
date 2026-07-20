@@ -78,7 +78,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
     return Scaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       appBar: CupertinoNavigationBar(
         middle: Text('SIGN IN', style: FieldManual.title()),
         backgroundColor: FieldManual.ink.withValues(alpha: 0.82),

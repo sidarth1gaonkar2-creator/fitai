@@ -46,7 +46,7 @@ class _WorkoutsScreenState extends ConsumerState<WorkoutsScreen>
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
     return Scaffold(
-      backgroundColor: palette.background,
+      backgroundColor: palette.scaffold,
       appBar: CupertinoNavigationBar(
         middle: const Text('Workouts'),
         backgroundColor: palette.background.withValues(alpha: 0.8),

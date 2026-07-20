@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import '../../../../core/theme/app_colors.dart';
 
 import '../../../../core/theme/field_manual.dart';
 import '../../../../core/widgets/macro_readout.dart';
@@ -35,7 +36,7 @@ class NutritionSummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: FieldManual.field,
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: FieldManual.hairline),
       ),

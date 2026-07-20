@@ -1,0 +1,148 @@
+CARD SURFACE SWAP-STALENESS — AUDIT + FIX
+=========================================
+Date:   2026-07-20
+Branch: throwaway/dress-blues-texture-variants   (unchanged, NOT merged)
+main:   a8467cf — NOT touched
+State:  fix applied, NOT committed (diff only, per instruction)
+
+--------------------------------------------------------------------------
+PHASE 1 — AUDIT
+--------------------------------------------------------------------------
+SYMPTOM: after a skin swap, some dashboard card SURFACES keep the previous
+skin's colour (accent/trim update correctly), fixed only by a cold restart.
+Named: Today's Orders (OrdersBlock) and Canteen (CanteenCard) stale;
+Specialist rank card (RankStrip) and Rations (RationsPanel) correct.
+
+ROOT CAUSE — proven, not assumed. It is NOT the texture cache, and NOT the
+const-capture bug from GlobalSkinBackground. It is a MISSING THEME DEPENDENCY.
+
+  A skin swap updates FieldManual.skin (a static) and rebuilds CupertinoApp's
+  CupertinoThemeData. Flutter then marks dirty ONLY the elements that took a
+  dependency on that InheritedWidget — i.e. those that called
+  CupertinoTheme.of(context) (which AppColors.of(context) does internally) or
+  ref.watch(activeThemeProvider).
+
+  A card whose OWN build() paints its outer surface from the skin-driven
+  static FieldManual.field, WITHOUT that same build establishing such a
+  dependency, is never marked dirty. Its RenderObject keeps the old colour
+  until something else forces a rebuild (cold restart, or navigating away from
+  the always-mounted dashboard tab and back).
+
+  The static FieldManual.field DID change on swap — the widget simply never
+  re-read it.
+
+WHY IT WAS A SUBSET (the discriminator is dependency, NOT const-ness):
+  widget            | const in dash? | own theme dep?                  | result
+  ------------------|----------------|---------------------------------|-------
+  OrdersBlock       | no             | AppColors.of only in CHILDREN   | STALE
+  CanteenCard       | no             | AppColors.of only in a ternary  | STALE
+                    |                | (goalMet ? .accent : …) — the   |
+                    |                | branch is skipped when <8       |
+  RationsPanel      | no             | AppColors.of at TOP of build    | fresh
+  RankStrip         | YES (const)    | ConsumerWidget, watches providers| fresh
+                    |                | + AppColors.of                  |
+
+  Note both stale AND working cards use `color: FieldManual.field` — the token
+  is identical. The only difference is whether build() also established a theme
+  dependency covering that outer surface. That is why swapping the token was
+  never going to be the fix; the dependency is.
+
+PROOF (test/unit/card_swap_staleness_test.dart, run BEFORE the fix):
+  A harness freezes the card's widget instance (so it can only refresh via its
+  OWN dependency — the on-device "dashboard tab stays mounted across the swap"
+  condition), equips Night Ops live, and reads the card's rendered outer
+  surface colour.
+    OrdersBlock  : expected Night Ops #0A0A0A, got #21241F (FM) — FAILED (stale)
+    CanteenCard  : expected #0A0A0A, got #21241F — FAILED (stale)
+    RationsPanel : followed the swap correctly — PASSED (control)
+  The control passing proves the harness reports a working card as working, so
+  the two failures are real staleness, not a harness artefact.
+
+APP-WIDE SCAN — the class is LARGER than the three named. Every dashboard/
+nutrition surface widget was checked for "outer surface = FieldManual.field
+with no covering theme dependency":
+
+  widget                     | dep covering outer surface? | verdict
+  ---------------------------|-----------------------------|--------------------
+  OrdersBlock                | no (children only)          | STALE  -> fixed
+  CanteenCard                | no (conditional ternary)    | STALE  -> fixed
+  daily_summary_header       | none at all (Stateless,     | LATENT -> fixed
+                             | zero AppColors.of/watch)    |
+  fitness_workouts_card      | ConsumerWidget but watches   | LATENT -> fixed
+                             | DATA providers only; no     | (surfaces at
+                             | AppColors.of — a data watch  |  loading + data)
+                             | is NOT a theme dependency   |
+  recon_readouts             | same — data-only watch      | LATENT -> fixed
+  activity_row (3 sub-cards) | same — data-only watch      | LATENT -> fixed
+  supplement_checklist_card  | AppColors.of at TOP (line17)| fresh  -> untouched
+  RationsPanel / RankStrip   | dependency present          | fresh  -> untouched
+
+  IMPORTANT nuance found during the scan: fitness_workouts_card, recon_readouts
+  and activity_row are ConsumerWidgets, but they ref.watch only DATA providers
+  (health/fitness). A data watch does NOT subscribe to the theme, so they would
+  go stale exactly like the Stateless cards if mounted during a swap. They are
+  also instantiated `const` in the dashboard (lines 241/243/245), which is why
+  a "make the parent rebuild" fix would NOT reach them — proof that the fix has
+  to live in each widget.
+
+--------------------------------------------------------------------------
+PHASE 2 — FIX
+--------------------------------------------------------------------------
+Each stale widget's OUTER card surface now reads AppColors.of(context).surface
+instead of the static FieldManual.field.
+
+  * AppColors.of(context).surface == FieldManual.field for EVERY theme
+    (both resolve to theme.darkSurface), so there is no visual change for any
+    theme — only the timing changes.
+  * The AppColors.of(context) call establishes the CupertinoTheme dependency,
+    so the widget is marked dirty on swap and re-reads the current surface.
+  * Same shape as the GlobalSkinBackground fix: derive from the watched theme
+    rather than a captured/unsubscribed static.
+
+Files (6), outer-surface reads converted:
+  dashboard/widgets/orders_block.dart          1
+  dashboard/widgets/canteen_card.dart          1
+  dashboard/widgets/fitness_workouts_card.dart 2  (loading + data branch)
+  dashboard/widgets/recon_readouts.dart        1
+  dashboard/widgets/activity_row.dart          3  (connect banner + 2 cards)
+  nutrition/widgets/daily_summary_header.dart  1
+  (AppColors import added where the widget didn't already have it.)
+
+NOT changed: inner transient uses (skeletons, pressed/fieldRaised states) and
+the ~40 other files using FieldManual.field on screens that are NOT always-
+mounted — those build fresh AFTER a swap when navigated to, so they never show
+a stale surface. Converting them would be churn without a bug behind it.
+supplement_checklist_card already had the dependency and was left alone.
+
+REGRESSION GUARD: test/unit/card_swap_staleness_test.dart is kept as the
+guard — it drives a live swap through the frozen-instance harness and asserts
+OrdersBlock and CanteenCard follow it, with RationsPanel as a working control.
+It fails if anyone reintroduces a surface read without a theme dependency in
+those cards. (A purely static guard was considered and rejected: "reads
+FieldManual.field without a covering dependency" cannot be detected reliably
+by grep without false-positives across the ~40 legitimate uses.)
+
+IMPELLER: no blend mode added; no rasterization touched. Pure colour-token
+sourcing change.
+
+--------------------------------------------------------------------------
+VERIFICATION
+--------------------------------------------------------------------------
+  flutter analyze                -> 27 issues (baseline, unchanged)
+  flutter test --no-test-assets  -> +199 / -14
+                                    non-onboarding failures: 0
+                                    (the 14 are the pre-existing onboarding set)
+  card_swap_staleness_test.dart  -> 3/3 pass (were 1/3 before the fix)
+  global_background + scaffold_scoping tests -> still green
+
+NOT verified on device — no local iOS build on this Windows machine, and no
+offline preview is offered as evidence. The mechanism (missing theme
+dependency) is removed; confirmation is your TestFlight build.
+
+--------------------------------------------------------------------------
+DIFF (no commit, per instruction)
+--------------------------------------------------------------------------
+ 6 widget files, 13 insertions(+), 9 deletions(-), each line of the form
+   -        color: FieldManual.field,
+   +        color: AppColors.of(context).surface,
+ plus one new test file (card_swap_staleness_test.dart).

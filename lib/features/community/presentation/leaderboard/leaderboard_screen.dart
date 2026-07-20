@@ -47,7 +47,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     final userId = ref.watch(currentUserIdProvider);
 
     return Container(
-      color: palette.background,
+      color: palette.scaffold,
       child: SafeArea(
         child: Column(
           children: [

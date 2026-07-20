@@ -228,7 +228,7 @@ class _CreateSavedMealScreenState
 
     if (_isEdit && !_initialLoadDone) {
       return Scaffold(
-        backgroundColor: FieldManual.ink,
+        backgroundColor: FieldManual.scaffold,
         appBar: CupertinoNavigationBar(
           middle: Text('EDIT MEAL', style: FieldManual.title()),
           backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
@@ -244,7 +244,7 @@ class _CreateSavedMealScreenState
     }
 
     return Scaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       appBar: CupertinoNavigationBar(
         middle: Text(
           _isEdit ? 'EDIT MEAL' : 'CREATE MEAL',

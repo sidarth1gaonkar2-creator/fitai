@@ -262,7 +262,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             profile.fatGoalG != null);
     final targets = profile != null ? resolveDailyTargets(profile) : null;
     return Scaffold(
-      backgroundColor: palette.background,
+      backgroundColor: palette.scaffold,
       appBar: CupertinoNavigationBar(
         // Field Manual nav: Oswald designation, hairline rule.
         middle: Text('EDIT PROFILE', style: FieldManual.title()),

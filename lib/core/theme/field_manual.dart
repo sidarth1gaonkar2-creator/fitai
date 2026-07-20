@@ -23,6 +23,19 @@ abstract final class FieldManual {
   /// Screen background.
   static Color get ink => skin.ink;
 
+  /// Ground for page SCAFFOLDS. Identical to [ink] for every theme without a
+  /// surface texture — Field Manual and the eight accent-swap packs are
+  /// unchanged. Transparent for a texture skin, so the app-wide texture layer
+  /// painted above routing shows through instead of being covered by each
+  /// page's own opaque fill.
+  ///
+  /// The static twin of `Palette.scaffold`, for the many screens that set a
+  /// scaffold colour without a Palette in scope. Use it ONLY for scaffold
+  /// grounds — modal sheets and cards keep [ink]/[field], since a transparent
+  /// sheet would put dense content straight onto the texture.
+  static Color get scaffold =>
+      skin.surfaceTexture == null ? skin.ink : const Color(0x00000000);
+
   /// Cards, panels, sheets — one tonal step above ink.
   static Color get field => skin.field;
 

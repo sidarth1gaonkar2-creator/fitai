@@ -1,0 +1,210 @@
+DRESS BLUES — SURFACE TEXTURE VARIANT COMPARISON BUILD
+======================================================
+Date:   2026-07-19
+Branch: throwaway/dress-blues-texture-variants   (NOT merged, NOT pushed, NOT on main)
+Base:   a8467cf (texture async-raster fix) + 5c9283b (build 100)
+
+Two variants, switchable at runtime, so both can be judged on-device from one
+build. I have NOT picked one.
+
+--------------------------------------------------------------------------
+0. YOUR REFERENCE DID NOT UPLOAD — WHAT I USED INSTEAD
+--------------------------------------------------------------------------
+design-refs/dress_blues_twill_ref.png did not arrive with the task. Nothing new
+appeared in design-refs/. With your go-ahead I used the already-committed
+design-refs/dark navy twill fabric texture.png (deep navy, soft draped folds,
+low-contrast sheen) and saved it under the filename you specified.
+
+  design-refs/dress_blues_twill_ref.png   317 x 433, 104,637 bytes
+
+If your intended reference was a different photo, Variant B is baked from the
+wrong source and needs a re-bake — Variant A is unaffected either way.
+
+--------------------------------------------------------------------------
+1. VARIANT A — PROCEDURAL   (no shipped bitmap)
+--------------------------------------------------------------------------
+lib/core/theme/dress_blues_variants.dart :: _ProceduralPainter
+
+Layers, painted bottom to top:
+  1. BASE            flat fill, shadow #1E2A44
+  2. DRAPE           screen-scale fold light/shadow:
+                       - one broad diagonal wash mid #2E3E5C -> shadow, setting
+                         the light direction
+                       - 5 elongated soft highlight bands toward #3A4E70
+                         (transparent -> alpha -> transparent), varied angle and
+                         reach, deterministic (Random(24))
+                       - 3 matching shadow troughs so folds have a dark side
+                     Painted at SCREEN scale, not into the tile: a fold that
+                     repeated every 480px would read as wallpaper.
+  3. TWILL GRAIN     45 degree diagonal ribs, tiled 480px, ribPitch 3,
+                     tones 0x0E/0x16 white + 0x12 black — a veil, not a fill.
+                     Transparent tile base so the drape shows through.
+  4. MICRO-STREAKS   horizontal-only anisotropic grain, tiled 480px, ribPitch 2,
+                     alphas 0x0A/0x06/0x0A. Single-axis is what makes a brushed
+                     finish read as brushed.
+  5. SHEEN           ONE soft specular band, wide diagonal gradient peaking at
+                     alpha 0.13 of #3A4E70. Restrained, not chrome: no hard
+                     edge, no second reflection.
+
+Bundle-size delta: ZERO. Nothing shipped; everything is drawn at runtime.
+
+--------------------------------------------------------------------------
+2. VARIANT B — BAKED   (reference photo + procedural sheen)
+--------------------------------------------------------------------------
+lib/core/theme/dress_blues_variants.dart :: _BakedPainter
+
+Layers:
+  1. BASE       flat shadow #1E2A44 (so a not-yet-decoded image degrades to
+                flat navy for one frame rather than a hole)
+  2. CLOTH      the reference photograph, decoded once and drawn FITTED (cover),
+                centred, FilterQuality.medium. Carries drape + weave together.
+  3. SHEEN      the identical procedural specular band from Variant A, on top.
+
+FITTED, not tiled — deliberate: the reference is a photograph with distinctive
+individual folds. Tiling it would read as obvious repeating wallpaper.
+
+BUNDLE-SIZE COST
+  assets/textures/dress_blues_twill.png   104,637 bytes  (~102 KB)
+  This is the ONLY shipped bitmap either variant uses. PNG is already
+  compressed, so app-bundle growth is ~102 KB.
+
+QUALITY CAVEAT YOU SHOULD WEIGH (this is the real cost, not the KB):
+  The source is only 317 x 433. Covering a 3x phone screen (1170 x 2532) needs
+  roughly a 5.8x upscale, so Variant B will look noticeably SOFTER than A —
+  possibly mushy. If B's look wins but the softness bothers you, the fix is a
+  higher-resolution source photo (~1200 x 2600 would need no upscaling), which
+  would also push the bundle cost up substantially. Judge A vs B on look; treat
+  B's sharpness as improvable, not as its ceiling.
+
+--------------------------------------------------------------------------
+3. IMPELLER SAFETY
+--------------------------------------------------------------------------
+Given the earlier device bug, both variants are built to avoid the whole class:
+
+  * NO non-srcOver blend modes anywhere in either variant. Not one. Lightening
+    is done with pre-computed alpha on a light colour, never a live screen/plus
+    blend — so there is no saveLayer requirement to get wrong. (The shipped
+    painter's saveLayer + dstIn header fade is untouched and unused by these.)
+  * NO rasterization inside paint(). Both go through the device-proven async
+    path from a8467cf: procedural tiles via SurfaceTexture.ensureTile(), the
+    baked image via an awaited codec decode. paint() only ever consumes an
+    already-finished image.
+  * Repaint-on-ready: A listens to SurfaceTexture.tilesReady, B to its own
+    notifier, so a surface that painted base-only picks up its material the
+    moment the source lands.
+  * Both degrade to flat navy for at most one frame, never to a hole.
+
+NOT VERIFIED ON DEVICE. I cannot build iOS on this Windows machine. No offline
+preview is offered as proof of anything — the device is the only authority.
+
+--------------------------------------------------------------------------
+4. APP-WIDE HOIST (amendment)
+--------------------------------------------------------------------------
+The texture is no longer painted per-screen. It is one layer above routing.
+
+  lib/app.dart, CupertinoApp.router `builder:`
+    Stack([ GlobalSkinBackground, child, TutorialOverlayHost ])
+
+  * BUILDER level, not shell level — so it backs the StatefulShell tabs AND
+    out-of-shell routes (ai-coach, workout detail, …) alike.
+  * A const sibling of the navigator, so it stays mounted across navigation:
+    no per-route rebuild, no flash between pages.
+  * Wrapped in RepaintBoundary, so route transitions, list scrolling and the
+    tutorial overlay cannot dirty it and it cannot dirty them.
+  * Texture generated/cached once (ui.Image), never per frame or per route.
+
+  lib/core/widgets/tactical_surface.dart
+    SkinBackground became a PASS-THROUGH for texture skins (the global layer
+    now owns the material; painting in both places would double-composite).
+    For every non-texture theme it is the same opaque ink fill as before.
+
+--------------------------------------------------------------------------
+5. THEME SCOPING — THE OTHER 8 THEMES ARE UNAFFECTED
+--------------------------------------------------------------------------
+New token: Palette.scaffold (lib/core/theme/app_colors.dart)
+
+    scaffold = theme.surfaceTexture == null ? theme.darkBackground
+                                            : transparent
+
+  For Field Manual and all eight accent-swap packs, surfaceTexture is null, so
+  scaffold IS darkBackground — the exact same colour object they always had.
+  Nothing about their rendering changes. That equality is what makes this safe,
+  and it is asserted, not asserted-by-hand: see test below.
+
+  Scaffold grounds were switched from palette.background -> palette.scaffold
+  (20 sites), plus the two theme roots:
+    - CupertinoThemeData.scaffoldBackgroundColor  (app.dart)
+    - AppTheme.dark scaffoldBackgroundColor       (Material shim; ternary on
+      FieldManual.skin.surfaceTexture)
+  Nav/appbar backgrounds deliberately KEPT palette.background at alpha 0.8-0.82
+  so bars stay legible over the texture rather than going transparent.
+
+  GlobalSkinBackground returns SizedBox.shrink() when the skin has no texture —
+  non-texture themes do not even construct a painter.
+
+  Net: no global scaffoldBackgroundColor was forced transparent.
+
+--------------------------------------------------------------------------
+6. READABILITY AT FULL HERO STRENGTH (per your final instruction)
+--------------------------------------------------------------------------
+Full hero strength on every page. I did NOT create a calmer app-wide variant and
+did NOT auto-dim anything behind lists or settings.
+
+What protects content, unchanged from the shipped skin:
+  - cards/sheets paint OPAQUE fills (darkSurface #1E2540, elevated #29314F),
+    so dense data never sits on the texture itself
+  - the brass hairline trim (0x99 gold) still frames every card against the
+    busier ground
+  - nav bars keep an opaque-ish 0.8-0.82 backdrop
+
+FLAGGED, NOT FIXED — needs your eyes on device. I could not visually verify
+these on hardware, and they are the places where full strength is most likely
+to bite, all of them screens where content sits DIRECTLY on the ground rather
+than inside an opaque card:
+
+  1. settings_screen — section labels (_SectionLabel) are bare text on the
+     ground between cards.
+  2. nutrition / meal list screens — group headers and empty-state copy sit
+     directly on the ground.
+  3. workouts — set-log secondary labels outside card fills.
+
+  If any of those read badly, per your instruction I am NOT dimming the
+  background. The proposals, for you to pick from:
+    (a) give _SectionLabel and equivalent bare-text runs a subtle scrim
+        (a rounded translucent ink pill behind the text only), or
+    (b) raise card/sheet surface opacity slightly on those screens so more
+        content lives inside an opaque fill rather than on the ground.
+  Both leave the background at full strength. Your call, not mine.
+
+--------------------------------------------------------------------------
+7. HOW TO TOGGLE A/B ON DEVICE
+--------------------------------------------------------------------------
+  Equip Dress Blues, then: Settings ▸ Developer ▸ "Dress Blues texture · …"
+  Two rows, radio-style; tap to switch. Takes effect immediately app-wide.
+
+  Gate: the existing _adminEmails allowlist in settings_screen.dart — NOT
+  kDebugMode — so it is visible to your admin accounts in TestFlight and
+  release builds, and never to the Apple review account or regular users.
+
+  Default on launch: Variant A (procedural).
+
+--------------------------------------------------------------------------
+8. VERIFICATION
+--------------------------------------------------------------------------
+  flutter analyze                -> 27 issues (baseline, unchanged)
+  flutter test --no-test-assets  -> +191 / -14, the 14 pre-existing onboarding
+                                    failures, confirmed by name. No new failures.
+
+  No offline/matplotlib preview is offered as evidence of appearance. The
+  device render is the only authority, as you said.
+
+--------------------------------------------------------------------------
+9. WHAT TO DELETE WHEN YOU PICK A WINNER
+--------------------------------------------------------------------------
+  - lib/core/theme/dress_blues_variants.dart          (whole file)
+  - the toggle block in settings_screen.dart          (marked THROWAWAY)
+  - the DressBluesVariants lines in app.dart          (marked THROWAWAY)
+  - the painterFor hook in tactical_surface.dart      (marked THROWAWAY)
+  - assets/textures/ + its pubspec entry              (only if A wins)
+  Keep: Palette.scaffold, GlobalSkinBackground, the SkinBackground
+  pass-through — those are the app-wide hoist and are variant-independent.

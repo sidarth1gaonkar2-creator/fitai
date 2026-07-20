@@ -22,7 +22,7 @@ class PRHallScreen extends ConsumerWidget {
     final muscleFilter = ref.watch(prFilterMuscleProvider);
 
     return CupertinoPageScaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       navigationBar: CupertinoNavigationBar(
         middle: Text('PERSONAL RECORDS', style: FieldManual.title()),
         backgroundColor: FieldManual.ink.withValues(alpha: 0.82),

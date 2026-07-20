@@ -125,6 +125,7 @@ class Palette {
     required this.success,
     required this.destructive,
     required this.warning,
+    required this.scaffold,
   });
 
   // Dark mode mapping. Background and surface come from the theme directly.
@@ -159,7 +160,15 @@ class Palette {
       // now resolve to the same AA-safe tone. The three full skins override
       // darkAlert explicitly and are untouched.
       destructive = theme.darkAlert ?? const Color(0xFFF07A63),
-      warning = const Color(0xFFFF9F0A);
+      warning = const Color(0xFFFF9F0A),
+      // Scaffold ground. Identical to [background] for every theme WITHOUT a
+      // surface texture — i.e. Field Manual and all eight accent-swap packs
+      // are byte-identical and see no change at all. A texture skin makes it
+      // transparent so the app-wide texture layer painted above routing shows
+      // through instead of being covered by each page's own opaque fill.
+      scaffold = theme.surfaceTexture == null
+          ? theme.darkBackground
+          : const Color(0x00000000);
 
   // Light mode mapping. Background/surface stay fixed (Apple grouped-light
   // tokens — themes don't override these because most themes are dark-mode
@@ -178,7 +187,8 @@ class Palette {
       accentLight = theme.accentLight,
       success = theme.success,
       destructive = const Color(0xFFFF3B30),
-      warning = const Color(0xFFFF9500);
+      warning = const Color(0xFFFF9500),
+      scaffold = const Color(0xFFF2F2F7);
 
   // Compile-time-constant fallbacks. Mirror the default Field Manual palette
   // so any const-context use of `AppColors.dark`/`.light` still resolves to
@@ -197,7 +207,8 @@ class Palette {
       accentLight = const Color(0xFFE0C27E),
       success = const Color(0xFF3FBF4A),
       destructive = const Color(0xFFF07A63), // AA-safe FM alert
-      warning = const Color(0xFFFF9F0A);
+      warning = const Color(0xFFFF9F0A),
+      scaffold = const Color(0xFF1A1C1A);
 
   const Palette._defaultLight()
     : background = const Color(0xFFF2F2F7),
@@ -213,7 +224,8 @@ class Palette {
       accentLight = const Color(0xFFE0C27E),
       success = const Color(0xFF34C759),
       destructive = const Color(0xFFFF3B30),
-      warning = const Color(0xFFFF9500);
+      warning = const Color(0xFFFF9500),
+      scaffold = const Color(0xFFF2F2F7);
 
   final Color background;
   final Color surface;
@@ -242,4 +254,10 @@ class Palette {
   final Color success;
   final Color destructive;
   final Color warning;
+
+  /// Ground for page scaffolds. Equals [background] for every theme without a
+  /// surface texture (Field Manual + all eight accent-swap packs — byte
+  /// identical, no behaviour change). Transparent for a texture skin so the
+  /// app-wide texture layer painted above routing shows through.
+  final Color scaffold;
 }

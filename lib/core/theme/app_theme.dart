@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
+import 'field_manual.dart';
 
 /// Material shim for the widgets that still come from the Material library
 /// (Scaffold, Switch internals, TextField internals, charts, …). The app is
@@ -77,7 +78,10 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: _ink,
+      // Texture skins let the app-wide texture layer show through; every
+      // other theme keeps the opaque ink ground it always had.
+      scaffoldBackgroundColor:
+          FieldManual.skin.surfaceTexture == null ? _ink : const Color(0x00000000),
       pageTransitionsTheme: _pageTransitions,
 
       // ── Typography ──────────────────────────────────────────

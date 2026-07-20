@@ -65,7 +65,7 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       appBar: CupertinoNavigationBar(
         middle: Text('SCAN BARCODE', style: FieldManual.title()),
         backgroundColor: FieldManual.ink.withValues(alpha: 0.82),

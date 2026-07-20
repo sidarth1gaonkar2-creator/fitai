@@ -115,3 +115,6 @@ void main() {
     }
   });
 }
+
+// ── THROWAWAY: app-wide hoist / theme-scoping guard ────────────────────────
+// Delete with the Dress Blues comparison build.

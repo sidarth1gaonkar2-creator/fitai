@@ -60,7 +60,7 @@ class _RestaurantBrowserScreenState
     final filtered = _filtered;
 
     return Scaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       appBar: CupertinoNavigationBar(
         backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
         border: const Border(

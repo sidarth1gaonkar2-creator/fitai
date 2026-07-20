@@ -18,7 +18,7 @@ class SupplementsScreen extends ConsumerWidget {
 
     final palette = AppColors.of(context);
     return CupertinoPageScaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       navigationBar: CupertinoNavigationBar(
         middle: Text('SUPPLEMENTS', style: FieldManual.title()),
         backgroundColor: FieldManual.ink.withValues(alpha: 0.82),

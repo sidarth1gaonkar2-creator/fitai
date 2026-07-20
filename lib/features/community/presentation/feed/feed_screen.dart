@@ -180,7 +180,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         .toList();
 
     return Scaffold(
-      backgroundColor: palette.background,
+      backgroundColor: palette.scaffold,
       // Field Manual issue: accent fill, sharp 4px, condensed uppercase label
       // (same idiom as the workouts START WORKOUT action). One tap → composer.
       floatingActionButton: Semantics(

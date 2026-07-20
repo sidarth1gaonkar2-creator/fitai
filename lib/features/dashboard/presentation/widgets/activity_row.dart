@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
 
 import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/unit_converter.dart';
@@ -98,7 +99,7 @@ class _ConnectBanner extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: FieldManual.field,
+            color: AppColors.of(context).surface,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: FieldManual.hairline),
           ),
@@ -268,7 +269,7 @@ class _ActivityCard extends StatelessWidget {
       height: 80,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: FieldManual.field,
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: FieldManual.hairline),
       ),
@@ -305,7 +306,7 @@ class _LoadingRow extends StatelessWidget {
         width: 90,
         height: 80,
         decoration: BoxDecoration(
-          color: FieldManual.field,
+          color: AppColors.of(context).surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: FieldManual.hairline),
         ),

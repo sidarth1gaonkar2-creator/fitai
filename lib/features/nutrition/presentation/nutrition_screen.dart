@@ -38,7 +38,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
     if (mealsAsync.isLoading && !mealsAsync.hasValue) {
       return Scaffold(
-        backgroundColor: FieldManual.ink,
+        backgroundColor: FieldManual.scaffold,
         appBar: _navBar(),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -77,7 +77,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
 
     if (mealsAsync.hasError && !mealsAsync.hasValue) {
       return Scaffold(
-        backgroundColor: FieldManual.ink,
+        backgroundColor: FieldManual.scaffold,
         appBar: _navBar(),
         body: ErrorCard(
           message: 'Could not load nutrition data.',
@@ -96,7 +96,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
     final isLocked = completedDayAsync.valueOrNull != null;
 
     return Scaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       appBar: _navBar(
         trailing: CupertinoButton(
           padding: const EdgeInsets.all(8),

@@ -76,7 +76,7 @@ class SettingsScreen extends ConsumerWidget {
     final airborne = ref.watch(airborneActiveProvider);
 
     return Scaffold(
-      backgroundColor: palette.background,
+      backgroundColor: palette.scaffold,
       appBar: CupertinoNavigationBar(
         // Field Manual nav: Oswald designation over ink, hairline rule.
         middle: Text('SETTINGS', style: FieldManual.title()),

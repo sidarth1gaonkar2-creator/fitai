@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../theme/field_manual.dart';
+import '../../features/themes/providers/theme_providers.dart';
 import '../theme/surface_texture.dart';
 
 /// Fills its area with the active skin's screen background. For accent-swap
@@ -19,20 +21,64 @@ class SkinBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final skin = FieldManual.skin;
-    final texture = skin.surfaceTexture;
+    // The texture layer now lives in ONE place: [GlobalSkinBackground], hoisted
+    // above routing in app.dart so it backs every route rather than the three
+    // screens that happened to wrap themselves in this widget. Painting here
+    // too would double-composite the material.
+    //
+    // Kept as a pass-through rather than deleted so the three call sites and
+    // the render harnesses stay valid. For a texture skin the ground is the
+    // global layer showing through a transparent scaffold; for every other
+    // theme this is the same opaque ink fill it always was.
+    final texture = FieldManual.skin.surfaceTexture;
     if (texture == null) {
       return ColoredBox(color: FieldManual.ink, child: child);
     }
-    return CustomPaint(
-      painter: SurfaceTexturePainter(
-        texture,
-        // A skin may band a second material across the top of the ground.
-        // Null/0 on every skin but Dress Blues, so the others are unchanged.
-        header: skin.headerTexture,
-        headerHeight: skin.headerBandHeight,
+    return child;
+  }
+}
+
+/// The single app-wide texture layer, mounted once above routing.
+///
+/// Renders nothing at all unless the equipped skin carries a texture, so Field
+/// Manual and the eight accent-swap packs are completely unaffected — they
+/// never even build a painter.
+class GlobalSkinBackground extends ConsumerWidget {
+  const GlobalSkinBackground({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Read the texture off the WATCHED theme, not off FieldManual.skin.
+    //
+    // This widget used to be a const StatelessWidget reading that mutable
+    // static. Const instances are canonicalized, so Element.updateChild
+    // short-circuited on identical(new, old) and build() ran exactly once —
+    // the layer kept painting whichever skin was equipped at first frame and
+    // only corrected on a full restart. Watching the provider is what makes
+    // a skin switch rebuild it; deriving from the watched value is what
+    // removes any dependence on app.dart having already written the static.
+    //
+    // It still does NOT rebuild on ordinary navigation: it sits above the
+    // navigator and depends only on the theme, so routes come and go beneath
+    // it without touching this layer — no flash, stays mounted.
+    final theme = ref.watch(activeThemeProvider);
+    final texture = theme.surfaceTexture;
+    if (texture == null) return const SizedBox.shrink();
+
+    // RepaintBoundary isolates the texture from everything above it: route
+    // transitions, list scrolling and the tutorial overlay can't dirty it, and
+    // it can't dirty them.
+    return RepaintBoundary(
+      child: CustomPaint(
+        painter: SurfaceTexturePainter(
+          texture,
+          header: theme.headerTexture,
+          headerHeight: theme.headerBandHeight,
+        ),
+        // Expand to fill the Positioned.fill slot; a CustomPaint with no child
+        // and no size would lay out at zero and paint nothing.
+        size: Size.infinite,
       ),
-      child: child,
     );
   }
 }

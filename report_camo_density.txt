@@ -1,0 +1,133 @@
+NIGHT OPS CAMO DENSITY — COSMETIC TWEAK
+=======================================
+Date:   2026-07-20
+Branch: throwaway/dress-blues-texture-variants   (unchanged, NOT merged)
+main:   a8467cf — NOT touched
+State:  applied, NOT committed (diff only; committing is your call)
+
+--------------------------------------------------------------------------
+WORKING-TREE STATE — the stranded-diff question, answered first
+--------------------------------------------------------------------------
+You asked me to confirm whether prior fixes on this branch are committed.
+THEY ARE NOT. The swap-staleness card fix from the previous task is still
+sitting UNCOMMITTED in the working tree — only the build-number bumps (103,
+104) were committed on top of it, which is exactly how a diff gets stranded:
+the commits moved forward but the actual fix never went in.
+
+Current `git status --short`:
+  M activity_row.dart              ) swap-staleness fix — PRIOR task,
+  M canteen_card.dart              ) still uncommitted
+  M fitness_workouts_card.dart     )
+  M orders_block.dart              )
+  M recon_readouts.dart            )
+  M daily_summary_header.dart      )
+  ?? report_swap_staleness_fix.txt        ) prior task, untracked
+  ?? test/unit/card_swap_staleness_test.dart )
+
+  M theme_registry.dart           ) THIS task (camo density)
+  M test/woodland_render_harness_test.dart   ) THIS task (guard update)
+  M test/dressblues_render_harness_test.dart ) THIS task (guard update)
+
+So the tree now holds TWO logically separate changes intermixed. When you
+commit, you probably want them as two commits:
+  1. the swap-staleness fix + its test/report (6 widgets + 2 files)
+  2. this camo-density tweak (theme_registry + the 2 guard-test updates)
+I did not commit either, per your instruction.
+
+--------------------------------------------------------------------------
+WHERE IT LIVES (found before changing)
+--------------------------------------------------------------------------
+Generator:  lib/core/theme/surface_texture.dart
+  - _paintCamo(canvas, t, rnd)  (the camoLobes branch of _recordTile)
+  - loops `for i in 0..blobsPerTone` PER tone, placing each shard at a
+    seeded-random position, then drawing it plus its 8 wrapped copies so the
+    480px tile is seamless.
+  - _blob(...) builds one irregular 7–11-vertex polygon whose vertices ride a
+    jittered radius (random rotation + shape per shard).
+
+Config (the knob), per skin:  lib/features/themes/domain/theme_registry.dart
+  const SurfaceTexture _nightOpsTexture — this is the ONLY thing I changed.
+  Density is controlled by three constructor params:
+    blobsPerTone       count of shards per tone (was 72)
+    minRadiusFactor    shard size floor, ×tileSize (was default 0.045)
+    maxRadiusFactor    shard size ceiling, ×tileSize (was default 0.13)
+  Placement is a seeded loop (seed: 7) — deterministic, not a hardcoded list.
+
+--------------------------------------------------------------------------
+THE NON-OBVIOUS PART (why "just add more shapes" backfires)
+--------------------------------------------------------------------------
+The tones are painted OPAQUE, in order, darkest → lightest. So the lightest
+tone is laid down LAST and overwrites whatever is under it. I verified this by
+rendering candidates:
+
+  - Raising blobsPerTone alone (72 → 170) made the tile SPARSER and flatter,
+    not denser: the extra top-tone shards blanketed the tile toward a uniform
+    light fill, and the visible "shards" (which are really darker tones peeking
+    through gaps) got covered up.
+
+  The fix is SMALLER shards at a higher count. Each covers less, so no tone
+  blankets, more tonal patches stay visible, and the empty voids break up into
+  organic scatter. Confirmed by rendering the real generator output (headless
+  CPU raster = the same pixels the device bakes).
+
+--------------------------------------------------------------------------
+CHANGE — Night Ops only
+--------------------------------------------------------------------------
+  blobsPerTone     72     -> 120        (per tone)
+  minRadiusFactor  0.045  -> 0.025      (smaller floor — small shards fill gaps)
+  maxRadiusFactor  0.13   -> 0.08       (smaller ceiling — no shard blankets)
+  seed             7      -> 7          (UNCHANGED — deterministic, no shimmer)
+  tones            unchanged            (#0D0D0D/#151515/#1C1C1C on #050505)
+  contrast         unchanged            — more shapes, not louder ones
+
+SHAPE COUNT
+  before: 72 × 3 tones = 216 shards
+  after: 120 × 3 tones = 360 shards
+  (+144 shards, ~1.67×)
+
+  Draw calls at tile BAKE (each shard × 9 wrap copies): 1944 -> 3240.
+  This is a ONE-TIME cost: the tile bakes once into a cached ui.Image
+  (SurfaceTexture.ensureTile), and every frame draws that single image via a
+  tiled ImageShader. Per-FRAME cost is unchanged — zero extra draw calls while
+  scrolling or navigating. Bake happens once per app run (or once on equip).
+
+--------------------------------------------------------------------------
+ISOLATION — nothing else touched
+--------------------------------------------------------------------------
+Only `_nightOpsTexture` changed. Verified the other texture skins are byte-
+identical (dumped their live params):
+  woodland     blobsPerTone 24, radius 0.07–0.18, camoLobes+smooth  — UNCHANGED
+  dress_blues  twillWeave / brushedMetal, ribPitch 3                — UNCHANGED
+The shared generator, the swap-staleness card fix, Palette.scaffold, the
+app-wide hoist — none touched.
+
+--------------------------------------------------------------------------
+IMPELLER
+--------------------------------------------------------------------------
+No blend mode involved: _paintCamo draws opaque srcOver fills only. Nothing in
+this change adds a non-srcOver composite, so no saveLayer question arises. The
+tile still bakes via the device-proven async path and is cached.
+
+--------------------------------------------------------------------------
+VERIFICATION
+--------------------------------------------------------------------------
+  flutter analyze                -> 27 issues (baseline, unchanged)
+  flutter test --no-test-assets  -> +199 / -14, non-onboarding failures: 0
+                                    (the 14 are the pre-existing onboarding set)
+
+  TWO regression guards initially failed — correctly. They pin Night Ops's
+  texture params to catch ACCIDENTAL drift of the shipped look:
+    woodland_render_harness_test.dart  "Night Ops … original code path"
+    dressblues_render_harness_test.dart "every other skin is byte-identical"
+  Since the density change is DELIBERATE, I updated the pinned values (72→120,
+  0.045/0.13→0.025/0.08) and their comments rather than loosening them, and
+  added an explicit `pattern == camoLobes` assertion so the REAL invariant
+  (Night Ops stays on the straight-edge camo path) is still guarded. Both pass.
+
+TUNING NOTE: I rendered candidates to pick the density (72, 170, and small-
+shard 120/150 variants) at BOOSTED contrast so I could see the layout, then
+confirmed the shipped near-black tones still read as a quiet background. Per
+your instruction this offline render is NOT offered as proof of how it looks —
+the device is the authority. What I can assert without the device: the void-
+filling is real (shard count +67%, smaller sizes), it's deterministic, and it
+costs nothing per frame.

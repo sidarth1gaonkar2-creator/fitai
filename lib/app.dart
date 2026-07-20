@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/field_manual.dart';
+import 'core/widgets/tactical_surface.dart';
 import 'core/theme/fm_skin.dart';
 import 'core/utils/logger.dart';
 import 'features/themes/providers/theme_providers.dart';
@@ -112,7 +113,7 @@ class DrillFitApp extends ConsumerWidget {
         // Ink on the accent, not bone — this is the on-accent contrasting tone
         // Cupertino paints atop primaryColor fills.
         primaryContrastingColor: palette.onAccent,
-        scaffoldBackgroundColor: palette.background,
+        scaffoldBackgroundColor: palette.scaffold,
         barBackgroundColor: palette.background.withValues(alpha: 0.8),
         // Field Manual faces (DESIGN.md): Inter carries reading text, Oswald
         // carries nav titles (the bark). Colours track the equipped palette.
@@ -166,6 +167,20 @@ class DrillFitApp extends ConsumerWidget {
             // entire navigation tree. Self-gates on `tutorialActiveProvider`.
             child: Stack(
               children: [
+                // APP-WIDE SURFACE TEXTURE (throwaway comparison build).
+                // Sits at builder level, BELOW `child`, so it backs every
+                // route — the StatefulShell tabs and out-of-shell routes
+                // (ai-coach, workout detail, …) alike. Shell-level wrapping
+                // would miss the latter.
+                //
+                // It is a const sibling of the navigator, so it stays mounted
+                // across navigation: no per-route rebuild, no flash between
+                // pages. It self-gates on the equipped skin, so the eight
+                // accent-swap packs and Field Manual render nothing here.
+                // NOT const: a canonicalized const instance would never
+                // rebuild, which is exactly how this layer went stale on a
+                // skin switch. It watches activeThemeProvider itself.
+                const Positioned.fill(child: GlobalSkinBackground()),
                 child ?? const SizedBox.shrink(),
                 const Positioned.fill(child: TutorialOverlayHost()),
               ],

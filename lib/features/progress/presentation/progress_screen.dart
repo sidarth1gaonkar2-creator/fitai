@@ -34,7 +34,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       appBar: CupertinoNavigationBar(
         middle: Text('PROGRESS', style: FieldManual.title()),
         backgroundColor: FieldManual.ink.withValues(alpha: 0.82),

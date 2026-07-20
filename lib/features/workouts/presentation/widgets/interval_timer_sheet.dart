@@ -67,7 +67,7 @@ class IntervalTimerSheet extends ConsumerWidget {
               if (isIdle) ...[
                 CupertinoSlidingSegmentedControl<IntervalPreset>(
                   groupValue: timer.preset,
-                  backgroundColor: palette.background,
+                  backgroundColor: palette.scaffold,
                   thumbColor: palette.accent,
                   children: const {
                     IntervalPreset.hiit: Padding(

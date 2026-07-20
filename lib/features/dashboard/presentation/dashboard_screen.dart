@@ -259,7 +259,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// bar, chat + settings actions.
   Widget _shell({required Widget title, required Widget body}) {
     return Scaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       appBar: CupertinoNavigationBar(
         middle: DefaultTextStyle.merge(
           style: FieldManual.body(fontSize: 15),

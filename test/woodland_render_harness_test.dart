@@ -360,13 +360,17 @@ void main() {
 
   test('Night Ops texture still generates through the original code path', () {
     final tex = themeById('night_ops').surfaceTexture!;
-    // Woodland added smooth lobes and configurable radii; Night Ops must stay
-    // on the original straight-edge path with the original constants, or its
-    // cached tile changes and the shipped skin shifts under users.
+    // Night Ops must stay on the original straight-edge camoLobes path (no
+    // smooth Bézier lobes, no directional pattern) — that is the real "original
+    // code path" invariant. The density itself was deliberately increased
+    // (72→120 per tone, radius 0.045–0.13 → 0.025–0.08) to fill the sparse
+    // voids the original left; these pins track that intentional value so an
+    // *accidental* future change to the shipped look still trips.
     expect(tex.smooth, isFalse);
-    expect(tex.minRadiusFactor, 0.045);
-    expect(tex.maxRadiusFactor, 0.13);
-    expect(tex.blobsPerTone, 72);
+    expect(tex.pattern, SurfaceTexturePattern.camoLobes);
+    expect(tex.minRadiusFactor, 0.025);
+    expect(tex.maxRadiusFactor, 0.08);
+    expect(tex.blobsPerTone, 120);
     expect(tex.tileSize, 480);
     expect(tex.seed, 7);
     // lightestTone is now luminance-measured; for Night Ops that must still

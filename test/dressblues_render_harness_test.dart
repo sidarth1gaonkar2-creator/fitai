@@ -418,8 +418,11 @@ void main() {
     }
     final no = themeById('night_ops').surfaceTexture!;
     expect(no.smooth, isFalse);
-    expect(no.minRadiusFactor, 0.045);
-    expect(no.maxRadiusFactor, 0.13);
+    // Density raised deliberately (72→120/tone, 0.045–0.13 → 0.025–0.08) to
+    // fill the sparse voids; the camoLobes path and near-black tones are what
+    // must stay fixed, and do.
+    expect(no.minRadiusFactor, 0.025);
+    expect(no.maxRadiusFactor, 0.08);
     expect(no.lightestTone, const Color(0xFF1C1C1C));
   });
 }

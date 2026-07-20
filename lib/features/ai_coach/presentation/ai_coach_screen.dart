@@ -128,7 +128,7 @@ class _AICoachScreenState extends ConsumerState<AICoachScreen> {
     final palette = AppColors.of(context);
     final configured = ref.watch(anthropicServiceProvider) != null;
     return Scaffold(
-      backgroundColor: palette.background,
+      backgroundColor: palette.scaffold,
       appBar: CupertinoNavigationBar(
         middle: const Text('AI Coach'),
         backgroundColor: palette.background.withValues(alpha: 0.8),

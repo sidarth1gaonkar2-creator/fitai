@@ -66,7 +66,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
         : null;
 
     return Scaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       appBar: CupertinoNavigationBar(
         backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
         border: const Border(

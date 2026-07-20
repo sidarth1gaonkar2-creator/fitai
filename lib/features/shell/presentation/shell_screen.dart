@@ -39,7 +39,7 @@ class ShellScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
     return Scaffold(
-      backgroundColor: palette.background,
+      backgroundColor: palette.scaffold,
       body: navigationShell,
       bottomNavigationBar: _CupertinoTabBar(
         selectedIndex: navigationShell.currentIndex,

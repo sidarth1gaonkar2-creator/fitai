@@ -140,7 +140,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
     return Scaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       appBar: CupertinoNavigationBar(
         middle: Text('CREATE ACCOUNT', style: FieldManual.title()),
         backgroundColor: FieldManual.ink.withValues(alpha: 0.82),

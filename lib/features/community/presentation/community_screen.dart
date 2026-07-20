@@ -34,7 +34,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
     final palette = AppColors.of(context);
 
     return CupertinoPageScaffold(
-      backgroundColor: palette.background,
+      backgroundColor: palette.scaffold,
       navigationBar: CupertinoNavigationBar(
         // Field Manual chrome: ink ground over a hairline (DESIGN.md §Nav).
         backgroundColor: palette.background.withValues(alpha: 0.82),

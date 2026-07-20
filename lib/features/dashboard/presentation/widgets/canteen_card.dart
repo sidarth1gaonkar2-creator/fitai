@@ -26,7 +26,7 @@ class CanteenCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: FieldManual.field,
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: FieldManual.hairline),
       ),

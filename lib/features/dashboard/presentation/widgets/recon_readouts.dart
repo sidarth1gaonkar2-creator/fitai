@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
 
 import '../../../../core/theme/field_manual.dart';
 import '../../../../providers/health_providers.dart';
@@ -26,7 +27,7 @@ class ReconReadouts extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: FieldManual.field,
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: FieldManual.hairline),
       ),

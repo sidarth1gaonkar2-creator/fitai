@@ -81,7 +81,7 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     final post = postAsync.valueOrNull;
 
     return CupertinoPageScaffold(
-      backgroundColor: palette.background,
+      backgroundColor: palette.scaffold,
       navigationBar: CupertinoNavigationBar(
         // Field Manual chrome: ink ground over a hairline (DESIGN.md §Nav).
         backgroundColor: palette.background.withValues(alpha: 0.82),

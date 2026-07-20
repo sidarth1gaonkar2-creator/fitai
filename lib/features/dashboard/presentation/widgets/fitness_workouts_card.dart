@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import '../../../../core/theme/app_colors.dart';
 
 import '../../../../core/theme/field_manual.dart';
 import '../../../../providers/health_providers.dart';
@@ -26,7 +27,7 @@ class FitnessWorkoutsCard extends ConsumerWidget {
       loading: () => Container(
         height: 120,
         decoration: BoxDecoration(
-          color: FieldManual.field,
+          color: AppColors.of(context).surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: FieldManual.hairline),
         ),
@@ -38,7 +39,7 @@ class FitnessWorkoutsCard extends ConsumerWidget {
 
         return Container(
           decoration: BoxDecoration(
-            color: FieldManual.field,
+            color: AppColors.of(context).surface,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: FieldManual.hairline),
           ),

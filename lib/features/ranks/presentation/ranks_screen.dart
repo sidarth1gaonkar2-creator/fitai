@@ -36,7 +36,7 @@ class RanksScreen extends ConsumerWidget {
     final airborne = ref.watch(airborneActiveProvider);
 
     return Scaffold(
-      backgroundColor: palette.background,
+      backgroundColor: palette.scaffold,
       appBar: CupertinoNavigationBar(
         middle: const Text('My Ranks'),
         backgroundColor: palette.background.withValues(alpha: 0.8),

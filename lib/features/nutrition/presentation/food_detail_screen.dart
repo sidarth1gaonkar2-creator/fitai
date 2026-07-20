@@ -119,7 +119,7 @@ class _FoodDetailScreenState extends ConsumerState<FoodDetailScreen> {
     final fat = food.fatFor(_servingSize);
 
     return Scaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       appBar: CupertinoNavigationBar(
         middle: Text('ADD FOOD', style: FieldManual.title()),
         backgroundColor: FieldManual.ink.withValues(alpha: 0.82),

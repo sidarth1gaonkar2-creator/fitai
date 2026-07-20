@@ -32,7 +32,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
         settings.streakEnabled ||
         settings.supplementEnabled;
     return CupertinoPageScaffold(
-      backgroundColor: palette.background,
+      backgroundColor: palette.scaffold,
       navigationBar: CupertinoNavigationBar(
         // Field Manual nav: Oswald designation, hairline rule.
         middle: Text('NOTIFICATIONS', style: FieldManual.title()),

@@ -20,7 +20,7 @@ class MealPlanPreviewScreen extends ConsumerWidget {
 
     final palette = AppColors.of(context);
     return Scaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       appBar: CupertinoNavigationBar(
         backgroundColor: FieldManual.ink.withValues(alpha: 0.82),
         border: const Border(

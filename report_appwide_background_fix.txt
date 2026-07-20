@@ -1,0 +1,173 @@
+APP-WIDE SKIN BACKGROUND — SCRAP + TWO BUG FIXES
+================================================
+Date:   2026-07-19
+Branch: throwaway/dress-blues-texture-variants  (unchanged, as instructed)
+main:   a8467cf — NOT touched
+
+--------------------------------------------------------------------------
+STEP 0 — WHAT I REMOVED (Dress Blues A/B rework scrapped)
+--------------------------------------------------------------------------
+Deleted:
+  lib/core/theme/dress_blues_variants.dart      whole file (Variant A + B)
+  assets/textures/dress_blues_twill.png         the baked bitmap (~102 KB)
+  assets/textures/                              directory + pubspec entry
+  design-refs/dress_blues_twill_ref.png         the copied reference
+  settings_screen.dart                          the Developer A/B toggle block
+  app.dart                                      DressBluesVariants wiring/import
+  tactical_surface.dart                         the painterFor() hook/import
+
+Dress Blues is back on its PRE-REWORK texture with no restore step needed:
+the rework never modified the registry. Both variants lived in the deleted
+file and were injected via that one hook. theme_registry.dart still holds the
+original values, verified unchanged:
+  _dressBluesTwill  base #161B2C, tones #171C2E/#191E32, twillWeave, pitch 3
+  _dressBluesMetal  base #1C2139, tones #1F2540/#222948, brushedMetal, pitch 3
+
+Kept, as instructed: the app-wide hoist (CupertinoApp.router builder),
+Palette.scaffold scoping, and scaffold_scoping_test.dart.
+
+--------------------------------------------------------------------------
+BUG 1 — background showed the PREVIOUS skin until a full restart
+--------------------------------------------------------------------------
+YOUR HYPOTHESIS WAS THE CACHE. IT WASN'T. Reporting the real cause.
+
+The texture cache is innocent. SurfaceTexture._cache is keyed by texture id,
+and those ids are already unique per skin ('night_ops', 'woodland',
+'dress_blues_twill', 'dress_blues_metal'). No two skins can collide, so no
+invalidation was ever needed and adding the skin id to the key would have
+fixed nothing.
+
+ROOT CAUSE — the widget never rebuilt.
+  app.dart mounted the layer as:
+      const Positioned.fill(child: GlobalSkinBackground())
+  and GlobalSkinBackground was a const StatelessWidget reading the mutable
+  static FieldManual.skin.
+
+  Const widget instances are canonicalized by the compiler, so every rebuild
+  of the router builder passed the IDENTICAL instance. Element.updateChild
+  short-circuits on identical(newWidget, oldWidget) and skips the rebuild
+  entirely. build() therefore ran exactly ONCE, captured whichever skin was
+  equipped at first frame, and constructed a painter around it forever.
+  shouldRepaint returns false, so nothing ever refreshed it either.
+
+  Equipping a new skin updated FieldManual.skin and every Riverpod-driven
+  colour — which is why accents/trim changed correctly — while the texture
+  layer kept painting the old skin. Only a process restart rebuilt it.
+
+PROOF (not inference): test/unit/global_background_skin_switch_test.dart.
+  Written BEFORE the fix, it failed on the FIRST assertion — the widget
+  painted nothing at all for a theme supplied purely via the provider,
+  because it never consulted the provider.
+
+FIX
+  GlobalSkinBackground is now a ConsumerWidget that watches
+  activeThemeProvider and derives texture/header/bandHeight from the WATCHED
+  theme rather than the static. The call site is no longer const.
+
+  * A skin switch rebuilds it live — the test drives a real provider change
+    (no re-pump, no restart) through night_ops -> woodland -> dress_blues ->
+    Field Manual and asserts the painted texture id follows each time.
+  * Ordinary navigation still does NOT rebuild it: it sits above the
+    navigator and depends only on the theme, so routes come and go beneath
+    it. Still wrapped in RepaintBoundary, still mounted once, no flash.
+  * Deriving from the watched value also removes the ordering dependency on
+    app.dart having written the static first.
+
+--------------------------------------------------------------------------
+BUG 2 — AUDIT: texture missing on dashboard/nutrition/progress, present on settings
+--------------------------------------------------------------------------
+REAL CAUSE, and it is NOT what the scaffold-token scoping covered.
+
+The first sweep converted `backgroundColor: palette.background` ->
+`palette.scaffold`. It did nothing for screens that hardcode the OTHER ground
+token, `FieldManual.ink`. Those screens kept painting an opaque fill — and
+because FieldManual.ink is skin-driven it returned the Dress Blues navy, so
+the pages looked like a flat navy skin rather than an obviously broken one.
+
+23 screens were affected. That maps exactly onto what you saw.
+
+PER-SCREEN AUDIT
+  screen                | ground before                     | showed? | fix
+  ----------------------|-----------------------------------|---------|-------------------
+  dashboard (tab 1)     | Scaffold bg FieldManual.ink :262  | NO      | -> FieldManual.scaffold
+  workouts (tab 2)      | Scaffold bg palette.scaffold :49  | yes     | none needed
+  nutrition (tab 3)     | Scaffold bg FieldManual.ink       | NO      | -> FieldManual.scaffold
+                        | x3 (loading/error/data) :41,80,99 |         | (all three states)
+  progress (tab 4)      | Scaffold bg FieldManual.ink :37   | NO      | -> FieldManual.scaffold
+  community (tab 5)     | CupertinoPageScaffold             | yes     | none needed
+                        | bg palette.scaffold :37           |         |
+  shell (tab host)      | Scaffold bg palette.scaffold :41  | yes     | none needed
+  settings              | palette.scaffold (1st sweep)      | yes     | none needed
+  ----------------------|-----------------------------------|---------|-------------------
+  OUT-OF-SHELL ROUTES
+  theme store           | FieldManual.ink :35               | NO      | -> FieldManual.scaffold
+  pr hall               | FieldManual.ink :25               | NO      | -> FieldManual.scaffold
+  supplements           | FieldManual.ink :21               | NO      | -> FieldManual.scaffold
+  saved meals           | FieldManual.ink :131              | NO      | -> FieldManual.scaffold
+  food search / detail  | FieldManual.ink                   | NO      | -> FieldManual.scaffold
+  barcode scanner       | FieldManual.ink :68               | NO      | -> FieldManual.scaffold
+  meal builder x2       | FieldManual.ink :663,700          | NO      | -> FieldManual.scaffold
+  create meal plan      | FieldManual.ink :120              | NO      | -> FieldManual.scaffold
+  create saved meal x2  | FieldManual.ink :231,247          | NO      | -> FieldManual.scaffold
+  meal plan preview     | FieldManual.ink :23               | NO      | -> FieldManual.scaffold
+  restaurant browse/api | FieldManual.ink                   | NO      | -> FieldManual.scaffold
+  sign in / sign up /   | FieldManual.ink                   | NO      | -> FieldManual.scaffold
+  welcome               |                                   |         |
+  (23 conversions total)
+
+  No nested opaque Scaffold, no opaque Container/gradient/Image behind any
+  body, no coloured SafeArea/ColoredBox was found. The single cause on every
+  failing screen was the hardcoded scaffold ground.
+
+DASHBOARD SPECIAL CASE — confirmed clean.
+  dashboard_screen.dart:301 still reads `body: SkinBackground(child: body)`,
+  but SkinBackground is now a PASS-THROUGH for texture skins (returns `child`
+  unchanged; only non-texture themes still get its ColoredBox). It builds no
+  painter, so there is no double-handling and nothing fighting the global
+  layer. Dashboard's only problem was its own opaque scaffold at :262.
+
+FIX APPLIED
+  New static FieldManual.scaffold, the twin of Palette.scaffold:
+      skin.surfaceTexture == null ? skin.ink : transparent
+  It exists because most of these screens set a scaffold colour with no
+  Palette in scope. All 23 `backgroundColor: FieldManual.ink` sites were
+  converted to it.
+
+  DELIBERATELY NOT CONVERTED — 18 `color: FieldManual.ink` sites. Those are
+  modal sheets, action sheets and card fills (add-food, quick-add, paywall
+  sheet, emoji picker, theme preview, …). A sheet is a surface, not a ground;
+  making it transparent would drop dense content straight onto the texture
+  and wreck readability. Nav bars likewise keep their opaque backdrop
+  (FieldManual.ink.withValues(alpha: 0.82)), per your instruction.
+
+--------------------------------------------------------------------------
+NON-TEXTURE THEMES UNAFFECTED
+--------------------------------------------------------------------------
+Both scaffold tokens collapse to the original opaque ground whenever the skin
+has no texture, so Field Manual and the eight accent-swap packs render exactly
+as before. Asserted, not eyeballed — scaffold_scoping_test.dart, 4 tests:
+  * all 9 non-texture themes: palette.scaffold IS palette.background
+  * the 3 texture skins: scaffold transparent, and != background
+  * FieldManual.scaffold == FieldManual.ink for non-texture skins
+  * NEW regression guard: no file in lib/ hardcodes
+    `backgroundColor: FieldManual.ink,` any more — this is what would have
+    caught Bug 2 the first time.
+
+--------------------------------------------------------------------------
+IMPELLER
+--------------------------------------------------------------------------
+Nothing in these fixes adds a blend mode. The only non-srcOver composite in
+the texture path remains the shipped header-band fade, which is already
+wrapped in saveLayer. Rasterization still never happens inside paint().
+
+NOT VERIFIED ON DEVICE — no local iOS build on this Windows machine, and no
+offline preview is offered as evidence. Device render is the authority; this
+needs your TestFlight build to confirm.
+
+--------------------------------------------------------------------------
+VERIFICATION
+--------------------------------------------------------------------------
+  flutter analyze                -> 27 issues (baseline, unchanged)
+  flutter test --no-test-assets  -> +194 / -14
+                                    non-onboarding failures: 0
+                                    (the 14 are the pre-existing onboarding set)

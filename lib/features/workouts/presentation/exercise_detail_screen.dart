@@ -50,7 +50,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
     final local = _localDef();
 
     return Scaffold(
-      backgroundColor: palette.background,
+      backgroundColor: palette.scaffold,
       appBar: CupertinoNavigationBar(
         middle: Text(
           exerciseName,

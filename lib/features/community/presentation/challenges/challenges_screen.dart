@@ -34,7 +34,7 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
     final palette = AppColors.of(context);
 
     return Container(
-      color: palette.background,
+      color: palette.scaffold,
       child: Column(
         children: [
           const SizedBox(height: 16),

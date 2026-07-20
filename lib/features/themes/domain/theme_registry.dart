@@ -7,11 +7,23 @@ import 'app_theme_data.dart';
 // (NVG/HUD grain, derived from design-refs/Nightops texture skin.jpg). Every
 // tone is capped at #1C1C1C so text over the lightest lobe holds WCAG AA
 // (bone 13.6:1, amber 9.4:1).
+// Density raised so the camo scatter fills the near-solid voids the original
+// left between shards. The knob is subtler than it looks: tones are painted
+// opaque in order (darkest → lightest), so simply raising the COUNT floods the
+// top tone and flattens the tile toward uniform. The fix is SMALLER shards at a
+// higher count — each covers less, so more tonal patches stay visible and the
+// gaps break up. Radius range narrowed from 0.045–0.13 to 0.025–0.08 and the
+// count raised 72 → 120 per tone (216 → 360 shards total). Same seed, so the
+// layout is deterministic and never shimmers on repaint. Contrast is unchanged
+// (same near-black tones) — more shapes, not louder ones. Generation is a
+// one-time bake into the cached tile, so per-frame cost is unchanged.
 const SurfaceTexture _nightOpsTexture = SurfaceTexture(
   id: 'night_ops',
   base: Color(0xFF050505),
   tones: [Color(0xFF0D0D0D), Color(0xFF151515), Color(0xFF1C1C1C)],
-  blobsPerTone: 72,
+  blobsPerTone: 120,
+  minRadiusFactor: 0.025,
+  maxRadiusFactor: 0.08,
   tileSize: 480,
   seed: 7,
 );

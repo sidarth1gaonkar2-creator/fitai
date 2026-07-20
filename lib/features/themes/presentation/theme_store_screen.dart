@@ -32,7 +32,7 @@ class ThemeStoreScreen extends ConsumerWidget {
     final unlocked = ref.watch(unlockedThemesProvider);
 
     return CupertinoPageScaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       navigationBar: CupertinoNavigationBar(
         middle: Text('THEME STORE', style: FieldManual.title()),
         backgroundColor: FieldManual.ink.withValues(alpha: 0.82),

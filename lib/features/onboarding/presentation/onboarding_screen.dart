@@ -79,7 +79,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: palette.background,
+        backgroundColor: palette.scaffold,
         appBar: CupertinoNavigationBar(
           backgroundColor: palette.background.withValues(alpha: 0.82),
           border: Border(bottom: BorderSide(color: palette.border)),
@@ -97,7 +97,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final goingForward = previousStep == null || step > previousStep;
 
     return Scaffold(
-      backgroundColor: palette.background,
+      backgroundColor: palette.scaffold,
       appBar: CupertinoNavigationBar(
         backgroundColor: palette.background.withValues(alpha: 0.82),
         border: Border(bottom: BorderSide(color: palette.border)),

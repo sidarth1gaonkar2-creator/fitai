@@ -128,7 +128,7 @@ class _SavedMealsScreenState extends ConsumerState<SavedMealsScreen> {
     final filteredAsync = ref.watch(savedMealSearchProvider(_query));
 
     return Scaffold(
-      backgroundColor: FieldManual.ink,
+      backgroundColor: FieldManual.scaffold,
       appBar: CupertinoNavigationBar(
         middle: Text('SAVED MEALS', style: FieldManual.title()),
         backgroundColor: FieldManual.ink.withValues(alpha: 0.82),

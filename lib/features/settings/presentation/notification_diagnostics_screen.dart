@@ -226,7 +226,7 @@ class _NotificationDiagnosticsScreenState
     final drill = ref.watch(drillSergeantProvider);
 
     return CupertinoPageScaffold(
-      backgroundColor: palette.background,
+      backgroundColor: palette.scaffold,
       navigationBar: CupertinoNavigationBar(
         middle: const Text('Notification Diagnostics'),
         backgroundColor: palette.background.withValues(alpha: 0.8),

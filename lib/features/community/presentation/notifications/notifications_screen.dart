@@ -24,7 +24,7 @@ class NotificationsScreen extends ConsumerWidget {
     final userId = ref.watch(currentUserIdProvider);
 
     return CupertinoPageScaffold(
-      backgroundColor: palette.background,
+      backgroundColor: palette.scaffold,
       navigationBar: CupertinoNavigationBar(
         backgroundColor: palette.background.withValues(alpha: 0.82),
         border: Border(bottom: BorderSide(color: palette.border)),
