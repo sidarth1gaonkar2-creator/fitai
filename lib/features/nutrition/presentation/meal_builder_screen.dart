@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/micro_rdas.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/field_manual.dart';
 import '../../../core/widgets/cupertino_helpers.dart';
@@ -195,10 +196,28 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
     double fat,
     double? fibre,
     double? sodiumMg,
+    double? vitaminDMcg,
+    double? ironMg,
+    double? calciumMg,
+    double? vitaminCMg,
+    double? magnesiumMg,
+    double? potassiumMg,
+    double? zincMg,
+    double? vitaminB12Mcg,
+    double? folateMcg,
   }) get _totals {
     double cal = 0, pro = 0, carb = 0, fat = 0;
-    double fibre = 0, sodium = 0;
-    bool anyFibre = false, anySodium = false;
+    final fibre = _OptionalSum();
+    final sodium = _OptionalSum();
+    final vitaminD = _OptionalSum();
+    final iron = _OptionalSum();
+    final calcium = _OptionalSum();
+    final vitaminC = _OptionalSum();
+    final magnesium = _OptionalSum();
+    final potassium = _OptionalSum();
+    final zinc = _OptionalSum();
+    final vitaminB12 = _OptionalSum();
+    final folate = _OptionalSum();
     for (final entry in _selections.entries) {
       final catIdx = entry.key;
       if (catIdx >= _categories.length) continue;
@@ -211,14 +230,17 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
         pro += item.protein * qty;
         carb += item.carbs * qty;
         fat += item.fat * qty;
-        if (item.fiber != null) {
-          fibre += item.fiber! * qty;
-          anyFibre = true;
-        }
-        if (item.sodium != null) {
-          sodium += item.sodium! * qty;
-          anySodium = true;
-        }
+        fibre.add(item.fiber, qty);
+        sodium.add(item.sodium, qty);
+        vitaminD.add(item.vitaminDMcg, qty);
+        iron.add(item.ironMg, qty);
+        calcium.add(item.calciumMg, qty);
+        vitaminC.add(item.vitaminCMg, qty);
+        magnesium.add(item.magnesiumMg, qty);
+        potassium.add(item.potassiumMg, qty);
+        zinc.add(item.zincMg, qty);
+        vitaminB12.add(item.vitaminB12Mcg, qty);
+        folate.add(item.folateMcg, qty);
       }
     }
     return (
@@ -226,8 +248,17 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
       pro: pro,
       carb: carb,
       fat: fat,
-      fibre: anyFibre ? fibre : null,
-      sodiumMg: anySodium ? sodium : null,
+      fibre: fibre.value,
+      sodiumMg: sodium.value,
+      vitaminDMcg: vitaminD.value,
+      ironMg: iron.value,
+      calciumMg: calcium.value,
+      vitaminCMg: vitaminC.value,
+      magnesiumMg: magnesium.value,
+      potassiumMg: potassium.value,
+      zincMg: zinc.value,
+      vitaminB12Mcg: vitaminB12.value,
+      folateMcg: folate.value,
     );
   }
 
@@ -280,14 +311,26 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
         items.add(SavedMealItem()
           ..foodName = '$prefix${m.name}'
           ..servingSize = 1
-          ..servingUnit = 'serving'
+          // The restaurant marker unit: logSavedMeal copies servingUnit onto
+          // the re-logged FoodEntry, so the "est." micronutrient marker
+          // survives a save → re-log round trip.
+          ..servingUnit = restaurantServingUnit
           ..quantity = qty
           ..calories = m.calories
           ..protein = m.protein
           ..carbs = m.carbs
           ..fat = m.fat
           ..fiber = m.fiber
-          ..sodium = m.sodium);
+          ..sodium = m.sodium
+          ..vitaminDMcg = m.vitaminDMcg
+          ..ironMg = m.ironMg
+          ..calciumMg = m.calciumMg
+          ..vitaminCMg = m.vitaminCMg
+          ..magnesiumMg = m.magnesiumMg
+          ..potassiumMg = m.potassiumMg
+          ..zincMg = m.zincMg
+          ..vitaminB12Mcg = m.vitaminB12Mcg
+          ..folateMcg = m.folateMcg);
       }
     }
     return items;
@@ -307,6 +350,15 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
           fat: t.fat,
           fibre: t.fibre,
           sodiumMg: t.sodiumMg,
+          vitaminDMcg: t.vitaminDMcg,
+          ironMg: t.ironMg,
+          calciumMg: t.calciumMg,
+          vitaminCMg: t.vitaminCMg,
+          magnesiumMg: t.magnesiumMg,
+          potassiumMg: t.potassiumMg,
+          zincMg: t.zincMg,
+          vitaminB12Mcg: t.vitaminB12Mcg,
+          folateMcg: t.folateMcg,
           restaurantId: widget.restaurantId,
           restaurantName: _menu?.name ?? widget.restaurantId,
           restaurantEmoji: _menu?.emoji,
@@ -397,9 +449,18 @@ class _MealBuilderScreenState extends ConsumerState<MealBuilderScreen> {
         carbs: item.carbs,
         fat: item.fat,
         servingSize: 1,
-        servingUnit: 'meal',
+        servingUnit: restaurantServingUnit,
         fibre: item.fibre,
         sodiumMg: item.sodiumMg,
+        vitaminDMcg: item.vitaminDMcg,
+        ironMg: item.ironMg,
+        calciumMg: item.calciumMg,
+        vitaminCMg: item.vitaminCMg,
+        magnesiumMg: item.magnesiumMg,
+        potassiumMg: item.potassiumMg,
+        zincMg: item.zincMg,
+        vitaminB12Mcg: item.vitaminB12Mcg,
+        folateMcg: item.folateMcg,
         mealGroupId: groupId,
         mealGroupName: groupName,
         mealGroupEmoji: groupEmoji,
@@ -1727,6 +1788,22 @@ class _MealCartSheet extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Accumulator for optional nutrient fields: stays null unless at least one
+/// component actually carried the value, so the log records "unknown" rather
+/// than a misleading 0. Same rule the cart applies to fibre/sodium.
+class _OptionalSum {
+  double _sum = 0;
+  bool _any = false;
+
+  void add(double? value, double qty) {
+    if (value == null) return;
+    _sum += value * qty;
+    _any = true;
+  }
+
+  double? get value => _any ? _sum : null;
 }
 
 class _NameSavedMealSheet extends StatefulWidget {

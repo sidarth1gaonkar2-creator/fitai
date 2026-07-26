@@ -282,31 +282,64 @@ final dailyTargetsProvider = FutureProvider<DailyTargets?>((ref) async {
 // Micronutrient aggregation
 // ---------------------------------------------------------------------------
 
+/// Daily micronutrient totals plus which nutrients include restaurant-item
+/// values that are USDA estimates (rendered with an "est." marker).
+class MicronutrientTotals {
+  const MicronutrientTotals({
+    this.totals = const {},
+    this.estimatedKeys = const {},
+  });
+
+  /// Nutrient name → consumed amount (keys match [microRdaTargets]).
+  final Map<String, double> totals;
+
+  /// Keys from [estimatedRestaurantMicroKeys] whose total includes a
+  /// nonzero contribution from a restaurant-sourced entry.
+  final Set<String> estimatedKeys;
+}
+
+/// Pure aggregation over the day's entries. An entry is restaurant-sourced
+/// iff its servingUnit is [restaurantServingUnit] — only the meal builder
+/// writes that unit — and for those entries the five Tier 2 fields carry
+/// USDA estimates, so any nonzero contribution marks the key estimated.
+MicronutrientTotals aggregateMicronutrients(Iterable<FoodEntry> entries) {
+  final totals = <String, double>{
+    for (final key in microRdaTargets.keys) key: 0,
+  };
+  final estimatedKeys = <String>{};
+
+  for (final e in entries) {
+    final byKey = <String, double?>{
+      'Vitamin D': e.vitaminDMcg,
+      'Iron': e.ironMg,
+      'Calcium': e.calciumMg,
+      'Vitamin C': e.vitaminCMg,
+      'Magnesium': e.magnesiumMg,
+      'Sodium': e.sodiumMg,
+      'Potassium': e.potassiumMg,
+      'Zinc': e.zincMg,
+      'Vitamin B12': e.vitaminB12Mcg,
+      'Folate': e.folateMcg,
+    };
+    final isRestaurant = e.servingUnit == restaurantServingUnit;
+    byKey.forEach((key, value) {
+      if (value == null) return;
+      totals[key] = totals[key]! + value;
+      if (isRestaurant &&
+          value > 0 &&
+          estimatedRestaurantMicroKeys.contains(key)) {
+        estimatedKeys.add(key);
+      }
+    });
+  }
+
+  return MicronutrientTotals(totals: totals, estimatedKeys: estimatedKeys);
+}
+
 final todayMicronutrientsProvider =
-    FutureProvider<Map<String, double>>((ref) async {
+    FutureProvider<MicronutrientTotals>((ref) async {
   final meals = await ref.watch(todayMealsProvider.future);
-  final totals = <String, double>{};
-  for (final key in microRdaTargets.keys) {
-    totals[key] = 0;
-  }
-
-  for (final entries in meals.values) {
-    for (final e in entries) {
-      totals['Vitamin D'] = totals['Vitamin D']! + (e.vitaminDMcg ?? 0);
-      totals['Iron'] = totals['Iron']! + (e.ironMg ?? 0);
-      totals['Calcium'] = totals['Calcium']! + (e.calciumMg ?? 0);
-      totals['Vitamin C'] = totals['Vitamin C']! + (e.vitaminCMg ?? 0);
-      totals['Magnesium'] = totals['Magnesium']! + (e.magnesiumMg ?? 0);
-      totals['Sodium'] = totals['Sodium']! + (e.sodiumMg ?? 0);
-      totals['Potassium'] = totals['Potassium']! + (e.potassiumMg ?? 0);
-      totals['Zinc'] = totals['Zinc']! + (e.zincMg ?? 0);
-      totals['Vitamin B12'] =
-          totals['Vitamin B12']! + (e.vitaminB12Mcg ?? 0);
-      totals['Folate'] = totals['Folate']! + (e.folateMcg ?? 0);
-    }
-  }
-
-  return totals;
+  return aggregateMicronutrients(meals.values.expand((e) => e));
 });
 
 // ---------------------------------------------------------------------------
