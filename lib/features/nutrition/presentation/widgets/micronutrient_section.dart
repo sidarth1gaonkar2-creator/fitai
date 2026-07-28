@@ -11,10 +11,15 @@ class MicronutrientSection extends StatelessWidget {
   const MicronutrientSection({
     super.key,
     required this.consumed,
+    this.estimatedKeys = const {},
   });
 
   /// Map of nutrient name → consumed amount (matches keys in [microRdaTargets]).
   final Map<String, double> consumed;
+
+  /// Nutrient keys whose total includes USDA-estimated restaurant values —
+  /// those rows get a small "est." suffix and the card grows a footnote.
+  final Set<String> estimatedKeys;
 
   int get _trackedCount =>
       consumed.entries.where((e) => e.value > 0).length;
@@ -40,19 +45,33 @@ class MicronutrientSection extends StatelessWidget {
           color: FieldManual.mutedBone,
         ),
       ),
-      children: microRdaTargets.keys.map((key) {
-        final value = consumed[key] ?? 0;
-        final isTracked = value > 0;
-        return Opacity(
-          opacity: isTracked ? 1.0 : 0.4,
-          child: _MicronutrientRow(
-            name: key,
-            consumed: value,
-            target: microRdaTargets[key] ?? 0,
-            isSodium: key == sodiumKey,
+      children: [
+        ...microRdaTargets.keys.map((key) {
+          final value = consumed[key] ?? 0;
+          final isTracked = value > 0;
+          return Opacity(
+            opacity: isTracked ? 1.0 : 0.4,
+            child: _MicronutrientRow(
+              name: key,
+              consumed: value,
+              target: microRdaTargets[key] ?? 0,
+              isSodium: key == sodiumKey,
+              isEstimated: estimatedKeys.contains(key),
+            ),
+          );
+        }),
+        if (estimatedKeys.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'est. = includes estimated values for restaurant items',
+              style: FieldManual.body(
+                fontSize: 10,
+                color: FieldManual.mutedBone,
+              ),
+            ),
           ),
-        );
-      }).toList(),
+      ],
     );
   }
 }
@@ -63,12 +82,14 @@ class _MicronutrientRow extends StatelessWidget {
     required this.consumed,
     required this.target,
     required this.isSodium,
+    required this.isEstimated,
   });
 
   final String name;
   final double consumed;
   final double target;
   final bool isSodium;
+  final bool isEstimated;
 
   String _unit(String name) {
     if (name == 'Vitamin D' || name == 'Vitamin B12' || name == 'Folate') {
@@ -128,6 +149,16 @@ class _MicronutrientRow extends StatelessWidget {
                   color: FieldManual.mutedBone,
                 ),
               ),
+              // Lowercase body-font suffix so it reads as an annotation,
+              // not part of the mono readout data.
+              if (isEstimated)
+                Text(
+                  ' est.',
+                  style: FieldManual.body(
+                    fontSize: 9,
+                    color: FieldManual.mutedBone,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 3),

@@ -14,6 +14,15 @@ class MenuItem {
     required this.fat,
     this.fiber,
     this.sodium,
+    this.vitaminDMcg,
+    this.ironMg,
+    this.calciumMg,
+    this.vitaminCMg,
+    this.magnesiumMg,
+    this.potassiumMg,
+    this.zincMg,
+    this.vitaminB12Mcg,
+    this.folateMcg,
   });
 
   final String name;
@@ -22,7 +31,24 @@ class MenuItem {
   final double carbs;
   final double fat;
   final double? fiber;
+
+  /// Sodium in mg per serving. Chains publish this (FDA menu labeling
+  /// requires it) — source it from the same nutrition sheet as the macros.
   final double? sodium;
+
+  // Micronutrients per serving. Chains do NOT publish vitamins/minerals
+  // (FDA menu labeling stops at sodium), so these are USDA
+  // generic-equivalent estimates. Null means "unknown" and stays null all
+  // the way into the log — never write 0 for a value we don't have.
+  final double? vitaminDMcg;
+  final double? ironMg;
+  final double? calciumMg;
+  final double? vitaminCMg;
+  final double? magnesiumMg;
+  final double? potassiumMg;
+  final double? zincMg;
+  final double? vitaminB12Mcg;
+  final double? folateMcg;
 }
 
 enum SelectionMode { single, multiple }
@@ -497,6 +523,20 @@ final List<RestaurantMenu> restaurantMenus = [
   ),
 
   // 3. McDONALD'S — based on mcdonalds.com nutrition explorer.
+  //
+  // MICRONUTRIENTS (added 2026-07-25, McDonald's-only pilot):
+  //  * fiber, sodium, vitaminDMcg, calciumMg, ironMg, potassiumMg come from
+  //    McDonald's own nutrition API (www.mcdonalds.com/dnaapp/itemDetails,
+  //    the backend of their nutrition calculator) — authoritative label data.
+  //  * vitaminCMg, magnesiumMg, zincMg, vitaminB12Mcg, folateMcg are USDA
+  //    FoodData Central estimates (SR Legacy branded McDONALD'S entries or
+  //    commodity equivalents), scaled to the serving via kcal ratio —
+  //    ESTIMATED values, flagged in report_mcdonalds_micros.txt.
+  //  * A null micro means "no sourced value found", never zero. Items with
+  //    no current published source (Spicy McChicken, Ranch, Side Salad Tier 1,
+  //    Sausage Patty, McFlurry snack sizes, Sprite/Hi-C medium) stay null.
+  //  * Big Breakfast intentionally left null: the current menu item (1060
+  //    kcal) no longer matches this row's macros (740) — refresh macros first.
   RestaurantMenu(
     id: 'mcdonalds',
     name: "McDonald's",
@@ -509,25 +549,92 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Burger',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Hamburger', calories: 250, protein: 12, carbs: 31, fat: 9),
-            MenuItem(name: 'Cheeseburger', calories: 300, protein: 15, carbs: 32, fat: 13),
-            MenuItem(name: 'Double Cheeseburger', calories: 450, protein: 25, carbs: 34, fat: 24),
-            MenuItem(name: 'McDouble', calories: 400, protein: 22, carbs: 33, fat: 20),
-            MenuItem(name: 'Quarter Pounder w/ Cheese', calories: 520, protein: 30, carbs: 42, fat: 26),
-            MenuItem(name: 'Double Quarter Pounder w/ Cheese', calories: 740, protein: 48, carbs: 43, fat: 42),
-            MenuItem(name: 'Big Mac', calories: 590, protein: 25, carbs: 46, fat: 34),
-            MenuItem(name: 'Filet-O-Fish', calories: 390, protein: 16, carbs: 39, fat: 19),
+            MenuItem(
+              name: 'Hamburger', calories: 250, protein: 12, carbs: 31, fat: 9,
+              fiber: 1, sodium: 510, vitaminDMcg: 0, ironMg: 2.5,
+              calciumMg: 15, vitaminCMg: 0.6, magnesiumMg: 19.9,
+              potassiumMg: 190, zincMg: 1.8, vitaminB12Mcg: 0.8,
+              folateMcg: 60.6,
+            ),
+            MenuItem(
+              name: 'Cheeseburger', calories: 300, protein: 15, carbs: 32, fat: 13,
+              fiber: 2, sodium: 720, vitaminDMcg: 0, ironMg: 2.5,
+              calciumMg: 90, vitaminCMg: 0.7, magnesiumMg: 22.8,
+              potassiumMg: 210, zincMg: 2.2, vitaminB12Mcg: 1,
+              folateMcg: 67.3,
+            ),
+            MenuItem(
+              name: 'Double Cheeseburger', calories: 450, protein: 25, carbs: 34, fat: 24,
+              fiber: 2, sodium: 1120, vitaminDMcg: 0, ironMg: 3.5,
+              calciumMg: 180, vitaminCMg: 0.6, magnesiumMg: 32.8,
+              potassiumMg: 350, zincMg: 4,
+            ),
+            MenuItem(
+              name: 'McDouble', calories: 400, protein: 22, carbs: 33, fat: 20,
+              fiber: 2, sodium: 920, vitaminDMcg: 0, ironMg: 3.5,
+              calciumMg: 100, potassiumMg: 320,
+            ),
+            MenuItem(
+              name: 'Quarter Pounder w/ Cheese', calories: 520, protein: 30, carbs: 42, fat: 26,
+              fiber: 2, sodium: 1140, vitaminDMcg: 0, ironMg: 4,
+              calciumMg: 190, vitaminCMg: 1.6, magnesiumMg: 44.3,
+              potassiumMg: 420, zincMg: 5.3, vitaminB12Mcg: 2.5,
+              folateMcg: 102.8,
+            ),
+            MenuItem(
+              name: 'Double Quarter Pounder w/ Cheese', calories: 740, protein: 48, carbs: 43, fat: 42,
+              fiber: 2, sodium: 1360, vitaminDMcg: 0, ironMg: 6,
+              calciumMg: 200, vitaminCMg: 1.7, magnesiumMg: 59.3,
+              potassiumMg: 660, zincMg: 9.4, vitaminB12Mcg: 4.7,
+              folateMcg: 127.1,
+            ),
+            MenuItem(
+              name: 'Big Mac', calories: 590, protein: 25, carbs: 46, fat: 34,
+              fiber: 3, sodium: 1060, vitaminDMcg: 0, ironMg: 4,
+              calciumMg: 120, vitaminCMg: 0.9, magnesiumMg: 45.1,
+              potassiumMg: 370, zincMg: 4.3, vitaminB12Mcg: 2,
+              folateMcg: 103.8,
+            ),
+            MenuItem(
+              name: 'Filet-O-Fish', calories: 390, protein: 16, carbs: 39, fat: 19,
+              fiber: 1, sodium: 580, vitaminDMcg: 0, ironMg: 2,
+              calciumMg: 60, vitaminCMg: 0.4, magnesiumMg: 36.4,
+              potassiumMg: 280, zincMg: 0.8, vitaminB12Mcg: 1.5,
+              folateMcg: 28.3,
+            ),
           ],
         ),
         MenuCategory(
           name: 'Side',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Small Fries', calories: 230, protein: 3, carbs: 29, fat: 11),
-            MenuItem(name: 'Medium Fries', calories: 320, protein: 4, carbs: 43, fat: 15),
-            MenuItem(name: 'Large Fries', calories: 480, protein: 6, carbs: 63, fat: 23),
-            MenuItem(name: 'Apple Slices', calories: 15, protein: 0, carbs: 4, fat: 0),
-            MenuItem(name: 'Side Salad', calories: 15, protein: 1, carbs: 3, fat: 0),
+            MenuItem(
+              name: 'Small Fries', calories: 230, protein: 3, carbs: 29, fat: 11,
+              fiber: 3, sodium: 190, vitaminDMcg: 0, ironMg: 0.5,
+              calciumMg: 10, vitaminCMg: 4, magnesiumMg: 26.3,
+              potassiumMg: 470, zincMg: 0.4,
+            ),
+            MenuItem(
+              name: 'Medium Fries', calories: 320, protein: 4, carbs: 43, fat: 15,
+              fiber: 4, sodium: 260, vitaminDMcg: 0, ironMg: 1,
+              calciumMg: 15, vitaminCMg: 5.5, magnesiumMg: 36.7,
+              potassiumMg: 650, zincMg: 0.5,
+            ),
+            MenuItem(
+              name: 'Large Fries', calories: 480, protein: 6, carbs: 63, fat: 23,
+              fiber: 6, sodium: 400, vitaminDMcg: 0, ironMg: 1.5,
+              calciumMg: 25, vitaminCMg: 8.3, magnesiumMg: 55,
+              potassiumMg: 1000, zincMg: 0.8,
+            ),
+            MenuItem(
+              name: 'Apple Slices', calories: 15, protein: 0, carbs: 4, fat: 0,
+              fiber: 0, sodium: 0, vitaminDMcg: 0, ironMg: 0, calciumMg: 10,
+              potassiumMg: 35,
+            ),
+            MenuItem(
+              name: 'Side Salad', calories: 15, protein: 1, carbs: 3, fat: 0,
+              vitaminCMg: 13.7, vitaminB12Mcg: 0, folateMcg: 49.6,
+            ),
           ],
         ),
         MenuCategory(
@@ -535,17 +642,62 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.single,
           optional: true,
           items: [
-            MenuItem(name: 'Small Coke', calories: 200, protein: 0, carbs: 55, fat: 0),
-            MenuItem(name: 'Medium Coke', calories: 290, protein: 0, carbs: 78, fat: 0),
-            MenuItem(name: 'Large Coke', calories: 380, protein: 0, carbs: 100, fat: 0),
-            MenuItem(name: 'Diet Coke', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(
+              name: 'Small Coke', calories: 150, protein: 0, carbs: 39, fat: 0,
+              fiber: 0, sodium: 40, vitaminDMcg: 0, ironMg: 0, calciumMg: 2,
+              vitaminCMg: 0, magnesiumMg: 0, potassiumMg: 10, zincMg: 0.1,
+              vitaminB12Mcg: 0, folateMcg: 0,
+            ),
+            MenuItem(
+              name: 'Medium Coke', calories: 210, protein: 0, carbs: 56, fat: 0,
+              fiber: 0, sodium: 55, vitaminDMcg: 0, ironMg: 0, calciumMg: 2,
+              vitaminCMg: 0, magnesiumMg: 0, potassiumMg: 10, zincMg: 0.1,
+              vitaminB12Mcg: 0, folateMcg: 0,
+            ),
+            MenuItem(
+              name: 'Large Coke', calories: 290, protein: 0, carbs: 77, fat: 0,
+              fiber: 0, sodium: 80, vitaminDMcg: 0, ironMg: 0, calciumMg: 4,
+              vitaminCMg: 0, magnesiumMg: 0, potassiumMg: 15, zincMg: 0.2,
+              vitaminB12Mcg: 0, folateMcg: 0,
+            ),
+            MenuItem(
+              name: 'Diet Coke', calories: 0, protein: 0, carbs: 0, fat: 0,
+              sodium: 15, vitaminDMcg: 0, ironMg: 0, calciumMg: 0,
+              potassiumMg: 0,
+            ),
             MenuItem(name: 'Sprite (Medium)', calories: 280, protein: 0, carbs: 77, fat: 0),
             MenuItem(name: 'Hi-C Orange (Medium)', calories: 240, protein: 0, carbs: 66, fat: 0),
-            MenuItem(name: 'Iced Tea (Unsweet)', calories: 0, protein: 0, carbs: 0, fat: 0),
-            MenuItem(name: 'Water', calories: 0, protein: 0, carbs: 0, fat: 0),
-            MenuItem(name: 'Low-Fat Milk (1%)', calories: 100, protein: 8, carbs: 12, fat: 3),
-            MenuItem(name: 'Chocolate Milk (1%)', calories: 150, protein: 8, carbs: 22, fat: 3),
-            MenuItem(name: 'Coffee (Small)', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(
+              name: 'Iced Tea (Unsweet)', calories: 0, protein: 0, carbs: 0, fat: 0,
+              sodium: 10, vitaminDMcg: 0, ironMg: 0, calciumMg: 10,
+              vitaminCMg: 0, magnesiumMg: 15.8, potassiumMg: 45, zincMg: 0.1,
+              vitaminB12Mcg: 0, folateMcg: 26.3,
+            ),
+            MenuItem(
+              name: 'Water', calories: 0, protein: 0, carbs: 0, fat: 0,
+              fiber: 0, sodium: 0, vitaminDMcg: 0, ironMg: 0, calciumMg: 0,
+              potassiumMg: 0,
+            ),
+            MenuItem(
+              name: 'Low-Fat Milk (1%)', calories: 100, protein: 8, carbs: 12, fat: 3,
+              fiber: 0, sodium: 80, vitaminDMcg: 2, ironMg: 0,
+              calciumMg: 260, vitaminCMg: 0, magnesiumMg: 26.2,
+              potassiumMg: 350, zincMg: 1, vitaminB12Mcg: 1.1,
+              folateMcg: 11.9,
+            ),
+            MenuItem(
+              name: 'Chocolate Milk (1%)', calories: 130, protein: 9, carbs: 18, fat: 2.5,
+              fiber: 0, sodium: 85, vitaminDMcg: 2, ironMg: 1,
+              calciumMg: 270, vitaminCMg: 0, magnesiumMg: 23.9,
+              potassiumMg: 390, zincMg: 0.7, vitaminB12Mcg: 0.6,
+              folateMcg: 3.4,
+            ),
+            MenuItem(
+              name: 'Coffee (Small)', calories: 0, protein: 0, carbs: 0, fat: 0,
+              fiber: 0, sodium: 10, vitaminDMcg: 0, ironMg: 0, calciumMg: 6,
+              vitaminCMg: 0, magnesiumMg: 15, potassiumMg: 160, zincMg: 0.1,
+              vitaminB12Mcg: 0, folateMcg: 10,
+            ),
           ],
         ),
       ],
@@ -554,14 +706,47 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Entree',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'McChicken', calories: 400, protein: 14, carbs: 39, fat: 21),
+            MenuItem(
+              name: 'McChicken', calories: 400, protein: 14, carbs: 39, fat: 21,
+              fiber: 1, sodium: 560, vitaminDMcg: 0, ironMg: 2,
+              calciumMg: 20, magnesiumMg: 28.6, potassiumMg: 310,
+              zincMg: 0.9, vitaminB12Mcg: 0.3,
+            ),
             MenuItem(name: 'Spicy McChicken', calories: 410, protein: 14, carbs: 40, fat: 22),
-            MenuItem(name: 'McCrispy', calories: 470, protein: 27, carbs: 46, fat: 20),
-            MenuItem(name: 'Spicy McCrispy', calories: 480, protein: 27, carbs: 46, fat: 21),
-            MenuItem(name: 'McNuggets (4 pc)', calories: 170, protein: 9, carbs: 11, fat: 10),
-            MenuItem(name: 'McNuggets (6 pc)', calories: 250, protein: 14, carbs: 16, fat: 15),
-            MenuItem(name: 'McNuggets (10 pc)', calories: 410, protein: 23, carbs: 26, fat: 24),
-            MenuItem(name: 'McNuggets (20 pc)', calories: 830, protein: 47, carbs: 53, fat: 49),
+            MenuItem(
+              name: 'McCrispy', calories: 470, protein: 27, carbs: 46, fat: 20,
+              fiber: 1, sodium: 1140, vitaminDMcg: 0, ironMg: 2,
+              calciumMg: 30, potassiumMg: 420,
+            ),
+            MenuItem(
+              name: 'Spicy McCrispy', calories: 530, protein: 27, carbs: 48, fat: 26,
+              fiber: 2, sodium: 1320, vitaminDMcg: 0, ironMg: 2.5,
+              calciumMg: 30, potassiumMg: 440,
+            ),
+            MenuItem(
+              name: 'McNuggets (4 pc)', calories: 170, protein: 9, carbs: 11, fat: 10,
+              fiber: 0, sodium: 340, vitaminDMcg: 0, ironMg: 0.5,
+              calciumMg: 6, vitaminCMg: 0.7, magnesiumMg: 13.5,
+              potassiumMg: 150, zincMg: 0.3, vitaminB12Mcg: 0.2,
+            ),
+            MenuItem(
+              name: 'McNuggets (6 pc)', calories: 250, protein: 14, carbs: 16, fat: 15,
+              sodium: 500, vitaminDMcg: 0, ironMg: 0.5, calciumMg: 10,
+              vitaminCMg: 1, magnesiumMg: 19.9, potassiumMg: 220,
+              zincMg: 0.5, vitaminB12Mcg: 0.3,
+            ),
+            MenuItem(
+              name: 'McNuggets (10 pc)', calories: 410, protein: 23, carbs: 26, fat: 24,
+              fiber: 1, sodium: 850, vitaminDMcg: 0, ironMg: 1,
+              calciumMg: 15, vitaminCMg: 1.6, magnesiumMg: 32.6,
+              potassiumMg: 360, zincMg: 0.8, vitaminB12Mcg: 0.4,
+            ),
+            MenuItem(
+              name: 'McNuggets (20 pc)', calories: 830, protein: 47, carbs: 53, fat: 49,
+              fiber: 2, sodium: 1700, vitaminDMcg: 0, ironMg: 2,
+              calciumMg: 35, vitaminCMg: 3.3, magnesiumMg: 66,
+              potassiumMg: 730, zincMg: 1.6, vitaminB12Mcg: 0.9,
+            ),
           ],
         ),
         MenuCategory(
@@ -569,12 +754,32 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.multiple,
           optional: true,
           items: [
-            MenuItem(name: 'Tangy BBQ Sauce', calories: 45, protein: 0, carbs: 11, fat: 0),
-            MenuItem(name: 'Sweet ʼn Sour', calories: 50, protein: 0, carbs: 12, fat: 0),
-            MenuItem(name: 'Honey Mustard', calories: 60, protein: 0, carbs: 9, fat: 3),
+            MenuItem(
+              name: 'Tangy BBQ Sauce', calories: 45, protein: 0, carbs: 11, fat: 0,
+              fiber: 0, sodium: 260, vitaminDMcg: 0, ironMg: 0, calciumMg: 4,
+              potassiumMg: 55,
+            ),
+            MenuItem(
+              name: 'Sweet ʼn Sour', calories: 50, protein: 0, carbs: 12, fat: 0,
+              fiber: 0, sodium: 160, vitaminDMcg: 0, ironMg: 0, calciumMg: 2,
+              potassiumMg: 35,
+            ),
+            MenuItem(
+              name: 'Honey Mustard', calories: 60, protein: 0, carbs: 9, fat: 3,
+              fiber: 1, sodium: 125, vitaminDMcg: 0, ironMg: 0, calciumMg: 6,
+              potassiumMg: 10,
+            ),
             MenuItem(name: 'Ranch', calories: 110, protein: 0, carbs: 2, fat: 12),
-            MenuItem(name: 'Spicy Buffalo', calories: 30, protein: 0, carbs: 1, fat: 3),
-            MenuItem(name: 'Honey', calories: 50, protein: 0, carbs: 12, fat: 0),
+            MenuItem(
+              name: 'Spicy Buffalo', calories: 30, protein: 0, carbs: 1, fat: 3,
+              fiber: 0, sodium: 520, vitaminDMcg: 0, ironMg: 0, calciumMg: 0,
+              potassiumMg: 20,
+            ),
+            MenuItem(
+              name: 'Honey', calories: 50, protein: 0, carbs: 12, fat: 0,
+              fiber: 0, sodium: 0, vitaminDMcg: 0, ironMg: 0, calciumMg: 0,
+              potassiumMg: 5,
+            ),
           ],
         ),
         MenuCategory(
@@ -582,9 +787,24 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.single,
           optional: true,
           items: [
-            MenuItem(name: 'Small Fries', calories: 230, protein: 3, carbs: 29, fat: 11),
-            MenuItem(name: 'Medium Fries', calories: 320, protein: 4, carbs: 43, fat: 15),
-            MenuItem(name: 'Large Fries', calories: 480, protein: 6, carbs: 63, fat: 23),
+            MenuItem(
+              name: 'Small Fries', calories: 230, protein: 3, carbs: 29, fat: 11,
+              fiber: 3, sodium: 190, vitaminDMcg: 0, ironMg: 0.5,
+              calciumMg: 10, vitaminCMg: 4, magnesiumMg: 26.3,
+              potassiumMg: 470, zincMg: 0.4,
+            ),
+            MenuItem(
+              name: 'Medium Fries', calories: 320, protein: 4, carbs: 43, fat: 15,
+              fiber: 4, sodium: 260, vitaminDMcg: 0, ironMg: 1,
+              calciumMg: 15, vitaminCMg: 5.5, magnesiumMg: 36.7,
+              potassiumMg: 650, zincMg: 0.5,
+            ),
+            MenuItem(
+              name: 'Large Fries', calories: 480, protein: 6, carbs: 63, fat: 23,
+              fiber: 6, sodium: 400, vitaminDMcg: 0, ironMg: 1.5,
+              calciumMg: 25, vitaminCMg: 8.3, magnesiumMg: 55,
+              potassiumMg: 1000, zincMg: 0.8,
+            ),
           ],
         ),
       ],
@@ -593,13 +813,45 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Entree',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Egg McMuffin', calories: 310, protein: 17, carbs: 30, fat: 13),
-            MenuItem(name: 'Sausage McMuffin w/ Egg', calories: 480, protein: 21, carbs: 30, fat: 31),
-            MenuItem(name: 'Bacon, Egg & Cheese Biscuit', calories: 460, protein: 19, carbs: 38, fat: 26),
-            MenuItem(name: 'Sausage Biscuit w/ Egg', calories: 530, protein: 18, carbs: 36, fat: 35),
+            MenuItem(
+              name: 'Egg McMuffin', calories: 310, protein: 17, carbs: 30, fat: 13,
+              fiber: 2, sodium: 770, vitaminDMcg: 2, ironMg: 3,
+              calciumMg: 170, vitaminCMg: 1.6, magnesiumMg: 27.2,
+              potassiumMg: 200, zincMg: 1.8, folateMcg: 107.4,
+            ),
+            MenuItem(
+              name: 'Sausage McMuffin w/ Egg', calories: 480, protein: 21, carbs: 30, fat: 31,
+              fiber: 2, sodium: 830, vitaminDMcg: 4, ironMg: 3,
+              calciumMg: 170, vitaminCMg: 0, magnesiumMg: 31.5,
+              potassiumMg: 260, zincMg: 2.1, vitaminB12Mcg: 1.2,
+            ),
+            MenuItem(
+              name: 'Bacon, Egg & Cheese Biscuit', calories: 460, protein: 19, carbs: 38, fat: 26,
+              fiber: 2, sodium: 1330, vitaminDMcg: 0, ironMg: 3,
+              calciumMg: 180, vitaminCMg: 3.2, magnesiumMg: 18.2,
+              potassiumMg: 240, zincMg: 1.4,
+            ),
+            MenuItem(
+              name: 'Sausage Biscuit w/ Egg', calories: 530, protein: 18, carbs: 36, fat: 35,
+              fiber: 2, sodium: 1190, vitaminDMcg: 0, ironMg: 3.5,
+              calciumMg: 110, vitaminCMg: 0, magnesiumMg: 22.2,
+              potassiumMg: 260, zincMg: 1.8, vitaminB12Mcg: 1,
+              folateMcg: 144.9,
+            ),
             MenuItem(name: 'Big Breakfast', calories: 740, protein: 28, carbs: 56, fat: 48),
-            MenuItem(name: 'Hotcakes (3)', calories: 590, protein: 9, carbs: 105, fat: 14),
-            MenuItem(name: 'Sausage Burrito', calories: 310, protein: 12, carbs: 26, fat: 17),
+            MenuItem(
+              name: 'Hotcakes (3)', calories: 590, protein: 9, carbs: 105, fat: 14,
+              fiber: 2, sodium: 530, vitaminDMcg: 0, ironMg: 3,
+              calciumMg: 130, vitaminCMg: 0, magnesiumMg: 27.7,
+              potassiumMg: 430, zincMg: 0.6, vitaminB12Mcg: 0,
+              folateMcg: 138.6,
+            ),
+            MenuItem(
+              name: 'Sausage Burrito', calories: 310, protein: 12, carbs: 26, fat: 17,
+              fiber: 1, sodium: 800, vitaminDMcg: 0, ironMg: 2.5,
+              calciumMg: 140, magnesiumMg: 20.1, potassiumMg: 170,
+              zincMg: 1.2, vitaminB12Mcg: 0.8, folateMcg: 70.5,
+            ),
           ],
         ),
         MenuCategory(
@@ -607,7 +859,12 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.multiple,
           optional: true,
           items: [
-            MenuItem(name: 'Hash Browns', calories: 150, protein: 1, carbs: 15, fat: 9),
+            MenuItem(
+              name: 'Hash Browns', calories: 150, protein: 1, carbs: 15, fat: 9,
+              fiber: 2, sodium: 310, vitaminDMcg: 0, ironMg: 0.5,
+              calciumMg: 8, vitaminCMg: 2.9, magnesiumMg: 10.3,
+              potassiumMg: 240, zincMg: 0.2, folateMcg: 6.2,
+            ),
             MenuItem(name: 'Sausage Patty', calories: 170, protein: 7, carbs: 1, fat: 16),
           ],
         ),
@@ -617,15 +874,47 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Item',
           mode: SelectionMode.multiple,
           items: [
-            MenuItem(name: 'Apple Pie', calories: 230, protein: 2, carbs: 36, fat: 11),
+            MenuItem(
+              name: 'Apple Pie', calories: 230, protein: 2, carbs: 36, fat: 11,
+              fiber: 1, sodium: 100, vitaminDMcg: 0, ironMg: 1, calciumMg: 6,
+              potassiumMg: 70,
+            ),
             MenuItem(name: 'McFlurry M&M (Snack)', calories: 430, protein: 9, carbs: 67, fat: 14),
             MenuItem(name: 'McFlurry Oreo (Snack)', calories: 340, protein: 8, carbs: 53, fat: 11),
-            MenuItem(name: 'McFlurry M&M (Regular)', calories: 640, protein: 14, carbs: 96, fat: 22),
-            MenuItem(name: 'McFlurry Oreo (Regular)', calories: 510, protein: 13, carbs: 80, fat: 16),
-            MenuItem(name: 'Vanilla Cone', calories: 200, protein: 5, carbs: 32, fat: 5),
-            MenuItem(name: 'Hot Fudge Sundae', calories: 320, protein: 7, carbs: 50, fat: 9),
-            MenuItem(name: 'Chocolate Chip Cookie', calories: 170, protein: 2, carbs: 22, fat: 8),
-            MenuItem(name: 'Baked Apple Pie', calories: 230, protein: 2, carbs: 36, fat: 11),
+            MenuItem(
+              name: 'McFlurry M&M (Regular)', calories: 570, protein: 11, carbs: 85, fat: 19,
+              fiber: 2, sodium: 170, vitaminDMcg: 0, ironMg: 0.5,
+              calciumMg: 370, magnesiumMg: 54.7, potassiumMg: 570,
+              zincMg: 1.7, vitaminB12Mcg: 1.9, folateMcg: 9.7,
+            ),
+            MenuItem(
+              name: 'McFlurry Oreo (Regular)', calories: 410, protein: 10, carbs: 64, fat: 13,
+              fiber: 1, sodium: 210, vitaminDMcg: 0, ironMg: 1,
+              calciumMg: 310, magnesiumMg: 34.8, potassiumMg: 430,
+              zincMg: 1.2, vitaminB12Mcg: 1.4, folateMcg: 12.4,
+            ),
+            MenuItem(
+              name: 'Vanilla Cone', calories: 200, protein: 5, carbs: 32, fat: 5,
+              fiber: 0, sodium: 80, vitaminDMcg: 0, ironMg: 0.5,
+              calciumMg: 180, magnesiumMg: 16, potassiumMg: 240, zincMg: 0.6,
+              vitaminB12Mcg: 0.7, folateMcg: 11.1,
+            ),
+            MenuItem(
+              name: 'Hot Fudge Sundae', calories: 320, protein: 7, carbs: 50, fat: 9,
+              fiber: 2, sodium: 170, vitaminDMcg: 0, ironMg: 0.5,
+              calciumMg: 260, magnesiumMg: 33.7, potassiumMg: 420, zincMg: 1,
+              vitaminB12Mcg: 1, folateMcg: 0,
+            ),
+            MenuItem(
+              name: 'Chocolate Chip Cookie', calories: 170, protein: 2, carbs: 22, fat: 8,
+              fiber: 1, sodium: 95, vitaminDMcg: 0, ironMg: 2, calciumMg: 10,
+              potassiumMg: 60,
+            ),
+            MenuItem(
+              name: 'Baked Apple Pie', calories: 230, protein: 2, carbs: 36, fat: 11,
+              fiber: 1, sodium: 100, vitaminDMcg: 0, ironMg: 1, calciumMg: 6,
+              potassiumMg: 70,
+            ),
           ],
         ),
       ],

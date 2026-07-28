@@ -151,6 +151,41 @@ SavedMealItem savedMealItemFromFoodEntry(FoodEntry e) {
     ..folateMcg = e.folateMcg;
 }
 
+/// Builds the log-ready [FoodEntry] for one saved-meal [item] at
+/// [portionMultiplier]. Every nutrient — macro AND micro — scales by the
+/// same factor, `quantity * portionMultiplier`: the item stores a
+/// per-serving snapshot, so a "Double" component (quantity 2) must double
+/// its micros exactly as it doubles its calories. (Micros previously
+/// scaled by portion only, silently under-reporting them for any
+/// quantity != 1.) Null stays null: unknown is never turned into a 0.
+FoodEntry foodEntryFromSavedMealItem(
+  SavedMealItem item,
+  double portionMultiplier,
+) {
+  final factor = item.quantity * portionMultiplier;
+  double? scaled(double? v) => v == null ? null : v * factor;
+  return FoodEntry()
+    ..name = item.foodName
+    ..calories = item.calories * factor
+    ..protein = item.protein * factor
+    ..carbs = item.carbs * factor
+    ..fat = item.fat * factor
+    ..servingSize = item.servingSize
+    ..servingUnit = item.servingUnit
+    ..fibre = scaled(item.fiber)
+    ..sugar = scaled(item.sugar)
+    ..sodiumMg = scaled(item.sodium)
+    ..vitaminDMcg = scaled(item.vitaminDMcg)
+    ..ironMg = scaled(item.ironMg)
+    ..calciumMg = scaled(item.calciumMg)
+    ..vitaminCMg = scaled(item.vitaminCMg)
+    ..magnesiumMg = scaled(item.magnesiumMg)
+    ..potassiumMg = scaled(item.potassiumMg)
+    ..zincMg = scaled(item.zincMg)
+    ..vitaminB12Mcg = scaled(item.vitaminB12Mcg)
+    ..folateMcg = scaled(item.folateMcg);
+}
+
 /// Logs a saved meal into today's nutrition log under [mealType]. Scales
 /// every item by [portionMultiplier]. Updates `useCount` + `lastUsedAt`,
 /// invalidates the nutrition dashboard, returns true on success.
@@ -196,29 +231,8 @@ Future<bool> logSavedMeal(
       // nutrition screen can collapse them into a single expandable row.
       final groupId = const Uuid().v4();
 
-      double? scale(double? v) => v == null ? null : v * portionMultiplier;
       for (final item in items) {
-        final scaledQty = item.quantity * portionMultiplier;
-        final entry = FoodEntry()
-          ..name = item.foodName
-          ..calories = item.calories * scaledQty
-          ..protein = item.protein * scaledQty
-          ..carbs = item.carbs * scaledQty
-          ..fat = item.fat * scaledQty
-          ..servingSize = item.servingSize
-          ..servingUnit = item.servingUnit
-          ..fibre = scale(item.fiber)
-          ..sugar = scale(item.sugar)
-          ..sodiumMg = scale(item.sodium)
-          ..vitaminDMcg = scale(item.vitaminDMcg)
-          ..ironMg = scale(item.ironMg)
-          ..calciumMg = scale(item.calciumMg)
-          ..vitaminCMg = scale(item.vitaminCMg)
-          ..magnesiumMg = scale(item.magnesiumMg)
-          ..potassiumMg = scale(item.potassiumMg)
-          ..zincMg = scale(item.zincMg)
-          ..vitaminB12Mcg = scale(item.vitaminB12Mcg)
-          ..folateMcg = scale(item.folateMcg)
+        final entry = foodEntryFromSavedMealItem(item, portionMultiplier)
           ..mealGroupId = groupId
           ..mealGroupName = meal.name
           ..mealGroupEmoji = meal.emoji;

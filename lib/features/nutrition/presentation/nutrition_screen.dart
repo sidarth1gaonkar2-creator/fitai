@@ -92,7 +92,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
     final fat = nutritionAsync.valueOrNull?.totalFat ?? 0;
 
     final targets = targetsAsync.valueOrNull;
-    final micros = microsAsync.valueOrNull ?? {};
+    final micros = microsAsync.valueOrNull ?? const MicronutrientTotals();
     final isLocked = completedDayAsync.valueOrNull != null;
 
     return Scaffold(
@@ -150,7 +150,10 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
                 const SizedBox(height: 12),
               ],
               // Micronutrient section (always visible)
-              MicronutrientSection(consumed: micros),
+              MicronutrientSection(
+                consumed: micros.totals,
+                estimatedKeys: micros.estimatedKeys,
+              ),
               const SizedBox(height: 8),
               // Meal sections
               ...MealType.values.map((type) {

@@ -15,6 +15,15 @@ class MealCartItem {
     required this.fat,
     this.fibre,
     this.sodiumMg,
+    this.vitaminDMcg,
+    this.ironMg,
+    this.calciumMg,
+    this.vitaminCMg,
+    this.magnesiumMg,
+    this.potassiumMg,
+    this.zincMg,
+    this.vitaminB12Mcg,
+    this.folateMcg,
     required this.restaurantId,
     required this.restaurantName,
     this.restaurantEmoji,
@@ -30,6 +39,19 @@ class MealCartItem {
   final double fat;
   final double? fibre;
   final double? sodiumMg;
+
+  // Micronutrients for the composed item, already summed from its
+  // components by the builder. Null when no component carried the value —
+  // the same "unknown ≠ 0" rule as fibre/sodium.
+  final double? vitaminDMcg;
+  final double? ironMg;
+  final double? calciumMg;
+  final double? vitaminCMg;
+  final double? magnesiumMg;
+  final double? potassiumMg;
+  final double? zincMg;
+  final double? vitaminB12Mcg;
+  final double? folateMcg;
 
   // Restaurant source (an item carries its origin so the cart can detect when
   // the user has wandered into a different restaurant).
@@ -91,6 +113,15 @@ class MealCartNotifier extends StateNotifier<MealCartState> {
     required double fat,
     double? fibre,
     double? sodiumMg,
+    double? vitaminDMcg,
+    double? ironMg,
+    double? calciumMg,
+    double? vitaminCMg,
+    double? magnesiumMg,
+    double? potassiumMg,
+    double? zincMg,
+    double? vitaminB12Mcg,
+    double? folateMcg,
     required String restaurantId,
     required String restaurantName,
     String? restaurantEmoji,
@@ -104,6 +135,15 @@ class MealCartNotifier extends StateNotifier<MealCartState> {
       fat: fat,
       fibre: fibre,
       sodiumMg: sodiumMg,
+      vitaminDMcg: vitaminDMcg,
+      ironMg: ironMg,
+      calciumMg: calciumMg,
+      vitaminCMg: vitaminCMg,
+      magnesiumMg: magnesiumMg,
+      potassiumMg: potassiumMg,
+      zincMg: zincMg,
+      vitaminB12Mcg: vitaminB12Mcg,
+      folateMcg: folateMcg,
       restaurantId: restaurantId,
       restaurantName: restaurantName,
       restaurantEmoji: restaurantEmoji,
