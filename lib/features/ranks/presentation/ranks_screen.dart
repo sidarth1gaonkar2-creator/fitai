@@ -7,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/unit_converter.dart';
+import '../../../core/widgets/animated_count.dart';
 import '../../../core/widgets/error_card.dart';
+import '../../../core/widgets/meter_bar.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../core/widgets/tactical_surface.dart';
 import '../../../data/exercise_library.dart';
@@ -174,26 +176,32 @@ class _OverallSection extends StatelessWidget {
           const SizedBox(height: 14),
           _RankProgressBar(value: progress, color: color),
           const SizedBox(height: 6),
-          Text(
-            next == null
-                ? 'Top rank achieved, soldier. 🎖️'
-                : '${(progress * 100).round()}% TO ${next.displayName.toUpperCase()}',
-            style: next == null
-                ? TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: palette.textSecondary,
-                  )
-                : TextStyle(
-                    fontFamily: 'JetBrainsMono',
-                    fontVariations: const [FontVariation('wght', 500)],
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.5,
-                    color: palette.textSecondary,
-                  ),
-          ),
+          if (next == null)
+            Text(
+              'Top rank achieved, soldier. 🎖️',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: palette.textSecondary,
+              ),
+            )
+          else
+            // Counts up with the bar above it — same Motion clock.
+            AnimatedCount(
+              value: progress * 100,
+              builder: (context, animated) => Text(
+                '${animated.round()}% TO ${next.displayName.toUpperCase()}',
+                style: TextStyle(
+                  fontFamily: 'JetBrainsMono',
+                  fontVariations: const [FontVariation('wght', 500)],
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.5,
+                  color: palette.textSecondary,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -1014,15 +1022,16 @@ class _RankProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppColors.of(context);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: LinearProgressIndicator(
-        value: value.clamp(0.0, 1.0),
-        minHeight: 7,
-        backgroundColor: palette.surfaceElevated,
-        valueColor: AlwaysStoppedAnimation(color),
-        // Otherwise VoiceOver announces a naked percentage.
-        semanticsLabel: 'Progress to next rank',
+    return Semantics(
+      // Otherwise VoiceOver announces a naked percentage.
+      label: 'Progress to next rank',
+      value: '${(value.clamp(0.0, 1.0) * 100).round()}%',
+      child: MeterBar(
+        fraction: value,
+        fill: color,
+        height: 7,
+        track: palette.surfaceElevated,
+        radius: 4,
       ),
     );
   }

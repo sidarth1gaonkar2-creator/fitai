@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/motion.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
+import '../../../../core/widgets/animated_count.dart';
 
 /// Field Manual water counter — a horizontal mono instrument with ≥44pt
 /// steppers, replacing the dot-row water tracker. One glass = 250 ml; goal 8.
@@ -38,24 +40,39 @@ class CanteenCard extends StatelessWidget {
               children: [
                 Text('CANTEEN', style: FieldManual.label(fontSize: 9)),
                 const SizedBox(height: 4),
-                Text.rich(
-                  TextSpan(
-                    style: FieldManual.readout(
-                      fontSize: 20,
-                      color: goalMet
-                          ? AppColors.of(context).accent
-                          : FieldManual.bone,
-                    ),
-                    children: [
-                      TextSpan(text: '$glasses'),
+                // Count and goal-met color ride the shared Motion clock; a
+                // ±1 step reads as a quick tick, not a slow crawl.
+                TweenAnimationBuilder<Color?>(
+                  tween: ColorTween(
+                    begin: goalMet
+                        ? AppColors.of(context).accent
+                        : FieldManual.bone,
+                    end: goalMet
+                        ? AppColors.of(context).accent
+                        : FieldManual.bone,
+                  ),
+                  duration: Motion.meterDurationOf(context),
+                  curve: Motion.meterCurve,
+                  builder: (context, numberColor, _) => AnimatedCount(
+                    value: glasses.toDouble(),
+                    builder: (context, animated) => Text.rich(
                       TextSpan(
-                        text: ' / $_goal GLASSES',
                         style: FieldManual.readout(
-                          fontSize: 12,
-                          color: FieldManual.mutedBone,
+                          fontSize: 20,
+                          color: numberColor ?? FieldManual.bone,
                         ),
+                        children: [
+                          TextSpan(text: '${animated.round()}'),
+                          TextSpan(
+                            text: ' / $_goal GLASSES',
+                            style: FieldManual.readout(
+                              fontSize: 12,
+                              color: FieldManual.mutedBone,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ],

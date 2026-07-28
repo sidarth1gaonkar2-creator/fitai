@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
+import '../../../../core/widgets/animated_count.dart';
 import '../../../../models/workout.dart';
 import '../../../ranks/domain/drill_sergeant.dart';
 
@@ -211,9 +212,6 @@ class _StreakChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = AppColors.of(context).accent;
-    final label = multiplier != null
-        ? 'DAY $streak · ×${multiplier!.toStringAsFixed(1)}'
-        : 'DAY $streak';
     return Semantics(
       label: multiplier != null
           ? '$streak day gym streak, ${multiplier!.toStringAsFixed(1)} times coin multiplier'
@@ -226,9 +224,14 @@ class _StreakChip extends StatelessWidget {
             color: accent.withValues(alpha: 0.4),
           ),
         ),
-        child: Text(
-          label,
-          style: FieldManual.label(color: accent, fontSize: 10),
+        child: AnimatedCount(
+          value: streak.toDouble(),
+          builder: (context, animated) => Text(
+            multiplier != null
+                ? 'DAY ${animated.round()} · ×${multiplier!.toStringAsFixed(1)}'
+                : 'DAY ${animated.round()}',
+            style: FieldManual.label(color: accent, fontSize: 10),
+          ),
         ),
       ),
     );

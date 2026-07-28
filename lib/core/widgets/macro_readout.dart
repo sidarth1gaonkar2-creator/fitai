@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 
 import '../theme/field_manual.dart';
+import 'animated_count.dart';
+import 'meter_bar.dart';
 
 /// A labeled mono macro readout with a hairline progress bar — the shared
 /// instrument used by the dashboard RationsPanel and the nutrition summary.
@@ -32,31 +34,21 @@ class MacroReadout extends StatelessWidget {
         children: [
           Text(label, style: FieldManual.label(fontSize: 11)),
           const SizedBox(height: 4),
-          Text(
-            '${grams.round()}/${target.round()}G',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: FieldManual.readout(fontSize: 13),
+          AnimatedCount(
+            value: grams,
+            builder: (context, animated) => Text(
+              '${animated.round()}/${target.round()}G',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: FieldManual.readout(fontSize: 13),
+            ),
           ),
           const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(1),
-            child: SizedBox(
-              height: 2,
-              child: Stack(
-                children: [
-                  Container(color: FieldManual.hairline),
-                  FractionallySizedBox(
-                    widthFactor: fraction,
-                    child: Container(
-                      color: over
-                          ? FieldManual.alert
-                          : FieldManual.bone.withValues(alpha: 0.85),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          MeterBar(
+            fraction: fraction,
+            fill: over
+                ? FieldManual.alert
+                : FieldManual.bone.withValues(alpha: 0.85),
           ),
         ],
       ),

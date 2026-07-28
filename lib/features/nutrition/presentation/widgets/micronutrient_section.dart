@@ -3,7 +3,9 @@ import '../../../../core/constants/micro_rdas.dart';
 import '../../../../core/constants/nutrient_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
+import '../../../../core/widgets/animated_count.dart';
 import '../../../../core/widgets/cupertino_helpers.dart';
+import '../../../../core/widgets/meter_bar.dart';
 
 /// Collapsible card showing 10 tracked micronutrients vs their RDA targets.
 /// Sodium colour logic is inverted (alert when over the upper limit).
@@ -98,8 +100,6 @@ class _MicronutrientRow extends StatelessWidget {
     final unit = _unit(name);
     final progress =
         target > 0 ? (consumed / target).clamp(0.0, 1.0) : 0.0;
-    final percent =
-        target > 0 ? ((consumed / target) * 100).clamp(0.0, 999.0) : 0.0;
     final fillColor = _isOvershoot()
         ? FieldManual.alert
         : FieldManual.bone.withValues(alpha: 0.85);
@@ -120,41 +120,30 @@ class _MicronutrientRow extends StatelessWidget {
                   style: FieldManual.body(fontSize: 13),
                 ),
               ),
-              Text(
-                '${_formatValue(consumed)}/${_formatValue(target)} '
-                '${unit.toUpperCase()} (${percent.toInt()}%)',
-                style: FieldManual.readout(
-                  fontSize: 11,
-                  color: FieldManual.mutedBone,
-                ),
+              AnimatedCount(
+                value: consumed,
+                builder: (context, animated) {
+                  final percent = target > 0
+                      ? ((animated / target) * 100).clamp(0.0, 999.0)
+                      : 0.0;
+                  return Text(
+                    '${_formatValue(animated)}/${_formatValue(target)} '
+                    '${unit.toUpperCase()} (${percent.toInt()}%)',
+                    style: FieldManual.readout(
+                      fontSize: 11,
+                      color: FieldManual.mutedBone,
+                    ),
+                  );
+                },
               ),
             ],
           ),
           const SizedBox(height: 3),
           // Bone fill on a hairline track — the RationsPanel bar idiom.
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: progress.toDouble()),
-            duration: MediaQuery.disableAnimationsOf(context)
-                ? Duration.zero
-                : const Duration(milliseconds: 500),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, _) {
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(1),
-                child: SizedBox(
-                  height: 3,
-                  child: Stack(
-                    children: [
-                      Container(color: FieldManual.hairline),
-                      FractionallySizedBox(
-                        widthFactor: value,
-                        child: Container(color: fillColor),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+          MeterBar(
+            fraction: progress.toDouble(),
+            fill: fillColor,
+            height: 3,
           ),
         ],
       ),

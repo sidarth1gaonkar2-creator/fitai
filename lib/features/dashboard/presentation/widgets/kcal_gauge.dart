@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/motion.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
 
@@ -35,86 +36,86 @@ class _KcalGaugeState extends State<KcalGauge> {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     final target = widget.target <= 0 ? 1.0 : widget.target;
-    final fraction = (widget.consumed / target).clamp(0.0, 1.0).toDouble();
-    final over = widget.consumed > target;
-
-    final String bigNumber;
-    final String subLabel;
-    if (_showNet && _canFlip) {
-      final remaining =
-          (target - widget.consumed + widget.burned).round();
-      bigNumber = '$remaining';
-      subLabel = 'KCAL REMAINING';
-    } else {
-      bigNumber = '${widget.consumed.round()}';
-      subLabel = over
-          ? 'OVER BY ${(widget.consumed - target).round()}'
-          : 'OF ${target.round()} KCAL';
-    }
 
     final gauge = SizedBox(
       width: widget.size,
       // The 240° arc leaves the bottom open; height is less than a full circle.
       height: widget.size * 0.78,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned.fill(
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: fraction),
-              duration: reduceMotion
-                  ? Duration.zero
-                  : const Duration(milliseconds: 600),
-              curve: Curves.easeOutQuart,
-              builder: (_, animated, _) => CustomPaint(
-                painter: _GaugePainter(
-                  fraction: animated,
-                  // The live accent sweep — brass on the default issue.
-                  accent: AppColors.of(context).accent,
+      // One animated value drives the arc AND the numeral, so the sweep and
+      // the count-up can never drift apart. Retargets from the current
+      // position on value change; sweeps from zero only on first build.
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: widget.consumed),
+        duration: Motion.meterDurationOf(context),
+        curve: Motion.meterCurve,
+        builder: (context, consumed, _) {
+          final fraction = (consumed / target).clamp(0.0, 1.0).toDouble();
+          final String bigNumber;
+          final String subLabel;
+          if (_showNet && _canFlip) {
+            final remaining = (target - consumed + widget.burned).round();
+            bigNumber = '$remaining';
+            subLabel = 'KCAL REMAINING';
+          } else {
+            bigNumber = '${consumed.round()}';
+            subLabel = consumed > target
+                ? 'OVER BY ${(consumed - target).round()}'
+                : 'OF ${target.round()} KCAL';
+          }
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _GaugePainter(
+                    fraction: fraction,
+                    // The live accent sweep — brass on the default issue.
+                    accent: AppColors.of(context).accent,
+                  ),
                 ),
               ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.only(top: widget.size * 0.08),
-            // Clamp (not disable) Dynamic Type inside the fixed-size tick
-            // ring so AX text sizes can't collide with the arc. The
-            // Semantics label below carries the full-size reading.
-            child: MediaQuery.withClampedTextScaling(
-              maxScaleFactor: 1.4,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    bigNumber,
-                    style: FieldManual.readout(fontSize: 34),
+              Padding(
+                padding: EdgeInsets.only(top: widget.size * 0.08),
+                // Clamp (not disable) Dynamic Type inside the fixed-size tick
+                // ring so AX text sizes can't collide with the arc. The
+                // Semantics label below carries the full-size reading.
+                child: MediaQuery.withClampedTextScaling(
+                  maxScaleFactor: 1.4,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        bigNumber,
+                        style: FieldManual.readout(fontSize: 34),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subLabel,
+                        style: FieldManual.label(fontSize: 10),
+                      ),
+                      if (_canFlip) ...[
+                        const SizedBox(height: 4),
+                        Icon(
+                          CupertinoIcons.arrow_2_squarepath,
+                          size: 12,
+                          color: FieldManual.olive,
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subLabel,
-                    style: FieldManual.label(fontSize: 10),
-                  ),
-                  if (_canFlip) ...[
-                    const SizedBox(height: 4),
-                    Icon(
-                      CupertinoIcons.arrow_2_squarepath,
-                      size: 12,
-                      color: FieldManual.olive,
-                    ),
-                  ],
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
 
     return Semantics(
       label: _showNet && _canFlip
-          ? '$bigNumber calories remaining today'
+          ? '${(target - widget.consumed + widget.burned).round()} '
+              'calories remaining today'
           : '${widget.consumed.round()} of ${target.round()} calories eaten',
       button: _canFlip,
       child: GestureDetector(
