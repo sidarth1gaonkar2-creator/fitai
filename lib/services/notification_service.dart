@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -5,6 +6,7 @@ import 'package:timezone/data/latest_all.dart' as tz_data;
 
 import '../core/utils/logger.dart';
 import '../data/motivator_messages.dart';
+import '../providers/retention_planner.dart';
 import 'notification_diagnostics.dart';
 
 class NotificationService {
@@ -61,9 +63,49 @@ class NotificationService {
         android: androidSettings,
         iOS: iosSettings,
       ),
+      onDidReceiveNotificationResponse: _onNotificationTap,
     );
     _initialized = true;
     AppLogger.log('[notif] plugin initialized (tz.local=${_safeTzName()})');
+  }
+
+  // ─── Deep-link on tap (retention band 1000-1099) ──────────────────────────
+  //
+  // A tapped retention notification carries its target route as the payload.
+  // The tap callback fires with no BuildContext, so it just publishes the
+  // route here; the app-level listener (NotificationDeepLinkListener) consumes
+  // it and does context.go(route) to the shell sub-route. Payloads are
+  // validated against [kRetentionAllowedRoutes] (shell sub-routes only) — a
+  // stray/hostile payload can never route anywhere unsafe.
+
+  /// Last valid deep-link route from a notification tap (foreground/background)
+  /// or a cold-start launch. Null once consumed. Only ever a shell sub-route.
+  static final ValueNotifier<String?> pendingDeepLink =
+      ValueNotifier<String?>(null);
+
+  static void _onNotificationTap(NotificationResponse response) {
+    final route = response.payload;
+    if (route != null && kRetentionAllowedRoutes.contains(route)) {
+      AppLogger.log('[notif] tap deep-link → $route');
+      pendingDeepLink.value = route;
+    }
+  }
+
+  /// Cold-start: if the app was launched by tapping a notification, surface its
+  /// route. Safe to call after init(); validated the same way.
+  Future<void> primeLaunchDeepLink() async {
+    try {
+      final details = await _plugin.getNotificationAppLaunchDetails();
+      if (details?.didNotificationLaunchApp ?? false) {
+        final route = details!.notificationResponse?.payload;
+        if (route != null && kRetentionAllowedRoutes.contains(route)) {
+          AppLogger.log('[notif] cold-start deep-link → $route');
+          pendingDeepLink.value = route;
+        }
+      }
+    } catch (e, st) {
+      AppLogger.error('[notif] primeLaunchDeepLink failed', error: e, stack: st);
+    }
   }
 
   /// `tz.local.name` without ever throwing — if the database wasn't initialized
@@ -651,6 +693,84 @@ class NotificationService {
         iOS: DarwinNotificationDetails(),
       ),
     );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Retention campaign (IDs 1000-1099)
+  //
+  // One-shot notifications planned by RetentionPlanner (retention_planner.dart)
+  // and reconcileRetention(). Same-day campaigns (Streak Defense / Rank Push /
+  // Stand-Down) fire once at their slot today; Recall (D1/D2) fires days out.
+  // Each carries its deep-link route as the payload. All are re-planned on
+  // every reconcile, so stale ids are cancelled first.
+  // ───────────────────────────────────────────────────────────────────────
+
+  Future<void> cancelRetention() async {
+    for (final id in kRetentionIds) {
+      await _plugin.cancel(id: id);
+    }
+  }
+
+  /// Schedule a same-day retention notification at its slot. No-op if the slot
+  /// time has already passed today (the moment is gone — re-planned next launch).
+  Future<void> scheduleRetentionToday(RetentionPlanned n) async {
+    final now = tz.TZDateTime.now(tz.local);
+    final scheduled =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, n.hour, n.minute);
+    if (!scheduled.isAfter(now)) {
+      AppLogger.log('[notif] retention id=${n.id} slot already passed — skip');
+      return;
+    }
+    await _scheduleRetentionOneShot(
+        n.id, scheduled, n.title, n.body, n.route);
+  }
+
+  /// Schedule a future-dated retention notification (Recall D1/D2) at an
+  /// absolute local time. No-op if the time is in the past.
+  Future<void> scheduleRetentionAt({
+    required int id,
+    required DateTime whenLocal,
+    required String title,
+    required String body,
+    required String route,
+  }) async {
+    final scheduled = tz.TZDateTime.from(whenLocal, tz.local);
+    if (!scheduled.isAfter(tz.TZDateTime.now(tz.local))) return;
+    await _scheduleRetentionOneShot(id, scheduled, title, body, route);
+  }
+
+  Future<void> _scheduleRetentionOneShot(
+    int id,
+    tz.TZDateTime scheduled,
+    String title,
+    String body,
+    String route,
+  ) async {
+    try {
+      await _plugin.zonedSchedule(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: scheduled,
+        payload: route, // deep-link target consumed on tap
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'retention',
+            'Retention',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        // One-shot: NO matchDateTimeComponents (does not repeat).
+      );
+      AppLogger.log('[notif] retention id=$id scheduled for '
+          '${scheduled.toIso8601String()} route=$route');
+    } catch (e, st) {
+      AppLogger.error('[notif] failed to schedule retention id=$id',
+          error: e, stack: st);
+    }
   }
 
   // ───────────────────────────────────────────────────────────────────────

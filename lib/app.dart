@@ -17,6 +17,7 @@ import 'providers/gym_streak_provider.dart';
 import 'providers/isar_provider.dart';
 import 'providers/notification_reconciler.dart';
 import 'routing/app_router.dart';
+import 'routing/notification_deep_link_listener.dart';
 import 'services/revenuecat_service.dart';
 
 class DrillFitApp extends ConsumerWidget {
@@ -182,6 +183,9 @@ class DrillFitApp extends ConsumerWidget {
                 // skin switch. It watches activeThemeProvider itself.
                 const Positioned.fill(child: GlobalSkinBackground()),
                 child ?? const SizedBox.shrink(),
+                // Notification-tap deep links → context.go to the shell
+                // sub-route (renders nothing; see the safe-navigation rule).
+                const NotificationDeepLinkListener(),
                 const Positioned.fill(child: TutorialOverlayHost()),
               ],
             ),

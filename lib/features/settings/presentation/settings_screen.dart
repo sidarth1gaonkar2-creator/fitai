@@ -1964,8 +1964,12 @@ class _DrillSergeantSection extends ConsumerWidget {
       ref.invalidate(notificationsAuthorizedProvider);
     }
     // Delegate the actual (re)scheduling to the shared reconciler so this
-    // toggle path and the launch path can never drift apart.
+    // toggle path and the launch path can never drift apart. Retention rides
+    // the same Drill Sergeant switch + intensity, so re-plan it here too —
+    // toggling the sergeant off cancels retention; changing intensity re-tiers
+    // its copy immediately.
     await ref.read(notificationReconcilerProvider).reconcileDrill();
+    await ref.read(notificationReconcilerProvider).reconcileRetention();
   }
 
   @override
