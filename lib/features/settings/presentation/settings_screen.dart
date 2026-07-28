@@ -16,6 +16,7 @@ import '../../../core/widgets/fm_segmented.dart';
 import '../../../core/widgets/jump_wings.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../data/motivator_messages.dart';
+import '../../../data/retention_messages.dart';
 import '../../../models/enums.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/community_providers.dart';
@@ -24,6 +25,7 @@ import '../../../providers/drill_sergeant_providers.dart';
 import '../../../providers/entitlement_providers.dart';
 import '../../../providers/notification_providers.dart';
 import '../../../providers/notification_reconciler.dart';
+import '../../../providers/retention_planner.dart';
 import '../../../providers/health_providers.dart';
 import '../../../providers/isar_provider.dart';
 import '../../../providers/onboarding_gate_provider.dart';
@@ -629,6 +631,39 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  // Device verification for the retention campaign: schedules a
+                  // REAL retention notification 10s out via the exact production
+                  // path (scheduleRetentionAt → zonedSchedule), with a chosen
+                  // campaign's production copy + deep-link payload.
+                  _SettingsCard(
+                    child: CupertinoListTile(
+                      leading: _SettingsIconBadge(
+                        icon: CupertinoIcons.bell_circle_fill,
+                        color: palette.accent,
+                      ),
+                      title: Text(
+                        'Fire test retention notification (10s)',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.text,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Pick a campaign; fires the real notification 10s out '
+                        '(production copy + tap deep-link). Background the app to see it.',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textSecondary,
+                        ),
+                      ),
+                      trailing: Icon(
+                        CupertinoIcons.chevron_right,
+                        color: palette.text,
+                        size: 18,
+                      ),
+                      onTap: () => _fireRetentionTest(context, ref),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   _SettingsCard(
                     child: CupertinoListTile(
                       leading: _SettingsIconBadge(
@@ -1082,6 +1117,74 @@ class SettingsScreen extends ConsumerWidget {
   /// Debug-only — populates the CURRENT user's Isar workout history with
   /// 12 PPL sessions spread across the last 30 days, plus matching PRs.
   /// Best-effort Firestore sync for workoutsCount + leaderboard entry.
+  /// Admin device-verification hook: schedule a REAL retention notification
+  /// 10 seconds out for a chosen campaign, through the EXACT production path
+  /// (NotificationService.scheduleRetentionAt → the same one-shot zonedSchedule
+  /// with the deep-link route as payload that reconcileRetention() uses). Copy
+  /// is the production copy at the user's current intensity, with representative
+  /// {streak}/{nextRank} so every tier renders fully. Uses the dedicated test
+  /// id (1099), so it never clobbers a genuinely-scheduled retention slot.
+  Future<void> _fireRetentionTest(BuildContext context, WidgetRef ref) async {
+    HapticFeedback.selectionClick();
+    final campaign = await showCupertinoModalPopup<RetentionCampaign>(
+      context: context,
+      builder: (sheetCtx) => CupertinoActionSheet(
+        title: const Text('Fire test retention notification'),
+        message: const Text(
+          'Schedules the real notification 10s out via the production path. '
+          'Background the app to see it land; tap it to verify the deep-link.',
+        ),
+        actions: [
+          for (final c in RetentionCampaign.values)
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.of(sheetCtx).pop(c),
+              child: Text(_retentionCampaignLabel(c)),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.of(sheetCtx).pop(),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+    if (campaign == null) return;
+
+    final intensity = ref.read(drillSergeantProvider).intensity;
+    final copy = RetentionMessages.copyFor(
+      campaign,
+      intensity,
+      streak: 7,
+      nextRank: 'Corporal',
+    );
+    final route = campaign == RetentionCampaign.streakDefense
+        ? kRouteWorkouts
+        : kRouteDashboard;
+
+    await NotificationService.instance.requestPermission();
+    await NotificationService.instance.scheduleRetentionAt(
+      id: NotificationService.retentionTestId,
+      whenLocal: DateTime.now().add(const Duration(seconds: 10)),
+      title: copy.title,
+      body: copy.body,
+      route: route,
+    );
+
+    if (!context.mounted) return;
+    showCupertinoToast(
+      context,
+      'Firing "${copy.title}" in 10s → $route. Background the app to see it.',
+    );
+  }
+
+  String _retentionCampaignLabel(RetentionCampaign c) => switch (c) {
+        RetentionCampaign.streakDefense => 'Streak Defense → /workouts',
+        RetentionCampaign.rankPush => 'Rank Push → /dashboard',
+        RetentionCampaign.standDown => 'Stand-Down → /dashboard',
+        RetentionCampaign.recallDay3 => 'Recall · 3 days → /dashboard',
+        RetentionCampaign.recallDay7 => 'Recall · 7 days → /dashboard',
+      };
+
   Future<void> _runSeedWorkouts(BuildContext context, WidgetRef ref) async {
     HapticFeedback.selectionClick();
     final userId = ref.read(currentUserIdProvider);

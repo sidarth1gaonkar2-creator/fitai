@@ -31,6 +31,12 @@ class NotificationService {
   /// it can never collide with a real reminder.
   static const int diagnosticTestId = 870;
 
+  /// Dedicated id for the admin "Fire test retention notification (10s)" probe.
+  /// In the retention band (1000-1099) but deliberately NOT in [kRetentionIds],
+  /// so a real reconcile's cancelRetention() never wipes a pending test AND a
+  /// test never clobbers a genuinely-scheduled retention slot (1000-1011).
+  static const int retentionTestId = 1099;
+
   Future<void> init() async {
     if (_initialized) return;
 
