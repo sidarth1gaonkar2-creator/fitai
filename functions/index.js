@@ -41,6 +41,13 @@ admin.initializeApp();
 const ANTHROPIC_API_KEY = defineSecret("ANTHROPIC_API_KEY");
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 
+// The Anthropic model served to ALL AI Coach traffic — the single source of
+// truth. Server-enforced: the client's model string is ignored (overridden in
+// forwardBody), so a retired model snapshot is fixed by a server redeploy,
+// never an app release. Note the rate-limit tiers below are entitlement-based
+// (free vs Airborne), not model-based — changing this model changes no limits.
+const SERVER_MODEL = "claude-sonnet-4-6";
+
 // Abuse / cost controls.
 const DAILY_LIMIT = 30; // max AI Coach calls per user per UTC day (free tier)
 const AIRBORNE_DAILY_LIMIT = 100; // cap for active Airborne subscribers
@@ -357,10 +364,14 @@ exports.aiProxy = onRequest(
       }
 
       // 4. Forward to Anthropic with the server-side key. Tool definitions are
-      //    injected here (not trusted from the client). disable_parallel_tool_use
-      //    enforces at most one proposal per turn.
+      //    injected here (not trusted from the client), and the MODEL is
+      //    likewise server-enforced via the module-level SERVER_MODEL — the
+      //    client's model string is ignored, so a retired model snapshot is
+      //    fixed by a server redeploy, never an app release.
+      //    disable_parallel_tool_use enforces at most one proposal per turn.
       const forwardBody = {
         ...req.body,
+        model: SERVER_MODEL,
         tools: TOOLS,
         tool_choice: {type: "auto", disable_parallel_tool_use: true},
       };
