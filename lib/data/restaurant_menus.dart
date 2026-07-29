@@ -129,8 +129,18 @@ const _chipotleRice = MenuCategory(
   mode: SelectionMode.single,
   optional: true,
   items: [
-    MenuItem(name: 'White Rice', calories: 210, protein: 4, carbs: 36, fat: 6),
-    MenuItem(name: 'Brown Rice', calories: 210, protein: 4, carbs: 36, fat: 6),
+    MenuItem(
+      name: 'White Rice', calories: 210, protein: 4, carbs: 36, fat: 6,
+      fiber: 1, sodium: 350, ironMg: 0.5, calciumMg: 10,
+      vitaminCMg: 1.8, magnesiumMg: 13.6, zincMg: 0.6,
+      vitaminB12Mcg: 0, folateMcg: 65.8,
+    ),
+    MenuItem(
+      name: 'Brown Rice', calories: 210, protein: 4, carbs: 36, fat: 6,
+      fiber: 2, sodium: 190, ironMg: 0.7, calciumMg: 10,
+      vitaminCMg: 1.2, magnesiumMg: 44.2, zincMg: 0.8,
+      vitaminB12Mcg: 0, folateMcg: 10.2,
+    ),
     MenuItem(name: 'Cauliflower Rice', calories: 40, protein: 2, carbs: 4, fat: 2),
   ],
 );
@@ -140,8 +150,18 @@ const _chipotleBeans = MenuCategory(
   mode: SelectionMode.single,
   optional: true,
   items: [
-    MenuItem(name: 'Black Beans', calories: 130, protein: 8, carbs: 22, fat: 1),
-    MenuItem(name: 'Pinto Beans', calories: 130, protein: 8, carbs: 22, fat: 1),
+    MenuItem(
+      name: 'Black Beans', calories: 130, protein: 8, carbs: 22, fat: 1,
+      fiber: 7, sodium: 210, ironMg: 1.8, calciumMg: 40,
+      vitaminCMg: 1.2, magnesiumMg: 79.4, zincMg: 1.3,
+      vitaminB12Mcg: 0, folateMcg: 169,
+    ),
+    MenuItem(
+      name: 'Pinto Beans', calories: 130, protein: 8, carbs: 22, fat: 1,
+      fiber: 8, sodium: 210, ironMg: 1.8, calciumMg: 40,
+      vitaminCMg: 1.2, magnesiumMg: 56.7, zincMg: 1.1,
+      vitaminB12Mcg: 0, folateMcg: 195,
+    ),
   ],
 );
 
@@ -151,13 +171,41 @@ const _chipotleProtein = MenuCategory(
   allowDouble: true,
   allowHalfHalf: true,
   items: [
-    MenuItem(name: 'Chicken', calories: 180, protein: 32, carbs: 0, fat: 7),
-    MenuItem(name: 'Steak', calories: 150, protein: 21, carbs: 1, fat: 6),
-    MenuItem(name: 'Barbacoa', calories: 170, protein: 24, carbs: 2, fat: 7),
-    MenuItem(name: 'Carnitas', calories: 210, protein: 23, carbs: 0, fat: 12),
-    MenuItem(name: 'Sofritas', calories: 150, protein: 8, carbs: 9, fat: 10),
+    MenuItem(
+      name: 'Chicken', calories: 180, protein: 32, carbs: 0, fat: 7,
+      fiber: 0, sodium: 310, ironMg: 1.4, calciumMg: 30,
+      vitaminCMg: 1.2, magnesiumMg: 27.2, zincMg: 2.2,
+      vitaminB12Mcg: 0.5, folateMcg: 5.7,
+    ),
+    MenuItem(
+      name: 'Steak', calories: 150, protein: 21, carbs: 1, fat: 6,
+      fiber: 1, sodium: 330, ironMg: 2.7, calciumMg: 20,
+      vitaminCMg: 0, magnesiumMg: 29.5, zincMg: 6.5,
+      vitaminB12Mcg: 1.9, folateMcg: 11.3,
+    ),
+    MenuItem(
+      name: 'Barbacoa', calories: 170, protein: 24, carbs: 2, fat: 7,
+      fiber: 1, sodium: 530, ironMg: 2.7, calciumMg: 20,
+      vitaminCMg: 0, magnesiumMg: 24.9, zincMg: 8.8,
+      vitaminB12Mcg: 2.9, folateMcg: 12.5,
+    ),
+    MenuItem(
+      name: 'Carnitas', calories: 210, protein: 23, carbs: 0, fat: 12,
+      fiber: 0, sodium: 450, ironMg: 1.1, calciumMg: 20,
+      vitaminCMg: 0, magnesiumMg: 27.2, zincMg: 5.9,
+      vitaminB12Mcg: 1, folateMcg: 0,
+    ),
+    MenuItem(
+      name: 'Sofritas', calories: 150, protein: 8, carbs: 9, fat: 10,
+      fiber: 3, sodium: 560, ironMg: 3.1, calciumMg: 170,
+      vitaminCMg: 13.8, magnesiumMg: 39.7, zincMg: 1.2,
+      vitaminB12Mcg: 0, folateMcg: 10.2,
+    ),
     MenuItem(name: 'Chicken Al Pastor', calories: 210, protein: 31, carbs: 3, fat: 8),
-    MenuItem(name: 'Veggie (no protein)', calories: 0, protein: 0, carbs: 0, fat: 0),
+    MenuItem(
+      name: 'Veggie (no protein)', calories: 0, protein: 0, carbs: 0, fat: 0,
+      fiber: 0, sodium: 0, ironMg: 0, calciumMg: 0, vitaminCMg: 0,
+    ),
   ],
 );
 
@@ -165,16 +213,64 @@ const _chipotleToppings = MenuCategory(
   name: 'Toppings',
   mode: SelectionMode.multiple,
   items: [
-    MenuItem(name: 'Fajita Veggies', calories: 20, protein: 1, carbs: 4, fat: 0),
-    MenuItem(name: 'Fresh Tomato Salsa', calories: 25, protein: 1, carbs: 4, fat: 0),
-    MenuItem(name: 'Roasted Chili-Corn Salsa', calories: 80, protein: 3, carbs: 16, fat: 2),
-    MenuItem(name: 'Tomatillo-Green Chili Salsa', calories: 15, protein: 1, carbs: 3, fat: 0),
-    MenuItem(name: 'Tomatillo-Red Chili Salsa', calories: 30, protein: 1, carbs: 4, fat: 1),
-    MenuItem(name: 'Sour Cream', calories: 110, protein: 2, carbs: 2, fat: 9),
-    MenuItem(name: 'Cheese', calories: 110, protein: 6, carbs: 1, fat: 9),
-    MenuItem(name: 'Guacamole', calories: 230, protein: 2, carbs: 8, fat: 22),
-    MenuItem(name: 'Queso Blanco', calories: 120, protein: 5, carbs: 4, fat: 9),
-    MenuItem(name: 'Romaine Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
+    MenuItem(
+      name: 'Fajita Veggies', calories: 20, protein: 1, carbs: 4, fat: 0,
+      fiber: 1, sodium: 150, ironMg: 0.4, calciumMg: 20,
+      vitaminCMg: 36, magnesiumMg: 7.8, zincMg: 0.1,
+      vitaminB12Mcg: 0, folateMcg: 16.3,
+    ),
+    MenuItem(
+      name: 'Fresh Tomato Salsa', calories: 25, protein: 1, carbs: 4, fat: 0,
+      fiber: 1, sodium: 550, ironMg: 0.9, calciumMg: 10,
+      vitaminCMg: 8.4, magnesiumMg: 8.9, zincMg: 0.1,
+      vitaminB12Mcg: 0, folateMcg: 11.9,
+    ),
+    MenuItem(
+      name: 'Roasted Chili-Corn Salsa', calories: 80, protein: 3, carbs: 16, fat: 2,
+      fiber: 3, sodium: 330, ironMg: 0.7, calciumMg: 0,
+      vitaminCMg: 6, magnesiumMg: 25.8, zincMg: 0.6,
+      vitaminB12Mcg: 0, folateMcg: 22.8,
+    ),
+    MenuItem(
+      name: 'Tomatillo-Green Chili Salsa', calories: 15, protein: 1, carbs: 3, fat: 0,
+      fiber: 0, sodium: 260, ironMg: 0.5, calciumMg: 30,
+      vitaminCMg: 12, magnesiumMg: 10.8, zincMg: 0.1,
+      vitaminB12Mcg: 0, folateMcg: 4.5,
+    ),
+    MenuItem(
+      name: 'Tomatillo-Red Chili Salsa', calories: 30, protein: 1, carbs: 4, fat: 1,
+      fiber: 1, sodium: 500, ironMg: 0.5, calciumMg: 0, vitaminCMg: 0,
+    ),
+    MenuItem(
+      name: 'Sour Cream', calories: 110, protein: 2, carbs: 2, fat: 9,
+      fiber: 0, sodium: 30, ironMg: 0, calciumMg: 60,
+      vitaminCMg: 0, magnesiumMg: 5.7, zincMg: 0.2,
+      vitaminB12Mcg: 0.1, folateMcg: 3.4,
+    ),
+    MenuItem(
+      name: 'Cheese', calories: 110, protein: 6, carbs: 1, fat: 9,
+      fiber: 0, sodium: 190, ironMg: 0, calciumMg: 200,
+      vitaminCMg: 0, magnesiumMg: 7.7, zincMg: 0.9,
+      vitaminB12Mcg: 0.2, folateMcg: 5.1,
+    ),
+    MenuItem(
+      name: 'Guacamole', calories: 230, protein: 2, carbs: 8, fat: 22,
+      fiber: 6, sodium: 370, ironMg: 1.3, calciumMg: 20,
+      vitaminCMg: 4.2, magnesiumMg: 32.9, zincMg: 0.7,
+      vitaminB12Mcg: 0, folateMcg: 91.9,
+    ),
+    MenuItem(
+      name: 'Queso Blanco', calories: 120, protein: 5, carbs: 4, fat: 9,
+      fiber: 0, sodium: 250, ironMg: 0, calciumMg: 100,
+      vitaminCMg: 1.2, magnesiumMg: 5.1, zincMg: 0.6,
+      vitaminB12Mcg: 0.1, folateMcg: 2.3,
+    ),
+    MenuItem(
+      name: 'Romaine Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0,
+      fiber: 1, sodium: 0, ironMg: 0.4, calciumMg: 0,
+      vitaminCMg: 6, magnesiumMg: 4, zincMg: 0.1,
+      vitaminB12Mcg: 0, folateMcg: 38.6,
+    ),
   ],
 );
 
@@ -183,10 +279,30 @@ const _chipotleSides = MenuCategory(
   mode: SelectionMode.single,
   optional: true,
   items: [
-    MenuItem(name: 'Chips', calories: 540, protein: 7, carbs: 73, fat: 25),
-    MenuItem(name: 'Chips & Guac', calories: 770, protein: 9, carbs: 81, fat: 47),
-    MenuItem(name: 'Chips & Queso', calories: 660, protein: 12, carbs: 77, fat: 34),
-    MenuItem(name: 'Chips & Salsa (Mild)', calories: 565, protein: 8, carbs: 77, fat: 25),
+    MenuItem(
+      name: 'Chips', calories: 540, protein: 7, carbs: 73, fat: 25,
+      fiber: 7, sodium: 390, ironMg: 3.1, calciumMg: 400,
+      vitaminCMg: 0, magnesiumMg: 95.3, zincMg: 1.6,
+      vitaminB12Mcg: 0.4, folateMcg: 13.6,
+    ),
+    MenuItem(
+      name: 'Chips & Guac', calories: 770, protein: 9, carbs: 81, fat: 47,
+      fiber: 13, sodium: 760, ironMg: 4.3, calciumMg: 420,
+      vitaminCMg: 4.2, magnesiumMg: 128.1, zincMg: 2.3,
+      vitaminB12Mcg: 0.4, folateMcg: 105.5,
+    ),
+    MenuItem(
+      name: 'Chips & Queso', calories: 660, protein: 12, carbs: 77, fat: 34,
+      fiber: 7, sodium: 640, ironMg: 3.1, calciumMg: 500,
+      vitaminCMg: 1.2, magnesiumMg: 100.4, zincMg: 2.1,
+      vitaminB12Mcg: 0.5, folateMcg: 15.9,
+    ),
+    MenuItem(
+      name: 'Chips & Salsa (Mild)', calories: 565, protein: 8, carbs: 77, fat: 25,
+      fiber: 8, sodium: 940, ironMg: 4, calciumMg: 410,
+      vitaminCMg: 8.4, magnesiumMg: 104.2, zincMg: 1.7,
+      vitaminB12Mcg: 0.4, folateMcg: 25.5,
+    ),
   ],
 );
 
@@ -197,11 +313,22 @@ const _subwayBread6 = MenuCategory(
   name: 'Bread',
   mode: SelectionMode.single,
   items: [
-    MenuItem(name: 'Italian White', calories: 200, protein: 8, carbs: 38, fat: 2),
+    MenuItem(
+      name: 'Italian White', calories: 200, protein: 8, carbs: 38, fat: 2,
+      fiber: 1, sodium: 380, vitaminCMg: 0, magnesiumMg: 21.1, zincMg: 0.6,
+      vitaminB12Mcg: 0, folateMcg: 82.7,
+    ),
     MenuItem(name: '9-Grain Wheat', calories: 210, protein: 9, carbs: 39, fat: 3),
     MenuItem(name: 'Italian Herbs & Cheese', calories: 250, protein: 11, carbs: 39, fat: 6),
-    MenuItem(name: 'Hearty Multigrain', calories: 220, protein: 9, carbs: 41, fat: 3),
-    MenuItem(name: 'Flatbread', calories: 220, protein: 9, carbs: 40, fat: 5),
+    MenuItem(
+      name: 'Hearty Multigrain', calories: 220, protein: 9, carbs: 41, fat: 3,
+      fiber: 3, sodium: 350, ironMg: 1.8, calciumMg: 26, vitaminCMg: 0.1,
+      magnesiumMg: 58.9, zincMg: 1.3, vitaminB12Mcg: 0, folateMcg: 56.6,
+    ),
+    MenuItem(
+      name: 'Flatbread', calories: 220, protein: 9, carbs: 40, fat: 5,
+      fiber: 1, sodium: 360, ironMg: 2.7, calciumMg: 0,
+    ),
   ],
 );
 
@@ -209,11 +336,22 @@ const _subwayBread12 = MenuCategory(
   name: 'Bread',
   mode: SelectionMode.single,
   items: [
-    MenuItem(name: 'Italian White', calories: 400, protein: 16, carbs: 76, fat: 4),
+    MenuItem(
+      name: 'Italian White', calories: 400, protein: 16, carbs: 76, fat: 4,
+      fiber: 2, sodium: 760, vitaminCMg: 0, magnesiumMg: 42.2, zincMg: 1.3,
+      vitaminB12Mcg: 0, folateMcg: 165.4,
+    ),
     MenuItem(name: '9-Grain Wheat', calories: 420, protein: 18, carbs: 78, fat: 6),
     MenuItem(name: 'Italian Herbs & Cheese', calories: 500, protein: 22, carbs: 78, fat: 12),
-    MenuItem(name: 'Hearty Multigrain', calories: 440, protein: 18, carbs: 82, fat: 6),
-    MenuItem(name: 'Flatbread', calories: 440, protein: 18, carbs: 80, fat: 10),
+    MenuItem(
+      name: 'Hearty Multigrain', calories: 440, protein: 18, carbs: 82, fat: 6,
+      fiber: 6, sodium: 700, ironMg: 3.6, calciumMg: 52, vitaminCMg: 0.2,
+      magnesiumMg: 117.7, zincMg: 2.6, vitaminB12Mcg: 0, folateMcg: 113.2,
+    ),
+    MenuItem(
+      name: 'Flatbread', calories: 440, protein: 18, carbs: 80, fat: 10,
+      fiber: 2, sodium: 720, ironMg: 5.4, calciumMg: 0,
+    ),
   ],
 );
 
@@ -225,15 +363,46 @@ const _subwayProtein6 = MenuCategory(
   mode: SelectionMode.multiple,
   allowDouble: true,
   items: [
-    MenuItem(name: 'Turkey Breast', calories: 60, protein: 12, carbs: 2, fat: 1),
-    MenuItem(name: 'Black Forest Ham', calories: 60, protein: 11, carbs: 2, fat: 1),
+    MenuItem(
+      name: 'Turkey Breast', calories: 60, protein: 12, carbs: 2, fat: 1,
+      fiber: 0, sodium: 450, ironMg: 1.8, calciumMg: 0, vitaminCMg: 0,
+      magnesiumMg: 10.8, zincMg: 0.5, vitaminB12Mcg: 0.2, folateMcg: 2.3,
+    ),
+    MenuItem(
+      name: 'Black Forest Ham', calories: 60, protein: 11, carbs: 2, fat: 1,
+      fiber: 0, sodium: 490, ironMg: 0.4, calciumMg: 0, vitaminCMg: 0,
+      magnesiumMg: 12.4, zincMg: 1, vitaminB12Mcg: 0.2, folateMcg: 0,
+    ),
     MenuItem(name: 'Rotisserie-Style Chicken', calories: 130, protein: 21, carbs: 2, fat: 4),
-    MenuItem(name: 'Roast Beef', calories: 80, protein: 14, carbs: 2, fat: 2),
-    MenuItem(name: 'Tuna', calories: 250, protein: 13, carbs: 0, fat: 21),
-    MenuItem(name: 'Steak', calories: 110, protein: 17, carbs: 4, fat: 3),
-    MenuItem(name: 'Meatball Marinara', calories: 280, protein: 14, carbs: 22, fat: 14),
-    MenuItem(name: 'Bacon Strips', calories: 80, protein: 6, carbs: 0, fat: 6),
-    MenuItem(name: 'Pepperoni', calories: 80, protein: 4, carbs: 0, fat: 7),
+    MenuItem(
+      name: 'Roast Beef', calories: 80, protein: 14, carbs: 2, fat: 2,
+      fiber: 0, sodium: 420, ironMg: 0.4, calciumMg: 0, vitaminCMg: 0,
+      magnesiumMg: 13.9, zincMg: 2.2, vitaminB12Mcg: 1.4, folateMcg: 3.5,
+    ),
+    MenuItem(
+      name: 'Tuna', calories: 250, protein: 13, carbs: 0, fat: 21,
+      fiber: 0, sodium: 310, ironMg: 0.4, calciumMg: 0,
+    ),
+    MenuItem(
+      name: 'Steak', calories: 110, protein: 17, carbs: 4, fat: 3,
+      fiber: 0, sodium: 450, ironMg: 1.1, calciumMg: 0, vitaminCMg: 0,
+      magnesiumMg: 9.6, zincMg: 2.8, vitaminB12Mcg: 1.4, folateMcg: 3.2,
+    ),
+    MenuItem(
+      name: 'Meatball Marinara', calories: 280, protein: 14, carbs: 22, fat: 14,
+      fiber: 2, sodium: 720, ironMg: 1.4, calciumMg: 52, vitaminCMg: 13.5,
+      magnesiumMg: 20.2, zincMg: 5.6, vitaminB12Mcg: 2.5, folateMcg: 16.1,
+    ),
+    MenuItem(
+      name: 'Bacon Strips', calories: 80, protein: 6, carbs: 0, fat: 6,
+      fiber: 0, sodium: 170, ironMg: 0.4, calciumMg: 0, vitaminCMg: 0,
+      magnesiumMg: 5.3, zincMg: 0.5, vitaminB12Mcg: 0.2, folateMcg: 0,
+    ),
+    MenuItem(
+      name: 'Pepperoni', calories: 80, protein: 4, carbs: 0, fat: 7,
+      fiber: 0, sodium: 290, ironMg: 0.4, calciumMg: 0, vitaminCMg: 3.6,
+      magnesiumMg: 2.9, zincMg: 0.4, vitaminB12Mcg: 0.2, folateMcg: 0.8,
+    ),
     MenuItem(name: 'Veggie Patty', calories: 100, protein: 9, carbs: 12, fat: 3),
   ],
 );
@@ -245,15 +414,46 @@ const _subwayProtein12 = MenuCategory(
   mode: SelectionMode.multiple,
   allowDouble: true,
   items: [
-    MenuItem(name: 'Turkey Breast', calories: 120, protein: 24, carbs: 4, fat: 2),
-    MenuItem(name: 'Black Forest Ham', calories: 120, protein: 22, carbs: 4, fat: 2),
+    MenuItem(
+      name: 'Turkey Breast', calories: 120, protein: 24, carbs: 4, fat: 2,
+      fiber: 0, sodium: 900, ironMg: 3.6, calciumMg: 0, vitaminCMg: 0,
+      magnesiumMg: 21.5, zincMg: 1.1, vitaminB12Mcg: 0.4, folateMcg: 4.5,
+    ),
+    MenuItem(
+      name: 'Black Forest Ham', calories: 120, protein: 22, carbs: 4, fat: 2,
+      fiber: 0, sodium: 980, ironMg: 0.7, calciumMg: 0, vitaminCMg: 0,
+      magnesiumMg: 24.9, zincMg: 2, vitaminB12Mcg: 0.5, folateMcg: 0,
+    ),
     MenuItem(name: 'Rotisserie-Style Chicken', calories: 260, protein: 42, carbs: 4, fat: 8),
-    MenuItem(name: 'Roast Beef', calories: 160, protein: 28, carbs: 4, fat: 4),
-    MenuItem(name: 'Tuna', calories: 500, protein: 26, carbs: 0, fat: 42),
-    MenuItem(name: 'Steak', calories: 220, protein: 34, carbs: 8, fat: 6),
-    MenuItem(name: 'Meatball Marinara', calories: 560, protein: 28, carbs: 44, fat: 28),
-    MenuItem(name: 'Bacon Strips', calories: 160, protein: 12, carbs: 0, fat: 12),
-    MenuItem(name: 'Pepperoni', calories: 160, protein: 8, carbs: 0, fat: 14),
+    MenuItem(
+      name: 'Roast Beef', calories: 160, protein: 28, carbs: 4, fat: 4,
+      fiber: 0, sodium: 840, ironMg: 0.7, calciumMg: 0, vitaminCMg: 0,
+      magnesiumMg: 27.8, zincMg: 4.5, vitaminB12Mcg: 2.8, folateMcg: 7,
+    ),
+    MenuItem(
+      name: 'Tuna', calories: 500, protein: 26, carbs: 0, fat: 42,
+      fiber: 0, sodium: 620, ironMg: 0.7, calciumMg: 0,
+    ),
+    MenuItem(
+      name: 'Steak', calories: 220, protein: 34, carbs: 8, fat: 6,
+      fiber: 0, sodium: 900, ironMg: 2.2, calciumMg: 0, vitaminCMg: 0,
+      magnesiumMg: 19.3, zincMg: 5.6, vitaminB12Mcg: 2.7, folateMcg: 6.4,
+    ),
+    MenuItem(
+      name: 'Meatball Marinara', calories: 560, protein: 28, carbs: 44, fat: 28,
+      fiber: 4, sodium: 1440, ironMg: 2.9, calciumMg: 104, vitaminCMg: 27,
+      magnesiumMg: 40.3, zincMg: 11.3, vitaminB12Mcg: 5, folateMcg: 32.3,
+    ),
+    MenuItem(
+      name: 'Bacon Strips', calories: 160, protein: 12, carbs: 0, fat: 12,
+      fiber: 0, sodium: 340, ironMg: 0.7, calciumMg: 0, vitaminCMg: 0,
+      magnesiumMg: 10.6, zincMg: 1, vitaminB12Mcg: 0.4, folateMcg: 0,
+    ),
+    MenuItem(
+      name: 'Pepperoni', calories: 160, protein: 8, carbs: 0, fat: 14,
+      fiber: 0, sodium: 580, ironMg: 0.7, calciumMg: 0, vitaminCMg: 7.2,
+      magnesiumMg: 5.7, zincMg: 0.8, vitaminB12Mcg: 0.4, folateMcg: 1.6,
+    ),
   ],
 );
 
@@ -276,17 +476,61 @@ const _subwayVeggies = MenuCategory(
   mode: SelectionMode.multiple,
   optional: true,
   items: [
-    MenuItem(name: 'Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
-    MenuItem(name: 'Tomatoes', calories: 5, protein: 0, carbs: 1, fat: 0),
-    MenuItem(name: 'Cucumbers', calories: 5, protein: 0, carbs: 1, fat: 0),
-    MenuItem(name: 'Green Peppers', calories: 5, protein: 0, carbs: 1, fat: 0),
-    MenuItem(name: 'Red Onions', calories: 5, protein: 0, carbs: 1, fat: 0),
-    MenuItem(name: 'Pickles', calories: 0, protein: 0, carbs: 0, fat: 0),
-    MenuItem(name: 'Black Olives', calories: 5, protein: 0, carbs: 0, fat: 1),
-    MenuItem(name: 'Jalapeños', calories: 0, protein: 0, carbs: 0, fat: 0),
-    MenuItem(name: 'Banana Peppers', calories: 0, protein: 0, carbs: 0, fat: 0),
-    MenuItem(name: 'Spinach', calories: 5, protein: 0, carbs: 1, fat: 0),
-    MenuItem(name: 'Avocado', calories: 60, protein: 1, carbs: 3, fat: 5),
+    MenuItem(
+      name: 'Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0,
+      fiber: 0, sodium: 0, ironMg: 0, calciumMg: 0, vitaminCMg: 0.6,
+      magnesiumMg: 1.5, zincMg: 0, vitaminB12Mcg: 0, folateMcg: 6.1,
+    ),
+    MenuItem(
+      name: 'Tomatoes', calories: 5, protein: 0, carbs: 1, fat: 0,
+      fiber: 0, sodium: 0, ironMg: 0, calciumMg: 0, vitaminCMg: 4.8,
+      magnesiumMg: 3.9, zincMg: 0.1, vitaminB12Mcg: 0, folateMcg: 5.3,
+    ),
+    MenuItem(
+      name: 'Cucumbers', calories: 5, protein: 0, carbs: 1, fat: 0,
+      fiber: 0, sodium: 0, ironMg: 0, calciumMg: 0, vitaminCMg: 0.4,
+      magnesiumMg: 1.8, zincMg: 0, vitaminB12Mcg: 0, folateMcg: 1,
+    ),
+    MenuItem(
+      name: 'Green Peppers', calories: 5, protein: 0, carbs: 1, fat: 0,
+      fiber: 0, sodium: 0, ironMg: 0, calciumMg: 0, vitaminCMg: 5.6,
+      magnesiumMg: 0.7, zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.7,
+    ),
+    MenuItem(
+      name: 'Red Onions', calories: 5, protein: 0, carbs: 1, fat: 0,
+      fiber: 0, sodium: 0, ironMg: 0, calciumMg: 0, vitaminCMg: 0.5,
+      magnesiumMg: 0.7, zincMg: 0, vitaminB12Mcg: 0, folateMcg: 1.3,
+    ),
+    MenuItem(
+      name: 'Pickles', calories: 0, protein: 0, carbs: 0, fat: 0,
+      fiber: 0, sodium: 160, ironMg: 0, calciumMg: 0, vitaminCMg: 0.3,
+      magnesiumMg: 0.8, zincMg: 0, vitaminB12Mcg: 0, folateMcg: 1,
+    ),
+    MenuItem(
+      name: 'Black Olives', calories: 5, protein: 0, carbs: 0, fat: 1,
+      fiber: 0, sodium: 25, ironMg: 0, calciumMg: 0, vitaminCMg: 0,
+      magnesiumMg: 0.1, zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0,
+    ),
+    MenuItem(
+      name: 'Jalapeños', calories: 0, protein: 0, carbs: 0, fat: 0,
+      fiber: 0, sodium: 70, ironMg: 0, calciumMg: 0, vitaminCMg: 0.4,
+      magnesiumMg: 0.6, zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.6,
+    ),
+    MenuItem(
+      name: 'Banana Peppers', calories: 0, protein: 0, carbs: 0, fat: 0,
+      fiber: 0, sodium: 65, ironMg: 0, calciumMg: 0, vitaminCMg: 3.3,
+      magnesiumMg: 0.7, zincMg: 0, vitaminB12Mcg: 0, folateMcg: 1.2,
+    ),
+    MenuItem(
+      name: 'Spinach', calories: 5, protein: 0, carbs: 1, fat: 0,
+      fiber: 0, sodium: 5, ironMg: 0.4, calciumMg: 0, vitaminCMg: 2,
+      magnesiumMg: 5.5, zincMg: 0, vitaminB12Mcg: 0, folateMcg: 13.6,
+    ),
+    MenuItem(
+      name: 'Avocado', calories: 60, protein: 1, carbs: 3, fat: 5,
+      fiber: 2, sodium: 0, ironMg: 0, calciumMg: 0, vitaminCMg: 2.8,
+      magnesiumMg: 8.2, zincMg: 0.2, vitaminB12Mcg: 0, folateMcg: 22.8,
+    ),
   ],
 );
 
@@ -295,16 +539,38 @@ const _subwaySauces = MenuCategory(
   mode: SelectionMode.multiple,
   optional: true,
   items: [
-    MenuItem(name: 'Mayonnaise', calories: 110, protein: 0, carbs: 0, fat: 12),
+    MenuItem(
+      name: 'Mayonnaise', calories: 110, protein: 0, carbs: 0, fat: 12,
+      fiber: 0, sodium: 65, ironMg: 0, calciumMg: 0, vitaminCMg: 0,
+      magnesiumMg: 0.1, zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.7,
+    ),
     MenuItem(name: 'Light Mayonnaise', calories: 50, protein: 0, carbs: 1, fat: 5),
-    MenuItem(name: 'Mustard', calories: 5, protein: 0, carbs: 0, fat: 0),
+    MenuItem(
+      name: 'Mustard', calories: 5, protein: 0, carbs: 0, fat: 0,
+      fiber: 0, sodium: 170, ironMg: 0.4, calciumMg: 0, vitaminCMg: 0,
+      magnesiumMg: 6.7, zincMg: 0.1, vitaminB12Mcg: 0, folateMcg: 1,
+    ),
     MenuItem(name: 'Honey Mustard', calories: 30, protein: 0, carbs: 7, fat: 0),
     MenuItem(name: 'Ranch', calories: 110, protein: 0, carbs: 2, fat: 11),
     MenuItem(name: 'Chipotle Southwest', calories: 100, protein: 0, carbs: 1, fat: 10),
-    MenuItem(name: 'Sweet Onion Teriyaki', calories: 40, protein: 0, carbs: 9, fat: 0),
-    MenuItem(name: 'BBQ Sauce', calories: 35, protein: 0, carbs: 8, fat: 0),
-    MenuItem(name: 'Buffalo Sauce', calories: 10, protein: 0, carbs: 2, fat: 0),
-    MenuItem(name: 'Oil & Vinegar', calories: 45, protein: 0, carbs: 0, fat: 5),
+    MenuItem(
+      name: 'Sweet Onion Teriyaki', calories: 40, protein: 0, carbs: 9, fat: 0,
+      fiber: 0, sodium: 130, ironMg: 0, calciumMg: 0,
+    ),
+    MenuItem(
+      name: 'BBQ Sauce', calories: 35, protein: 0, carbs: 8, fat: 0,
+      fiber: 0, sodium: 115, ironMg: 0, calciumMg: 0, vitaminCMg: 0.1,
+      magnesiumMg: 1.9, zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.3,
+    ),
+    MenuItem(
+      name: 'Buffalo Sauce', calories: 10, protein: 0, carbs: 2, fat: 0,
+      fiber: 0, sodium: 390, ironMg: 0, calciumMg: 0,
+    ),
+    MenuItem(
+      name: 'Oil & Vinegar', calories: 45, protein: 0, carbs: 0, fat: 5,
+      fiber: 0, sodium: 0, ironMg: 0, calciumMg: 0, vitaminCMg: 0,
+      magnesiumMg: 0, zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0,
+    ),
   ],
 );
 
@@ -365,16 +631,50 @@ const _cfaDrink = MenuCategory(
   mode: SelectionMode.single,
   optional: true,
   items: [
-    MenuItem(name: 'Lemonade (Small)', calories: 220, protein: 0, carbs: 55, fat: 0),
-    MenuItem(name: 'Lemonade (Medium)', calories: 320, protein: 0, carbs: 79, fat: 0),
-    MenuItem(name: 'Lemonade (Large)', calories: 420, protein: 0, carbs: 105, fat: 0),
-    MenuItem(name: 'Diet Lemonade (Medium)', calories: 35, protein: 0, carbs: 13, fat: 0),
-    MenuItem(name: 'Sweet Tea (Medium)', calories: 160, protein: 0, carbs: 41, fat: 0),
-    MenuItem(name: 'Unsweet Tea', calories: 0, protein: 0, carbs: 0, fat: 0),
-    MenuItem(name: 'Coca-Cola (Medium)', calories: 290, protein: 0, carbs: 78, fat: 0),
+    MenuItem(
+      name: 'Lemonade (Small)', calories: 220, protein: 0, carbs: 55, fat: 0,
+      fiber: 0, sodium: 0, vitaminCMg: 18.5, magnesiumMg: 9.5,
+      zincMg: 0.1, vitaminB12Mcg: 0, folateMcg: 4.8,
+    ),
+    MenuItem(
+      name: 'Lemonade (Medium)', calories: 320, protein: 0, carbs: 79, fat: 0,
+      fiber: 0, sodium: 0, vitaminCMg: 25.4, magnesiumMg: 13,
+      zincMg: 0.1, vitaminB12Mcg: 0, folateMcg: 6.5,
+    ),
+    MenuItem(
+      name: 'Lemonade (Large)', calories: 420, protein: 0, carbs: 105, fat: 0,
+      fiber: 1, sodium: 0, vitaminCMg: 37.1, magnesiumMg: 19,
+      zincMg: 0.2, vitaminB12Mcg: 0, folateMcg: 9.5,
+    ),
+    MenuItem(
+      name: 'Diet Lemonade (Medium)', calories: 35, protein: 0, carbs: 13, fat: 0,
+      fiber: 0, sodium: 10,
+    ),
+    MenuItem(
+      name: 'Sweet Tea (Medium)', calories: 160, protein: 0, carbs: 41, fat: 0,
+      fiber: 0, sodium: 0, vitaminCMg: 0, magnesiumMg: 18.1,
+      zincMg: 0.1, vitaminB12Mcg: 0, folateMcg: 30.2,
+    ),
+    MenuItem(
+      name: 'Unsweet Tea', calories: 0, protein: 0, carbs: 0, fat: 0,
+      fiber: 0, sodium: 0, vitaminCMg: 0, magnesiumMg: 18.1,
+      zincMg: 0.1, vitaminB12Mcg: 0, folateMcg: 30.2,
+    ),
+    MenuItem(
+      name: 'Coca-Cola (Medium)', calories: 290, protein: 0, carbs: 78, fat: 0,
+      fiber: 0, sodium: 45, vitaminCMg: 0, magnesiumMg: 0, zincMg: 0.1,
+      vitaminB12Mcg: 0, folateMcg: 0,
+    ),
     MenuItem(name: 'Diet Coke (Medium)', calories: 0, protein: 0, carbs: 0, fat: 0),
-    MenuItem(name: 'Water', calories: 0, protein: 0, carbs: 0, fat: 0),
-    MenuItem(name: 'Milk (1%)', calories: 100, protein: 8, carbs: 12, fat: 3),
+    MenuItem(
+      name: 'Water', calories: 0, protein: 0, carbs: 0, fat: 0,
+      fiber: 0, sodium: 0,
+    ),
+    MenuItem(
+      name: 'Milk (1%)', calories: 100, protein: 8, carbs: 12, fat: 3,
+      fiber: 0, sodium: 105, vitaminCMg: 0, magnesiumMg: 23.6,
+      zincMg: 0.9, vitaminB12Mcg: 1, folateMcg: 10.7,
+    ),
   ],
 );
 
@@ -402,7 +702,12 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Tortilla',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Flour Tortilla', calories: 300, protein: 8, carbs: 50, fat: 8),
+            MenuItem(
+              name: 'Flour Tortilla', calories: 300, protein: 8, carbs: 50, fat: 8,
+              fiber: 3, sodium: 600, ironMg: 1.1, calciumMg: 0,
+              vitaminCMg: 0, magnesiumMg: 24.9, zincMg: 0.6,
+              vitaminB12Mcg: 0, folateMcg: 106.6,
+            ),
           ],
         ),
         _chipotleRice,
@@ -416,8 +721,18 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Tortilla (3 tacos)',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Soft Flour (×3)', calories: 270, protein: 9, carbs: 45, fat: 6),
-            MenuItem(name: 'Crispy Corn (×3)', calories: 210, protein: 3, carbs: 27, fat: 9),
+            MenuItem(
+              name: 'Soft Flour (×3)', calories: 270, protein: 9, carbs: 45, fat: 6,
+              fiber: 2, sodium: 480, ironMg: 1.1, calciumMg: 0,
+              vitaminCMg: 0, magnesiumMg: 18.7, zincMg: 0.5,
+              vitaminB12Mcg: 0, folateMcg: 79.9,
+            ),
+            MenuItem(
+              name: 'Crispy Corn (×3)', calories: 210, protein: 3, carbs: 27, fat: 9,
+              fiber: 3, sodium: 0, ironMg: 1.1, calciumMg: 170,
+              vitaminCMg: 0, magnesiumMg: 35.3, zincMg: 0.7,
+              vitaminB12Mcg: 0, folateMcg: 29.3,
+            ),
           ],
         ),
         _chipotleProtein,
@@ -429,7 +744,12 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Base',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Romaine Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0),
+            MenuItem(
+              name: 'Romaine Lettuce', calories: 5, protein: 0, carbs: 1, fat: 0,
+              fiber: 1, sodium: 0, ironMg: 0.4, calciumMg: 0,
+              vitaminCMg: 6, magnesiumMg: 4, zincMg: 0.1,
+              vitaminB12Mcg: 0, folateMcg: 38.6,
+            ),
           ],
         ),
         _chipotleBeans,
@@ -440,7 +760,10 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.single,
           optional: true,
           items: [
-            MenuItem(name: 'Chipotle-Honey Vinaigrette', calories: 220, protein: 1, carbs: 18, fat: 16),
+            MenuItem(
+              name: 'Chipotle-Honey Vinaigrette', calories: 220, protein: 1, carbs: 18, fat: 16,
+              fiber: 1, sodium: 850, ironMg: 0, calciumMg: 0, vitaminCMg: 0,
+            ),
           ],
         ),
       ],
@@ -449,7 +772,12 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Tortilla & Cheese',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Flour Tortilla + Cheese', calories: 530, protein: 22, carbs: 47, fat: 27),
+            MenuItem(
+              name: 'Flour Tortilla + Cheese', calories: 530, protein: 22, carbs: 47, fat: 27,
+              fiber: 3, sodium: 980, ironMg: 1.1, calciumMg: 400,
+              vitaminCMg: 0, magnesiumMg: 40.3, zincMg: 2.3,
+              vitaminB12Mcg: 0.5, folateMcg: 116.8,
+            ),
           ],
         ),
         _chipotleProtein,
@@ -457,9 +785,24 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Side Salsa',
           mode: SelectionMode.multiple,
           items: [
-            MenuItem(name: 'Fresh Tomato Salsa', calories: 25, protein: 1, carbs: 4, fat: 0),
-            MenuItem(name: 'Sour Cream', calories: 110, protein: 2, carbs: 2, fat: 9),
-            MenuItem(name: 'Guacamole', calories: 230, protein: 2, carbs: 8, fat: 22),
+            MenuItem(
+              name: 'Fresh Tomato Salsa', calories: 25, protein: 1, carbs: 4, fat: 0,
+              fiber: 1, sodium: 550, ironMg: 0.9, calciumMg: 10,
+              vitaminCMg: 8.4, magnesiumMg: 8.9, zincMg: 0.1,
+              vitaminB12Mcg: 0, folateMcg: 11.9,
+            ),
+            MenuItem(
+              name: 'Sour Cream', calories: 110, protein: 2, carbs: 2, fat: 9,
+              fiber: 0, sodium: 30, ironMg: 0, calciumMg: 60,
+              vitaminCMg: 0, magnesiumMg: 5.7, zincMg: 0.2,
+              vitaminB12Mcg: 0.1, folateMcg: 3.4,
+            ),
+            MenuItem(
+              name: 'Guacamole', calories: 230, protein: 2, carbs: 8, fat: 22,
+              fiber: 6, sodium: 370, ironMg: 1.3, calciumMg: 20,
+              vitaminCMg: 4.2, magnesiumMg: 32.9, zincMg: 0.7,
+              vitaminB12Mcg: 0, folateMcg: 91.9,
+            ),
           ],
         ),
       ],
@@ -497,8 +840,18 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Wrap',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Tomato Basil Wrap', calories: 310, protein: 12, carbs: 50, fat: 7),
-            MenuItem(name: 'Spinach Wrap', calories: 290, protein: 11, carbs: 49, fat: 6),
+            MenuItem(
+              name: 'Tomato Basil Wrap', calories: 310, protein: 12, carbs: 50, fat: 7,
+              fiber: 2, sodium: 580, ironMg: 2.7, calciumMg: 78,
+              vitaminCMg: 0, magnesiumMg: 21.2, zincMg: 0.6, vitaminB12Mcg: 0,
+              folateMcg: 119.2,
+            ),
+            MenuItem(
+              name: 'Spinach Wrap', calories: 290, protein: 11, carbs: 49, fat: 6,
+              fiber: 2, sodium: 580, ironMg: 2.7, calciumMg: 78,
+              vitaminCMg: 0, magnesiumMg: 21.2, zincMg: 0.6, vitaminB12Mcg: 0,
+              folateMcg: 119.2,
+            ),
           ],
         ),
         _subwayProtein6,
@@ -934,12 +1287,32 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Sandwich',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Original Chicken Sandwich', calories: 420, protein: 28, carbs: 41, fat: 17),
-            MenuItem(name: 'Deluxe Chicken Sandwich', calories: 490, protein: 31, carbs: 42, fat: 21),
-            MenuItem(name: 'Spicy Chicken Sandwich', calories: 450, protein: 28, carbs: 42, fat: 19),
-            MenuItem(name: 'Spicy Deluxe Sandwich', calories: 540, protein: 32, carbs: 44, fat: 26),
-            MenuItem(name: 'Grilled Chicken Sandwich', calories: 320, protein: 28, carbs: 41, fat: 6),
-            MenuItem(name: 'Grilled Chicken Club', calories: 440, protein: 36, carbs: 42, fat: 13),
+            MenuItem(
+              name: 'Original Chicken Sandwich', calories: 420, protein: 28, carbs: 41, fat: 17,
+              fiber: 1, sodium: 1460, magnesiumMg: 40.5, zincMg: 1,
+              vitaminB12Mcg: 0.2, folateMcg: 79.3,
+            ),
+            MenuItem(
+              name: 'Deluxe Chicken Sandwich', calories: 490, protein: 31, carbs: 42, fat: 21,
+              fiber: 1, sodium: 1700,
+            ),
+            MenuItem(
+              name: 'Spicy Chicken Sandwich', calories: 450, protein: 28, carbs: 42, fat: 19,
+              fiber: 1, sodium: 1730, magnesiumMg: 43.4, zincMg: 1.1,
+              vitaminB12Mcg: 0.2, folateMcg: 84.9,
+            ),
+            MenuItem(
+              name: 'Spicy Deluxe Sandwich', calories: 540, protein: 32, carbs: 44, fat: 26,
+              fiber: 2, sodium: 1880,
+            ),
+            MenuItem(
+              name: 'Grilled Chicken Sandwich', calories: 320, protein: 28, carbs: 41, fat: 6,
+              fiber: 3, sodium: 765,
+            ),
+            MenuItem(
+              name: 'Grilled Chicken Club', calories: 440, protein: 36, carbs: 42, fat: 13,
+              fiber: 3, sodium: 1055,
+            ),
             MenuItem(name: 'Chicken Club Sandwich', calories: 520, protein: 35, carbs: 41, fat: 23),
           ],
         ),
@@ -947,13 +1320,34 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Side',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Waffle Fries (Small)', calories: 320, protein: 4, carbs: 38, fat: 17),
-            MenuItem(name: 'Waffle Fries (Medium)', calories: 420, protein: 5, carbs: 49, fat: 24),
-            MenuItem(name: 'Waffle Fries (Large)', calories: 600, protein: 7, carbs: 70, fat: 33),
-            MenuItem(name: 'Mac & Cheese', calories: 270, protein: 12, carbs: 25, fat: 14),
-            MenuItem(name: 'Fruit Cup', calories: 60, protein: 1, carbs: 16, fat: 0),
+            MenuItem(
+              name: 'Waffle Fries (Small)', calories: 320, protein: 4, carbs: 38, fat: 17,
+              fiber: 4, sodium: 190, vitaminCMg: 4.8, magnesiumMg: 35.9,
+              zincMg: 0.5, vitaminB12Mcg: 0, folateMcg: 30.8,
+            ),
+            MenuItem(
+              name: 'Waffle Fries (Medium)', calories: 420, protein: 5, carbs: 49, fat: 24,
+              fiber: 5, sodium: 240, vitaminCMg: 6.3, magnesiumMg: 47.1,
+              zincMg: 0.7, vitaminB12Mcg: 0, folateMcg: 40.4,
+            ),
+            MenuItem(
+              name: 'Waffle Fries (Large)', calories: 600, protein: 7, carbs: 70, fat: 33,
+              fiber: 7, sodium: 340, vitaminCMg: 9, magnesiumMg: 67.3,
+              zincMg: 1, vitaminB12Mcg: 0, folateMcg: 57.7,
+            ),
+            MenuItem(
+              name: 'Mac & Cheese', calories: 270, protein: 12, carbs: 25, fat: 14,
+              fiber: 2, sodium: 710,
+            ),
+            MenuItem(
+              name: 'Fruit Cup', calories: 60, protein: 1, carbs: 16, fat: 0,
+              fiber: 2, sodium: 0,
+            ),
             MenuItem(name: 'Side Salad', calories: 160, protein: 8, carbs: 11, fat: 9),
-            MenuItem(name: 'Chicken Noodle Soup', calories: 255, protein: 14, carbs: 27, fat: 9),
+            MenuItem(
+              name: 'Chicken Noodle Soup', calories: 255, protein: 14, carbs: 27, fat: 9,
+              fiber: 2, sodium: 1290,
+            ),
           ],
         ),
         MenuCategory(
@@ -961,13 +1355,34 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.multiple,
           optional: true,
           items: [
-            MenuItem(name: 'Chick-fil-A Sauce', calories: 140, protein: 0, carbs: 6, fat: 13),
-            MenuItem(name: 'Polynesian Sauce', calories: 110, protein: 0, carbs: 17, fat: 5),
-            MenuItem(name: 'Honey Mustard', calories: 45, protein: 0, carbs: 10, fat: 0),
-            MenuItem(name: 'Garden Herb Ranch', calories: 140, protein: 0, carbs: 1, fat: 15),
-            MenuItem(name: 'BBQ Sauce', calories: 45, protein: 0, carbs: 11, fat: 0),
-            MenuItem(name: 'Buffalo Sauce', calories: 15, protein: 0, carbs: 1, fat: 1),
-            MenuItem(name: 'Sriracha Sauce', calories: 70, protein: 0, carbs: 10, fat: 4),
+            MenuItem(
+              name: 'Chick-fil-A Sauce', calories: 140, protein: 0, carbs: 6, fat: 13,
+              fiber: 0, sodium: 170,
+            ),
+            MenuItem(
+              name: 'Polynesian Sauce', calories: 110, protein: 0, carbs: 17, fat: 5,
+              fiber: 0, sodium: 210,
+            ),
+            MenuItem(
+              name: 'Honey Mustard', calories: 45, protein: 0, carbs: 10, fat: 0,
+              fiber: 0, sodium: 160,
+            ),
+            MenuItem(
+              name: 'Garden Herb Ranch', calories: 140, protein: 0, carbs: 1, fat: 15,
+              fiber: 0, sodium: 170,
+            ),
+            MenuItem(
+              name: 'BBQ Sauce', calories: 45, protein: 0, carbs: 11, fat: 0,
+              fiber: 0, sodium: 200,
+            ),
+            MenuItem(
+              name: 'Buffalo Sauce', calories: 15, protein: 0, carbs: 1, fat: 1,
+              fiber: 0, sodium: 570,
+            ),
+            MenuItem(
+              name: 'Sriracha Sauce', calories: 70, protein: 0, carbs: 10, fat: 4,
+              fiber: 0, sodium: 380,
+            ),
           ],
         ),
         _cfaDrink,
@@ -977,23 +1392,67 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Nuggets',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Nuggets (5 ct)', calories: 130, protein: 14, carbs: 6, fat: 6),
-            MenuItem(name: 'Nuggets (8 ct)', calories: 250, protein: 27, carbs: 11, fat: 11),
-            MenuItem(name: 'Nuggets (12 ct)', calories: 380, protein: 40, carbs: 17, fat: 17),
-            MenuItem(name: 'Nuggets (30 ct)', calories: 950, protein: 100, carbs: 42, fat: 42),
-            MenuItem(name: 'Grilled Nuggets (8 ct)', calories: 130, protein: 25, carbs: 1, fat: 3),
-            MenuItem(name: 'Grilled Nuggets (12 ct)', calories: 200, protein: 38, carbs: 2, fat: 4),
-            MenuItem(name: 'Chicken Strips (3 ct)', calories: 350, protein: 28, carbs: 17, fat: 17),
-            MenuItem(name: 'Chicken Strips (4 ct)', calories: 470, protein: 38, carbs: 23, fat: 23),
+            MenuItem(
+              name: 'Nuggets (5 ct)', calories: 130, protein: 14, carbs: 6, fat: 6,
+              fiber: 0, sodium: 760, vitaminCMg: 0.7, magnesiumMg: 21.1,
+              zincMg: 0.5, vitaminB12Mcg: 0.1, folateMcg: 28.1,
+            ),
+            MenuItem(
+              name: 'Nuggets (8 ct)', calories: 250, protein: 27, carbs: 11, fat: 11,
+              fiber: 0, sodium: 1210, vitaminCMg: 1.1,
+              magnesiumMg: 32.9, zincMg: 0.8, vitaminB12Mcg: 0.2,
+              folateMcg: 43.9,
+            ),
+            MenuItem(
+              name: 'Nuggets (12 ct)', calories: 380, protein: 40, carbs: 17, fat: 17,
+              fiber: 0, sodium: 1820, vitaminCMg: 1.7, magnesiumMg: 50,
+              zincMg: 1.2, vitaminB12Mcg: 0.3, folateMcg: 66.7,
+            ),
+            MenuItem(
+              name: 'Nuggets (30 ct)', calories: 950, protein: 100, carbs: 42, fat: 42,
+              fiber: 0, sodium: 4550, vitaminCMg: 4.2, magnesiumMg: 125,
+              zincMg: 3, vitaminB12Mcg: 0.8, folateMcg: 166.7,
+            ),
+            MenuItem(
+              name: 'Grilled Nuggets (8 ct)', calories: 130, protein: 25, carbs: 1, fat: 3,
+              fiber: 0, sodium: 440, vitaminCMg: 0, magnesiumMg: 27.2,
+              zincMg: 0.7, vitaminB12Mcg: 0.2,
+            ),
+            MenuItem(
+              name: 'Grilled Nuggets (12 ct)', calories: 200, protein: 38, carbs: 2, fat: 4,
+              fiber: 0, sodium: 660, vitaminCMg: 0, magnesiumMg: 41.9,
+              zincMg: 1.1, vitaminB12Mcg: 0.3,
+            ),
+            MenuItem(
+              name: 'Chicken Strips (3 ct)', calories: 350, protein: 28, carbs: 17, fat: 17,
+              fiber: 0, sodium: 870, vitaminCMg: 1.4, magnesiumMg: 40.8,
+              zincMg: 1, vitaminB12Mcg: 0.3, folateMcg: 54.4,
+            ),
+            MenuItem(
+              name: 'Chicken Strips (4 ct)', calories: 470, protein: 38, carbs: 23, fat: 23,
+              fiber: 0, sodium: 1150, vitaminCMg: 1.8,
+              magnesiumMg: 53.9, zincMg: 1.3, vitaminB12Mcg: 0.3,
+              folateMcg: 71.9,
+            ),
           ],
         ),
         MenuCategory(
           name: 'Side',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Waffle Fries (Medium)', calories: 420, protein: 5, carbs: 49, fat: 24),
-            MenuItem(name: 'Mac & Cheese', calories: 270, protein: 12, carbs: 25, fat: 14),
-            MenuItem(name: 'Fruit Cup', calories: 60, protein: 1, carbs: 16, fat: 0),
+            MenuItem(
+              name: 'Waffle Fries (Medium)', calories: 420, protein: 5, carbs: 49, fat: 24,
+              fiber: 5, sodium: 240, vitaminCMg: 6.3, magnesiumMg: 47.1,
+              zincMg: 0.7, vitaminB12Mcg: 0, folateMcg: 40.4,
+            ),
+            MenuItem(
+              name: 'Mac & Cheese', calories: 270, protein: 12, carbs: 25, fat: 14,
+              fiber: 2, sodium: 710,
+            ),
+            MenuItem(
+              name: 'Fruit Cup', calories: 60, protein: 1, carbs: 16, fat: 0,
+              fiber: 2, sodium: 0,
+            ),
           ],
         ),
         MenuCategory(
@@ -1001,12 +1460,30 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.multiple,
           optional: true,
           items: [
-            MenuItem(name: 'Chick-fil-A Sauce', calories: 140, protein: 0, carbs: 6, fat: 13),
-            MenuItem(name: 'Polynesian Sauce', calories: 110, protein: 0, carbs: 17, fat: 5),
-            MenuItem(name: 'Honey Mustard', calories: 45, protein: 0, carbs: 10, fat: 0),
-            MenuItem(name: 'BBQ Sauce', calories: 45, protein: 0, carbs: 11, fat: 0),
-            MenuItem(name: 'Sriracha Sauce', calories: 70, protein: 0, carbs: 10, fat: 4),
-            MenuItem(name: 'Buffalo Sauce', calories: 15, protein: 0, carbs: 1, fat: 1),
+            MenuItem(
+              name: 'Chick-fil-A Sauce', calories: 140, protein: 0, carbs: 6, fat: 13,
+              fiber: 0, sodium: 170,
+            ),
+            MenuItem(
+              name: 'Polynesian Sauce', calories: 110, protein: 0, carbs: 17, fat: 5,
+              fiber: 0, sodium: 210,
+            ),
+            MenuItem(
+              name: 'Honey Mustard', calories: 45, protein: 0, carbs: 10, fat: 0,
+              fiber: 0, sodium: 160,
+            ),
+            MenuItem(
+              name: 'BBQ Sauce', calories: 45, protein: 0, carbs: 11, fat: 0,
+              fiber: 0, sodium: 200,
+            ),
+            MenuItem(
+              name: 'Sriracha Sauce', calories: 70, protein: 0, carbs: 10, fat: 4,
+              fiber: 0, sodium: 380,
+            ),
+            MenuItem(
+              name: 'Buffalo Sauce', calories: 15, protein: 0, carbs: 1, fat: 1,
+              fiber: 0, sodium: 570,
+            ),
           ],
         ),
         _cfaDrink,
@@ -1027,9 +1504,18 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.single,
           optional: true,
           items: [
-            MenuItem(name: 'Avocado Lime Ranch', calories: 310, protein: 1, carbs: 4, fat: 32),
-            MenuItem(name: 'Garlic & Herb Ranch', calories: 280, protein: 1, carbs: 2, fat: 30),
-            MenuItem(name: 'Light Italian', calories: 25, protein: 0, carbs: 4, fat: 1),
+            MenuItem(
+              name: 'Avocado Lime Ranch', calories: 310, protein: 1, carbs: 4, fat: 32,
+              fiber: 1, sodium: 520,
+            ),
+            MenuItem(
+              name: 'Garlic & Herb Ranch', calories: 280, protein: 1, carbs: 2, fat: 30,
+              fiber: 0, sodium: 440,
+            ),
+            MenuItem(
+              name: 'Light Italian', calories: 25, protein: 0, carbs: 4, fat: 1,
+              fiber: 0, sodium: 470,
+            ),
             MenuItem(name: 'Zesty Apple Cider Vinaigrette', calories: 140, protein: 0, carbs: 16, fat: 9),
           ],
         ),
@@ -1039,12 +1525,30 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Entree',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Chicken Biscuit', calories: 460, protein: 19, carbs: 47, fat: 23),
-            MenuItem(name: 'Spicy Chicken Biscuit', calories: 470, protein: 19, carbs: 49, fat: 23),
-            MenuItem(name: 'Chick-n-Minis (4 ct)', calories: 370, protein: 17, carbs: 38, fat: 16),
-            MenuItem(name: 'Hash Brown Scramble Burrito', calories: 700, protein: 30, carbs: 53, fat: 41),
-            MenuItem(name: 'Bacon Egg & Cheese Biscuit', calories: 460, protein: 20, carbs: 39, fat: 25),
-            MenuItem(name: 'Egg White Grill', calories: 290, protein: 26, carbs: 30, fat: 7),
+            MenuItem(
+              name: 'Chicken Biscuit', calories: 460, protein: 19, carbs: 47, fat: 23,
+              fiber: 2, sodium: 1510,
+            ),
+            MenuItem(
+              name: 'Spicy Chicken Biscuit', calories: 470, protein: 19, carbs: 49, fat: 23,
+              fiber: 3, sodium: 1570,
+            ),
+            MenuItem(
+              name: 'Chick-n-Minis (4 ct)', calories: 370, protein: 17, carbs: 38, fat: 16,
+              fiber: 2, sodium: 1060,
+            ),
+            MenuItem(
+              name: 'Hash Brown Scramble Burrito', calories: 700, protein: 30, carbs: 53, fat: 41,
+              fiber: 3, sodium: 1770,
+            ),
+            MenuItem(
+              name: 'Bacon Egg & Cheese Biscuit', calories: 460, protein: 20, carbs: 39, fat: 25,
+              fiber: 2, sodium: 1220,
+            ),
+            MenuItem(
+              name: 'Egg White Grill', calories: 290, protein: 26, carbs: 30, fat: 7,
+              fiber: 1, sodium: 990,
+            ),
           ],
         ),
         MenuCategory(
@@ -1052,9 +1556,19 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.single,
           optional: true,
           items: [
-            MenuItem(name: 'Hash Browns', calories: 240, protein: 2, carbs: 26, fat: 15),
-            MenuItem(name: 'Fruit Cup', calories: 60, protein: 1, carbs: 16, fat: 0),
-            MenuItem(name: 'Greek Yogurt Parfait', calories: 230, protein: 11, carbs: 37, fat: 5),
+            MenuItem(
+              name: 'Hash Browns', calories: 240, protein: 2, carbs: 26, fat: 15,
+              fiber: 3, sodium: 440, vitaminCMg: 5.6, magnesiumMg: 22.4,
+              zincMg: 0.4, folateMcg: 11.7,
+            ),
+            MenuItem(
+              name: 'Fruit Cup', calories: 60, protein: 1, carbs: 16, fat: 0,
+              fiber: 2, sodium: 0,
+            ),
+            MenuItem(
+              name: 'Greek Yogurt Parfait', calories: 230, protein: 11, carbs: 37, fat: 5,
+              fiber: 1, sodium: 85,
+            ),
           ],
         ),
       ],
@@ -1074,15 +1588,57 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Taco',
           mode: SelectionMode.multiple,
           items: [
-            MenuItem(name: 'Crunchy Taco', calories: 170, protein: 8, carbs: 13, fat: 9),
-            MenuItem(name: 'Crunchy Taco Supreme', calories: 200, protein: 9, carbs: 15, fat: 12),
-            MenuItem(name: 'Soft Taco (Beef)', calories: 180, protein: 9, carbs: 18, fat: 8),
-            MenuItem(name: 'Soft Taco Supreme', calories: 210, protein: 10, carbs: 21, fat: 10),
-            MenuItem(name: 'Doritos Locos Taco', calories: 170, protein: 8, carbs: 13, fat: 9),
-            MenuItem(name: 'Doritos Locos Taco Supreme', calories: 200, protein: 9, carbs: 16, fat: 11),
-            MenuItem(name: 'Spicy Potato Soft Taco', calories: 230, protein: 6, carbs: 28, fat: 11),
-            MenuItem(name: 'Cheesy Gordita Crunch', calories: 500, protein: 20, carbs: 41, fat: 27),
-            MenuItem(name: 'Chalupa Supreme (Beef)', calories: 360, protein: 13, carbs: 30, fat: 21),
+            MenuItem(
+              name: 'Crunchy Taco', calories: 170, protein: 8, carbs: 13, fat: 9,
+              fiber: 3.1, sodium: 309.7, vitaminDMcg: 0.1, ironMg: 1.1,
+              calciumMg: 61.2, vitaminCMg: 0.9, magnesiumMg: 23.8,
+              potassiumMg: 145.9, zincMg: 1.3, vitaminB12Mcg: 0.7,
+              folateMcg: 14.1,
+            ),
+            MenuItem(
+              name: 'Crunchy Taco Supreme', calories: 200, protein: 9, carbs: 15, fat: 12,
+              fiber: 3.4, sodium: 323.1, vitaminDMcg: 0.1, ironMg: 1.1,
+              calciumMg: 76.9, vitaminCMg: 4.3, potassiumMg: 203,
+            ),
+            MenuItem(
+              name: 'Soft Taco (Beef)', calories: 180, protein: 9, carbs: 18, fat: 8,
+              fiber: 2.7, sodium: 504.2, vitaminDMcg: 0.1, ironMg: 1.9,
+              calciumMg: 104.2, vitaminCMg: 1.1, magnesiumMg: 16.6,
+              potassiumMg: 137.4, zincMg: 1.2, vitaminB12Mcg: 0.7,
+              folateMcg: 45.4,
+            ),
+            MenuItem(
+              name: 'Soft Taco Supreme', calories: 210, protein: 10, carbs: 21, fat: 10,
+              fiber: 2.9, sodium: 517.5, vitaminDMcg: 0.1, ironMg: 1.9,
+              calciumMg: 119.9, vitaminCMg: 4.6, potassiumMg: 194.5,
+            ),
+            MenuItem(
+              name: 'Doritos Locos Taco', calories: 170, protein: 8, carbs: 13, fat: 9,
+              fiber: 3, sodium: 369.2, vitaminDMcg: 0.1, ironMg: 1.1,
+              calciumMg: 69.4, vitaminCMg: 0.7, magnesiumMg: 23.8,
+              potassiumMg: 148.9, zincMg: 1.3, vitaminB12Mcg: 0.7,
+              folateMcg: 14.1,
+            ),
+            MenuItem(
+              name: 'Doritos Locos Taco Supreme', calories: 200, protein: 9, carbs: 16, fat: 11,
+              fiber: 3.3, sodium: 382.5, vitaminDMcg: 0.1, ironMg: 1.1,
+              calciumMg: 85.2, vitaminCMg: 4.1, potassiumMg: 206,
+            ),
+            MenuItem(
+              name: 'Spicy Potato Soft Taco', calories: 230, protein: 6, carbs: 28, fat: 11,
+              fiber: 2.4, sodium: 471.7, vitaminDMcg: 0, ironMg: 1.2,
+              calciumMg: 104.2, vitaminCMg: 1.2, potassiumMg: 268.2,
+            ),
+            MenuItem(
+              name: 'Cheesy Gordita Crunch', calories: 500, protein: 20, carbs: 41, fat: 27,
+              fiber: 5.6, sodium: 834.5, vitaminDMcg: 0.1, ironMg: 2.7,
+              calciumMg: 300.2, vitaminCMg: 1.9, potassiumMg: 250.2,
+            ),
+            MenuItem(
+              name: 'Chalupa Supreme (Beef)', calories: 360, protein: 13, carbs: 30, fat: 21,
+              fiber: 4.4, sodium: 574.7, vitaminDMcg: 0.1, ironMg: 2.5,
+              calciumMg: 122.6, vitaminCMg: 4.5, potassiumMg: 228.1,
+            ),
           ],
         ),
         MenuCategory(
@@ -1090,10 +1646,26 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.multiple,
           optional: true,
           items: [
-            MenuItem(name: 'Mild Sauce', calories: 0, protein: 0, carbs: 0, fat: 0),
-            MenuItem(name: 'Hot Sauce', calories: 0, protein: 0, carbs: 0, fat: 0),
-            MenuItem(name: 'Fire Sauce', calories: 0, protein: 0, carbs: 0, fat: 0),
-            MenuItem(name: 'Diablo Sauce', calories: 0, protein: 0, carbs: 0, fat: 0),
+            MenuItem(
+              name: 'Mild Sauce', calories: 0, protein: 0, carbs: 0, fat: 0,
+              fiber: 0.1, sodium: 27.9, vitaminDMcg: 0, ironMg: 0,
+              calciumMg: 0.7, vitaminCMg: 0, potassiumMg: 10.2,
+            ),
+            MenuItem(
+              name: 'Hot Sauce', calories: 0, protein: 0, carbs: 0, fat: 0,
+              fiber: 0.1, sodium: 42.9, vitaminDMcg: 0, ironMg: 0,
+              calciumMg: 0.6, vitaminCMg: 0, potassiumMg: 10.9,
+            ),
+            MenuItem(
+              name: 'Fire Sauce', calories: 0, protein: 0, carbs: 0, fat: 0,
+              fiber: 0.1, sodium: 53.2, vitaminDMcg: 0, ironMg: 0,
+              calciumMg: 0.9, vitaminCMg: 0, potassiumMg: 15.8,
+            ),
+            MenuItem(
+              name: 'Diablo Sauce', calories: 0, protein: 0, carbs: 0, fat: 0,
+              fiber: 0.1, sodium: 34.1, vitaminDMcg: 0, ironMg: 0,
+              calciumMg: 1.1, vitaminCMg: 0.4, potassiumMg: 13.7,
+            ),
           ],
         ),
       ],
@@ -1102,12 +1674,38 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Burrito',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Bean Burrito', calories: 350, protein: 13, carbs: 54, fat: 9),
-            MenuItem(name: 'Burrito Supreme (Beef)', calories: 390, protein: 16, carbs: 51, fat: 13),
+            MenuItem(
+              name: 'Bean Burrito', calories: 350, protein: 13, carbs: 54, fat: 9,
+              fiber: 8.5, sodium: 1084.4, vitaminDMcg: 3.1, ironMg: 3.8,
+              calciumMg: 203.8, vitaminCMg: 3.2, magnesiumMg: 58.6,
+              potassiumMg: 422.7, zincMg: 1.5, vitaminB12Mcg: 0.3,
+              folateMcg: 86.1,
+            ),
+            MenuItem(
+              name: 'Burrito Supreme (Beef)', calories: 390, protein: 16, carbs: 51, fat: 13,
+              fiber: 7.5, sodium: 1164, vitaminDMcg: 1.6, ironMg: 4.1,
+              calciumMg: 214.1, vitaminCMg: 7.2, magnesiumMg: 49,
+              potassiumMg: 429.5, zincMg: 1.9, vitaminB12Mcg: 0.6,
+              folateMcg: 95.9,
+            ),
             MenuItem(name: 'Chicken Burrito (Cantina)', calories: 460, protein: 25, carbs: 57, fat: 14),
-            MenuItem(name: '5-Layer Burrito', calories: 490, protein: 17, carbs: 65, fat: 18),
-            MenuItem(name: 'Grilled Cheese Burrito', calories: 720, protein: 27, carbs: 81, fat: 32),
-            MenuItem(name: 'Crunchwrap Supreme', calories: 530, protein: 16, carbs: 71, fat: 21),
+            MenuItem(
+              name: '5-Layer Burrito', calories: 490, protein: 17, carbs: 65, fat: 18,
+              fiber: 7.4, sodium: 1288.5, vitaminDMcg: 1.6, ironMg: 4.8,
+              calciumMg: 264.2, vitaminCMg: 1.8, magnesiumMg: 55.9,
+              potassiumMg: 469.2, zincMg: 4, vitaminB12Mcg: 1.3,
+              folateMcg: 107.4,
+            ),
+            MenuItem(
+              name: 'Grilled Cheese Burrito', calories: 720, protein: 27, carbs: 81, fat: 32,
+              fiber: 7, sodium: 1484.3, vitaminDMcg: 0.2, ironMg: 3.7,
+              calciumMg: 529.7, vitaminCMg: 1.5, potassiumMg: 420.3,
+            ),
+            MenuItem(
+              name: 'Crunchwrap Supreme', calories: 530, protein: 16, carbs: 71, fat: 21,
+              fiber: 5.9, sodium: 1214.6, vitaminDMcg: 0.1, ironMg: 5,
+              calciumMg: 246.2, vitaminCMg: 6.5, potassiumMg: 531.9,
+            ),
             MenuItem(name: 'Quesarito', calories: 650, protein: 21, carbs: 67, fat: 33),
           ],
         ),
@@ -1116,7 +1714,11 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.multiple,
           optional: true,
           items: [
-            MenuItem(name: 'Add Guacamole', calories: 50, protein: 1, carbs: 3, fat: 5),
+            MenuItem(
+              name: 'Add Guacamole', calories: 50, protein: 1, carbs: 3, fat: 5,
+              vitaminCMg: 2.6, magnesiumMg: 7.2, zincMg: 0.2,
+              vitaminB12Mcg: 0, folateMcg: 20.4,
+            ),
             MenuItem(name: 'Add Sour Cream', calories: 70, protein: 1, carbs: 1, fat: 6),
             MenuItem(name: 'Add Jalapeño Sauce', calories: 50, protein: 0, carbs: 1, fat: 5),
           ],
@@ -1129,7 +1731,11 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(name: 'Power Menu Bowl (Chicken)', calories: 470, protein: 27, carbs: 51, fat: 19),
             MenuItem(name: 'Power Menu Bowl (Steak)', calories: 470, protein: 24, carbs: 51, fat: 20),
-            MenuItem(name: 'Power Menu Bowl (Veggie)', calories: 430, protein: 13, carbs: 56, fat: 18),
+            MenuItem(
+              name: 'Power Menu Bowl (Veggie)', calories: 430, protein: 13, carbs: 56, fat: 18,
+              fiber: 11.6, sodium: 861.7, vitaminDMcg: 0.1, ironMg: 2.5,
+              calciumMg: 162.9, potassiumMg: 616.2,
+            ),
             MenuItem(name: 'Black Bean Burrito Bowl', calories: 400, protein: 14, carbs: 65, fat: 11),
           ],
         ),
@@ -1139,9 +1745,27 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Quesadilla',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Cheese Quesadilla', calories: 470, protein: 19, carbs: 39, fat: 26),
-            MenuItem(name: 'Chicken Quesadilla', calories: 520, protein: 28, carbs: 39, fat: 28),
-            MenuItem(name: 'Steak Quesadilla', calories: 520, protein: 26, carbs: 39, fat: 29),
+            MenuItem(
+              name: 'Cheese Quesadilla', calories: 470, protein: 19, carbs: 39, fat: 26,
+              fiber: 3.8, sodium: 981, vitaminDMcg: 0, ironMg: 2.5,
+              calciumMg: 489.5, vitaminCMg: 1.2, magnesiumMg: 32,
+              potassiumMg: 159.6, zincMg: 2.4, vitaminB12Mcg: 0.6,
+              folateMcg: 80.8,
+            ),
+            MenuItem(
+              name: 'Chicken Quesadilla', calories: 520, protein: 28, carbs: 39, fat: 28,
+              fiber: 4.1, sodium: 1244.5, vitaminDMcg: 0, ironMg: 2.6,
+              calciumMg: 492, vitaminCMg: 1.8, magnesiumMg: 40.1,
+              potassiumMg: 290.9, zincMg: 2, vitaminB12Mcg: 0.4,
+              folateMcg: 94.1,
+            ),
+            MenuItem(
+              name: 'Steak Quesadilla', calories: 520, protein: 26, carbs: 39, fat: 29,
+              fiber: 3.9, sodium: 1255.7, vitaminDMcg: 0, ironMg: 3.1,
+              calciumMg: 504.7, vitaminCMg: 1.2, magnesiumMg: 34.4,
+              potassiumMg: 257.8, zincMg: 3.8, vitaminB12Mcg: 1.3,
+              folateMcg: 90.2,
+            ),
           ],
         ),
         MenuCategory(
@@ -1149,9 +1773,23 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.single,
           optional: true,
           items: [
-            MenuItem(name: 'Cinnamon Twists', calories: 170, protein: 1, carbs: 27, fat: 6),
-            MenuItem(name: 'Chips & Nacho Cheese', calories: 230, protein: 4, carbs: 28, fat: 11),
-            MenuItem(name: 'Cheesy Fiesta Potatoes', calories: 220, protein: 4, carbs: 29, fat: 12),
+            MenuItem(
+              name: 'Cinnamon Twists', calories: 170, protein: 1, carbs: 27, fat: 6,
+              fiber: 0.9, sodium: 151, vitaminDMcg: 0, ironMg: 0.4,
+              calciumMg: 4.6, vitaminCMg: 0, potassiumMg: 29.2,
+            ),
+            MenuItem(
+              name: 'Chips & Nacho Cheese', calories: 230, protein: 4, carbs: 28, fat: 11,
+              fiber: 2, sodium: 283.3, vitaminDMcg: 0, ironMg: 0.2,
+              calciumMg: 60.9, vitaminCMg: 0, magnesiumMg: 26.4,
+              potassiumMg: 293.2, zincMg: 0.5, vitaminB12Mcg: 0,
+              folateMcg: 6.3,
+            ),
+            MenuItem(
+              name: 'Cheesy Fiesta Potatoes', calories: 220, protein: 4, carbs: 29, fat: 12,
+              fiber: 2.6, sodium: 521.7, vitaminDMcg: 0, ironMg: 0.3,
+              calciumMg: 35.5, vitaminCMg: 0.2, potassiumMg: 551.5,
+            ),
           ],
         ),
       ],
@@ -1171,16 +1809,47 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Drink (Grande / 16 oz)',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Brewed Coffee', calories: 5, protein: 1, carbs: 0, fat: 0),
-            MenuItem(name: 'Caffè Americano', calories: 15, protein: 1, carbs: 3, fat: 0),
-            MenuItem(name: 'Caffè Latte (2% Milk)', calories: 190, protein: 13, carbs: 18, fat: 7),
-            MenuItem(name: 'Cappuccino (2% Milk)', calories: 140, protein: 9, carbs: 13, fat: 5),
-            MenuItem(name: 'Caffè Mocha (2% Milk)', calories: 360, protein: 14, carbs: 44, fat: 14),
-            MenuItem(name: 'Caramel Macchiato (2% Milk)', calories: 250, protein: 10, carbs: 35, fat: 7),
-            MenuItem(name: 'Pumpkin Spice Latte (2% Milk)', calories: 390, protein: 14, carbs: 52, fat: 14),
+            MenuItem(
+              name: 'Brewed Coffee', calories: 5, protein: 1, carbs: 0, fat: 0,
+              fiber: 0, sodium: 10, vitaminCMg: 0, magnesiumMg: 14.2,
+              zincMg: 0.1, vitaminB12Mcg: 0, folateMcg: 9.5,
+            ),
+            MenuItem(
+              name: 'Caffè Americano', calories: 15, protein: 1, carbs: 3, fat: 0,
+              fiber: 0, sodium: 10, vitaminCMg: 0.1, magnesiumMg: 53.2,
+              zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.7,
+            ),
+            MenuItem(
+              name: 'Caffè Latte (2% Milk)', calories: 190, protein: 13, carbs: 18, fat: 7,
+              fiber: 0, sodium: 170, vitaminCMg: 0.8, magnesiumMg: 76.4,
+              zincMg: 1.8, vitaminB12Mcg: 2, folateMcg: 19,
+            ),
+            MenuItem(
+              name: 'Cappuccino (2% Milk)', calories: 140, protein: 9, carbs: 13, fat: 5,
+              fiber: 0, sodium: 120, vitaminCMg: 0.6, magnesiumMg: 65.4,
+              zincMg: 1.3, vitaminB12Mcg: 1.4, folateMcg: 14,
+            ),
+            MenuItem(
+              name: 'Caffè Mocha (2% Milk)', calories: 360, protein: 14, carbs: 44, fat: 14,
+              fiber: 4, sodium: 150,
+            ),
+            MenuItem(
+              name: 'Caramel Macchiato (2% Milk)', calories: 250, protein: 10, carbs: 35, fat: 7,
+              fiber: 0, sodium: 150,
+            ),
+            MenuItem(
+              name: 'Pumpkin Spice Latte (2% Milk)', calories: 390, protein: 14, carbs: 52, fat: 14,
+              fiber: 0, sodium: 230,
+            ),
             MenuItem(name: 'Chai Tea Latte (2% Milk)', calories: 240, protein: 8, carbs: 45, fat: 4),
-            MenuItem(name: 'White Chocolate Mocha (2%)', calories: 430, protein: 15, carbs: 53, fat: 18),
-            MenuItem(name: 'Hot Chocolate (2% Milk)', calories: 370, protein: 14, carbs: 43, fat: 16),
+            MenuItem(
+              name: 'White Chocolate Mocha (2%)', calories: 430, protein: 15, carbs: 53, fat: 18,
+              fiber: 0, sodium: 220,
+            ),
+            MenuItem(
+              name: 'Hot Chocolate (2% Milk)', calories: 370, protein: 14, carbs: 43, fat: 16,
+              fiber: 4, sodium: 160,
+            ),
           ],
         ),
         MenuCategory(
@@ -1201,7 +1870,11 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.multiple,
           optional: true,
           items: [
-            MenuItem(name: 'Extra Shot Espresso', calories: 5, protein: 1, carbs: 0, fat: 0),
+            MenuItem(
+              name: 'Extra Shot Espresso', calories: 5, protein: 1, carbs: 0, fat: 0,
+              fiber: 0, sodium: 0, vitaminCMg: 0, magnesiumMg: 17.7,
+              zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.2,
+            ),
             MenuItem(name: 'Vanilla Syrup (pump)', calories: 20, protein: 0, carbs: 5, fat: 0),
             MenuItem(name: 'Caramel Syrup (pump)', calories: 20, protein: 0, carbs: 5, fat: 0),
             MenuItem(name: 'Hazelnut Syrup (pump)', calories: 20, protein: 0, carbs: 5, fat: 0),
@@ -1216,15 +1889,42 @@ final List<RestaurantMenu> restaurantMenus = [
           mode: SelectionMode.single,
           items: [
             MenuItem(name: 'Iced Coffee', calories: 80, protein: 0, carbs: 20, fat: 0),
-            MenuItem(name: 'Iced Caffè Americano', calories: 15, protein: 1, carbs: 3, fat: 0),
-            MenuItem(name: 'Iced Caffè Latte (2%)', calories: 130, protein: 9, carbs: 13, fat: 5),
-            MenuItem(name: 'Iced Caramel Macchiato (2%)', calories: 250, protein: 10, carbs: 35, fat: 7),
+            MenuItem(
+              name: 'Iced Caffè Americano', calories: 15, protein: 1, carbs: 3, fat: 0,
+              fiber: 0, sodium: 15, vitaminCMg: 0.1, magnesiumMg: 53.2,
+              zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.7,
+            ),
+            MenuItem(
+              name: 'Iced Caffè Latte (2%)', calories: 130, protein: 9, carbs: 13, fat: 5,
+              fiber: 0, sodium: 115, vitaminCMg: 0.6, magnesiumMg: 63.2,
+              zincMg: 1.2, vitaminB12Mcg: 1.3, folateMcg: 13,
+            ),
+            MenuItem(
+              name: 'Iced Caramel Macchiato (2%)', calories: 250, protein: 10, carbs: 35, fat: 7,
+              fiber: 0, sodium: 150,
+            ),
             MenuItem(name: 'Iced Brown Sugar Oatmilk Shaken Espresso', calories: 120, protein: 1, carbs: 24, fat: 3),
-            MenuItem(name: 'Iced Shaken Espresso', calories: 100, protein: 2, carbs: 14, fat: 4),
-            MenuItem(name: 'Cold Brew (Black)', calories: 5, protein: 0, carbs: 0, fat: 0),
-            MenuItem(name: 'Vanilla Sweet Cream Cold Brew', calories: 110, protein: 1, carbs: 14, fat: 6),
-            MenuItem(name: 'Pink Drink', calories: 140, protein: 1, carbs: 27, fat: 3),
-            MenuItem(name: 'Mango Dragonfruit Refresher', calories: 90, protein: 0, carbs: 21, fat: 0),
+            MenuItem(
+              name: 'Iced Shaken Espresso', calories: 100, protein: 2, carbs: 14, fat: 4,
+              fiber: 0, sodium: 50,
+            ),
+            MenuItem(
+              name: 'Cold Brew (Black)', calories: 5, protein: 0, carbs: 0, fat: 0,
+              fiber: 0, sodium: 15, vitaminCMg: 0, magnesiumMg: 14.2,
+              zincMg: 0.1, vitaminB12Mcg: 0, folateMcg: 9.5,
+            ),
+            MenuItem(
+              name: 'Vanilla Sweet Cream Cold Brew', calories: 110, protein: 1, carbs: 14, fat: 6,
+              fiber: 0, sodium: 20,
+            ),
+            MenuItem(
+              name: 'Pink Drink', calories: 140, protein: 1, carbs: 27, fat: 3,
+              fiber: 1, sodium: 85,
+            ),
+            MenuItem(
+              name: 'Mango Dragonfruit Refresher', calories: 90, protein: 0, carbs: 21, fat: 0,
+              fiber: 0, sodium: 40,
+            ),
           ],
         ),
       ],
@@ -1233,11 +1933,26 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Frappuccino (Grande)',
           mode: SelectionMode.single,
           items: [
-            MenuItem(name: 'Caramel Frappuccino', calories: 380, protein: 4, carbs: 54, fat: 16),
-            MenuItem(name: 'Mocha Frappuccino', calories: 370, protein: 5, carbs: 54, fat: 15),
-            MenuItem(name: 'Java Chip Frappuccino', calories: 440, protein: 6, carbs: 63, fat: 19),
-            MenuItem(name: 'Vanilla Bean Crème Frappuccino', calories: 410, protein: 6, carbs: 64, fat: 14),
-            MenuItem(name: 'Strawberry Crème Frappuccino', calories: 370, protein: 6, carbs: 60, fat: 12),
+            MenuItem(
+              name: 'Caramel Frappuccino', calories: 380, protein: 4, carbs: 54, fat: 16,
+              fiber: 0, sodium: 230,
+            ),
+            MenuItem(
+              name: 'Mocha Frappuccino', calories: 370, protein: 5, carbs: 54, fat: 15,
+              fiber: 1, sodium: 220,
+            ),
+            MenuItem(
+              name: 'Java Chip Frappuccino', calories: 440, protein: 6, carbs: 63, fat: 19,
+              fiber: 2, sodium: 260,
+            ),
+            MenuItem(
+              name: 'Vanilla Bean Crème Frappuccino', calories: 410, protein: 6, carbs: 64, fat: 14,
+              fiber: 0, sodium: 250,
+            ),
+            MenuItem(
+              name: 'Strawberry Crème Frappuccino', calories: 370, protein: 6, carbs: 60, fat: 12,
+              fiber: 0, sodium: 240,
+            ),
             MenuItem(name: 'Matcha Crème Frappuccino', calories: 420, protein: 7, carbs: 64, fat: 14),
           ],
         ),
@@ -1247,14 +1962,38 @@ final List<RestaurantMenu> restaurantMenus = [
           name: 'Item',
           mode: SelectionMode.multiple,
           items: [
-            MenuItem(name: 'Butter Croissant', calories: 280, protein: 5, carbs: 31, fat: 14),
-            MenuItem(name: 'Chocolate Croissant', calories: 310, protein: 6, carbs: 35, fat: 16),
-            MenuItem(name: 'Banana Bread Slice', calories: 420, protein: 6, carbs: 56, fat: 19),
-            MenuItem(name: 'Blueberry Muffin', calories: 380, protein: 6, carbs: 53, fat: 16),
-            MenuItem(name: 'Bacon Gouda Sandwich', calories: 360, protein: 19, carbs: 33, fat: 18),
-            MenuItem(name: 'Spinach Feta Wrap', calories: 290, protein: 19, carbs: 33, fat: 10),
-            MenuItem(name: 'Sausage & Cheddar Sandwich', calories: 470, protein: 19, carbs: 41, fat: 25),
-            MenuItem(name: 'Turkey Bacon Egg White Sandwich', calories: 230, protein: 17, carbs: 28, fat: 5),
+            MenuItem(
+              name: 'Butter Croissant', calories: 280, protein: 5, carbs: 31, fat: 14,
+              fiber: 1, sodium: 300,
+            ),
+            MenuItem(
+              name: 'Chocolate Croissant', calories: 310, protein: 6, carbs: 35, fat: 16,
+              fiber: 2, sodium: 300,
+            ),
+            MenuItem(
+              name: 'Banana Bread Slice', calories: 420, protein: 6, carbs: 56, fat: 19,
+              fiber: 2, sodium: 300,
+            ),
+            MenuItem(
+              name: 'Blueberry Muffin', calories: 380, protein: 6, carbs: 53, fat: 16,
+              fiber: 1, sodium: 330,
+            ),
+            MenuItem(
+              name: 'Bacon Gouda Sandwich', calories: 360, protein: 19, carbs: 33, fat: 18,
+              fiber: 1, sodium: 710,
+            ),
+            MenuItem(
+              name: 'Spinach Feta Wrap', calories: 290, protein: 19, carbs: 33, fat: 10,
+              fiber: 3, sodium: 840,
+            ),
+            MenuItem(
+              name: 'Sausage & Cheddar Sandwich', calories: 470, protein: 19, carbs: 41, fat: 25,
+              fiber: 1, sodium: 890,
+            ),
+            MenuItem(
+              name: 'Turkey Bacon Egg White Sandwich', calories: 230, protein: 17, carbs: 28, fat: 5,
+              fiber: 2, sodium: 600,
+            ),
           ],
         ),
       ],
