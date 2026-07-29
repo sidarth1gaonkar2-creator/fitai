@@ -462,12 +462,28 @@ const _subwayCheese = MenuCategory(
   mode: SelectionMode.single,
   optional: true,
   items: [
-    MenuItem(name: 'American', calories: 40, protein: 2, carbs: 1, fat: 4),
-    MenuItem(name: 'Provolone', calories: 50, protein: 4, carbs: 0, fat: 4),
-    MenuItem(name: 'Pepper Jack', calories: 50, protein: 4, carbs: 0, fat: 4),
+    MenuItem(
+      name: 'American', calories: 80, protein: 4, carbs: 1, fat: 7,
+      fiber: 0, sodium: 420, ironMg: 0, calciumMg: 104, vitaminCMg: 0,
+      magnesiumMg: 5.7, zincMg: 0.5, vitaminB12Mcg: 0.3, folateMcg: 1.7,
+    ),
+    MenuItem(
+      name: 'Provolone', calories: 90, protein: 6, carbs: 1, fat: 7,
+      fiber: 0, sodium: 220, ironMg: 0, calciumMg: 195, vitaminCMg: 0,
+      magnesiumMg: 7.2, zincMg: 0.8, vitaminB12Mcg: 0.4, folateMcg: 2.6,
+    ),
+    MenuItem(
+      name: 'Pepper Jack', calories: 100, protein: 5, carbs: 1, fat: 8,
+      fiber: 0, sodium: 480, ironMg: 0, calciumMg: 130, vitaminCMg: 0,
+      magnesiumMg: 7.2, zincMg: 0.8, vitaminB12Mcg: 0.2, folateMcg: 4.8,
+    ),
     MenuItem(name: 'Swiss', calories: 50, protein: 4, carbs: 0, fat: 4),
     MenuItem(name: 'Shredded Mozzarella', calories: 45, protein: 4, carbs: 0, fat: 3),
-    MenuItem(name: 'Monterey Cheddar (shredded)', calories: 50, protein: 4, carbs: 0, fat: 4),
+    MenuItem(
+      name: 'Monterey Cheddar (shredded)', calories: 110, protein: 7, carbs: 1, fat: 9,
+      fiber: 0, sodium: 170, ironMg: 0, calciumMg: 195, vitaminCMg: 0,
+      magnesiumMg: 8, zincMg: 0.9, vitaminB12Mcg: 0.2, folateMcg: 5.3,
+    ),
   ],
 );
 
@@ -1841,7 +1857,10 @@ final List<RestaurantMenu> restaurantMenus = [
               name: 'Pumpkin Spice Latte (2% Milk)', calories: 390, protein: 14, carbs: 52, fat: 14,
               fiber: 0, sodium: 230,
             ),
-            MenuItem(name: 'Chai Tea Latte (2% Milk)', calories: 240, protein: 8, carbs: 45, fat: 4),
+            MenuItem(
+              name: 'Chai Tea Latte (2% Milk)', calories: 190, protein: 7, carbs: 31, fat: 4,
+              fiber: 0, sodium: 105,
+            ),
             MenuItem(
               name: 'White Chocolate Mocha (2%)', calories: 430, protein: 15, carbs: 53, fat: 18,
               fiber: 0, sodium: 220,
@@ -1903,7 +1922,10 @@ final List<RestaurantMenu> restaurantMenus = [
               name: 'Iced Caramel Macchiato (2%)', calories: 250, protein: 10, carbs: 35, fat: 7,
               fiber: 0, sodium: 150,
             ),
-            MenuItem(name: 'Iced Brown Sugar Oatmilk Shaken Espresso', calories: 120, protein: 1, carbs: 24, fat: 3),
+            MenuItem(
+              name: 'Iced Brown Sugar Oatmilk Shaken Espresso', calories: 150, protein: 2, carbs: 27, fat: 4.5,
+              fiber: 2, sodium: 150,
+            ),
             MenuItem(
               name: 'Iced Shaken Espresso', calories: 100, protein: 2, carbs: 14, fat: 4,
               fiber: 0, sodium: 50,
@@ -1953,7 +1975,10 @@ final List<RestaurantMenu> restaurantMenus = [
               name: 'Strawberry Crème Frappuccino', calories: 370, protein: 6, carbs: 60, fat: 12,
               fiber: 0, sodium: 240,
             ),
-            MenuItem(name: 'Matcha Crème Frappuccino', calories: 420, protein: 7, carbs: 64, fat: 14),
+            MenuItem(
+              name: 'Matcha Crème Frappuccino', calories: 320, protein: 5, carbs: 46, fat: 13,
+              fiber: 1, sodium: 230,
+            ),
           ],
         ),
       ],
