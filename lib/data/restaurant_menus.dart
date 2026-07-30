@@ -1870,12 +1870,12 @@ final List<RestaurantMenu> restaurantMenus = [
             ),
             MenuItem(
               name: 'Caffè Latte (2% Milk)', calories: 190, protein: 13, carbs: 18, fat: 7,
-              fiber: 0, sodium: 170, vitaminCMg: 0.8, magnesiumMg: 76.4,
-              zincMg: 1.8, vitaminB12Mcg: 2, folateMcg: 19,
+              fiber: 0, sodium: 170, 
+              zincMg: 1.8, vitaminB12Mcg: 2.1, folateMcg: 19,
             ),
             MenuItem(
               name: 'Cappuccino (2% Milk)', calories: 140, protein: 9, carbs: 13, fat: 5,
-              fiber: 0, sodium: 120, vitaminCMg: 0.6, magnesiumMg: 65.4,
+              fiber: 0, sodium: 120, magnesiumMg: 65.4,
               zincMg: 1.3, vitaminB12Mcg: 1.4, folateMcg: 14,
             ),
             MenuItem(
@@ -1948,7 +1948,7 @@ final List<RestaurantMenu> restaurantMenus = [
             ),
             MenuItem(
               name: 'Iced Caffè Latte (2%)', calories: 130, protein: 9, carbs: 13, fat: 5,
-              fiber: 0, sodium: 115, vitaminCMg: 0.6, magnesiumMg: 63.2,
+              fiber: 0, sodium: 115, magnesiumMg: 63.2,
               zincMg: 1.2, vitaminB12Mcg: 1.3, folateMcg: 13,
             ),
             MenuItem(
