@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "skills": {
+    "auditing-deep-link-contracts": {
+      "source": "clix-so/skills",
+      "sourceType": "github",
+      "skillPath": "skills/auditing-deep-link-contracts/SKILL.md",
+      "computedHash": "e9916b370bfcc6b686886aab724bd84c2d7f407ef32b62e8adf8c48e3d1682be"
+    },
+    "auditing-permission-ux": {
+      "source": "clix-so/skills",
+      "sourceType": "github",
+      "skillPath": "skills/auditing-permission-ux/SKILL.md",
+      "computedHash": "1c8d7ee7a244481c44fcaa3d17b9d4e70e282fe32d618dd2a506c1330e352062"
+    },
+    "clix-personalization": {
+      "source": "clix-so/skills",
+      "sourceType": "github",
+      "skillPath": "skills/personalization/SKILL.md",
+      "computedHash": "61ae566e02d6711a49de14a26b3d50813f37a2ee73240f224880670a32d6cf8d"
+    },
+    "clix-user-management": {
+      "source": "clix-so/skills",
+      "sourceType": "github",
+      "skillPath": "skills/user-management/SKILL.md",
+      "computedHash": "fef2c5575951a3293061a18225ec3a139f44f3ec742b24c7b3e59acf36ca9cc3"
+    },
+    "push-notification-best-practices": {
+      "source": "clix-so/skills",
+      "sourceType": "github",
+      "skillPath": "skills/push-notification-best-practices/SKILL.md",
+      "computedHash": "1c36c0460ab7c7f704524f33ef0edd1928a2c6afceee14e6c681530036f3ff52"
+    },
+    "push-notification-designer": {
+      "source": "clix-so/skills",
+      "sourceType": "github",
+      "skillPath": "skills/push-notification-designer/SKILL.md",
+      "computedHash": "f2490445c5924c729537d0fc45038e05c6f72d77fbc84f89d2c7ed52b3069b5d"
+    }
+  }
+}
