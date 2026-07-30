@@ -2539,18 +2539,18 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(
               name: 'Whopper', calories: 710, protein: 34, carbs: 57, fat: 42,
-              fiber: 4, sodium: 1250, vitaminCMg: 0.6, magnesiumMg: 54.8,
-              zincMg: 8.6, folateMcg: 143.2,
+              fiber: 4, sodium: 1250, vitaminCMg: 0.6, magnesiumMg: 51.9,
+              zincMg: 8.2, folateMcg: 135.6,
             ),
             MenuItem(
               name: 'Whopper Jr', calories: 340, protein: 15, carbs: 30, fat: 19,
-              fiber: 2, sodium: 630, vitaminCMg: 0.3, magnesiumMg: 26.3,
-              zincMg: 4.1, folateMcg: 68.6,
+              fiber: 2, sodium: 630, vitaminCMg: 0.3, magnesiumMg: 25.6,
+              zincMg: 4, folateMcg: 67,
             ),
             MenuItem(
               name: 'Double Whopper', calories: 980, protein: 56, carbs: 57, fat: 62,
-              fiber: 5, sodium: 1320, vitaminCMg: 0.8, magnesiumMg: 70,
-              zincMg: 11.7, folateMcg: 175,
+              fiber: 5, sodium: 1320, vitaminCMg: 0.7, magnesiumMg: 67.4,
+              zincMg: 11.2, folateMcg: 168.4,
             ),
             MenuItem(
               name: 'Bacon King', calories: 1260, protein: 69, carbs: 58, fat: 84,
@@ -2558,13 +2558,13 @@ final List<RestaurantMenu> restaurantMenus = [
             ),
             MenuItem(
               name: 'Hamburger', calories: 260, protein: 14, carbs: 29, fat: 10,
-              fiber: 2, sodium: 600, vitaminCMg: 0.2, magnesiumMg: 24.9,
-              zincMg: 2.4, folateMcg: 63.8,
+              fiber: 2, sodium: 600, vitaminCMg: 0.2, magnesiumMg: 27,
+              zincMg: 2.2, folateMcg: 69,
             ),
             MenuItem(
               name: 'Cheeseburger', calories: 300, protein: 16, carbs: 30, fat: 14,
-              fiber: 2, sodium: 810, vitaminCMg: 0.2, magnesiumMg: 25.2,
-              zincMg: 2.5,
+              fiber: 2, sodium: 810, vitaminCMg: 0.2, magnesiumMg: 28.6,
+              zincMg: 2.9,
             ),
           ],
         ),
@@ -2585,8 +2585,8 @@ final List<RestaurantMenu> restaurantMenus = [
             ),
             MenuItem(
               name: 'Extra Patty', calories: 270, protein: 22, carbs: 0.4, fat: 20,
-              fiber: 0.2, sodium: 70, vitaminCMg: 0, magnesiumMg: 20,
-              zincMg: 6.3, vitaminB12Mcg: 2.7, folateMcg: 10,
+              fiber: 0.2, sodium: 70, 
+              zincMg: 5.3, vitaminB12Mcg: 2.3, 
             ),
           ],
         ),
@@ -2618,12 +2618,12 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(
               name: 'Ketchup', calories: 9.6, protein: 0.1, carbs: 2.2, fat: 0,
               fiber: 0.1, sodium: 88.6, vitaminCMg: 0.4, magnesiumMg: 1.2,
-              zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.9,
+              zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.8,
             ),
             MenuItem(
               name: 'Mustard', calories: 5, protein: 0.3, carbs: 0.3, fat: 0.3,
-              fiber: 0.2, sodium: 65.8, vitaminCMg: 0, magnesiumMg: 4,
-              zincMg: 0.1, vitaminB12Mcg: 0, folateMcg: 0.6,
+              fiber: 0.2, sodium: 65.8, vitaminCMg: 0, magnesiumMg: 2.7,
+              zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.4,
             ),
             MenuItem(
               name: 'Mayo', calories: 87, protein: 0.1, carbs: 0.3, fat: 9.5,
@@ -2639,33 +2639,33 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(
               name: 'Small Fries', calories: 300, protein: 4, carbs: 40, fat: 13,
-              fiber: 3, sodium: 270, vitaminCMg: 2.4, magnesiumMg: 28.9,
-              zincMg: 0.5,
-            ),
-            MenuItem(
-              name: 'Medium Fries', calories: 370, protein: 5, carbs: 50, fat: 17,
-              fiber: 4, sodium: 330, vitaminCMg: 2.9, magnesiumMg: 35.7,
-              zincMg: 0.6,
-            ),
-            MenuItem(
-              name: 'Large Fries', calories: 440, protein: 6, carbs: 60, fat: 20,
-              fiber: 5, sodium: 400, vitaminCMg: 3.5, magnesiumMg: 42.4,
+              fiber: 3, sodium: 270, vitaminCMg: 3.5, magnesiumMg: 43.3,
               zincMg: 0.7,
             ),
             MenuItem(
-              name: 'Onion Rings (S)', calories: 230, protein: 3, carbs: 31, fat: 11,
-              fiber: 3, sodium: 410, vitaminCMg: 0.8, magnesiumMg: 10.5,
-              zincMg: 0.3,
+              name: 'Medium Fries', calories: 370, protein: 5, carbs: 50, fat: 17,
+              fiber: 4, sodium: 330, vitaminCMg: 4.4, magnesiumMg: 53.9,
+              zincMg: 0.9,
             ),
             MenuItem(
-              name: 'Onion Rings (M)', calories: 290, protein: 4, carbs: 39, fat: 13,
-              fiber: 4, sodium: 530, vitaminCMg: 1, magnesiumMg: 13.2,
+              name: 'Large Fries', calories: 440, protein: 6, carbs: 60, fat: 20,
+              fiber: 5, sodium: 400, vitaminCMg: 5.3, magnesiumMg: 64.4,
+              zincMg: 1.1,
+            ),
+            MenuItem(
+              name: 'Onion Rings (S)', calories: 230, protein: 3, carbs: 31, fat: 11,
+              fiber: 3, sodium: 410, vitaminCMg: 1.2, magnesiumMg: 16.3,
               zincMg: 0.4,
             ),
             MenuItem(
+              name: 'Onion Rings (M)', calories: 290, protein: 4, carbs: 39, fat: 13,
+              fiber: 4, sodium: 530, vitaminCMg: 1.5, magnesiumMg: 20.7,
+              zincMg: 0.6,
+            ),
+            MenuItem(
               name: 'Mozzarella Sticks (4)', calories: 220, protein: 10, carbs: 24, fat: 12,
-              fiber: 1, sodium: 790, vitaminCMg: 0, magnesiumMg: 14.2,
-              zincMg: 1.4, vitaminB12Mcg: 0.6, folateMcg: 17.6,
+              fiber: 1, sodium: 790, 
+              zincMg: 1.4, vitaminB12Mcg: 0.7, 
             ),
             MenuItem(name: 'Side Salad', calories: 60, protein: 4, carbs: 7, fat: 2),
           ],
@@ -2678,20 +2678,20 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(
               name: 'Original Chicken Sandwich', calories: 680, protein: 23, carbs: 63, fat: 39,
-              fiber: 3, sodium: 1380, vitaminCMg: 0.5, magnesiumMg: 54.7,
-              zincMg: 1.5, folateMcg: 78.5,
+              fiber: 3, sodium: 1380, vitaminCMg: 0.4, magnesiumMg: 49.2,
+              zincMg: 1.2, folateMcg: 70.5,
             ),
             MenuItem(name: "Ch'King", calories: 880, protein: 36, carbs: 62, fat: 51),
             MenuItem(name: "Spicy Ch'King", calories: 880, protein: 36, carbs: 62, fat: 51),
             MenuItem(
               name: 'Chicken Fries (9 pc)', calories: 220, protein: 13, carbs: 16, fat: 12,
-              fiber: 1, sodium: 680, vitaminCMg: 0.8, magnesiumMg: 20.3,
-              zincMg: 0.5, vitaminB12Mcg: 0.1, folateMcg: 6.8,
+              fiber: 1, sodium: 680, vitaminCMg: 0.9, magnesiumMg: 23.1,
+              zincMg: 0.5, vitaminB12Mcg: 0.1, folateMcg: 7.7,
             ),
             MenuItem(
               name: 'Big Fish Sandwich', calories: 570, protein: 19, carbs: 58, fat: 30,
-              fiber: 3, sodium: 1270, vitaminCMg: 0.4, magnesiumMg: 54.8,
-              zincMg: 1.1,
+              fiber: 3, sodium: 1270, vitaminCMg: 0.4, magnesiumMg: 52.6,
+              zincMg: 0.9,
             ),
           ],
         ),
@@ -2702,8 +2702,8 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(
               name: 'BBQ', calories: 35, protein: 0, carbs: 8, fat: 0,
-              fiber: 0, sodium: 220, vitaminCMg: 0.1, magnesiumMg: 2.6,
-              zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.4,
+              fiber: 0, sodium: 220, vitaminCMg: 0.2, magnesiumMg: 3.7,
+              zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.6,
             ),
             MenuItem(
               name: 'Ranch', calories: 110, protein: 0, carbs: 1, fat: 11,
@@ -2716,8 +2716,8 @@ final List<RestaurantMenu> restaurantMenus = [
             ),
             MenuItem(
               name: 'Honey Mustard', calories: 70, protein: 0, carbs: 6, fat: 4.5,
-              fiber: 0, sodium: 135, vitaminCMg: 0, magnesiumMg: 0.8,
-              zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.8,
+              fiber: 0, sodium: 135, vitaminCMg: 0.1, magnesiumMg: 1.4,
+              zincMg: 0, vitaminB12Mcg: 0, folateMcg: 1.4,
             ),
             MenuItem(
               name: 'Sweet & Sour', calories: 45, protein: 0, carbs: 11, fat: 0,
@@ -2738,13 +2738,13 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(
               name: 'Nuggets (4 pc)', calories: 220, protein: 9, carbs: 12, fat: 15,
-              fiber: 1, sodium: 400, vitaminCMg: 0.4, magnesiumMg: 17.2,
-              zincMg: 0.4, vitaminB12Mcg: 0.2, folateMcg: 7.9,
+              fiber: 1, sodium: 400, vitaminCMg: 0.4, magnesiumMg: 15.8,
+              zincMg: 0.3, vitaminB12Mcg: 0.2, folateMcg: 7.3,
             ),
             MenuItem(
               name: 'Nuggets (8 pc)', calories: 440, protein: 18, carbs: 23, fat: 30,
-              fiber: 2, sodium: 790, vitaminCMg: 0.9, magnesiumMg: 34.4,
-              zincMg: 0.8, vitaminB12Mcg: 0.5, folateMcg: 15.8,
+              fiber: 2, sodium: 790, vitaminCMg: 0.8, magnesiumMg: 32.6,
+              zincMg: 0.7, vitaminB12Mcg: 0.4, folateMcg: 14.9,
             ),
             MenuItem(name: 'Nuggets (10 pc)', calories: 420, protein: 22, carbs: 27, fat: 27),
           ],
@@ -2756,8 +2756,8 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(
               name: 'BBQ', calories: 35, protein: 0, carbs: 8, fat: 0,
-              fiber: 0, sodium: 220, vitaminCMg: 0.1, magnesiumMg: 2.6,
-              zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.4,
+              fiber: 0, sodium: 220, vitaminCMg: 0.2, magnesiumMg: 3.7,
+              zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.6,
             ),
             MenuItem(
               name: 'Ranch', calories: 110, protein: 0, carbs: 1, fat: 11,
@@ -2770,8 +2770,8 @@ final List<RestaurantMenu> restaurantMenus = [
             ),
             MenuItem(
               name: 'Honey Mustard', calories: 70, protein: 0, carbs: 6, fat: 4.5,
-              fiber: 0, sodium: 135, vitaminCMg: 0, magnesiumMg: 0.8,
-              zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.8,
+              fiber: 0, sodium: 135, vitaminCMg: 0.1, magnesiumMg: 1.4,
+              zincMg: 0, vitaminB12Mcg: 0, folateMcg: 1.4,
             ),
             MenuItem(
               name: 'Sweet & Sour', calories: 45, protein: 0, carbs: 11, fat: 0,
@@ -2788,38 +2788,38 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(
               name: 'Small Fries', calories: 300, protein: 4, carbs: 40, fat: 13,
-              fiber: 3, sodium: 270, vitaminCMg: 2.4, magnesiumMg: 28.9,
-              zincMg: 0.5,
-            ),
-            MenuItem(
-              name: 'Medium Fries', calories: 370, protein: 5, carbs: 50, fat: 17,
-              fiber: 4, sodium: 330, vitaminCMg: 2.9, magnesiumMg: 35.7,
-              zincMg: 0.6,
-            ),
-            MenuItem(
-              name: 'Large Fries', calories: 440, protein: 6, carbs: 60, fat: 20,
-              fiber: 5, sodium: 400, vitaminCMg: 3.5, magnesiumMg: 42.4,
+              fiber: 3, sodium: 270, vitaminCMg: 3.5, magnesiumMg: 43.3,
               zincMg: 0.7,
             ),
             MenuItem(
-              name: 'Onion Rings (S)', calories: 230, protein: 3, carbs: 31, fat: 11,
-              fiber: 3, sodium: 410, vitaminCMg: 0.8, magnesiumMg: 10.5,
-              zincMg: 0.3,
+              name: 'Medium Fries', calories: 370, protein: 5, carbs: 50, fat: 17,
+              fiber: 4, sodium: 330, vitaminCMg: 4.4, magnesiumMg: 53.9,
+              zincMg: 0.9,
             ),
             MenuItem(
-              name: 'Onion Rings (M)', calories: 290, protein: 4, carbs: 39, fat: 13,
-              fiber: 4, sodium: 530, vitaminCMg: 1, magnesiumMg: 13.2,
+              name: 'Large Fries', calories: 440, protein: 6, carbs: 60, fat: 20,
+              fiber: 5, sodium: 400, vitaminCMg: 5.3, magnesiumMg: 64.4,
+              zincMg: 1.1,
+            ),
+            MenuItem(
+              name: 'Onion Rings (S)', calories: 230, protein: 3, carbs: 31, fat: 11,
+              fiber: 3, sodium: 410, vitaminCMg: 1.2, magnesiumMg: 16.3,
               zincMg: 0.4,
             ),
             MenuItem(
+              name: 'Onion Rings (M)', calories: 290, protein: 4, carbs: 39, fat: 13,
+              fiber: 4, sodium: 530, vitaminCMg: 1.5, magnesiumMg: 20.7,
+              zincMg: 0.6,
+            ),
+            MenuItem(
               name: 'Onion Rings (L)', calories: 430, protein: 5, carbs: 57, fat: 20,
-              fiber: 6, sodium: 770, vitaminCMg: 1.4, magnesiumMg: 19.6,
-              zincMg: 0.5,
+              fiber: 6, sodium: 770, vitaminCMg: 2.3, magnesiumMg: 30.5,
+              zincMg: 0.8,
             ),
             MenuItem(
               name: 'Mozzarella Sticks (4)', calories: 220, protein: 10, carbs: 24, fat: 12,
-              fiber: 1, sodium: 790, vitaminCMg: 0, magnesiumMg: 14.2,
-              zincMg: 1.4, vitaminB12Mcg: 0.6, folateMcg: 17.6,
+              fiber: 1, sodium: 790, 
+              zincMg: 1.4, vitaminB12Mcg: 0.7, 
             ),
             MenuItem(name: 'Side Salad', calories: 60, protein: 4, carbs: 7, fat: 2),
           ],
@@ -2832,18 +2832,18 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(
               name: "Croissan'wich (Sausage, Egg, Cheese)", calories: 500, protein: 19, carbs: 28, fat: 34,
-              fiber: 3, sodium: 1040, vitaminCMg: 0, magnesiumMg: 27.6,
-              zincMg: 1.9, vitaminB12Mcg: 0.8, folateMcg: 81.2,
+              fiber: 3, sodium: 1040, vitaminCMg: 0, magnesiumMg: 29.5,
+              zincMg: 1.8, vitaminB12Mcg: 0.8, folateMcg: 86.8,
             ),
             MenuItem(
               name: "Croissan'wich (Bacon, Egg, Cheese)", calories: 360, protein: 15, carbs: 28, fat: 21,
-              fiber: 3, sodium: 810, vitaminCMg: 0.1, magnesiumMg: 21.2,
-              zincMg: 1.6, vitaminB12Mcg: 0.8, folateMcg: 63.5,
+              fiber: 3, sodium: 810, vitaminCMg: 0.1, magnesiumMg: 22.7,
+              zincMg: 1.5, vitaminB12Mcg: 0.7, folateMcg: 68,
             ),
             MenuItem(
               name: "Croissan'wich (Ham, Egg, Cheese)", calories: 350, protein: 18, carbs: 29, fat: 19,
-              fiber: 3, sodium: 1000, vitaminCMg: 0.1, magnesiumMg: 22.8,
-              zincMg: 1.9, vitaminB12Mcg: 0.9, folateMcg: 56.3,
+              fiber: 3, sodium: 1000, vitaminCMg: 0.2, magnesiumMg: 27.1,
+              zincMg: 2.1, vitaminB12Mcg: 1, folateMcg: 66.9,
             ),
             MenuItem(
               name: 'Pancakes (3 pc + syrup)', calories: 400, protein: 5, carbs: 74, fat: 9,
@@ -2851,13 +2851,12 @@ final List<RestaurantMenu> restaurantMenus = [
             ),
             MenuItem(
               name: 'French Toast Sticks (5 pc)', calories: 410, protein: 6, carbs: 47, fat: 21,
-              fiber: 2, sodium: 315, vitaminCMg: 0, magnesiumMg: 22.3,
-              zincMg: 0.6, vitaminB12Mcg: 0,
+              fiber: 2, sodium: 315, 
             ),
             MenuItem(
               name: 'Hash Browns (Small)', calories: 270, protein: 2, carbs: 29, fat: 16,
-              fiber: 3, sodium: 570, vitaminCMg: 3.8, magnesiumMg: 17.9,
-              zincMg: 0.3, folateMcg: 11.6,
+              fiber: 3, sodium: 570, vitaminCMg: 4, magnesiumMg: 18.8,
+              zincMg: 0.3, folateMcg: 12.2,
             ),
           ],
         ),
@@ -2869,18 +2868,15 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(
               name: 'Small Coke', calories: 180, protein: 0, carbs: 50, fat: 0,
-              fiber: 0, sodium: 45, vitaminCMg: 0, magnesiumMg: 0,
-              zincMg: 0.1, vitaminB12Mcg: 0, folateMcg: 0,
+              fiber: 0, sodium: 45, 
             ),
             MenuItem(
               name: 'Medium Coke', calories: 270, protein: 0, carbs: 70, fat: 0,
-              fiber: 0, sodium: 65, vitaminCMg: 0, magnesiumMg: 0,
-              zincMg: 0.1, vitaminB12Mcg: 0, folateMcg: 0,
+              fiber: 0, sodium: 65, 
             ),
             MenuItem(
               name: 'Large Coke', calories: 320, protein: 0, carbs: 88, fat: 0,
-              fiber: 0, sodium: 80, vitaminCMg: 0, magnesiumMg: 0,
-              zincMg: 0.2, vitaminB12Mcg: 0, folateMcg: 0,
+              fiber: 0, sodium: 80, 
             ),
             MenuItem(
               name: 'Diet Coke', calories: 0, protein: 0, carbs: 0, fat: 0,
@@ -2889,8 +2885,7 @@ final List<RestaurantMenu> restaurantMenus = [
             ),
             MenuItem(
               name: 'Sprite (M)', calories: 260, protein: 0, carbs: 68, fat: 0,
-              fiber: 0, sodium: 70, vitaminCMg: 0, magnesiumMg: 6.3,
-              zincMg: 0.1, vitaminB12Mcg: 0, folateMcg: 0,
+              fiber: 0, sodium: 70, 
             ),
             MenuItem(
               name: 'Iced Tea (Unsweet)', calories: 0, protein: 0, carbs: 0, fat: 0,
@@ -2908,13 +2903,13 @@ final List<RestaurantMenu> restaurantMenus = [
             ),
             MenuItem(
               name: 'Chocolate Shake (M)', calories: 590, protein: 13, carbs: 103, fat: 14,
-              fiber: 1, sodium: 420, vitaminCMg: 0, magnesiumMg: 90.5,
-              zincMg: 2.8, vitaminB12Mcg: 0.9, folateMcg: 3.9,
+              fiber: 1, sodium: 420, vitaminCMg: 0, magnesiumMg: 91.8,
+              zincMg: 2.5, vitaminB12Mcg: 0.8, folateMcg: 4,
             ),
             MenuItem(
               name: 'Vanilla Shake (M)', calories: 560, protein: 12, carbs: 96, fat: 14,
-              fiber: 0, sodium: 400, vitaminCMg: 0, magnesiumMg: 40,
-              zincMg: 2.2, vitaminB12Mcg: 1.2,
+              fiber: 0, sodium: 400, vitaminCMg: 0, magnesiumMg: 47.5,
+              zincMg: 2.7, vitaminB12Mcg: 1.4,
             ),
           ],
         ),
