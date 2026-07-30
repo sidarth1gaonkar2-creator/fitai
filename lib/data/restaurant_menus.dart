@@ -626,7 +626,7 @@ const _pandaEntreeItems = [
   MenuItem(
     name: 'Orange Chicken', calories: 510, protein: 16, carbs: 53, fat: 24,
     fiber: 2, sodium: 850, vitaminCMg: 1.5, magnesiumMg: 33.6,
-    folateMcg: 16.8,
+    zincMg: 1.2, vitaminB12Mcg: 0.2, folateMcg: 16.8,
   ),
   MenuItem(
     name: 'Beijing Beef', calories: 470, protein: 14, carbs: 46, fat: 27,
@@ -645,7 +645,7 @@ const _pandaEntreeItems = [
   MenuItem(
     name: 'Mushroom Chicken', calories: 220, protein: 13, carbs: 10, fat: 14,
     fiber: 1, sodium: 840, vitaminCMg: 21.3, magnesiumMg: 30.7,
-    zincMg: 1.2, vitaminB12Mcg: 0.2, folateMcg: 24.2,
+    zincMg: 0.9, vitaminB12Mcg: 0.2, folateMcg: 24.2,
   ),
   MenuItem(name: 'Black Pepper Angus Steak', calories: 210, protein: 19, carbs: 13, fat: 10),
   MenuItem(
@@ -656,22 +656,22 @@ const _pandaEntreeItems = [
   MenuItem(
     name: 'Honey Sesame Chicken Breast', calories: 340, protein: 16, carbs: 35, fat: 15,
     fiber: 1, sodium: 540, vitaminCMg: 1.5, magnesiumMg: 33.1,
-    folateMcg: 12,
+    zincMg: 1, vitaminB12Mcg: 0.3, folateMcg: 12,
   ),
   MenuItem(
     name: 'Grilled Teriyaki Chicken', calories: 275, protein: 33, carbs: 14, fat: 10,
     fiber: 0, sodium: 470, vitaminCMg: 0, magnesiumMg: 47.6,
-    zincMg: 2.6, vitaminB12Mcg: 0.6, folateMcg: 17,
+    zincMg: 2, vitaminB12Mcg: 0.4, folateMcg: 17,
   ),
   MenuItem(
     name: 'String Bean Chicken Breast', calories: 210, protein: 12, carbs: 13, fat: 12,
     fiber: 5, sodium: 560, vitaminCMg: 21, magnesiumMg: 30.2,
-    folateMcg: 23.8,
+    zincMg: 0.9, vitaminB12Mcg: 0.1, folateMcg: 23.8,
   ),
   MenuItem(
     name: 'Sweetfire Chicken Breast', calories: 360, protein: 15, carbs: 40, fat: 15,
     fiber: 2, sodium: 370, vitaminCMg: 3.9, magnesiumMg: 24.7,
-    zincMg: 0.7, vitaminB12Mcg: 0.1, folateMcg: 18.1,
+    zincMg: 0.6, vitaminB12Mcg: 0.1, folateMcg: 18.1,
   ),
   MenuItem(
     name: 'Eggplant Tofu', calories: 340, protein: 7, carbs: 23, fat: 24,
@@ -2124,7 +2124,7 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(
               name: 'Chicken Potsticker (3 pcs)', calories: 160, protein: 6, carbs: 20, fat: 6,
               fiber: 1, sodium: 250, vitaminCMg: 8.2, magnesiumMg: 20.6,
-              folateMcg: 17.8,
+              zincMg: 1.2, vitaminB12Mcg: 0.2, folateMcg: 17.8,
             ),
           ],
         ),
