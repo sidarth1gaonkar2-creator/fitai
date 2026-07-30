@@ -1648,9 +1648,9 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(
               name: 'Crunchy Taco', calories: 170, protein: 8, carbs: 13, fat: 9,
               fiber: 3, sodium: 310, vitaminDMcg: 0.1, ironMg: 1.1,
-              calciumMg: 60, vitaminCMg: 0.9, magnesiumMg: 23.8,
-              potassiumMg: 150, zincMg: 1.3, vitaminB12Mcg: 0.7,
-              folateMcg: 14.1,
+              calciumMg: 60, vitaminCMg: 0.9, magnesiumMg: 25,
+              potassiumMg: 150, zincMg: 1.4, vitaminB12Mcg: 0.7,
+              folateMcg: 14.8,
             ),
             MenuItem(
               name: 'Crunchy Taco Supreme', calories: 200, protein: 9, carbs: 15, fat: 12,
@@ -1660,9 +1660,9 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(
               name: 'Soft Taco (Beef)', calories: 180, protein: 9, carbs: 18, fat: 8,
               fiber: 3, sodium: 500, vitaminDMcg: 0.1, ironMg: 1.9,
-              calciumMg: 100, vitaminCMg: 1.1, magnesiumMg: 16.6,
-              potassiumMg: 140, zincMg: 1.2, vitaminB12Mcg: 0.7,
-              folateMcg: 45.4,
+              calciumMg: 100, vitaminCMg: 1.1, magnesiumMg: 17,
+              potassiumMg: 140, zincMg: 1.2, vitaminB12Mcg: 0.8,
+              folateMcg: 46.4,
             ),
             MenuItem(
               name: 'Soft Taco Supreme', calories: 210, protein: 10, carbs: 21, fat: 10,
@@ -1672,9 +1672,8 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(
               name: 'Doritos Locos Taco', calories: 170, protein: 8, carbs: 13, fat: 9,
               fiber: 3, sodium: 370, vitaminDMcg: 0.1, ironMg: 1.1,
-              calciumMg: 70, vitaminCMg: 0.7, magnesiumMg: 23.8,
-              potassiumMg: 150, zincMg: 1.3, vitaminB12Mcg: 0.7,
-              folateMcg: 14.1,
+              calciumMg: 70, vitaminCMg: 0.7, 
+              potassiumMg: 150, zincMg: 1.6, vitaminB12Mcg: 0.8,
             ),
             MenuItem(
               name: 'Doritos Locos Taco Supreme', calories: 200, protein: 9, carbs: 16, fat: 11,
@@ -1734,24 +1733,21 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(
               name: 'Bean Burrito', calories: 350, protein: 13, carbs: 54, fat: 9,
               fiber: 8, sodium: 1080, vitaminDMcg: 3.1, ironMg: 3.8,
-              calciumMg: 200, vitaminCMg: 3.2, magnesiumMg: 58.6,
-              potassiumMg: 420, zincMg: 1.5, vitaminB12Mcg: 0.3,
-              folateMcg: 86.1,
+              calciumMg: 200, vitaminCMg: 3.2, 
+              potassiumMg: 420, 
             ),
             MenuItem(
               name: 'Burrito Supreme (Beef)', calories: 390, protein: 16, carbs: 51, fat: 13,
               fiber: 8, sodium: 1160, vitaminDMcg: 1.6, ironMg: 4.1,
-              calciumMg: 210, vitaminCMg: 7.2, magnesiumMg: 49,
-              potassiumMg: 430, zincMg: 1.9, vitaminB12Mcg: 0.6,
-              folateMcg: 95.9,
+              calciumMg: 210, vitaminCMg: 7.2, 
+              potassiumMg: 430, zincMg: 2, vitaminB12Mcg: 0.6,
             ),
             MenuItem(name: 'Chicken Burrito (Cantina)', calories: 460, protein: 25, carbs: 57, fat: 14),
             MenuItem(
               name: '5-Layer Burrito', calories: 490, protein: 17, carbs: 65, fat: 18,
               fiber: 7, sodium: 1290, vitaminDMcg: 1.6, ironMg: 4.8,
-              calciumMg: 260, vitaminCMg: 1.8, magnesiumMg: 55.9,
-              potassiumMg: 470, zincMg: 4, vitaminB12Mcg: 1.3,
-              folateMcg: 107.4,
+              calciumMg: 260, vitaminCMg: 1.8, 
+              potassiumMg: 470, zincMg: 2.8, vitaminB12Mcg: 0.9,
             ),
             MenuItem(
               name: 'Grilled Cheese Burrito', calories: 720, protein: 27, carbs: 81, fat: 32,
@@ -1773,8 +1769,6 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(
               name: 'Add Guacamole', calories: 50, protein: 1, carbs: 3, fat: 5,
-              vitaminCMg: 2.6, magnesiumMg: 7.2, zincMg: 0.2,
-              vitaminB12Mcg: 0, folateMcg: 20.4,
             ),
             MenuItem(name: 'Add Sour Cream', calories: 70, protein: 1, carbs: 1, fat: 6),
             MenuItem(name: 'Add Jalapeño Sauce', calories: 50, protein: 0, carbs: 1, fat: 5),
@@ -1805,23 +1799,22 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(
               name: 'Cheese Quesadilla', calories: 470, protein: 19, carbs: 39, fat: 26,
               fiber: 4, sodium: 980, vitaminDMcg: 0, ironMg: 2.5,
-              calciumMg: 490, vitaminCMg: 1.2, magnesiumMg: 32,
-              potassiumMg: 160, zincMg: 2.4, vitaminB12Mcg: 0.6,
-              folateMcg: 80.8,
+              calciumMg: 490, vitaminCMg: 1.2, magnesiumMg: 34.4,
+              potassiumMg: 160, zincMg: 2.5, vitaminB12Mcg: 0.7,
+              folateMcg: 86.7,
             ),
             MenuItem(
               name: 'Chicken Quesadilla', calories: 520, protein: 28, carbs: 39, fat: 28,
               fiber: 4, sodium: 1240, vitaminDMcg: 0, ironMg: 2.6,
-              calciumMg: 490, vitaminCMg: 1.8, magnesiumMg: 40.1,
-              potassiumMg: 290, zincMg: 2, vitaminB12Mcg: 0.4,
-              folateMcg: 94.1,
+              calciumMg: 490, vitaminCMg: 1.8, magnesiumMg: 47.5,
+              potassiumMg: 290, zincMg: 2.4, vitaminB12Mcg: 0.5,
+              folateMcg: 111.4,
             ),
             MenuItem(
               name: 'Steak Quesadilla', calories: 520, protein: 26, carbs: 39, fat: 29,
               fiber: 4, sodium: 1260, vitaminDMcg: 0, ironMg: 3.1,
-              calciumMg: 500, vitaminCMg: 1.2, magnesiumMg: 34.4,
-              potassiumMg: 260, zincMg: 3.8, vitaminB12Mcg: 1.3,
-              folateMcg: 90.2,
+              calciumMg: 500, vitaminCMg: 1.2, 
+              potassiumMg: 260, zincMg: 4.2, vitaminB12Mcg: 1.4,
             ),
           ],
         ),
@@ -1838,9 +1831,8 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(
               name: 'Chips & Nacho Cheese', calories: 230, protein: 4, carbs: 28, fat: 11,
               fiber: 2, sodium: 280, vitaminDMcg: 0, ironMg: 0.2,
-              calciumMg: 60, vitaminCMg: 0, magnesiumMg: 26.4,
-              potassiumMg: 290, zincMg: 0.5, vitaminB12Mcg: 0,
-              folateMcg: 6.3,
+              calciumMg: 60, vitaminCMg: 0, 
+              potassiumMg: 290, 
             ),
             MenuItem(
               name: 'Cheesy Fiesta Potatoes', calories: 220, protein: 4, carbs: 29, fat: 12,
