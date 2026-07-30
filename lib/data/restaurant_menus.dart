@@ -386,17 +386,17 @@ const _subwayProtein6 = MenuCategory(
     MenuItem(
       name: 'Steak', calories: 110, protein: 17, carbs: 4, fat: 3,
       fiber: 0, sodium: 450, ironMg: 1.1, calciumMg: 0, vitaminCMg: 0,
-      magnesiumMg: 10.7, zincMg: 3.1, vitaminB12Mcg: 1.5, folateMcg: 3.6,
+      magnesiumMg: 10.6, zincMg: 2.5, vitaminB12Mcg: 1.2, folateMcg: 3.6,
     ),
     MenuItem(
       name: 'Meatball Marinara', calories: 280, protein: 14, carbs: 22, fat: 14,
       fiber: 2, sodium: 720, ironMg: 1.4, calciumMg: 52, vitaminCMg: 13.5,
-      magnesiumMg: 20.9, zincMg: 5.8, vitaminB12Mcg: 2.6, folateMcg: 16.7,
+      magnesiumMg: 20.8, zincMg: 3.3, vitaminB12Mcg: 1.4, folateMcg: 16.7,
     ),
     MenuItem(
       name: 'Bacon Strips', calories: 80, protein: 6, carbs: 0, fat: 6,
       fiber: 0, sodium: 170, ironMg: 0.4, calciumMg: 0, vitaminCMg: 0,
-      magnesiumMg: 4.7, zincMg: 0.5, vitaminB12Mcg: 0.2, folateMcg: 0,
+      magnesiumMg: 4.6, zincMg: 0.5, vitaminB12Mcg: 0.2, folateMcg: 0,
     ),
     MenuItem(
       name: 'Pepperoni', calories: 80, protein: 4, carbs: 0, fat: 7,
@@ -437,12 +437,12 @@ const _subwayProtein12 = MenuCategory(
     MenuItem(
       name: 'Steak', calories: 220, protein: 34, carbs: 8, fat: 6,
       fiber: 0, sodium: 900, ironMg: 2.2, calciumMg: 0, vitaminCMg: 0,
-      magnesiumMg: 21.3, zincMg: 6.1, vitaminB12Mcg: 3, folateMcg: 7.1,
+      magnesiumMg: 21.3, zincMg: 4.9, vitaminB12Mcg: 2.4, folateMcg: 7.1,
     ),
     MenuItem(
       name: 'Meatball Marinara', calories: 560, protein: 28, carbs: 44, fat: 28,
       fiber: 4, sodium: 1440, ironMg: 2.9, calciumMg: 104, vitaminCMg: 27,
-      magnesiumMg: 41.7, zincMg: 11.6, vitaminB12Mcg: 5.2, folateMcg: 33.4,
+      magnesiumMg: 41.7, zincMg: 6.5, vitaminB12Mcg: 2.9, folateMcg: 33.4,
     ),
     MenuItem(
       name: 'Bacon Strips', calories: 160, protein: 12, carbs: 0, fat: 12,
@@ -475,7 +475,7 @@ const _subwayCheese = MenuCategory(
     MenuItem(
       name: 'Pepper Jack', calories: 100, protein: 5, carbs: 1, fat: 8,
       fiber: 0, sodium: 480, ironMg: 0, calciumMg: 130, vitaminCMg: 0,
-      magnesiumMg: 7.6, zincMg: 0.8, vitaminB12Mcg: 0.2, folateMcg: 5,
+      magnesiumMg: 7.6, zincMg: 0.6, vitaminB12Mcg: 0.2, folateMcg: 5,
     ),
     MenuItem(name: 'Swiss', calories: 50, protein: 4, carbs: 0, fat: 4),
     MenuItem(name: 'Shredded Mozzarella', calories: 45, protein: 4, carbs: 0, fat: 3),
@@ -917,14 +917,10 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(
               name: 'Tomato Basil Wrap', calories: 310, protein: 12, carbs: 50, fat: 7,
               fiber: 2, sodium: 580, ironMg: 2.7, calciumMg: 78,
-              vitaminCMg: 0, magnesiumMg: 21.4, zincMg: 0.6, vitaminB12Mcg: 0,
-              folateMcg: 120.4,
             ),
             MenuItem(
               name: 'Spinach Wrap', calories: 290, protein: 11, carbs: 49, fat: 6,
               fiber: 2, sodium: 580, ironMg: 2.7, calciumMg: 78,
-              vitaminCMg: 0, magnesiumMg: 21.4, zincMg: 0.6, vitaminB12Mcg: 0,
-              folateMcg: 120.4,
             ),
           ],
         ),
