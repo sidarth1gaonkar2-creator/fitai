@@ -315,15 +315,15 @@ const _subwayBread6 = MenuCategory(
   items: [
     MenuItem(
       name: 'Italian White', calories: 200, protein: 8, carbs: 38, fat: 2,
-      fiber: 1, sodium: 380, vitaminCMg: 0, magnesiumMg: 21.1, zincMg: 0.6,
-      vitaminB12Mcg: 0, folateMcg: 82.7,
+      fiber: 1, sodium: 380, vitaminCMg: 0, magnesiumMg: 18.5, zincMg: 0.6,
+      vitaminB12Mcg: 0, folateMcg: 72.4,
     ),
     MenuItem(name: '9-Grain Wheat', calories: 210, protein: 9, carbs: 39, fat: 3),
     MenuItem(name: 'Italian Herbs & Cheese', calories: 250, protein: 11, carbs: 39, fat: 6),
     MenuItem(
       name: 'Hearty Multigrain', calories: 220, protein: 9, carbs: 41, fat: 3,
       fiber: 3, sodium: 350, ironMg: 1.8, calciumMg: 26, vitaminCMg: 0.1,
-      magnesiumMg: 58.9, zincMg: 1.3, vitaminB12Mcg: 0, folateMcg: 56.6,
+      magnesiumMg: 55.4, zincMg: 1.2, vitaminB12Mcg: 0, folateMcg: 53.3,
     ),
     MenuItem(
       name: 'Flatbread', calories: 220, protein: 9, carbs: 40, fat: 5,
@@ -338,15 +338,15 @@ const _subwayBread12 = MenuCategory(
   items: [
     MenuItem(
       name: 'Italian White', calories: 400, protein: 16, carbs: 76, fat: 4,
-      fiber: 2, sodium: 760, vitaminCMg: 0, magnesiumMg: 42.2, zincMg: 1.3,
-      vitaminB12Mcg: 0, folateMcg: 165.4,
+      fiber: 2, sodium: 760, vitaminCMg: 0, magnesiumMg: 36.9, zincMg: 1.1,
+      vitaminB12Mcg: 0, folateMcg: 144.8,
     ),
     MenuItem(name: '9-Grain Wheat', calories: 420, protein: 18, carbs: 78, fat: 6),
     MenuItem(name: 'Italian Herbs & Cheese', calories: 500, protein: 22, carbs: 78, fat: 12),
     MenuItem(
       name: 'Hearty Multigrain', calories: 440, protein: 18, carbs: 82, fat: 6,
-      fiber: 6, sodium: 700, ironMg: 3.6, calciumMg: 52, vitaminCMg: 0.2,
-      magnesiumMg: 117.7, zincMg: 2.6, vitaminB12Mcg: 0, folateMcg: 113.2,
+      fiber: 6, sodium: 700, ironMg: 3.6, calciumMg: 52, vitaminCMg: 0.1,
+      magnesiumMg: 110.8, zincMg: 2.4, vitaminB12Mcg: 0, folateMcg: 106.5,
     ),
     MenuItem(
       name: 'Flatbread', calories: 440, protein: 18, carbs: 80, fat: 10,
@@ -371,13 +371,13 @@ const _subwayProtein6 = MenuCategory(
     MenuItem(
       name: 'Black Forest Ham', calories: 60, protein: 11, carbs: 2, fat: 1,
       fiber: 0, sodium: 490, ironMg: 0.4, calciumMg: 0, vitaminCMg: 0,
-      magnesiumMg: 12.4, zincMg: 1, vitaminB12Mcg: 0.2, folateMcg: 0,
+      magnesiumMg: 10.8, zincMg: 0.9, vitaminB12Mcg: 0.2, folateMcg: 0,
     ),
     MenuItem(name: 'Rotisserie-Style Chicken', calories: 130, protein: 21, carbs: 2, fat: 4),
     MenuItem(
       name: 'Roast Beef', calories: 80, protein: 14, carbs: 2, fat: 2,
       fiber: 0, sodium: 420, ironMg: 0.4, calciumMg: 0, vitaminCMg: 0,
-      magnesiumMg: 13.9, zincMg: 2.2, vitaminB12Mcg: 1.4, folateMcg: 3.5,
+      magnesiumMg: 14.2, zincMg: 2.3, vitaminB12Mcg: 1.4, folateMcg: 3.6,
     ),
     MenuItem(
       name: 'Tuna', calories: 250, protein: 13, carbs: 0, fat: 21,
@@ -386,22 +386,22 @@ const _subwayProtein6 = MenuCategory(
     MenuItem(
       name: 'Steak', calories: 110, protein: 17, carbs: 4, fat: 3,
       fiber: 0, sodium: 450, ironMg: 1.1, calciumMg: 0, vitaminCMg: 0,
-      magnesiumMg: 9.6, zincMg: 2.8, vitaminB12Mcg: 1.4, folateMcg: 3.2,
+      magnesiumMg: 10.7, zincMg: 3.1, vitaminB12Mcg: 1.5, folateMcg: 3.6,
     ),
     MenuItem(
       name: 'Meatball Marinara', calories: 280, protein: 14, carbs: 22, fat: 14,
       fiber: 2, sodium: 720, ironMg: 1.4, calciumMg: 52, vitaminCMg: 13.5,
-      magnesiumMg: 20.2, zincMg: 5.6, vitaminB12Mcg: 2.5, folateMcg: 16.1,
+      magnesiumMg: 20.9, zincMg: 5.8, vitaminB12Mcg: 2.6, folateMcg: 16.7,
     ),
     MenuItem(
       name: 'Bacon Strips', calories: 80, protein: 6, carbs: 0, fat: 6,
       fiber: 0, sodium: 170, ironMg: 0.4, calciumMg: 0, vitaminCMg: 0,
-      magnesiumMg: 5.3, zincMg: 0.5, vitaminB12Mcg: 0.2, folateMcg: 0,
+      magnesiumMg: 4.7, zincMg: 0.5, vitaminB12Mcg: 0.2, folateMcg: 0,
     ),
     MenuItem(
       name: 'Pepperoni', calories: 80, protein: 4, carbs: 0, fat: 7,
       fiber: 0, sodium: 290, ironMg: 0.4, calciumMg: 0, vitaminCMg: 3.6,
-      magnesiumMg: 2.9, zincMg: 0.4, vitaminB12Mcg: 0.2, folateMcg: 0.8,
+      magnesiumMg: 3.2, zincMg: 0.4, vitaminB12Mcg: 0.2, folateMcg: 0.9,
     ),
     MenuItem(name: 'Veggie Patty', calories: 100, protein: 9, carbs: 12, fat: 3),
   ],
@@ -417,18 +417,18 @@ const _subwayProtein12 = MenuCategory(
     MenuItem(
       name: 'Turkey Breast', calories: 120, protein: 24, carbs: 4, fat: 2,
       fiber: 0, sodium: 900, ironMg: 3.6, calciumMg: 0, vitaminCMg: 0,
-      magnesiumMg: 21.5, zincMg: 1.1, vitaminB12Mcg: 0.4, folateMcg: 4.5,
+      magnesiumMg: 21.7, zincMg: 1.1, vitaminB12Mcg: 0.4, folateMcg: 4.6,
     ),
     MenuItem(
       name: 'Black Forest Ham', calories: 120, protein: 22, carbs: 4, fat: 2,
       fiber: 0, sodium: 980, ironMg: 0.7, calciumMg: 0, vitaminCMg: 0,
-      magnesiumMg: 24.9, zincMg: 2, vitaminB12Mcg: 0.5, folateMcg: 0,
+      magnesiumMg: 21.7, zincMg: 1.7, vitaminB12Mcg: 0.4, folateMcg: 0,
     ),
     MenuItem(name: 'Rotisserie-Style Chicken', calories: 260, protein: 42, carbs: 4, fat: 8),
     MenuItem(
       name: 'Roast Beef', calories: 160, protein: 28, carbs: 4, fat: 4,
       fiber: 0, sodium: 840, ironMg: 0.7, calciumMg: 0, vitaminCMg: 0,
-      magnesiumMg: 27.8, zincMg: 4.5, vitaminB12Mcg: 2.8, folateMcg: 7,
+      magnesiumMg: 28.4, zincMg: 4.5, vitaminB12Mcg: 2.9, folateMcg: 7.1,
     ),
     MenuItem(
       name: 'Tuna', calories: 500, protein: 26, carbs: 0, fat: 42,
@@ -437,22 +437,22 @@ const _subwayProtein12 = MenuCategory(
     MenuItem(
       name: 'Steak', calories: 220, protein: 34, carbs: 8, fat: 6,
       fiber: 0, sodium: 900, ironMg: 2.2, calciumMg: 0, vitaminCMg: 0,
-      magnesiumMg: 19.3, zincMg: 5.6, vitaminB12Mcg: 2.7, folateMcg: 6.4,
+      magnesiumMg: 21.3, zincMg: 6.1, vitaminB12Mcg: 3, folateMcg: 7.1,
     ),
     MenuItem(
       name: 'Meatball Marinara', calories: 560, protein: 28, carbs: 44, fat: 28,
       fiber: 4, sodium: 1440, ironMg: 2.9, calciumMg: 104, vitaminCMg: 27,
-      magnesiumMg: 40.3, zincMg: 11.3, vitaminB12Mcg: 5, folateMcg: 32.3,
+      magnesiumMg: 41.7, zincMg: 11.6, vitaminB12Mcg: 5.2, folateMcg: 33.4,
     ),
     MenuItem(
       name: 'Bacon Strips', calories: 160, protein: 12, carbs: 0, fat: 12,
       fiber: 0, sodium: 340, ironMg: 0.7, calciumMg: 0, vitaminCMg: 0,
-      magnesiumMg: 10.6, zincMg: 1, vitaminB12Mcg: 0.4, folateMcg: 0,
+      magnesiumMg: 9.3, zincMg: 0.9, vitaminB12Mcg: 0.3, folateMcg: 0,
     ),
     MenuItem(
       name: 'Pepperoni', calories: 160, protein: 8, carbs: 0, fat: 14,
       fiber: 0, sodium: 580, ironMg: 0.7, calciumMg: 0, vitaminCMg: 7.2,
-      magnesiumMg: 5.7, zincMg: 0.8, vitaminB12Mcg: 0.4, folateMcg: 1.6,
+      magnesiumMg: 6.5, zincMg: 0.9, vitaminB12Mcg: 0.5, folateMcg: 1.8,
     ),
   ],
 );
@@ -465,24 +465,24 @@ const _subwayCheese = MenuCategory(
     MenuItem(
       name: 'American', calories: 80, protein: 4, carbs: 1, fat: 7,
       fiber: 0, sodium: 420, ironMg: 0, calciumMg: 104, vitaminCMg: 0,
-      magnesiumMg: 5.7, zincMg: 0.5, vitaminB12Mcg: 0.3, folateMcg: 1.7,
+      magnesiumMg: 6, zincMg: 0.6, vitaminB12Mcg: 0.3, folateMcg: 1.8,
     ),
     MenuItem(
       name: 'Provolone', calories: 90, protein: 6, carbs: 1, fat: 7,
       fiber: 0, sodium: 220, ironMg: 0, calciumMg: 195, vitaminCMg: 0,
-      magnesiumMg: 7.2, zincMg: 0.8, vitaminB12Mcg: 0.4, folateMcg: 2.6,
+      magnesiumMg: 7, zincMg: 0.8, vitaminB12Mcg: 0.4, folateMcg: 2.5,
     ),
     MenuItem(
       name: 'Pepper Jack', calories: 100, protein: 5, carbs: 1, fat: 8,
       fiber: 0, sodium: 480, ironMg: 0, calciumMg: 130, vitaminCMg: 0,
-      magnesiumMg: 7.2, zincMg: 0.8, vitaminB12Mcg: 0.2, folateMcg: 4.8,
+      magnesiumMg: 7.6, zincMg: 0.8, vitaminB12Mcg: 0.2, folateMcg: 5,
     ),
     MenuItem(name: 'Swiss', calories: 50, protein: 4, carbs: 0, fat: 4),
     MenuItem(name: 'Shredded Mozzarella', calories: 45, protein: 4, carbs: 0, fat: 3),
     MenuItem(
       name: 'Monterey Cheddar (shredded)', calories: 110, protein: 7, carbs: 1, fat: 9,
       fiber: 0, sodium: 170, ironMg: 0, calciumMg: 195, vitaminCMg: 0,
-      magnesiumMg: 8, zincMg: 0.9, vitaminB12Mcg: 0.2, folateMcg: 5.3,
+      magnesiumMg: 7.6, zincMg: 0.8, vitaminB12Mcg: 0.2, folateMcg: 5,
     ),
   ],
 );
@@ -545,7 +545,7 @@ const _subwayVeggies = MenuCategory(
     MenuItem(
       name: 'Avocado', calories: 60, protein: 1, carbs: 3, fat: 5,
       fiber: 2, sodium: 0, ironMg: 0, calciumMg: 0, vitaminCMg: 2.8,
-      magnesiumMg: 8.2, zincMg: 0.2, vitaminB12Mcg: 0, folateMcg: 22.8,
+      magnesiumMg: 8.1, zincMg: 0.2, vitaminB12Mcg: 0, folateMcg: 22.7,
     ),
   ],
 );
@@ -576,7 +576,7 @@ const _subwaySauces = MenuCategory(
     MenuItem(
       name: 'BBQ Sauce', calories: 35, protein: 0, carbs: 8, fat: 0,
       fiber: 0, sodium: 115, ironMg: 0, calciumMg: 0, vitaminCMg: 0.1,
-      magnesiumMg: 1.9, zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.3,
+      magnesiumMg: 1.8, zincMg: 0, vitaminB12Mcg: 0, folateMcg: 0.3,
     ),
     MenuItem(
       name: 'Buffalo Sauce', calories: 10, protein: 0, carbs: 2, fat: 0,
@@ -600,24 +600,20 @@ const _pandaSide = MenuCategory(
   items: [
     MenuItem(
       name: 'Chow Mein', calories: 600, protein: 15, carbs: 94, fat: 23,
-      fiber: 7, sodium: 1000, vitaminCMg: 30.8, magnesiumMg: 56.4,
-      zincMg: 1.5, vitaminB12Mcg: 0, folateMcg: 282.1,
+      fiber: 7, sodium: 1000, vitaminCMg: 18.7, magnesiumMg: 34.3,
+      zincMg: 0.9, vitaminB12Mcg: 0, folateMcg: 171.5,
     ),
     MenuItem(
       name: 'Fried Rice', calories: 620, protein: 13, carbs: 101, fat: 19,
-      fiber: 1, sodium: 1000, vitaminCMg: 13.5, magnesiumMg: 35.6,
-      zincMg: 2.5, vitaminB12Mcg: 0, folateMcg: 21.4,
+      fiber: 1, sodium: 1000, vitaminCMg: 11.8, magnesiumMg: 31.2,
+      zincMg: 2.2, vitaminB12Mcg: 0, folateMcg: 18.7,
     ),
     MenuItem(
       name: 'White Steamed Rice', calories: 520, protein: 10, carbs: 118, fat: 0,
-      fiber: 0, sodium: 0, vitaminCMg: 0, magnesiumMg: 48.4, zincMg: 2,
-      vitaminB12Mcg: 0, folateMcg: 233.8,
+      fiber: 0, sodium: 0, vitaminCMg: 0, magnesiumMg: 37.4,
+      zincMg: 1.5, vitaminB12Mcg: 0, folateMcg: 180.8,
     ),
-    MenuItem(
-      name: 'Brown Steamed Rice', calories: 420, protein: 9, carbs: 86, fat: 4,
-      vitaminCMg: 0, magnesiumMg: 133.2, zincMg: 2.2, vitaminB12Mcg: 0,
-      folateMcg: 17.1,
-    ),
+    MenuItem(name: 'Brown Steamed Rice', calories: 420, protein: 9, carbs: 86, fat: 4),
     MenuItem(
       name: 'Super Greens', calories: 130, protein: 9, carbs: 14, fat: 4,
       fiber: 7, sodium: 370,
@@ -629,13 +625,13 @@ const _pandaSide = MenuCategory(
 const _pandaEntreeItems = [
   MenuItem(
     name: 'Orange Chicken', calories: 510, protein: 16, carbs: 53, fat: 24,
-    fiber: 2, sodium: 850, vitaminCMg: 1.8, magnesiumMg: 38.9,
-    zincMg: 2.2, vitaminB12Mcg: 0.4, folateMcg: 19.5,
+    fiber: 2, sodium: 850, vitaminCMg: 1.5, magnesiumMg: 33.6,
+    folateMcg: 16.8,
   ),
   MenuItem(
     name: 'Beijing Beef', calories: 470, protein: 14, carbs: 46, fat: 27,
-    fiber: 2, sodium: 600, vitaminCMg: 26.7, magnesiumMg: 33.4,
-    zincMg: 3.6, vitaminB12Mcg: 1.1, folateMcg: 35.6,
+    fiber: 2, sodium: 600, vitaminCMg: 19.1, magnesiumMg: 23.8,
+    zincMg: 2.5, vitaminB12Mcg: 0.8, folateMcg: 25.4,
   ),
   MenuItem(
     name: 'Honey Walnut Shrimp', calories: 430, protein: 13, carbs: 32, fat: 28,
@@ -643,44 +639,44 @@ const _pandaEntreeItems = [
   ),
   MenuItem(
     name: 'Kung Pao Chicken', calories: 320, protein: 17, carbs: 15, fat: 21,
-    fiber: 2, sodium: 1050, vitaminCMg: 17.6, magnesiumMg: 59.5,
-    zincMg: 1.8, vitaminB12Mcg: 0.3, folateMcg: 39.7,
+    fiber: 2, sodium: 1050, vitaminCMg: 13.5, magnesiumMg: 45.8,
+    zincMg: 1.4, vitaminB12Mcg: 0.2, folateMcg: 30.5,
   ),
   MenuItem(
     name: 'Mushroom Chicken', calories: 220, protein: 13, carbs: 10, fat: 14,
-    fiber: 1, sodium: 840, vitaminCMg: 21.8, magnesiumMg: 31.4,
-    zincMg: 1.3, vitaminB12Mcg: 0.2, folateMcg: 24.8,
+    fiber: 1, sodium: 840, vitaminCMg: 21.3, magnesiumMg: 30.7,
+    zincMg: 1.2, vitaminB12Mcg: 0.2, folateMcg: 24.2,
   ),
   MenuItem(name: 'Black Pepper Angus Steak', calories: 210, protein: 19, carbs: 13, fat: 10),
   MenuItem(
     name: 'Broccoli Beef', calories: 150, protein: 15, carbs: 12, fat: 6,
-    fiber: 2, sodium: 520, vitaminCMg: 37.5, magnesiumMg: 22.5,
-    zincMg: 2.2, vitaminB12Mcg: 0.6, folateMcg: 31.9,
+    fiber: 2, sodium: 520, vitaminCMg: 61.7, magnesiumMg: 37,
+    zincMg: 3.7, vitaminB12Mcg: 1, folateMcg: 52.4,
   ),
   MenuItem(
     name: 'Honey Sesame Chicken Breast', calories: 340, protein: 16, carbs: 35, fat: 15,
-    fiber: 1, sodium: 540, vitaminCMg: 1.2, magnesiumMg: 25.5,
-    zincMg: 1.1, vitaminB12Mcg: 0.3, folateMcg: 9.3,
+    fiber: 1, sodium: 540, vitaminCMg: 1.5, magnesiumMg: 33.1,
+    folateMcg: 12,
   ),
   MenuItem(
     name: 'Grilled Teriyaki Chicken', calories: 275, protein: 33, carbs: 14, fat: 10,
-    fiber: 0, sodium: 470, vitaminCMg: 0, magnesiumMg: 47.2,
-    zincMg: 2.6, vitaminB12Mcg: 0.6, folateMcg: 16.9,
+    fiber: 0, sodium: 470, vitaminCMg: 0, magnesiumMg: 47.6,
+    zincMg: 2.6, vitaminB12Mcg: 0.6, folateMcg: 17,
   ),
   MenuItem(
     name: 'String Bean Chicken Breast', calories: 210, protein: 12, carbs: 13, fat: 12,
-    fiber: 5, sodium: 560, vitaminCMg: 20.8, magnesiumMg: 30,
-    zincMg: 1.2, vitaminB12Mcg: 0.2, folateMcg: 23.7,
+    fiber: 5, sodium: 560, vitaminCMg: 21, magnesiumMg: 30.2,
+    folateMcg: 23.8,
   ),
   MenuItem(
     name: 'Sweetfire Chicken Breast', calories: 360, protein: 15, carbs: 40, fat: 15,
-    fiber: 2, sodium: 370, vitaminCMg: 3.5, magnesiumMg: 21.6,
-    zincMg: 0.6, vitaminB12Mcg: 0.1, folateMcg: 15.8,
+    fiber: 2, sodium: 370, vitaminCMg: 3.9, magnesiumMg: 24.7,
+    zincMg: 0.7, vitaminB12Mcg: 0.1, folateMcg: 18.1,
   ),
   MenuItem(
     name: 'Eggplant Tofu', calories: 340, protein: 7, carbs: 23, fat: 24,
-    fiber: 3, sodium: 520, vitaminCMg: 43.9, magnesiumMg: 76.8,
-    zincMg: 1.6, vitaminB12Mcg: 0, folateMcg: 109.7,
+    fiber: 3, sodium: 520, vitaminCMg: 20.7, magnesiumMg: 36.3,
+    zincMg: 0.7, vitaminB12Mcg: 0, folateMcg: 51.9,
   ),
 ];
 
@@ -921,14 +917,14 @@ final List<RestaurantMenu> restaurantMenus = [
             MenuItem(
               name: 'Tomato Basil Wrap', calories: 310, protein: 12, carbs: 50, fat: 7,
               fiber: 2, sodium: 580, ironMg: 2.7, calciumMg: 78,
-              vitaminCMg: 0, magnesiumMg: 21.2, zincMg: 0.6, vitaminB12Mcg: 0,
-              folateMcg: 119.2,
+              vitaminCMg: 0, magnesiumMg: 21.4, zincMg: 0.6, vitaminB12Mcg: 0,
+              folateMcg: 120.4,
             ),
             MenuItem(
               name: 'Spinach Wrap', calories: 290, protein: 11, carbs: 49, fat: 6,
               fiber: 2, sodium: 580, ironMg: 2.7, calciumMg: 78,
-              vitaminCMg: 0, magnesiumMg: 21.2, zincMg: 0.6, vitaminB12Mcg: 0,
-              folateMcg: 119.2,
+              vitaminCMg: 0, magnesiumMg: 21.4, zincMg: 0.6, vitaminB12Mcg: 0,
+              folateMcg: 120.4,
             ),
           ],
         ),
@@ -2116,23 +2112,23 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(
               name: 'Cream Cheese Rangoon (3 pcs)', calories: 190, protein: 5, carbs: 24, fat: 8,
-              fiber: 2, sodium: 180, vitaminCMg: 0.3, magnesiumMg: 17.5,
-              folateMcg: 27.8,
+              fiber: 2, sodium: 180, vitaminCMg: 0.3, magnesiumMg: 19.7,
+              folateMcg: 31.3,
             ),
             MenuItem(
               name: 'Chicken Egg Roll', calories: 200, protein: 6, carbs: 20, fat: 10,
-              fiber: 2, sodium: 340, vitaminCMg: 4.3, magnesiumMg: 16.5,
-              zincMg: 0.4, vitaminB12Mcg: 0, folateMcg: 45.9,
+              fiber: 2, sodium: 340, vitaminCMg: 4.4, magnesiumMg: 17.2,
+              zincMg: 0.4, vitaminB12Mcg: 0, folateMcg: 47.6,
             ),
             MenuItem(
               name: 'Veggie Spring Roll (2 pcs)', calories: 240, protein: 4, carbs: 24, fat: 14,
-              fiber: 2, sodium: 560, vitaminCMg: 5.6, magnesiumMg: 19.6,
-              zincMg: 0.4, vitaminB12Mcg: 0, folateMcg: 59.6,
+              fiber: 2, sodium: 560, vitaminCMg: 6.2, magnesiumMg: 21.8,
+              zincMg: 0.4, vitaminB12Mcg: 0, folateMcg: 66.5,
             ),
             MenuItem(
               name: 'Chicken Potsticker (3 pcs)', calories: 160, protein: 6, carbs: 20, fat: 6,
-              fiber: 1, sodium: 250, vitaminCMg: 7.3, magnesiumMg: 18.3,
-              zincMg: 1.5, vitaminB12Mcg: 0.2, folateMcg: 15.8,
+              fiber: 1, sodium: 250, vitaminCMg: 8.2, magnesiumMg: 20.6,
+              folateMcg: 17.8,
             ),
           ],
         ),
