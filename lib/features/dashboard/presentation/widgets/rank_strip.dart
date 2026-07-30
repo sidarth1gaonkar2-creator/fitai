@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
+import '../../../../core/widgets/animated_count.dart';
+import '../../../../core/widgets/meter_bar.dart';
 import '../../../../providers/entitlement_providers.dart';
 import '../../../ranks/domain/military_ranks.dart';
 import '../../../ranks/presentation/widgets/rank_badge.dart';
@@ -36,14 +38,40 @@ class RankStrip extends ConsumerWidget {
         isApex ? 1.0 : (points - points.floor()).clamp(0.0, 1.0).toDouble();
     final score = rankDisplayScore(points);
 
-    final String progressLine;
+    // The score line counts up with the promotion bar beneath it — same
+    // Motion clock, so the readout and the meter can't drift apart.
+    final Widget progressLine;
     if (!hasData) {
-      progressLine = 'Complete workouts to earn your rank.';
-    } else if (isApex) {
-      progressLine = 'RANK SCORE $score — APEX';
+      progressLine = Text(
+        'Complete workouts to earn your rank.',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: FieldManual.body(
+          color: FieldManual.mutedBone,
+          fontSize: 12,
+        ),
+      );
     } else {
-      final next = rankFromIndex(rank.index + 1);
-      progressLine = '$score → ${(rank.index + 1) * 100} ${next.abbreviation}';
+      progressLine = AnimatedCount(
+        value: points,
+        builder: (context, animated) {
+          final animatedScore = rankDisplayScore(animated);
+          final String line;
+          if (isApex) {
+            line = 'RANK SCORE $animatedScore — APEX';
+          } else {
+            final next = rankFromIndex(rank.index + 1);
+            line = '$animatedScore → ${(rank.index + 1) * 100} '
+                '${next.abbreviation}';
+          }
+          return Text(
+            line,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: FieldManual.label(fontSize: 10),
+          );
+        },
+      );
     }
 
     return Semantics(
@@ -91,17 +119,7 @@ class RankStrip extends ConsumerWidget {
                           style: FieldManual.title(),
                         ),
                         const SizedBox(height: 3),
-                        Text(
-                          progressLine,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: hasData
-                              ? FieldManual.label(fontSize: 10)
-                              : FieldManual.body(
-                                  color: FieldManual.mutedBone,
-                                  fontSize: 12,
-                                ),
-                        ),
+                        progressLine,
                       ],
                     ),
                   ),
@@ -116,21 +134,11 @@ class RankStrip extends ConsumerWidget {
               const SizedBox(height: 12),
               // Promotion progress — thin rule, live-accent fill (brass on
               // the default issue).
-              ClipRRect(
-                borderRadius: BorderRadius.circular(1.5),
-                child: SizedBox(
-                  height: 3,
-                  child: Stack(
-                    children: [
-                      Container(color: FieldManual.hairline),
-                      FractionallySizedBox(
-                        widthFactor: hasData ? progressFraction : 0.0,
-                        child:
-                            Container(color: AppColors.of(context).accent),
-                      ),
-                    ],
-                  ),
-                ),
+              MeterBar(
+                fraction: hasData ? progressFraction : 0.0,
+                fill: AppColors.of(context).accent,
+                height: 3,
+                radius: 1.5,
               ),
             ],
           ),

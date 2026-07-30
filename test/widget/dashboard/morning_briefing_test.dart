@@ -34,6 +34,8 @@ void main() {
       await tester.pumpWidget(_host(
         const OrdersBlock(workout: null, isRestDay: true, streak: 4),
       ));
+      // The streak chip counts up on the shared Motion clock — settle first.
+      await tester.pumpAndSettle();
       expect(find.text('STAND DOWN'), findsOneWidget);
       expect(find.text('LOG ANYWAY'), findsOneWidget);
       expect(find.text('DAY 4'), findsOneWidget);
@@ -53,6 +55,8 @@ void main() {
           multiplier: 1.7,
         ),
       ));
+      // The streak chip counts up on the shared Motion clock — settle first.
+      await tester.pumpAndSettle();
       expect(find.text('MISSION COMPLETE'), findsOneWidget);
       expect(find.text('Heavy Push Day'), findsOneWidget);
       expect(find.text('45 MIN'), findsOneWidget);

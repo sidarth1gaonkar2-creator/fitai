@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
 import '../../../../core/utils/logger.dart';
+import '../../../../core/widgets/animated_count.dart';
+import '../../../../core/widgets/meter_bar.dart';
 import '../../../../providers/supplement_providers.dart';
 
 class SupplementConsistencyCard extends ConsumerWidget {
@@ -18,8 +20,6 @@ class SupplementConsistencyCard extends ConsumerWidget {
     final palette = AppColors.of(context);
     return consistencyAsync.when(
       data: (pct) {
-        final percent = (pct * 100).round();
-
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
@@ -42,32 +42,21 @@ class SupplementConsistencyCard extends ConsumerWidget {
                     // Progress bar — bone fill on a hairline track. The
                     // traffic-light tiers retire; the readout carries the
                     // number (DESIGN.md bar idiom).
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(1),
-                      child: SizedBox(
-                        height: 4,
-                        child: Stack(
-                          children: [
-                            Container(color: FieldManual.hairline),
-                            FractionallySizedBox(
-                              widthFactor:
-                                  pct.clamp(0.0, 1.0).toDouble(),
-                              child: Container(
-                                color: FieldManual.bone
-                                    .withValues(alpha: 0.85),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    MeterBar(
+                      fraction: pct.clamp(0.0, 1.0).toDouble(),
+                      fill: FieldManual.bone.withValues(alpha: 0.85),
+                      height: 4,
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 12),
-              Text(
-                '$percent%',
-                style: FieldManual.readout(fontSize: 15),
+              AnimatedCount(
+                value: pct * 100,
+                builder: (context, animated) => Text(
+                  '${animated.round()}%',
+                  style: FieldManual.readout(fontSize: 15),
+                ),
               ),
             ],
           ),

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/field_manual.dart';
+import '../../../../core/widgets/animated_count.dart';
+import '../../../../core/widgets/meter_bar.dart';
 import '../../../ranks/domain/military_ranks.dart';
 import '../../../ranks/presentation/widgets/rank_badge.dart';
 import '../../../ranks/providers/rank_providers.dart';
@@ -82,7 +84,7 @@ class ChallengeGoalProgressView extends ConsumerWidget {
 
     final calc = ref.watch(rankCalculatorProvider).valueOrNull;
     if (calc == null) {
-      return _bar(palette, 0, 'Calculating your rank…', '');
+      return _bar(palette, 0, 'Calculating your rank…', showPercent: false);
     }
 
     final p = computeChallengeGoalProgress(
@@ -102,7 +104,6 @@ class ChallengeGoalProgressView extends ConsumerWidget {
       palette,
       p.progress,
       caption,
-      '${(p.progress * 100).round()}%',
       complete: p.isComplete,
     );
   }
@@ -110,8 +111,8 @@ class ChallengeGoalProgressView extends ConsumerWidget {
   Widget _bar(
     Palette palette,
     double progress,
-    String caption,
-    String percent, {
+    String caption, {
+    bool showPercent = true,
     bool complete = false,
   }) {
     // Progress is an instrument: accent fill on a hairline track. A completed
@@ -131,28 +132,12 @@ class ChallengeGoalProgressView extends ConsumerWidget {
               border: Border.all(color: palette.border),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: SizedBox(
-                height: dense ? 6 : 8,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return Stack(
-                      children: [
-                        Container(
-                          width: constraints.maxWidth,
-                          color: palette.surfaceElevated,
-                        ),
-                        Container(
-                          width:
-                              constraints.maxWidth * progress.clamp(0.0, 1.0),
-                          color: fill,
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
+            child: MeterBar(
+              fraction: progress,
+              fill: fill,
+              height: dense ? 6 : 8,
+              track: palette.surfaceElevated,
+              radius: 4,
             ),
           ),
         ),
@@ -171,14 +156,17 @@ class ChallengeGoalProgressView extends ConsumerWidget {
                 ),
               ),
             ),
-            if (percent.isNotEmpty) ...[
+            if (showPercent) ...[
               const SizedBox(width: 8),
-              Text(
-                // The percentage is a trained-against number — mono readout.
-                percent,
-                style: FieldManual.readout(
-                  fontSize: captionSize < 12 ? 12 : captionSize,
-                  color: complete ? palette.accent : palette.text,
+              AnimatedCount(
+                value: progress.clamp(0.0, 1.0) * 100,
+                builder: (context, animated) => Text(
+                  // The percentage is a trained-against number — mono readout.
+                  '${animated.round()}%',
+                  style: FieldManual.readout(
+                    fontSize: captionSize < 12 ? 12 : captionSize,
+                    color: complete ? palette.accent : palette.text,
+                  ),
                 ),
               ),
             ],

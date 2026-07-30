@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/unit_converter.dart';
+import '../../../core/widgets/meter_bar.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../data/exercise_library.dart';
 import '../../../models/exercisedb_exercise.dart';
@@ -571,13 +572,16 @@ class _RankSection extends ConsumerWidget {
             style: textTheme.bodyMedium?.copyWith(color: palette.text),
           ),
           const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: detail.progressToNext.clamp(0.0, 1.0),
-              minHeight: 8,
-              backgroundColor: palette.surfaceElevated,
-              valueColor: AlwaysStoppedAnimation(rankColor),
+          Semantics(
+            label: 'Progress to next rank',
+            value:
+                '${(detail.progressToNext.clamp(0.0, 1.0) * 100).round()}%',
+            child: MeterBar(
+              fraction: detail.progressToNext,
+              fill: rankColor,
+              height: 8,
+              track: palette.surfaceElevated,
+              radius: 4,
             ),
           ),
           const SizedBox(height: 6),
