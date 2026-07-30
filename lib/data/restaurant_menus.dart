@@ -4420,15 +4420,11 @@ final List<RestaurantMenu> restaurantMenus = [
             ),
             MenuItem(
               name: 'Chicken Noodle (Cup)', calories: 120, protein: 10, carbs: 14, fat: 3,
-              fiber: 0, sodium: 1050, vitaminCMg: 8.4,
-              magnesiumMg: 24.9, zincMg: 0.7, vitaminB12Mcg: 0.1,
-              folateMcg: 43,
+              fiber: 0, sodium: 1050, 
             ),
             MenuItem(
               name: 'Chicken Noodle (Bowl)', calories: 180, protein: 14, carbs: 21, fat: 4.5,
-              fiber: 0, sodium: 1570, vitaminCMg: 12.6,
-              magnesiumMg: 37.4, zincMg: 1.1, vitaminB12Mcg: 0.1,
-              folateMcg: 64.5,
+              fiber: 0, sodium: 1570, 
             ),
             MenuItem(name: 'Baked Potato (Cup)', calories: 230, protein: 5, carbs: 22, fat: 13),
             MenuItem(name: 'Baked Potato (Bowl)', calories: 360, protein: 8, carbs: 34, fat: 21),
@@ -4517,13 +4513,13 @@ final List<RestaurantMenu> restaurantMenus = [
           items: [
             MenuItem(
               name: 'Mac & Cheese (Cup)', calories: 490, protein: 16, carbs: 34, fat: 32,
-              fiber: 0, sodium: 1150, vitaminCMg: 0, magnesiumMg: 43.9,
-              zincMg: 2.4, vitaminB12Mcg: 0.6, folateMcg: 76.9,
+              fiber: 0, sodium: 1150, 
+              zincMg: 2, vitaminB12Mcg: 0.5, 
             ),
             MenuItem(
               name: 'Mac & Cheese (Bowl)', calories: 980, protein: 32, carbs: 68, fat: 64,
-              fiber: 0, sodium: 2300, vitaminCMg: 0, magnesiumMg: 87.9,
-              zincMg: 4.7, vitaminB12Mcg: 1.2, folateMcg: 153.8,
+              fiber: 0, sodium: 2300, 
+              zincMg: 4, vitaminB12Mcg: 1, 
             ),
             MenuItem(name: 'Broccoli Cheddar Mac (Cup)', calories: 510, protein: 22, carbs: 48, fat: 26),
             MenuItem(name: 'Broccoli Cheddar Mac (Bowl)', calories: 1020, protein: 44, carbs: 96, fat: 52),
@@ -4552,13 +4548,11 @@ final List<RestaurantMenu> restaurantMenus = [
             ),
             MenuItem(
               name: 'Everything Bagel', calories: 300, protein: 8, carbs: 61, fat: 2.5,
-              fiber: 3, sodium: 720, vitaminCMg: 0, magnesiumMg: 33,
-              zincMg: 0.9, vitaminB12Mcg: 0, folateMcg: 120.5,
+              fiber: 3, sodium: 720, 
             ),
             MenuItem(
               name: 'Plain Bagel', calories: 280, protein: 7, carbs: 59, fat: 1,
-              fiber: 3, sodium: 590, vitaminCMg: 0, magnesiumMg: 30.8,
-              zincMg: 0.9, vitaminB12Mcg: 0, folateMcg: 112.4,
+              fiber: 3, sodium: 590, 
             ),
             MenuItem(
               name: 'Kitchen Sink Cookie', calories: 810, protein: 7, carbs: 100, fat: 42,
@@ -4566,14 +4560,12 @@ final List<RestaurantMenu> restaurantMenus = [
             ),
             MenuItem(
               name: 'Chocolate Chipper Cookie', calories: 390, protein: 4, carbs: 52, fat: 18,
-              fiber: 1, sodium: 330, vitaminCMg: 0, magnesiumMg: 32.5,
-              zincMg: 0.6, vitaminB12Mcg: 0, folateMcg: 57.1,
+              fiber: 1, sodium: 330, 
             ),
             MenuItem(name: 'Pumpkin Muffin', calories: 470, protein: 5, carbs: 64, fat: 22),
             MenuItem(
               name: 'Cinnamon Roll', calories: 580, protein: 7, carbs: 97, fat: 18,
-              fiber: 2, sodium: 420, vitaminCMg: 0.4, magnesiumMg: 18,
-              zincMg: 0.7, vitaminB12Mcg: 0.2, folateMcg: 92.4,
+              fiber: 2, sodium: 420, 
             ),
           ],
         ),
@@ -4595,8 +4587,7 @@ final List<RestaurantMenu> restaurantMenus = [
             ),
             MenuItem(
               name: 'Latte', calories: 130, protein: 8, carbs: 12, fat: 5,
-              fiber: 0, sodium: 110, vitaminCMg: 0.6, magnesiumMg: 69.5,
-              zincMg: 1.1, vitaminB12Mcg: 1.1, folateMcg: 6,
+              fiber: 0, sodium: 110, 
             ),
             MenuItem(
               name: 'Mocha', calories: 340, protein: 10, carbs: 54, fat: 10,
