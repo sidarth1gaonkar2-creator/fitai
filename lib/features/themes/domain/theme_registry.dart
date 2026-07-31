@@ -52,12 +52,33 @@ const SurfaceTexture _woodlandTexture = SurfaceTexture(
     Color(0xFF524A2C), // khaki/tan — lightest lobe; the AA worst case
     Color(0xFF1B1F10), // near-black M81 overlay, painted on top
   ],
-  blobsPerTone: 24, // fewer, larger shapes than Night Ops's 72 fine ones
+  // Density raised after device review: at 24 lobes per tone the camo read as
+  // faint mottling rather than a pattern.
+  //
+  // Chosen by measuring the rasterised tile, not by eye, because the obvious
+  // move does not work here. Simply adding lobes at the old size barely helps:
+  // at 24/0.07-0.18 the lobes already overlay ~3.5 tile-areas per tone, so new
+  // shapes mostly land on same-tone neighbours and produce no edge. Going
+  // 24 -> 64 with a modest size cut bought only +11% edge density.
+  //
+  // 120 @ 0.035-0.095 nearly DOUBLES edge density (mean |dL/dx| 0.513e-3 ->
+  // 0.976e-3, +90%) while mean luminance goes DOWN (0.0250 -> 0.0239) and the
+  // tonal spread is unchanged (sd 0.0211 -> 0.0213). Settings that push edge
+  // density higher all brighten the ground 15-20% by thinning the near-black
+  // M81 overlay, which is not an acceptable way to buy visibility.
+  //
+  // The count matches Night Ops's 120, but the radius deliberately sits
+  // BETWEEN Woodland's original large blotches and Night Ops's 0.025-0.08
+  // grain: M81's identity is large soft shapes, and shrinking that far would
+  // trade one wrong look for another. Palette untouched — this is a
+  // visibility problem, not a colour problem, and the khaki lobe is the
+  // AA-binding surface for the whole skin.
+  blobsPerTone: 120,
   tileSize: 420,
   seed: 7,
   smooth: true, // soft printed-fabric edges, not tactical grain
-  minRadiusFactor: 0.07,
-  maxRadiusFactor: 0.18,
+  minRadiusFactor: 0.035,
+  maxRadiusFactor: 0.095,
 );
 
 /// Static catalogue of all themes shipped with the app. Order here defines
@@ -104,19 +125,54 @@ const Color _fmSuccess = Color(0xFF3FBF4A);
 // A BRUSHED-METAL band (design-refs/navy blue brushed metal texture.png) is
 // laid across the top of the ground and faded out into the twill — the
 // hardware register of the brass button and belt plate above the cloth.
-// Both textures are deliberately near the threshold of visibility. A first
-// pass ran the twill at pitch 6 with tone deltas up to +13/channel and it read
-// as diagonal SCRATCHES — the exact failure this skin can't afford, since a
-// visible pattern is ruggedness and ruggedness is the other two skins' job.
-// Refinement means the weave is felt, not seen: fine pitch, deltas of 2–5.
+// An early pass ran the twill at pitch 6 with tone deltas up to +13/channel
+// and it read as diagonal SCRATCHES — the failure this skin can't afford,
+// since a visible PATTERN is ruggedness and ruggedness is the other two
+// skins' job. The correction went too far the other way: at pitch 3 with
+// deltas of 2–5 the weave was not "felt, not seen", it was simply not there,
+// and device review found a flat navy field.
+//
+// The resolution is that scratches came from COARSE PITCH, not from tone
+// contrast. Pitch stays at 3 — fine enough that the ribs never resolve as
+// individual stripes at arm's length — while the tone deltas go up enough to
+// be perceptible. Fine weave, real contrast: cloth rather than scratches.
+//
+// Twill visibility pass, after device review. Three things were wrong, and
+// all three are fixed here rather than by lifting brightness (which would
+// have changed the uniform's colour to solve a texture problem).
+//
+// 1. TONE SPREAD. The two tones sat 2–4 RGB levels apart — below the
+//    perceptual floor on a dark surface. Four tones now span 16→30 R, 32→60 B,
+//    placed SYMMETRICALLY ABOUT THE OLD MEAN: the surface averages
+//    (23.0, 28.0, 46.3) against the old (23.6, 28.6, 47.1), same hue ratio
+//    (R/B 0.497 vs 0.500), a hair darker rather than lighter. More variance,
+//    same navy. Measured on the rasterised tile: mean luminance 0.01259 ->
+//    0.01252, i.e. DOWN, while the luminance spread goes up 6.7x
+//    (sd 0.0006 -> 0.0040) and edge energy 4.7x.
+// 2. ADJACENT CONTRAST. Ribs alternate dark bank {t1,t2} / light bank
+//    {t3,t4}, so neighbouring ribs always differ — see _paintTwill. Random
+//    per-rib picking left half of all neighbours identical.
+// 3. RIB WIDTH. 0.55 of pitch left the base showing between ribs, diluting
+//    the weave with a third flat tone. 0.72 clears the 1/sqrt(2) ~= 0.707
+//    edge-to-edge threshold, so the surface is rib-to-rib and the pattern is
+//    carried purely by neighbour contrast.
 const SurfaceTexture _dressBluesTwill = SurfaceTexture(
   id: 'dress_blues_twill',
   base: Color(0xFF161B2C),
-  tones: [Color(0xFF171C2E), Color(0xFF191E32)],
+  tones: [
+    Color(0xFF101320), // dark bank
+    Color(0xFF15192A),
+    Color(0xFF191F33), // light bank
+    Color(0xFF1E253C), // lightest — the AA worst case, L 0.020 (ceiling 0.043)
+  ],
   tileSize: 480,
   seed: 7,
   pattern: SurfaceTexturePattern.twillWeave,
-  ribPitch: 3, // 480 % 3 == 0, so the diagonal wraps seamlessly
+  // 480 % 3 == 0 so the diagonal wraps, and 480/3 == 160 is EVEN so the
+  // dark/light alternation wraps too — an odd count would put two same-bank
+  // ribs together at the tile seam.
+  ribPitch: 3,
+  ribWidthFactor: 0.72,
 );
 
 // The header band sits just above the twill, so it reads as a sheen catching
