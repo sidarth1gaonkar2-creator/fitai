@@ -342,6 +342,13 @@ void main() {
         header: _metalProbe, headerHeight: 260);
     expect(painter.shouldRepaint(painter), isFalse,
         reason: 'texture painter repaints every frame');
+
+    // The twill's dark/light rib banks alternate by rib INDEX, so the count of
+    // ribs in one tile must be even or two same-bank ribs land together at the
+    // seam. 480 / 3 == 160.
+    final twill = blues.surfaceTexture!;
+    expect((twill.tileSize ~/ twill.ribPitch).isEven, isTrue,
+        reason: 'odd ribs-per-tile puts two same-bank ribs at the tile seam');
   });
 
   test('Dress Blues is Airborne-gated and never purchasable', () {
@@ -424,6 +431,58 @@ void main() {
     expect(no.minRadiusFactor, 0.025);
     expect(no.maxRadiusFactor, 0.08);
     expect(no.lightestTone, const Color(0xFF1C1C1C));
+  });
+
+  test('Dress Blues twill params are pinned at the tuned weave', () {
+    final twill = themeById('dress_blues').surfaceTexture!;
+    // Records the 2026-07-31 visibility tuning. Device review found the weave
+    // invisible at arm's length; the ground read as flat navy. Fixed on three
+    // axes at once, none of which is brightness:
+    //   tones   2 -> 4, spread SYMMETRICALLY about the old mean
+    //   width   0.55 -> 0.72 of pitch (clears the 1/sqrt(2) full-coverage line)
+    //   banks   adjacent ribs alternate dark/light, so neighbours always differ
+    expect(twill.pattern, SurfaceTexturePattern.twillWeave);
+    expect(twill.ribPitch, 3);
+    expect(twill.ribWidthFactor, 0.72);
+    expect(twill.tileSize, 480);
+    expect(twill.seed, 7);
+    expect(twill.base, const Color(0xFF161B2C));
+    expect(twill.tones, const [
+      Color(0xFF101320),
+      Color(0xFF15192A),
+      Color(0xFF191F33),
+      Color(0xFF1E253C),
+    ]);
+    expect(twill.tones.length.isEven, isTrue,
+        reason: 'the dark/light bank split needs an even tone count');
+
+    // THE POINT OF THE TUNING: the ribs must average to the navy the skin
+    // shipped with. More variance, same mean — not a brighter surface. The old
+    // ground averaged (23.56, 28.56, 47.11) across ribs plus the base showing
+    // through at 22% coverage; the new full-coverage rib mean must land on it
+    // and must not be lighter.
+    var r = 0.0, g = 0.0, b = 0.0;
+    for (final c in twill.tones) {
+      r += c.r * 255;
+      g += c.g * 255;
+      b += c.b * 255;
+    }
+    final n = twill.tones.length;
+    expect((r / n - 23.56).abs(), lessThan(1.0), reason: 'red drifted');
+    expect((g / n - 28.56).abs(), lessThan(1.0), reason: 'green drifted');
+    expect((b / n - 47.11).abs(), lessThan(1.0), reason: 'blue drifted');
+    expect(r / n, lessThanOrEqualTo(23.56 + 0.01), reason: 'got brighter');
+    expect(b / n, lessThanOrEqualTo(47.11 + 0.01), reason: 'got brighter');
+
+    // Ribs must actually meet: below 1/sqrt(2) the base bleeds through and
+    // dilutes the weave with a third flat tone.
+    expect(twill.ribWidthFactor, greaterThanOrEqualTo(1 / math.sqrt2));
+
+    // The header band is a different material and was NOT part of this pass.
+    final metal = themeById('dress_blues').headerTexture!;
+    expect(metal.pattern, SurfaceTexturePattern.brushedMetal);
+    expect(metal.tones, const [Color(0xFF1F2540), Color(0xFF222948)]);
+    expect(metal.ribPitch, 3);
   });
 }
 

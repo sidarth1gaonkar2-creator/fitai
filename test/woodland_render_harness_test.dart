@@ -378,6 +378,37 @@ void main() {
     expect(tex.lightestTone, const Color(0xFF1C1C1C));
   });
 
+  test('Woodland texture params are pinned at the tuned density', () {
+    final tex = themeById('woodland').surfaceTexture!;
+    // Woodland's own numbers were never pinned — only Night Ops's were — so an
+    // accidental edit to the shipped camo could not trip anything. These pins
+    // close that gap and record the 2026-07-31 visibility tuning: device
+    // review found the camo read as faint mottling, so lobe count went
+    // 24 -> 120 and radius 0.07/0.18 -> 0.035/0.095. Chosen by measuring the
+    // rasterised tile, not by eye — edge density (mean |dL/dx|) rises 90%,
+    // 0.513e-3 -> 0.976e-3, while mean luminance DROPS 0.0250 -> 0.0239 and
+    // the tonal spread holds (sd 0.0211 -> 0.0213). The count matches Night
+    // Ops's 120 but the radius stays deliberately larger than its 0.025/0.08
+    // fine grain: M81's identity is large soft blotches.
+    expect(tex.blobsPerTone, 120);
+    expect(tex.minRadiusFactor, 0.035);
+    expect(tex.maxRadiusFactor, 0.095);
+    expect(tex.tileSize, 420);
+    expect(tex.seed, 7);
+    // Pattern identity — these are what make it Woodland rather than Night Ops
+    // and must survive any future density tuning.
+    expect(tex.smooth, isTrue, reason: 'M81 needs soft printed-fabric edges');
+    expect(tex.pattern, SurfaceTexturePattern.camoLobes);
+    expect(tex.base, const Color(0xFF313A1E));
+    expect(tex.tones, const [
+      Color(0xFF453823),
+      Color(0xFF524A2C),
+      Color(0xFF1B1F10),
+    ], reason: 'the visibility pass changed density, NOT the palette');
+    // The khaki lobe is the AA-binding surface for the whole skin.
+    expect(tex.lightestTone, const Color(0xFF524A2C));
+  });
+
   test('Woodland texture is generated once and cached (scroll perf gate)',
       () async {
     final tex = themeById('woodland').surfaceTexture!;

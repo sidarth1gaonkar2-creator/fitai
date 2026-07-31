@@ -61,6 +61,7 @@ class SurfaceTexture {
     this.maxRadiusFactor = 0.13,
     this.pattern = SurfaceTexturePattern.camoLobes,
     this.ribPitch = 5,
+    this.ribWidthFactor = 0.55,
   });
 
   /// Cache key — must be unique per distinct look.
@@ -99,6 +100,18 @@ class SurfaceTexture {
   /// patterns. [tileSize] must be a whole multiple of it or the pattern seams
   /// at the tile edge — asserted in the harness.
   final int ribPitch;
+
+  /// Rib stroke width as a fraction of [ribPitch], for
+  /// [SurfaceTexturePattern.twillWeave] only. Brushed metal keeps its own
+  /// hardcoded 0.6 so the Dress Blues header band is untouched by this.
+  ///
+  /// Ribs run at 45°, so the perpendicular gap between neighbours is
+  /// `ribPitch / sqrt(2)` — a factor of ~0.707 is the point at which ribs meet
+  /// edge to edge. Below it the [base] shows through between ribs and dilutes
+  /// the weave; at or above it the surface is rib-to-rib and the pattern is
+  /// carried entirely by tone contrast between neighbours, which is what makes
+  /// a weave legible rather than a flat field.
+  final double ribWidthFactor;
 
   /// The lightest tone any text could sit on — callers use this to prove the
   /// AA gate against the real worst case.
@@ -193,21 +206,52 @@ class SurfaceTexture {
     return rec.endRecording();
   }
 
-  /// Diagonal ribs at 45°. The family `x - y = k·pitch` is periodic in both
+  /// Diagonal ribs at 45°. The family `x + y = k·pitch` is periodic in both
   /// axes with period [ribPitch], so the tile wraps seamlessly whenever
-  /// `tileSize % ribPitch == 0`. Each rib picks a tone, giving the weave a
-  /// slight irregularity rather than a mechanical stripe.
+  /// `tileSize % ribPitch == 0`.
+  ///
+  /// Two things make the weave legible rather than a flat field, and both are
+  /// deliberate:
+  ///
+  /// **Adjacent ribs always differ.** Ribs alternate between a darker and a
+  /// lighter bank of [tones] (first half / second half). Picking each rib's
+  /// tone at random — the original behaviour — left neighbouring ribs the same
+  /// colour about half the time with a two-tone list, which erases the very
+  /// boundary the eye resolves as cloth. Which member of a bank a rib takes is
+  /// still seeded-random, so the weave keeps a slight irregularity instead of
+  /// reading as a mechanical stripe.
+  ///
+  /// **Rib colour is periodic over the tile.** The rib leaving the right edge
+  /// and the one entering the next tile's left edge are the SAME rib on
+  /// screen, so they must be the same colour. Drawing a fresh random tone per
+  /// rib broke that — the tile did not actually wrap in tone. It went unnoticed
+  /// only because the shipped tones sat within ~4 RGB levels of each other; the
+  /// moment the palette spreads far enough to see, the seam would have become
+  /// a visible break in the diagonal every [tileSize] pixels.
   void _paintTwill(Canvas canvas, double t, math.Random rnd) {
     if (tones.isEmpty) return;
     final pitch = ribPitch.toDouble();
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = pitch * 0.55
+      ..strokeWidth = pitch * ribWidthFactor
       ..isAntiAlias = true;
+
+    final ribsPerTile = (t / pitch).round();
+    final half = tones.length ~/ 2;
+    final ribColors = List<Color>.generate(ribsPerTile, (i) {
+      if (tones.length < 2) return tones.first;
+      final lightBank = i.isOdd;
+      final lo = lightBank ? half : 0;
+      final hi = lightBank ? tones.length : half;
+      return tones[lo + rnd.nextInt(hi - lo)];
+    });
+
     // Sweep k across two tile widths so ribs entering from the left edge are
-    // drawn as well as those leaving the right.
-    for (var k = -t; k <= t * 2; k += pitch) {
-      paint.color = tones[rnd.nextInt(tones.length)];
+    // drawn as well as those leaving the right. Index the colour wrapped, so
+    // rib k and rib k+t — the same rib once tiled — resolve identically.
+    var i = 0;
+    for (var k = -t; k <= t * 2; k += pitch, i++) {
+      paint.color = ribColors[i % ribsPerTile];
       canvas.drawLine(Offset(k, 0), Offset(k - t, t), paint);
     }
   }
